@@ -13,9 +13,9 @@ HunterGate(
 
 project(intx)
 
-set(CMAKE_CXX_STANDARD 11)
-
 add_subdirectory(libs/intx)
+
+add_subdirectory(tests)
 
 add_executable(int256 main.cpp)
 target_link_libraries(int256 intx)
