@@ -42,11 +42,14 @@ TEST(mul, mul_full64_edges)
 	{
 		for (auto b : edges)
 		{
-			i64 p1h, p1l, p2h, p2l;
-			mul_full64_portable(&p1h, &p1l, a, b);
-			mul_full64_optimized(&p2h, &p2l, a, b);
-			ASSERT_EQ(p1l, p2l);
-			ASSERT_EQ(p1h, p2h);
+			uint64_t p1h, p1l, p2h, p2l, p3h, p3l;
+			mul_full64_portable1(&p1h, &p1l, a, b);
+			mul_full64_portable2(&p2h, &p2l, a, b);
+			mul_full64_optimized(&p3h, &p3l, a, b);
+			EXPECT_EQ(p1l, p3l) << "lo(" << a << " * " << b << ")";
+			EXPECT_EQ(p1h, p3h) << "hi(" << a << " * " << b << ")";
+			EXPECT_EQ(p2l, p3l) << "lo(" << a << " * " << b << ")";
+			EXPECT_EQ(p2h, p3h) << "hi(" << a << " * " << b << ")";
 		}
 	}
 }

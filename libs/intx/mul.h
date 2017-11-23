@@ -24,11 +24,10 @@ void mul_full64_msvc(i64* oh, i64* ol, i64 a, i64 b)
 
 #endif
 
-void mul_full64_portable(i64* oh, i64* ol, i64 a, i64 b)
+void mul_full64_portable1(i64* oh, i64* ol, i64 a, i64 b)
 {
 	i64 al = a & 0xffffffff;
 	i64 ah = a >> 32;
-
 	i64 bl = b & 0xffffffff;
 	i64 bh = b >> 32;
 
@@ -37,18 +36,39 @@ void mul_full64_portable(i64* oh, i64* ol, i64 a, i64 b)
 	i64 v = al * bh;
 	i64 w = ah * bh;
 
-	i64 ul = u & 0xffffffff;
 	i64 uh = u >> 32;
-
-	i64 vl = v & 0xffffffff;
 	i64 vh = v >> 32;
 
-	i64 l1 = t + (ul << 32);
-	int c1 = l1 < t;
+	i64 m = t + (u << 32);
+	bool carry1 = m < t;
 
-	i64 l2 = l1 + (vl << 32);
-	int c2 = l2 < l1;
+	i64 lo = m + (v << 32);
+	bool carry2 = lo < m;
 
-	*ol = l2;
-	*oh = uh + vh + w + c1 + c2;
+	uint64_t hi = uh + vh + w + carry1 + carry2;
+
+	*ol = lo;
+	*oh = hi;
+}
+
+void mul_full64_portable2(uint64_t* oh, uint64_t* ol, uint64_t a, uint64_t b)
+{
+	uint64_t al = a & 0xffffffff;
+	uint64_t ah = a >> 32;
+	uint64_t bl = b & 0xffffffff;
+	uint64_t bh = b >> 32;
+
+	uint64_t t, lo, hi;
+
+	t = al * bl;
+	lo = t & 0xffffffff;
+	t = ah * bl + (t >> 32);
+	hi = t >> 32;
+
+	t = al * bh + (t & 0xffffffff);
+	lo |= t << 32;
+	hi = ah * bh + hi + (t >> 32);
+
+	*ol = lo;
+	*oh = hi;
 }
