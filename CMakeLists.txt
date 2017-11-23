@@ -13,6 +13,8 @@ HunterGate(
 
 project(intx)
 
+add_compile_options(-Werror -Wall -Wextra -Wconversion)
+
 add_subdirectory(libs/intx)
 
 add_subdirectory(tests)

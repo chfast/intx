@@ -23,6 +23,7 @@ unsigned __int128 add(unsigned __int128 a, unsigned __int128 b)
 
 uint64_t add2(uint64_t ah, uint64_t al, uint64_t bh, uint64_t bl)
 {
+	(void)ah;
 	auto l = al + bl;
 	auto c = l < al;
 	auto h = bh + bl + c;

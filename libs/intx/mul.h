@@ -1,7 +1,6 @@
+#include <cstdint>
 
-
-
-using i64 = unsigned long long;
+using i64 = uint64_t;
 
 #ifndef _MSC_VER
 using i128 = unsigned __int128;
@@ -9,7 +8,7 @@ using i128 = unsigned __int128;
 void mul_full64_int128(i64* oh, i64* ol, i64 a, i64 b)
 {
 	auto p = static_cast<i128>(a) * b;
-	*oh = p >> 64;
+	*oh = static_cast<i64>(p >> 64);
 	*ol = static_cast<i64>(p);
 }
 #else
@@ -49,8 +48,6 @@ void mul_full64_portable(i64* oh, i64* ol, i64 a, i64 b)
 
 	i64 l2 = l1 + (vl << 32);
 	int c2 = l2 < l1;
-
-
 
 	*ol = l2;
 	*oh = uh + vh + w + c1 + c2;
