@@ -16,6 +16,12 @@ struct uint256
 	}
 };
 
+struct uint128
+{
+	uint64_t lo = 0;
+	uint64_t hi = 0;
+};
+
 unsigned __int128 add(unsigned __int128 a, unsigned __int128 b)
 {
 	return a + b;
