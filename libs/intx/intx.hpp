@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <array>
 #include <limits>
+#include <tuple>
 
 struct uint256
 {
@@ -141,4 +142,75 @@ uint256 operator+(uint256 a, uint256 b)
 bool operator==(uint256 a, uint256 b)
 {
 	return std::equal(a.limbs.begin(), a.limbs.end(), b.limbs.begin());
+}
+
+
+using u128 = unsigned __int128;
+
+struct u256
+{
+	using half = u128;
+
+	half lo = 0;
+	half hi = 0;
+};
+
+bool operator<(u256 a, u256 b)
+{
+	if (a.hi == b.hi)
+		return a.lo < b.lo;
+	return a.hi < b.hi;
+}
+
+std::tuple<u128, bool> add_with_carry(u128 a, u128 b)
+{
+	auto s = a + b;
+	auto k = s < a;
+	return {s, k};
+}
+
+std::tuple<u256, bool> add_with_carry(u256 a, u256 b)
+{
+	u256 s;
+	bool k1, k2, k3;
+	std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
+	std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
+	std::tie(s.hi, k3) = add_with_carry(s.hi, k1);
+	return {s, k2 || k3};
+}
+
+u256 add(u256 a, u256 b)
+{
+	return std::get<0>(add_with_carry(a, b));
+}
+
+unsigned clz(uint64_t a)
+{
+	return __builtin_clzl(a);
+}
+
+unsigned clz2(uint64_t a)
+{
+	unsigned c = 0;
+	for (; c < 64; ++c)
+	{
+		if ((a & 0x8000000000000000) != 0)
+			break;
+		a <<= 1;
+	}
+	return c;
+}
+
+u256 operator+(u256 a, u256 b)
+{
+	u256 s;
+	s.lo = a.lo + b.lo;
+	auto k = s.lo < a.lo;
+	s.hi = a.hi + b.hi + k;
+	return s;
+}
+
+bool operator==(u256 a, u256 b)
+{
+	return a.lo == b.lo && a.hi == b.hi;
 }
