@@ -166,7 +166,7 @@ std::tuple<u128, bool> add_with_carry(u128 a, u128 b)
 {
 	auto s = a + b;
 	auto k = s < a;
-	return {s, k};
+	return std::make_tuple(s, k);
 }
 
 std::tuple<u256, bool> add_with_carry(u256 a, u256 b)
@@ -176,7 +176,7 @@ std::tuple<u256, bool> add_with_carry(u256 a, u256 b)
 	std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
 	std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
 	std::tie(s.hi, k3) = add_with_carry(s.hi, k1);
-	return {s, k2 || k3};
+	return std::make_tuple(s, k2 || k3);
 }
 
 u256 add(u256 a, u256 b)
