@@ -1,5 +1,5 @@
-// Copyright 2017 Pawel Bylica
-// Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+// Copyright 2017 Pawel Bylica.
+// Governed by the Apache License, Version 2.0. See the LICENSE file.
 
 #pragma once
 

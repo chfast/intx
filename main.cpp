@@ -17,5 +17,8 @@ int main()
 	auto d = m + 1;
 	assert(d.limbs[0] == 0);
 	assert(d.limbs[1] == 1);
+
+	(void)c;
+	(void)d;
 	return 0;
 }
