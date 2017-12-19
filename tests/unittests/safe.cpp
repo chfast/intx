@@ -75,3 +75,24 @@ TEST(safe_int, add)
     EXPECT_EQ(s, a);
     EXPECT_TRUE(s.valid());
 }
+
+TEST(safe_int, compare_with_plus_infinity)
+{
+    safe_int h = std::numeric_limits<int>::max() / 2;
+
+    auto a = h + h;
+    EXPECT_FALSE(a == h);
+    EXPECT_TRUE(a != h);
+    EXPECT_FALSE(a < h);
+    EXPECT_FALSE(a <= h);
+    EXPECT_TRUE(a >= h);
+    EXPECT_TRUE(a > h);
+
+    auto inf = h + h + h;
+    EXPECT_FALSE(inf == h);
+    EXPECT_TRUE(inf != h);
+    EXPECT_FALSE(inf < h);
+    EXPECT_FALSE(inf <= h);
+    EXPECT_TRUE(inf >= h);
+    EXPECT_TRUE(inf > h);
+}
