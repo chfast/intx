@@ -10,15 +10,15 @@ TEST(safe_int, init)
 {
     safe_int a;
     EXPECT_EQ(a, 0);
-    EXPECT_TRUE(a.valid());
+    EXPECT_TRUE(a.normal());
 
     safe_int b = 0;
     EXPECT_EQ(b, 0);
-    EXPECT_TRUE(a.valid());
+    EXPECT_TRUE(a.normal());
 
     a = -1;
     EXPECT_EQ(a, -1);
-    EXPECT_TRUE(a.valid());
+    EXPECT_TRUE(a.normal());
 }
 
 TEST(safe_int, add)
@@ -28,52 +28,52 @@ TEST(safe_int, add)
 
     auto s = a + b;
     EXPECT_EQ(s, 0);
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
 
     a = std::numeric_limits<int>::max();
     b = 1;
     s = a + b;
-    EXPECT_FALSE(s.valid());
+    EXPECT_FALSE(s.normal());
     s = 0;
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
     s = b + a;
-    EXPECT_FALSE(s.valid());
+    EXPECT_FALSE(s.normal());
 
     b = -1;
     s = a + b;
     EXPECT_EQ(s, a.value() - 1);
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
     s = b + a;
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
 
     b = 0;
     s = a + b;
     EXPECT_EQ(s, a);
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
     s = b + a;
     EXPECT_EQ(s, a);
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
 
     a = std::numeric_limits<int>::min();
     b = -1;
     s = a + b;
-    EXPECT_FALSE(s.valid());
+    EXPECT_FALSE(s.normal());
     s = b + a;
-    EXPECT_FALSE(s.valid());
+    EXPECT_FALSE(s.normal());
 
     b = 1;
     s = a + b;
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
     s = b + a;
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
 
     b = 0;
     s = a + b;
     EXPECT_EQ(s, a);
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
     s = b + a;
     EXPECT_EQ(s, a);
-    EXPECT_TRUE(s.valid());
+    EXPECT_TRUE(s.normal());
 }
 
 TEST(safe_int, compare_with_plus_infinity)
@@ -95,4 +95,16 @@ TEST(safe_int, compare_with_plus_infinity)
     EXPECT_FALSE(inf <= h);
     EXPECT_TRUE(inf >= h);
     EXPECT_TRUE(inf > h);
+}
+
+TEST(safe_int, compare_plus_infinities)
+{
+    auto inf = 1 + safe_int{std::numeric_limits<int>::max()};
+
+    EXPECT_THROW(inf == inf, intx::bad_operation);
+    EXPECT_THROW(inf != inf, intx::bad_operation);
+    EXPECT_THROW(inf < inf, intx::bad_operation);
+    EXPECT_THROW(inf <= inf, intx::bad_operation);
+    EXPECT_THROW(inf >= inf, intx::bad_operation);
+    EXPECT_THROW(inf > inf, intx::bad_operation);
 }

@@ -41,7 +41,9 @@ struct safe
         return m_value;
     }
 
-    bool valid() const noexcept { return m_status == status::normal; }
+    bool normal() const noexcept { return m_status == status::normal; }
+    bool plus_infinity() const noexcept { return m_status == status::plus_infinity; }
+    bool minus_infinity() const noexcept { return m_status == status::minus_infinity; }
     status get_status() const noexcept { return m_status; }
 
 private:
@@ -76,19 +78,30 @@ safe<Int> operator+(safe<Int> a, safe<Int> b)
 }
 
 template<typename Int>
+safe<Int> operator+(Int a, safe<Int> b)
+{
+    return safe<Int>{a} + b;
+}
+
+template<typename Int>
 bool operator==(safe<Int> a, safe<Int> b)
 {
-    if (a.valid() && b.valid())
+    if (a.normal() && b.normal())
         return a.value() == b.value();
-    return false;  // TODO: Is it ok?
+
+    if (a.plus_infinity() && (b.minus_infinity() || b.normal()))
+        return false;
+
+    if (b.plus_infinity() && (a.minus_infinity() || a.normal()))
+        return false;
+
+    throw bad_operation{};
 }
 
 template<typename Int>
 bool operator==(safe<Int> a, Int b)
 {
-    if (a.valid())
-        return a.value() == b;
-    return false;  // TODO: Is it ok?
+    return a == safe<Int>{b};
 }
 
 template<typename Int>
