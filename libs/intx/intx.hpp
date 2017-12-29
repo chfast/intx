@@ -153,7 +153,7 @@ std::tuple<uint256, bool> add_with_carry(uint256 a, uint256 b)
     bool k1, k2, k3;
     std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
     std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
-    std::tie(s.hi, k3) = add_with_carry(s.hi, k1);
+    std::tie(s.hi, k3) = add_with_carry(s.hi, static_cast<uint128>(k1));
     return std::make_tuple(s, k2 || k3);
 }
 
@@ -162,13 +162,14 @@ uint256 add(uint256 a, uint256 b)
     return std::get<0>(add_with_carry(a, b));
 }
 
-uint256 operator+(uint256 a, uint256 b)
+uint256 minus(uint256 x)
 {
-    uint256 s;
-    s.lo = a.lo + b.lo;
-    auto k = s.lo < a.lo;
-    s.hi = a.hi + b.hi + k;
-    return s;
+    return add(bitwise_not(x), 1);
+}
+
+uint256 sub(uint256 a, uint256 b)
+{
+    return add(a, minus(b));
 }
 }
 

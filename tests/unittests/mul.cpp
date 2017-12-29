@@ -60,12 +60,10 @@ constexpr uint64_t normal[] = {
 constexpr uint64_t minimal[] = {
     0x0000000000000000,
     0x0000000000000001,
-    0x000000000000000f,
-    0x0000000000000010,
+    0x5555555555555555,
     0x7fffffffffffffff,
     0x8000000000000000,
-    0x8000000000000001,
-    0xff00000000000000,
+    0xaaaaaaaaaaaaaaaa,
     0xfffffffffffffffe,
     0xffffffffffffffff,
 };
@@ -80,7 +78,7 @@ protected:
 
     Uint256Test()
     {
-        auto& parts_set = normal;
+        auto& parts_set = minimal;
         for (auto a : parts_set)
         {
             for (auto b : parts_set)
@@ -118,6 +116,21 @@ TEST_F(Uint256Test, add_against_gmp)
     }
 
     std::cerr << (numbers.size() * numbers.size()) << " additions";
+}
+
+TEST_F(Uint256Test, add_against_sub)
+{
+    for (auto a : numbers)
+    {
+        for (auto b : numbers)
+        {
+            uint256 sum = add(a, b);
+            uint256 test_a = sub(sum, b);
+            uint256 test_b = sub(sum, a);
+            EXPECT_EQ(a, test_a);
+            EXPECT_EQ(b, test_b);
+        }
+    }
 }
 
 TEST_F(Uint256Test, shift_one_bit)
