@@ -171,6 +171,52 @@ uint256 sub(uint256 a, uint256 b)
 {
     return add(a, minus(b));
 }
+
+
+uint256 umul_full(uint128 a, uint128 b)
+{
+    // Hacker's Delight version.
+
+    uint128 al = a & 0xffffffffffffffff;
+    uint128 ah = a >> 64;
+    uint128 bl = b & 0xffffffffffffffff;
+    uint128 bh = b >> 64;
+
+    uint128 t, lo, hi;
+
+    t = al * bl;
+    lo = t & 0xffffffffffffffff;
+    hi = t >> 64;
+    t = ah * bl;
+    t += hi;
+    hi = t >> 64;
+
+    t = al * bh + (t & 0xffffffffffffffff);
+    lo |= t << 64;
+    hi = ah * bh + hi + (t >> 64);
+
+    return {lo, hi};
+}
+
+uint256 mul(uint256 a, uint256 b)
+{
+    uint256 t, p;
+
+    t = umul_full(a.lo, b.lo);
+    p.lo = t.lo;
+    auto hi = t.hi;
+    t = umul_full(a.hi, b.lo);
+    t = add(t, hi);
+
+    auto lo = t.lo;
+    t = umul_full(a.lo, b.hi);
+    t = add(t, lo);
+
+    p.hi = t.lo;
+
+    return p;
+}
+
 }
 
 

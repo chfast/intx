@@ -68,7 +68,7 @@ constexpr uint64_t minimal[] = {
     0xffffffffffffffff,
 };
 
-class Uint256Test : public ::testing::Test {
+class Uint256Test : public testing::Test {
 protected:
 
     static constexpr size_t limbs = sizeof(uint256) / sizeof(mp_limb_t);
@@ -78,7 +78,7 @@ protected:
 
     Uint256Test()
     {
-        auto& parts_set = minimal;
+        auto& parts_set = normal;
         for (auto a : parts_set)
         {
             for (auto b : parts_set)
@@ -98,6 +98,9 @@ protected:
     }
 };
 
+class Uint256ParamTest : public Uint256Test, public ::testing::WithParamInterface<int>
+{};
+
 TEST_F(Uint256Test, add_against_gmp)
 {
     for (auto a : numbers)
@@ -116,6 +119,24 @@ TEST_F(Uint256Test, add_against_gmp)
     }
 
     std::cerr << (numbers.size() * numbers.size()) << " additions";
+}
+
+TEST_F(Uint256Test, mul_against_gmp)
+{
+    for (auto a : numbers)
+    {
+        for (auto b : numbers)
+        {
+            uint256 gmp;
+            auto p_gmp = (mp_ptr)&gmp;
+            auto p_a = (mp_srcptr)&a;
+            auto p_b = (mp_srcptr)&b;
+            mpn_mul_n(p_gmp, p_a, p_b, limbs);
+
+            auto p = mul(a, b);
+            EXPECT_EQ(gmp, p);
+        }
+    }
 }
 
 TEST_F(Uint256Test, add_against_sub)
@@ -176,57 +197,18 @@ TEST(Uint64Test, clz)
     }
 }
 
-//TEST(mul, mul_full64_edges)
-//{
-//	for (auto a : edges)
-//	{
-//		for (auto b : edges)
-//		{
-//			uint64_t p1h, p1l, p2h, p2l, p3h, p3l;
-//			mul_full64_portable1(&p1h, &p1l, a, b);
-//			mul_full64_portable2(&p2h, &p2l, a, b);
-//			mul_full64_optimized(&p3h, &p3l, a, b);
-//			EXPECT_EQ(p1l, p3l) << "lo(" << a << " * " << b << ")";
-//			EXPECT_EQ(p1h, p3h) << "hi(" << a << " * " << b << ")";
-//			EXPECT_EQ(p2l, p3l) << "lo(" << a << " * " << b << ")";
-//			EXPECT_EQ(p2h, p3h) << "hi(" << a << " * " << b << ")";
-//		}
-//	}
-//}
-//
-//TEST(mul, mul128)
-//{
-//    for (auto al: edges)
-//    {
-//        for (auto ah: edges)
-//        {
-//            for (auto bl: edges)
-//            {
-//                for (auto bh: edges)
-//                {
-//                    uint128 a, b;
-//                    a.lo = al;
-//                    a.hi = ah;
-//                    b.lo = bl;
-//                    b.hi = bh;
-//
-//                    unsigned __int128 c, d;
-//                    c = ah;
-//                    c <<= 64;
-//                    c |= al;
-//                    d = bh;
-//                    d <<= 64;
-//                    d |= bl;
-//
-//                    auto p = mul(a, b);
-//                    auto q = mul(c, d);
-//
-//                    auto ql = static_cast<uint64_t>(q);
-//                    auto qh = static_cast<uint64_t>(q >> 64);
-//                    ASSERT_EQ(p.lo, ql) << "lo( (" << ah << "," << al << ") * (" << bh << "," << bl << ") )";
-//                    ASSERT_EQ(p.hi, qh) << "lo( (" << ah << "," << al << ") * (" << bh << "," << bl << ") )";
-//                }
-//            }
-//        }
-//    }
-//}
+TEST_P(Uint256ParamTest, mul_against_add)
+{
+    const int factor = GetParam();
+    for (auto a : numbers)
+    {
+        uint256 s = 0;
+        for (int i = 0; i < factor; ++i)
+            s = add(s, a);
+
+        uint256 p = mul(a, factor);
+        EXPECT_EQ(p, s);
+    }
+}
+INSTANTIATE_TEST_CASE_P(primes, Uint256ParamTest,
+    testing::Values(0, 1, 2, 3, 17, 19, 32, 512, 577, 2048, 2069, 3011, 7919, 8192));
