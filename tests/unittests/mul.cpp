@@ -6,7 +6,9 @@
 
 //auto mul_full64_optimized = mul_full64_int128;
 
-constexpr uint64_t edges[] = {
+using namespace intx;
+
+constexpr uint64_t maximal[] = {
     0x0000000000000000,
     0x0000000000000001,
     0x0000000000000002,
@@ -38,7 +40,7 @@ constexpr uint64_t edges[] = {
     0xffffffffffffffff,
 };
 
-constexpr uint64_t parts[] = {
+constexpr uint64_t normal[] = {
     0x0000000000000000,
     0x0000000000000001,
     0x000000000000000f,
@@ -55,17 +57,30 @@ constexpr uint64_t parts[] = {
     0xffffffffffffffff,
 };
 
+constexpr uint64_t minimal[] = {
+    0x0000000000000000,
+    0x0000000000000001,
+    0x000000000000000f,
+    0x0000000000000010,
+    0x7fffffffffffffff,
+    0x8000000000000000,
+    0x8000000000000001,
+    0xff00000000000000,
+    0xfffffffffffffffe,
+    0xffffffffffffffff,
+};
+
 class Uint256Test : public ::testing::Test {
 protected:
 
-    static constexpr size_t limbs = sizeof(u256) / sizeof(mp_limb_t);
+    static constexpr size_t limbs = sizeof(uint256) / sizeof(mp_limb_t);
 
-    std::vector<u256> numbers;
+    std::vector<uint256> numbers;
 
 
     Uint256Test()
     {
-        auto& parts_set = parts;
+        auto& parts_set = normal;
         for (auto a : parts_set)
         {
             for (auto b : parts_set)
@@ -74,9 +89,9 @@ protected:
                 {
                     for (auto d : parts_set)
                     {
-                        u256 n;
-                        n.lo = (static_cast<u256::half>(a) << 64) | b;
-                        n.hi = (static_cast<u256::half>(c) << 64) | d;
+                        uint256 n;
+                        n.lo = (static_cast<uint128>(a) << 64) | b;
+                        n.hi = (static_cast<uint128>(c) << 64) | d;
                         numbers.emplace_back(n);
                     }
                 }
@@ -85,13 +100,13 @@ protected:
     }
 };
 
-TEST_F(Uint256Test, add)
+TEST_F(Uint256Test, add_against_gmp)
 {
     for (auto a : numbers)
     {
         for (auto b : numbers)
         {
-            u256 gmp;
+            uint256 gmp;
             auto p_gmp = (mp_ptr)&gmp;
             auto p_a = (mp_srcptr)&a;
             auto p_b = (mp_srcptr)&b;
@@ -105,12 +120,45 @@ TEST_F(Uint256Test, add)
     std::cerr << (numbers.size() * numbers.size()) << " additions";
 }
 
+TEST_F(Uint256Test, shift_one_bit)
+{
+    for (unsigned shift = 0; shift < 256; ++shift)
+    {
+        uint256 x = 1;
+        uint256 y = shl(x, shift);
+        uint256 z = lsr(y, shift);
+        EXPECT_EQ(x, z) << "shift: " << shift;
+    }
+}
+
+TEST_F(Uint256Test, not_of_zero)
+{
+    uint256 ones = bitwise_not(uint256(0));
+    for (unsigned pos = 0; pos < 256; ++pos)
+    {
+        uint256 probe = shl(uint256(1), pos);
+        uint256 test = bitwise_and(probe, ones);
+        EXPECT_NE(test, 0) << "bit position: " << pos;
+    }
+}
+
+TEST_F(Uint256Test, shift_all_ones)
+{
+    for (unsigned shift = 0; shift < 256; ++shift)
+    {
+        uint256 x = 1;
+        uint256 y = shl(x, shift);
+        uint256 z = lsr(y, shift);
+        EXPECT_EQ(x, z) << "shift: " << shift;
+    }
+}
+
 TEST(Uint64Test, clz)
 {
-    for (auto n : edges)
+    for (auto n : maximal)
     {
-        auto c = clz(n);
-        auto d = clz2(n);
+        auto c = intx::clz(n);
+        auto d = intx::generic::clz(n);
         EXPECT_EQ(c, d) << std::hex << n;
     }
 }

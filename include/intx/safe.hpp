@@ -1,5 +1,5 @@
 // Copyright 2017 Pawel Bylica.
-// Governed by the Apache License, Version 2.0. See the LICENSE file.
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 #pragma once
 

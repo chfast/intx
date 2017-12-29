@@ -14,10 +14,8 @@ HunterGate(
 project(intx)
 
 add_compile_options(-Werror -Wall -Wextra -Wconversion)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=undefined")
 
 add_subdirectory(libs/intx)
 
 add_subdirectory(tests)
-
-add_executable(int256 main.cpp)
-target_link_libraries(int256 intx)
