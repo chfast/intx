@@ -54,6 +54,21 @@ struct uint256
 };
 
 
+template <typename T>
+struct traits
+{
+};
+
+template <>
+struct traits<uint128>
+{
+    using double_type = uint256;
+
+    static constexpr unsigned bits = 128;
+    static constexpr unsigned half_bits = 64;
+};
+
+
 constexpr uint64_t lo_half(uint128 x)
 {
     return static_cast<uint64_t>(x);
@@ -74,7 +89,7 @@ constexpr uint128 hi_half(uint256 x)
     return x.hi;
 }
 
-template<typename T>
+template <typename T>
 constexpr unsigned num_bits(const T&)
 {
     return sizeof(T) * 8;
@@ -97,6 +112,11 @@ bool operator<(uint256 a, uint256 b)
     // It also should make the function smaller, but no proper benchmark has
     // been done.
     return (a.hi < b.hi) | ((a.hi == b.hi) & (a.lo < b.lo));
+}
+
+bool operator>=(uint256 a, uint256 b)
+{
+    return !(a < b);
 }
 
 
@@ -189,64 +209,93 @@ uint256 add(uint256 a, uint256 b)
     return std::get<0>(add_with_carry(a, b));
 }
 
-uint256 minus(uint256 x)
+inline uint256 minus(uint256 x)
 {
     return add(bitwise_not(x), 1);
 }
 
-uint256 sub(uint256 a, uint256 b)
+inline uint256 sub(uint256 a, uint256 b)
 {
     return add(a, minus(b));
 }
 
+inline uint128 mul(uint128 a, uint128 b)
+{
+    return a * b;
+}
 
-uint256 umul_full(uint128 a, uint128 b)
+inline uint128 add(uint128 a, uint128 b)
+{
+    return a + b;
+}
+
+inline uint128 bitwise_or(uint128 a, uint128 b)
+{
+    return a | b;
+}
+
+inline uint128 shl(uint128 a, uint128 b)
+{
+    return a << b;
+}
+
+
+template <typename Int>
+typename traits<Int>::double_type umul_full(Int a, Int b)
 {
     // Hacker's Delight version.
 
-    uint128 al = lo_half(a);
-    uint128 ah = hi_half(a);
-    uint128 bl = lo_half(b);
-    uint128 bh = hi_half(b);
+    Int al = lo_half(a);
+    Int ah = hi_half(a);
+    Int bl = lo_half(b);
+    Int bh = hi_half(b);
 
-    uint128 t, l, h;
+    Int t, l, h, u;
 
-    t = al * bl;
+    t = mul(al, bl);
     l = lo_half(t);
     h = hi_half(t);
-    t = ah * bl;
-    t += h;
+    t = mul(ah, bl);
+    t = add(t, h);
     h = hi_half(t);
 
-    t = al * bh + lo_half(t);
-    l |= t << 64;
-    h = ah * bh + h + hi_half(t);
+    u = mul(al, bh);
+    t = add(u, lo_half(t));
+    u = shl(t, traits<Int>::half_bits);
+    l = bitwise_or(l, u);
+    u = mul(ah, bh);
+    t = add(u, hi_half(t));
+    h = add(h, t);
 
     return {l, h};
 }
 
 uint256 mul(uint256 a, uint256 b)
 {
-    uint256 t, p;
-
-    t = umul_full(a.lo, b.lo);
-    p.lo = t.lo;
-    auto hi = t.hi;
+    auto t = umul_full(a.lo, b.lo);
+    auto l = t.lo;
+    auto u = t.hi;
     t = umul_full(a.hi, b.lo);
-    t = add(t, hi);
+    t = add(t, u);
 
-    auto lo = t.lo;
+    u = t.lo;
     t = umul_full(a.lo, b.hi);
-    t = add(t, lo);
+    t = add(t, u);
 
-    p.hi = t.lo;
+    auto h = t.lo;
 
-    return p;
+    return {l, h};
+}
+
+template <typename Int>
+Int umul_hi(Int a, Int b)
+{
+    return hi_half(umul_full(a, b));
 }
 
 using gcc::clz;
 
-template<typename Int>
+template <typename Int>
 unsigned clz(Int x)
 {
     auto l = lo_half(x);
@@ -258,6 +307,26 @@ unsigned clz(Int x)
     return h == 0 ? clz(l) + half_bits : clz(h);
 }
 
+
+namespace experiments
+{
+/// Classic implementation of +=.
+inline void add_to(uint256& a, uint128 b)
+{
+    a = add(a, b);
+}
+
+/// "Optimized" implementation of +=.
+///
+/// On clang-5 the results are these same, except the order of instructions
+/// is different.
+inline void add_to_opt(uint256& a, uint128 b)
+{
+    bool carry = false;
+    std::tie(a.lo, carry) = add_with_carry(a.lo, b);
+    a.hi += carry;
+}
+}
 }
 
 
