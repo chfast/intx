@@ -78,7 +78,7 @@ protected:
 
     Uint256Test()
     {
-        auto& parts_set = normal;
+        auto& parts_set = minimal;
         for (auto a : parts_set)
         {
             for (auto b : parts_set)
@@ -184,6 +184,18 @@ TEST_F(Uint256Test, shift_all_ones)
         uint256 y = shl(x, shift);
         uint256 z = lsr(y, shift);
         EXPECT_EQ(x, z) << "shift: " << shift;
+    }
+}
+
+TEST_F(Uint256Test, clz_one_bit)
+{
+    uint256 t = 1;
+    unsigned b = num_bits(t);
+    for (unsigned i = 0; i < b; ++i)
+    {
+        unsigned c = clz(t);
+        EXPECT_EQ(c, b - 1 - i);
+        t = shl(t, 1);
     }
 }
 

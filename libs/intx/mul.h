@@ -1,7 +1,7 @@
 #include <cstdint>
 
 
-struct uint128
+struct generic_uint128
 {
   uint64_t lo = 0;
   uint64_t hi = 0;
@@ -85,15 +85,15 @@ void mul_full64_portable2(uint64_t* oh, uint64_t* ol, uint64_t a, uint64_t b)
 
 constexpr auto mul_full64 = mul_full64_int128;
 
-void add_to(uint128& a, uint64_t b)
+void add_to(generic_uint128& a, uint64_t b)
 {
     a.lo += b;
     a.hi += (a.lo < b);
 }
 
-uint128 mul(uint128 a, uint128 b)
+generic_uint128 mul(generic_uint128 a, generic_uint128 b)
 {
-    uint128 t, p;
+    generic_uint128 t, p;
 
     mul_full64(&t.hi, &t.lo, a.lo, b.lo);
     p.lo = t.lo;

@@ -54,6 +54,33 @@ struct uint256
 };
 
 
+constexpr uint64_t lo_half(uint128 x)
+{
+    return static_cast<uint64_t>(x);
+}
+
+constexpr uint64_t hi_half(uint128 x)
+{
+    return static_cast<uint64_t>(x >> 64);
+}
+
+constexpr uint128 lo_half(uint256 x)
+{
+    return x.lo;
+}
+
+constexpr uint128 hi_half(uint256 x)
+{
+    return x.hi;
+}
+
+template<typename T>
+constexpr unsigned num_bits(const T&)
+{
+    return sizeof(T) * 8;
+}
+
+
 bool operator==(uint256 a, uint256 b)
 {
     return (a.lo == b.lo) & (a.hi == b.hi);
@@ -177,25 +204,25 @@ uint256 umul_full(uint128 a, uint128 b)
 {
     // Hacker's Delight version.
 
-    uint128 al = a & 0xffffffffffffffff;
-    uint128 ah = a >> 64;
-    uint128 bl = b & 0xffffffffffffffff;
-    uint128 bh = b >> 64;
+    uint128 al = lo_half(a);
+    uint128 ah = hi_half(a);
+    uint128 bl = lo_half(b);
+    uint128 bh = hi_half(b);
 
-    uint128 t, lo, hi;
+    uint128 t, l, h;
 
     t = al * bl;
-    lo = t & 0xffffffffffffffff;
-    hi = t >> 64;
+    l = lo_half(t);
+    h = hi_half(t);
     t = ah * bl;
-    t += hi;
-    hi = t >> 64;
+    t += h;
+    h = hi_half(t);
 
-    t = al * bh + (t & 0xffffffffffffffff);
-    lo |= t << 64;
-    hi = ah * bh + hi + (t >> 64);
+    t = al * bh + lo_half(t);
+    l |= t << 64;
+    h = ah * bh + h + hi_half(t);
 
-    return {lo, hi};
+    return {l, h};
 }
 
 uint256 mul(uint256 a, uint256 b)
@@ -215,6 +242,20 @@ uint256 mul(uint256 a, uint256 b)
     p.hi = t.lo;
 
     return p;
+}
+
+using gcc::clz;
+
+template<typename Int>
+unsigned clz(Int x)
+{
+    auto l = lo_half(x);
+    auto h = hi_half(x);
+    unsigned half_bits = num_bits(x) / 2;
+
+    // In this order `h == 0` we get less instructions than in case of `h != 0`.
+    // FIXME: For `x == 0` this is UB.
+    return h == 0 ? clz(l) + half_bits : clz(h);
 }
 
 }
