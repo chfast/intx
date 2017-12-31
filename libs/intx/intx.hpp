@@ -396,6 +396,16 @@ std::string to_string(uint256 x)
     return s;
 }
 
+inline uint256 operator+(uint256 x, uint256 y)
+{
+    return add(x, y);
+}
+
+inline uint256 operator*(uint256 x, uint256 y)
+{
+    return mul(x, y);
+}
+
 namespace experiments
 {
 /// Classic implementation of +=.
