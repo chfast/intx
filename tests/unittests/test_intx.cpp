@@ -1,10 +1,8 @@
-//#include <mul.h>
-#include <intx.hpp>
+#include <intx/intx.hpp>
+#include <intx/gmp.hpp>
 
 #include <gtest/gtest.h>
 #include <gmp.h>
-
-//auto mul_full64_optimized = mul_full64_int128;
 
 using namespace intx;
 
@@ -148,21 +146,9 @@ TEST_F(Uint256Test, udiv_against_gmp)
             if (d == 0)
                 continue;
 
-            uint256 q, r;
+            uint256 q, r, q_gmp, r_gmp;
             std::tie(q, r) = udiv_qr_unr(a, d);
-
-            // Skip dividend leading zero limbs.
-            unsigned c = clz(d);
-            size_t d_limbs = limbs - (c / (sizeof(mp_limb_t) * 8));
-
-            uint256 q_gmp, r_gmp;
-            ASSERT_EQ(q_gmp, 0);
-            ASSERT_EQ(r_gmp, 0);
-            auto p_q = (mp_ptr)&q_gmp;
-            auto p_r = (mp_ptr)&r_gmp;
-            auto p_a = (mp_srcptr)&a;
-            auto p_d = (mp_srcptr)&d;
-            mpn_tdiv_qr(p_q, p_r, 0, p_a, limbs, p_d, d_limbs);
+            std::tie(q_gmp, r_gmp) = gmp_udiv_qr(a, d);
             EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
             EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
         }

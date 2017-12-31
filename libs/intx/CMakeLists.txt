@@ -1,10 +1,10 @@
 
 set(include_dir ${CMAKE_SOURCE_DIR}/include)
 
-add_library(
-    intx
+add_library(intx
+    ${include_dir}/intx/gmp.hpp
+    ${include_dir}/intx/intx.hpp
     ${include_dir}/intx/safe.hpp
-    intx.hpp
     intx.cpp
     mul.h
     div.h

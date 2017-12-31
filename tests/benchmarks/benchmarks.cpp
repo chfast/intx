@@ -1,9 +1,9 @@
 // Copyright 2017 Pawel Bylica.
 // Governed by the Apache License, Version 2.0. See the LICENSE file.
 
+#include <intx/intx.hpp>
+#include <intx/gmp.hpp>
 #include <div.h>
-#include <intx.hpp>
-#include <gmp.h>
 #include <benchmark/benchmark.h>
 #include <random>
 
@@ -66,22 +66,6 @@ BENCHMARK_TEMPLATE(soft_div64, soft_div_improved_shift);
 BENCHMARK_TEMPLATE(soft_div64, soft_div_unr);
 BENCHMARK_TEMPLATE(soft_div64, soft_div_unr_unrolled);
 
-static std::tuple<intx::uint256, intx::uint256> gmp_udiv_qr(intx::uint256 x, intx::uint256 y)
-{
-    using namespace intx;
-    // Skip dividend's leading zero limbs.
-    static constexpr size_t limbs = sizeof(uint256) / sizeof(mp_limb_t);
-    const size_t y_limbs = limbs - (clz(y) / (sizeof(mp_limb_t) * 8));
-
-    uint256 q, r;
-    auto p_q = (mp_ptr)&q;
-    auto p_r = (mp_ptr)&r;
-    auto p_x = (mp_srcptr)&x;
-    auto p_y = (mp_srcptr)&y;
-    mpn_tdiv_qr(p_q, p_r, 0, p_x, limbs, p_y, y_limbs);
-    return {q, r};
-};
-
 template<std::tuple<intx::uint256, intx::uint256> DivFn(intx::uint256, intx::uint256)>
 static void udiv256(benchmark::State& state)
 {
@@ -119,6 +103,6 @@ static void udiv256(benchmark::State& state)
 }
 
 BENCHMARK_TEMPLATE(udiv256, intx::udiv_qr_unr);
-BENCHMARK_TEMPLATE(udiv256, gmp_udiv_qr);
+BENCHMARK_TEMPLATE(udiv256, intx::gmp_udiv_qr);
 
 BENCHMARK_MAIN();
