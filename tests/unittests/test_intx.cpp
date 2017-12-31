@@ -78,7 +78,7 @@ protected:
 
     Uint256Test()
     {
-        auto& parts_set = minimal;
+        auto& parts_set = normal;
         for (auto a : parts_set)
         {
             for (auto b : parts_set)
@@ -139,6 +139,36 @@ TEST_F(Uint256Test, mul_against_gmp)
     }
 }
 
+TEST_F(Uint256Test, udiv_against_gmp)
+{
+    for (auto a : numbers)
+    {
+        for (auto d : numbers)
+        {
+            if (d == 0)
+                continue;
+
+            uint256 q, r;
+            std::tie(q, r) = udiv_qr_unr(a, d);
+
+            // Skip dividend leading zero limbs.
+            unsigned c = clz(d);
+            size_t d_limbs = limbs - (c / (sizeof(mp_limb_t) * 8));
+
+            uint256 q_gmp, r_gmp;
+            ASSERT_EQ(q_gmp, 0);
+            ASSERT_EQ(r_gmp, 0);
+            auto p_q = (mp_ptr)&q_gmp;
+            auto p_r = (mp_ptr)&r_gmp;
+            auto p_a = (mp_srcptr)&a;
+            auto p_d = (mp_srcptr)&d;
+            mpn_tdiv_qr(p_q, p_r, 0, p_a, limbs, p_d, d_limbs);
+            EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
+            EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+        }
+    }
+}
+
 TEST_F(Uint256Test, add_against_sub)
 {
     for (auto a : numbers)
@@ -146,10 +176,38 @@ TEST_F(Uint256Test, add_against_sub)
         for (auto b : numbers)
         {
             uint256 sum = add(a, b);
-            uint256 test_a = sub(sum, b);
-            uint256 test_b = sub(sum, a);
-            EXPECT_EQ(a, test_a);
-            EXPECT_EQ(b, test_b);
+            uint256 test = sub(sum, b);
+            EXPECT_EQ(a, test);
+        }
+    }
+}
+
+TEST_F(Uint256Test, simple_udiv)
+{
+    uint256 a = 0xffffffffffffffff;
+    uint256 b = 0xffffffffffffffff;
+    uint256 q, r;
+    std::tie(q, r) = udiv_qr_unr(mul(a, b), b);
+    EXPECT_EQ(q, a);
+    EXPECT_EQ(r, 0);
+}
+
+TEST_F(Uint256Test, mul_against_div)
+{
+    for (auto a : numbers)
+    {
+        for (auto b : numbers)
+        {
+            if (b == 0)
+                continue;
+            uint256 h = umul_hi(a, b);
+            if (h != 0)  // Overflow.
+                continue;
+            uint256 prod = mul(a, b);
+            uint256 q, r;
+            std::tie(q, r) = udiv_qr_unr(prod, b);
+            EXPECT_EQ(a, q);
+            EXPECT_EQ(r, 0);
         }
     }
 }

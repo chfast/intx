@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <limits>
@@ -51,6 +52,24 @@ struct uint256
 
     uint128 lo = 0;
     uint128 hi = 0;
+
+    explicit operator unsigned() const
+    {
+        return static_cast<unsigned>(lo);
+    }
+
+    explicit operator unsigned long() const
+    {
+        return static_cast<unsigned long>(lo);
+    }
+};
+
+struct uint512
+{
+    constexpr uint512(uint256 lo = 0, uint256 hi = 0) : lo(lo), hi(hi) {}
+
+    uint256 lo = 0;
+    uint256 hi = 0;
 };
 
 
@@ -68,6 +87,14 @@ struct traits<uint128>
     static constexpr unsigned half_bits = 64;
 };
 
+template <>
+struct traits<uint256>
+{
+    using double_type = uint512;
+
+    static constexpr unsigned bits = 256;
+    static constexpr unsigned half_bits = 128;
+};
 
 constexpr uint64_t lo_half(uint128 x)
 {
@@ -85,6 +112,16 @@ constexpr uint128 lo_half(uint256 x)
 }
 
 constexpr uint128 hi_half(uint256 x)
+{
+    return x.hi;
+}
+
+constexpr uint256 lo_half(uint512 x)
+{
+    return x.lo;
+}
+
+constexpr uint256 hi_half(uint512 x)
 {
     return x.hi;
 }
@@ -307,6 +344,57 @@ unsigned clz(Int x)
     return h == 0 ? clz(l) + half_bits : clz(h);
 }
 
+std::tuple<uint256, uint256> udiv_qr_unr(uint256 x, uint256 y)
+{
+    // decent start
+    unsigned c = clz(y);
+    auto z = shl(uint256(1), c);
+
+    // z recurrence
+    auto my = minus(y);
+    for (int i = 0; i < 8; ++i)
+    {
+        auto m = mul(my, z);
+        auto zd = umul_hi(z, m);
+//        if (zd == 0)
+//            break;
+        z = add(z, zd);
+    }
+
+    // q estimate
+    auto q = umul_hi(x, z);
+    auto r = sub(x, mul(y, q));
+
+    // q refinement
+    if (r >= y)
+    {
+        r = sub(r, y);
+        q = add(q, 1);
+        if (r >= y)
+        {
+            r = sub(r, y);
+            q = add(q, 1);
+        }
+    }
+    return {q, r};
+}
+
+std::string to_string(uint256 x)
+{
+    if (x == 0)
+        return "0";
+
+    std::string s;
+    while (x != 0)
+    {
+        uint256 r;
+        std::tie(x, r) = udiv_qr_unr(x, 10);
+        auto c = static_cast<size_t>(r);
+        s.push_back(static_cast<char>('0' + c));
+    }
+    std::reverse(s.begin(), s.end());
+    return s;
+}
 
 namespace experiments
 {
