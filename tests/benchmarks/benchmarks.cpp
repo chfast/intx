@@ -7,6 +7,8 @@
 #include <benchmark/benchmark.h>
 #include <random>
 
+using namespace intx;
+
 template<typename Int>
 struct lcg
 {
@@ -66,25 +68,24 @@ BENCHMARK_TEMPLATE(soft_div64, soft_div_improved_shift);
 BENCHMARK_TEMPLATE(soft_div64, soft_div_unr);
 BENCHMARK_TEMPLATE(soft_div64, soft_div_unr_unrolled);
 
-template<std::tuple<intx::uint256, intx::uint256> DivFn(intx::uint256, intx::uint256)>
+template<typename D, std::tuple<uint256, uint256> DivFn(uint256, uint256)>
 static void udiv256(benchmark::State& state)
 {
     // Pick random operands. Keep the divisor small, because this is the worst
     // case for most algorithms.
     auto seed = std::random_device{}();
-    std::mt19937_64 rng{seed};
-    lcg<intx::uint256> rng_x(seed);
-    std::uniform_int_distribution<uint64_t> dist_y(1);
+    lcg<uint256> rng_x(seed);
+    lcg<D> rng_y(seed);
 
     constexpr size_t size = 1000;
-    std::vector<intx::uint256> input_x(size);
-    std::vector<intx::uint256> input_y(size);
-    std::vector<intx::uint256> output_q(size);
-    std::vector<intx::uint256> output_r(size);
+    std::vector<uint256> input_x(size);
+    std::vector<uint256> input_y(size);
+    std::vector<uint256> output_q(size);
+    std::vector<uint256> output_r(size);
     for (auto& x : input_x)
         x = rng_x();
     for (auto& y : input_y)
-        y = dist_y(rng);
+        y = rng_y();
 
     for (auto _ : state)
     {
@@ -96,13 +97,49 @@ static void udiv256(benchmark::State& state)
 
     for (size_t i = 0; i < size; ++i)
     {
-        intx::uint256 x = output_q[i] * input_y[i] + output_r[i];
+        uint256 x = output_q[i] * input_y[i] + output_r[i];
         if (input_x[i] != x)
             state.SkipWithError("wrong result");
     }
 }
 
-BENCHMARK_TEMPLATE(udiv256, intx::udiv_qr_unr);
-BENCHMARK_TEMPLATE(udiv256, intx::gmp_udiv_qr);
+BENCHMARK_TEMPLATE(udiv256, uint64_t, udiv_qr_unr);
+BENCHMARK_TEMPLATE(udiv256, uint64_t, udiv_qr_shift);
+BENCHMARK_TEMPLATE(udiv256, uint64_t, gmp_udiv_qr);
+BENCHMARK_TEMPLATE(udiv256, uint128, udiv_qr_unr);
+BENCHMARK_TEMPLATE(udiv256, uint128, udiv_qr_shift);
+BENCHMARK_TEMPLATE(udiv256, uint128, gmp_udiv_qr);
+BENCHMARK_TEMPLATE(udiv256, uint256, udiv_qr_unr);
+BENCHMARK_TEMPLATE(udiv256, uint256, udiv_qr_shift);
+BENCHMARK_TEMPLATE(udiv256, uint256, gmp_udiv_qr);
+
+using binary_fn256 = uint256 (*)(uint256, uint256);
+template<binary_fn256 BinFn>
+static void binary_op256(benchmark::State& state)
+{
+    // Pick random operands. Keep the divisor small, because this is the worst
+    // case for most algorithms.
+    auto seed = std::random_device{}();
+    lcg<uint256> rng(seed);
+
+    constexpr size_t size = 1000;
+    std::vector<uint256> input_x(size);
+    std::vector<uint256> input_y(size);
+    std::vector<uint256> output(size);
+    for (auto& x : input_x)
+        x = rng();
+    for (auto& y : input_y)
+        y = rng();
+
+    for (auto _ : state)
+    {
+        for (size_t i = 0; i < size; ++i)
+            output[i] = BinFn(input_x[i], input_y[i]);
+        benchmark::DoNotOptimize(output.data());
+    }
+}
+
+BENCHMARK_TEMPLATE(binary_op256, (binary_fn256)&mul);
+BENCHMARK_TEMPLATE(binary_op256, gmp_mul);
 
 BENCHMARK_MAIN();

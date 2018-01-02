@@ -344,6 +344,31 @@ unsigned clz(Int x)
     return h == 0 ? clz(l) + half_bits : clz(h);
 }
 
+inline uint256 operator+(uint256 x, uint256 y)
+{
+    return add(x, y);
+}
+
+inline uint256 operator-(uint256 x, uint256 y)
+{
+    return sub(x, y);
+}
+
+inline uint256 operator*(uint256 x, uint256 y)
+{
+    return mul(x, y);
+}
+
+inline uint256 operator<<(uint256 x, uint256 y)
+{
+    return shl(x, y);
+}
+
+inline uint256 operator>>(uint256 x, uint256 y)
+{
+    return lsr(x, y);
+}
+
 std::tuple<uint256, uint256> udiv_qr_unr(uint256 x, uint256 y)
 {
     // decent start
@@ -379,6 +404,32 @@ std::tuple<uint256, uint256> udiv_qr_unr(uint256 x, uint256 y)
     return {q, r};
 }
 
+std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
+{
+    uint256 r = x;
+    uint256 q = 0;
+    if (r >= y)
+    {
+        unsigned i = clz(y) - clz(r);
+        y = y << i;
+        // quotient computing phase
+        for (;;)
+        {
+            if (r >= y)
+            {
+                r = r - y;
+                q = q + 1;
+            }
+            if (i == 0)
+                break;
+            i = i - 1;
+            q = q + q;
+            y = y >> 1;
+        }
+    }
+    return {q, r};
+}
+
 std::string to_string(uint256 x)
 {
     if (x == 0)
@@ -394,16 +445,6 @@ std::string to_string(uint256 x)
     }
     std::reverse(s.begin(), s.end());
     return s;
-}
-
-inline uint256 operator+(uint256 x, uint256 y)
-{
-    return add(x, y);
-}
-
-inline uint256 operator*(uint256 x, uint256 y)
-{
-    return mul(x, y);
 }
 
 namespace experiments
