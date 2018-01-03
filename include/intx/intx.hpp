@@ -391,6 +391,16 @@ inline uint256 operator>>(uint256 x, uint256 y)
     return lsr(x, y);
 }
 
+inline uint256& operator+=(uint256& x, uint256 y)
+{
+    return x = x + y;
+}
+
+inline uint256& operator*=(uint256& x, uint256 y)
+{
+    return x = x * y;
+}
+
 template<typename Int>
 inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
 {
@@ -469,6 +479,20 @@ std::string to_string(uint256 x)
     std::reverse(s.begin(), s.end());
     return s;
 }
+
+inline uint256 from_string(const std::string& s)
+{
+    uint256 x;
+
+    for (auto c : s)
+    {
+        auto v = c - '0';
+        x *= 10;
+        x += v;
+    }
+    return x;
+}
+
 
 namespace experiments
 {

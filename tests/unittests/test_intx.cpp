@@ -76,7 +76,7 @@ protected:
 
     Uint256Test()
     {
-        auto& parts_set = normal;
+        auto& parts_set = minimal;
         for (auto a : parts_set)
         {
             for (auto b : parts_set)
@@ -240,6 +240,16 @@ TEST_F(Uint256Test, clz_one_bit)
         unsigned c = clz(t);
         EXPECT_EQ(c, b - 1 - i);
         t = shl(t, 1);
+    }
+}
+
+TEST_F(Uint256Test, string_conversions)
+{
+    for (auto n : numbers)
+    {
+        auto s = to_string(n);
+        auto v = from_string(s);
+        EXPECT_EQ(n, v);
     }
 }
 
