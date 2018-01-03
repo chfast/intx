@@ -85,6 +85,7 @@ struct traits<uint128>
 
     static constexpr unsigned bits = 128;
     static constexpr unsigned half_bits = 64;
+    static constexpr int unr_iterations = 7;
 };
 
 template <>
@@ -94,6 +95,7 @@ struct traits<uint256>
 
     static constexpr unsigned bits = 256;
     static constexpr unsigned half_bits = 128;
+    static constexpr int unr_iterations = 8;
 };
 
 constexpr uint64_t lo_half(uint128 x)
@@ -133,17 +135,17 @@ constexpr unsigned num_bits(const T&)
 }
 
 
-bool operator==(uint256 a, uint256 b)
+inline bool operator==(uint256 a, uint256 b)
 {
     return (a.lo == b.lo) & (a.hi == b.hi);
 }
 
-bool operator!=(uint256 a, uint256 b)
+inline bool operator!=(uint256 a, uint256 b)
 {
     return !(a == b);
 }
 
-bool operator<(uint256 a, uint256 b)
+inline bool operator<(uint256 a, uint256 b)
 {
     // Bitwise operators are used to implement logic here to avoid branching.
     // It also should make the function smaller, but no proper benchmark has
@@ -151,9 +153,14 @@ bool operator<(uint256 a, uint256 b)
     return (a.hi < b.hi) | ((a.hi == b.hi) & (a.lo < b.lo));
 }
 
-bool operator>=(uint256 a, uint256 b)
+inline bool operator>=(uint256 a, uint256 b)
 {
     return !(a < b);
+}
+
+inline bool operator<=(uint256 a, uint256 b)
+{
+    return (a < b) || (a == b);
 }
 
 
@@ -246,9 +253,19 @@ uint256 add(uint256 a, uint256 b)
     return std::get<0>(add_with_carry(a, b));
 }
 
+inline uint128 minus(uint128 x)
+{
+    return -x;
+}
+
 inline uint256 minus(uint256 x)
 {
     return add(bitwise_not(x), 1);
+}
+
+inline uint128 sub(uint128 a, uint128 b)
+{
+    return a - b;
 }
 
 inline uint256 sub(uint256 a, uint256 b)
@@ -259,6 +276,11 @@ inline uint256 sub(uint256 a, uint256 b)
 inline uint128 mul(uint128 a, uint128 b)
 {
     return a * b;
+}
+
+inline std::tuple<uint128, uint128> udiv_qr(uint128 a, uint128 b)
+{
+    return {a / b, a % b};
 }
 
 inline uint128 add(uint128 a, uint128 b)
@@ -369,15 +391,16 @@ inline uint256 operator>>(uint256 x, uint256 y)
     return lsr(x, y);
 }
 
-std::tuple<uint256, uint256> udiv_qr_unr(uint256 x, uint256 y)
+template<typename Int>
+inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
 {
     // decent start
     unsigned c = clz(y);
-    auto z = shl(uint256(1), c);
+    auto z = shl(Int(1), c);
 
     // z recurrence
     auto my = minus(y);
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < traits<Int>::unr_iterations; ++i)
     {
         auto m = mul(my, z);
         auto zd = umul_hi(z, m);
@@ -439,7 +462,7 @@ std::string to_string(uint256 x)
     while (x != 0)
     {
         uint256 r;
-        std::tie(x, r) = udiv_qr_unr(x, 10);
+        std::tie(x, r) = udiv_qr_unr(x, uint256(10));
         auto c = static_cast<size_t>(r);
         s.push_back(static_cast<char>('0' + c));
     }

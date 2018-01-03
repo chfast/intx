@@ -68,24 +68,31 @@ BENCHMARK_TEMPLATE(soft_div64, soft_div_improved_shift);
 BENCHMARK_TEMPLATE(soft_div64, soft_div_unr);
 BENCHMARK_TEMPLATE(soft_div64, soft_div_unr_unrolled);
 
-template<typename D, std::tuple<uint256, uint256> DivFn(uint256, uint256)>
-static void udiv256(benchmark::State& state)
+template<typename N, typename D, std::tuple<N, N> DivFn(N, N)>
+static void udiv(benchmark::State& state)
 {
     // Pick random operands. Keep the divisor small, because this is the worst
     // case for most algorithms.
-    auto seed = std::random_device{}();
-    lcg<uint256> rng_x(seed);
-    lcg<D> rng_y(seed);
+    lcg<N> rng_x(std::random_device{}());
+    lcg<D> rng_y(std::random_device{}());
 
     constexpr size_t size = 1000;
-    std::vector<uint256> input_x(size);
-    std::vector<uint256> input_y(size);
-    std::vector<uint256> output_q(size);
-    std::vector<uint256> output_r(size);
-    for (auto& x : input_x)
-        x = rng_x();
-    for (auto& y : input_y)
-        y = rng_y();
+    std::vector<N> input_x(size);
+    std::vector<N> input_y(size);
+    std::vector<N> output_q(size);
+    std::vector<N> output_r(size);
+    for (size_t i = 0; i < size; ++i)
+    {
+        // Generate non-zero divisor.
+        do
+            input_y[i] = rng_y();
+        while (input_y[i] == 0);
+
+        // Generate dividend greater than divisor to avoid trivial cases.
+        do
+            input_x[i] = rng_x();
+        while (input_x[i] <= input_y[i]);
+    }
 
     for (auto _ : state)
     {
@@ -97,21 +104,26 @@ static void udiv256(benchmark::State& state)
 
     for (size_t i = 0; i < size; ++i)
     {
-        uint256 x = output_q[i] * input_y[i] + output_r[i];
+        auto x = output_q[i] * input_y[i] + output_r[i];
         if (input_x[i] != x)
             state.SkipWithError("wrong result");
     }
 }
 
-BENCHMARK_TEMPLATE(udiv256, uint64_t, udiv_qr_unr);
-BENCHMARK_TEMPLATE(udiv256, uint64_t, udiv_qr_shift);
-BENCHMARK_TEMPLATE(udiv256, uint64_t, gmp_udiv_qr);
-BENCHMARK_TEMPLATE(udiv256, uint128, udiv_qr_unr);
-BENCHMARK_TEMPLATE(udiv256, uint128, udiv_qr_shift);
-BENCHMARK_TEMPLATE(udiv256, uint128, gmp_udiv_qr);
-BENCHMARK_TEMPLATE(udiv256, uint256, udiv_qr_unr);
-BENCHMARK_TEMPLATE(udiv256, uint256, udiv_qr_shift);
-BENCHMARK_TEMPLATE(udiv256, uint256, gmp_udiv_qr);
+BENCHMARK_TEMPLATE(udiv, uint128, uint64_t, udiv_qr);
+BENCHMARK_TEMPLATE(udiv, uint128, uint64_t, udiv_qr_unr);
+BENCHMARK_TEMPLATE(udiv, uint128, uint128, udiv_qr);
+BENCHMARK_TEMPLATE(udiv, uint128, uint128, udiv_qr_unr);
+
+BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_unr);
+BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_shift);
+BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, gmp_udiv_qr);
+BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_unr);
+BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_shift);
+BENCHMARK_TEMPLATE(udiv, uint256, uint128, gmp_udiv_qr);
+BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_unr);
+BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_shift);
+BENCHMARK_TEMPLATE(udiv, uint256, uint256, gmp_udiv_qr);
 
 using binary_fn256 = uint256 (*)(uint256, uint256);
 template<binary_fn256 BinFn>
