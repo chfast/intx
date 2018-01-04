@@ -46,6 +46,23 @@ inline unsigned clz(unsigned x)
 {
     return __builtin_clz(x);
 }
+
+inline std::tuple<uint64_t, uint64_t> udivrem_long(uint128 u, uint64_t v)
+{
+    // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
+    uint64_t q, r;
+    uint64_t uh = static_cast<uint64_t>(u >> 64);
+    uint64_t ul = static_cast<uint64_t>(u);
+    asm("divq %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
+    return {q, r};
+}
+
+inline std::tuple<uint32_t, uint32_t> udivrem_long(uint64_t u, uint32_t v)
+{
+    auto q = static_cast<uint32_t>(u / v);
+    auto r = static_cast<uint32_t>(u % v);
+    return {q, r};
+}
 }
 
 using namespace gcc;

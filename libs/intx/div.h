@@ -1,12 +1,13 @@
 
 #include <cstdint>
+#include <tuple>
 
-static int clz(uint64_t x)
+inline int clz(uint64_t x)
 {
     return __builtin_clzl(x);
 }
 
-static uint64_t umulh(uint64_t x, uint64_t y)
+inline uint64_t umulh(uint64_t x, uint64_t y)
 {
     unsigned __int128 p = static_cast<unsigned __int128>(x) * y;
     return static_cast<uint64_t>(p >> 64);
@@ -72,6 +73,46 @@ uint64_t soft_div_unr(uint64_t x, uint64_t y)
     }
     return q;
 }
+
+std::tuple<uint64_t, uint64_t> udivrem_long_unr(unsigned __int128 x, uint64_t y)
+{
+    // decent start
+    unsigned __int128 z = uint64_t(1) << clz(y);
+
+    // z recurrence
+    uint64_t my = 0 - y;
+    for (int i = 0; i < 20; ++i)
+    {
+        auto zd = z * my * z;
+        if (zd == 0)
+            break;
+        z = z + zd;
+    }
+
+    // q estimate
+    auto p = x * z;
+    uint64_t q = static_cast<uint64_t>(p >> 64);
+    uint64_t r = static_cast<uint64_t>(x - (y * q));
+    // q refinement
+    if (r >= y)
+    {
+        r = r - y;
+        q = q + 1;
+        if (r >= y)
+        {
+            r = r - y;
+            q = q + 1;
+        }
+    }
+    return {q, r};
+}
+
+std::tuple<uint64_t, uint64_t> udivrem_long_gcc(unsigned __int128 x, uint64_t y)
+{
+    auto q = static_cast<uint64_t>(x / y);
+    auto r = static_cast<uint64_t>(x % y);
+    return {q, r};
+};
 
 uint64_t soft_div_shift(uint64_t x, uint64_t y)
 {
