@@ -9,12 +9,14 @@
 
 using namespace intx;
 
+using seed_type = std::random_device::result_type;
+
 template<typename Int>
 struct lcg
 {
     Int state = 0;
 
-    explicit lcg(std::random_device::result_type seed) : state(seed)
+    explicit lcg(seed_type seed) : state(seed)
     {
         // Run for some time to fill the state.
         for (int i = 0; i < 97; ++i)
@@ -28,12 +30,20 @@ struct lcg
     }
 };
 
+
+
+static seed_type get_seed()
+{
+    static const auto seed = std::random_device{}();
+    return seed;
+}
+
 template<uint64_t DivFn(uint64_t, uint64_t)>
 static void soft_div64(benchmark::State& state)
 {
     // Pick random operands. Keep the divisor small, because this is the worst
     // case for most algorithms.
-    std::mt19937_64 rng{std::random_device{}()};
+    std::mt19937_64 rng{get_seed()};
     std::uniform_int_distribution<uint64_t> dist_x;
     std::uniform_int_distribution<uint64_t> dist_y(1, 100);
 
@@ -68,13 +78,15 @@ BENCHMARK_TEMPLATE(soft_div64, soft_div_improved_shift);
 BENCHMARK_TEMPLATE(soft_div64, soft_div_unr);
 BENCHMARK_TEMPLATE(soft_div64, soft_div_unr_unrolled);
 
+
 template<typename N, typename D, std::tuple<N, N> DivFn(N, N)>
 static void udiv(benchmark::State& state)
 {
-    // Pick random operands. Keep the divisor small, because this is the worst
-    // case for most algorithms.
-    lcg<N> rng_x(std::random_device{}());
-    lcg<D> rng_y(std::random_device{}());
+    // Pick random operands using global seed to perform exactly the same sequence of divisions
+    // for each division implementation.
+    lcg<seed_type> rng_seed(get_seed());
+    lcg<N> rng_x(rng_seed());
+    lcg<D> rng_y(rng_seed());
 
     constexpr size_t size = 1000;
     std::vector<N> input_x(size);
@@ -156,8 +168,7 @@ static void binary_op256(benchmark::State& state)
 {
     // Pick random operands. Keep the divisor small, because this is the worst
     // case for most algorithms.
-    auto seed = std::random_device{}();
-    lcg<uint256> rng(seed);
+    lcg<uint256> rng(get_seed());
 
     constexpr size_t size = 1000;
     std::vector<uint256> input_x(size);

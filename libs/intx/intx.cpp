@@ -316,10 +316,6 @@ static void udiv_knuth_internal(
         return;
     }
 
-    const uint64_t b = uint64_t(1) << 32; // Number base (32 bits).
-    unsigned *un, *vn; // Normalized form of u, v.
-    int i, j;
-
     DEBUG(dbgs() << "KnuthHD: m=" << m << " n=" << n << '\n');
     DEBUG(dbgs() << "KnuthHD: original:");
     DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << u[i]);
@@ -327,22 +323,69 @@ static void udiv_knuth_internal(
     DEBUG(for (int i = n; i >0; i--) dbgs() << " " << v[i-1]);
     DEBUG(dbgs() << '\n');
 
-// Normalize by shifting v left just enough so that
-// its high-order bit is on, and shift u left the
-// same amount. We may have to append a high-order
-// digit on the dividend; we do that unconditionally.
-    unsigned shift = intx::clz(v[n-1]);
-    vn = static_cast<uint32_t*>(alloca(n * sizeof(uint32_t)));
-    // shift == 0, we would get shift by 32 => UB. Consider using uint64.
-    for (i = n - 1; i > 0; i--)
+    // Normalize by shifting the divisor v left so that its highest bit is on,
+    // and shift the dividend u left the same amount.
+    auto vn = static_cast<uint32_t*>(alloca(n * sizeof(uint32_t)));
+    auto un = static_cast<uint32_t*>(alloca((m + 1) * sizeof(uint32_t)));
+
+    unsigned shift = clz(v[n - 1]);
+
+    for (int i = n - 1; i > 0; i--)
         vn[i] = shift != 0 ? (v[i] << shift) | (v[i - 1] >> (32 - shift)) : v[i];
     vn[0] = v[0] << shift;
 
-    un = static_cast<uint32_t*>(alloca((m + 1) * sizeof(uint32_t)));
     un[m] = shift != 0 ? u[m - 1] >> (32 - shift) : 0;
-    for (i = m - 1; i > 0; i--)
+    for (int i = m - 1; i > 0; i--)
         un[i] = shift != 0 ? (u[i] << shift) | (u[i - 1] >> (32 - shift)) : u[i];
     un[0] = u[0] << shift;
+
+//    uint32_t v_carry = 0;
+//    uint32_t u_carry = 0;
+//    if (shift)
+//    {
+//        for (int i = 0; i < m; ++i)
+//        {
+//            uint32_t u_tmp = u[i] >> (32 - shift);
+//            un[i] = (u[i] << shift) | u_carry;
+//            u_carry = u_tmp;
+//        }
+//        for (int i = 0; i < n; ++i)
+//        {
+//            uint32_t v_tmp = v[i] >> (32 - shift);
+//            vn[i] = (v[i] << shift) | v_carry;
+//            v_carry = v_tmp;
+//        }
+//    }
+//    else
+//    {
+//        std::copy_n(u, m, un);
+//        std::copy_n(v, n, vn);
+//    }
+//    un[m] = u_carry;
+
+
+    //    std::copy_n(u, m, un);
+    //    std::copy_n(v, n, vn);
+    //    un[m] = 0;  // The dividend may get additional high-order digit.
+    //
+    //
+    //    if (shift)
+    //    {
+    //        uint32_t u_carry = 0;
+    //        for (int i = 0; i < (m + 1); ++i)
+    //        {
+    //            uint32_t u_tmp = un[i] >> (32 - shift);
+    //            un[i] = (un[i] << shift) | u_carry;
+    //            u_carry = u_tmp;
+    //        }
+    //        uint32_t v_carry = 0;
+    //        for (int i = 0; i < n; ++i)
+    //        {
+    //            uint32_t v_tmp = vn[i] >> (32 - shift);
+    //            vn[i] = (vn[i] << shift) | v_carry;
+    //            v_carry = v_tmp;
+    //        }
+    //    }
 
     DEBUG(dbgs() << "KnuthHD:   normal:");
     DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
@@ -350,7 +393,8 @@ static void udiv_knuth_internal(
     DEBUG(for (int i = n; i >0; i--) dbgs() << " " << vn[i-1]);
     DEBUG(dbgs() << '\n');
 
-    for (j = m - n; j >= 0; j--)  // Main loop.
+    const uint64_t b = uint64_t(1) << 32; // Number base (32 bits).
+    for (int j = m - n; j >= 0; j--)  // Main loop.
     {
 
         DEBUG(dbgs() << "KnuthHD: quotient digit #" << j << '\n');
@@ -412,7 +456,7 @@ static void udiv_knuth_internal(
 // If the caller wants the remainder, unnormalize
 // it and pass it back.
     if (r) {
-        for (i = 0; i < n; i++)
+        for (int i = 0; i < n; i++)
             r[i] = shift != 0 ? (un[i] >> shift) | (un[i + 1] << (32-shift)) : un[i];
     }
 }
