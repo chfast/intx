@@ -291,7 +291,7 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
     return 0;
 }
 
-static void udiv_knuth_internal(
+static void udiv_knuth_internal_base(
     unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
 {
     if (n == 1)
@@ -339,53 +339,6 @@ static void udiv_knuth_internal(
         un[i] = shift != 0 ? (u[i] << shift) | (u[i - 1] >> (32 - shift)) : u[i];
     un[0] = u[0] << shift;
 
-//    uint32_t v_carry = 0;
-//    uint32_t u_carry = 0;
-//    if (shift)
-//    {
-//        for (int i = 0; i < m; ++i)
-//        {
-//            uint32_t u_tmp = u[i] >> (32 - shift);
-//            un[i] = (u[i] << shift) | u_carry;
-//            u_carry = u_tmp;
-//        }
-//        for (int i = 0; i < n; ++i)
-//        {
-//            uint32_t v_tmp = v[i] >> (32 - shift);
-//            vn[i] = (v[i] << shift) | v_carry;
-//            v_carry = v_tmp;
-//        }
-//    }
-//    else
-//    {
-//        std::copy_n(u, m, un);
-//        std::copy_n(v, n, vn);
-//    }
-//    un[m] = u_carry;
-
-
-    //    std::copy_n(u, m, un);
-    //    std::copy_n(v, n, vn);
-    //    un[m] = 0;  // The dividend may get additional high-order digit.
-    //
-    //
-    //    if (shift)
-    //    {
-    //        uint32_t u_carry = 0;
-    //        for (int i = 0; i < (m + 1); ++i)
-    //        {
-    //            uint32_t u_tmp = un[i] >> (32 - shift);
-    //            un[i] = (un[i] << shift) | u_carry;
-    //            u_carry = u_tmp;
-    //        }
-    //        uint32_t v_carry = 0;
-    //        for (int i = 0; i < n; ++i)
-    //        {
-    //            uint32_t v_tmp = vn[i] >> (32 - shift);
-    //            vn[i] = (vn[i] << shift) | v_carry;
-    //            v_carry = v_tmp;
-    //        }
-    //    }
 
     DEBUG(dbgs() << "KnuthHD:   normal:");
     DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
@@ -461,6 +414,148 @@ static void udiv_knuth_internal(
     }
 }
 
+static void udiv_knuth_internal(
+    unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
+{
+    if (n == 1)
+    {
+        // Handle the case of a single-digit divisor.
+
+        // Load the divisor once. The enabled more optimization because compiler
+        // knows that divisor remains unchanged when storing to q[j].
+        uint32_t divisor = v[0];
+        uint32_t remainder = 0;
+        for (int j = m - 1; j >= 0; --j)
+        {
+            uint64_t dividend = join(remainder, u[j]);
+
+            // Perform long division. The compiler should use single instruction
+            // here to compute both quotient and remainder. This is better than
+            // classic multiplication `reminder = dividend - q[j] * divisor`.
+            q[j] = lo_half(dividend / divisor);
+            remainder = lo_half(dividend % divisor);
+        }
+        r[0] = remainder;
+        return;
+    }
+
+    // Normalize by shifting the divisor v left so that its highest bit is on,
+    // and shift the dividend u left the same amount.
+    auto vn = static_cast<uint32_t*>(alloca(n * sizeof(uint32_t)));
+    auto un = static_cast<uint32_t*>(alloca((m + 1) * sizeof(uint32_t)));
+
+    unsigned shift = clz(v[n - 1]);
+    unsigned lshift = num_bits(v[0]) - shift;
+
+    for (int i = n - 1; i > 0; i--)
+        vn[i] = shift ? (v[i] << shift) | (v[i - 1] >> lshift) : v[i];
+    vn[0] = v[0] << shift;
+
+    un[m] = shift != 0 ? u[m - 1] >> lshift : 0;
+    for (int i = m - 1; i > 0; i--)
+        un[i] = shift ? (u[i] << shift) | (u[i - 1] >> lshift) : u[i];
+    un[0] = u[0] << shift;
+
+//    uint32_t v_carry = 0;
+//    uint32_t u_carry = 0;
+//    if (shift)
+//    {
+//        for (int i = 0; i < m; ++i)
+//        {
+//            uint32_t u_tmp = u[i] >> lshift;
+//            un[i] = (u[i] << shift) | u_carry;
+//            u_carry = u_tmp;
+//        }
+//        for (int i = 0; i < n; ++i)
+//        {
+//            uint32_t v_tmp = v[i] >> lshift;
+//            vn[i] = (v[i] << shift) | v_carry;
+//            v_carry = v_tmp;
+//        }
+//    }
+//    else
+//    {
+//        std::copy_n(u, m, un);
+//        std::copy_n(v, n, vn);
+//    }
+//    un[m] = u_carry;
+
+
+//    std::copy_n(u, m, un);
+//    std::copy_n(v, n, vn);
+//    un[m] = 0;  // The dividend may get additional high-order digit.
+//
+//
+//    if (shift)
+//    {
+//        uint32_t u_carry = 0;
+//        for (int i = 0; i < (m + 1); ++i)
+//        {
+//            uint32_t u_tmp = un[i] >> lshift;
+//            un[i] = (un[i] << shift) | u_carry;
+//            u_carry = u_tmp;
+//        }
+//        uint32_t v_carry = 0;
+//        for (int i = 0; i < n; ++i)
+//        {
+//            uint32_t v_tmp = vn[i] >> lshift;
+//            vn[i] = (vn[i] << shift) | v_carry;
+//            v_carry = v_tmp;
+//        }
+//    }
+
+    for (int j = m - n; j >= 0; j--)  // Main loop.
+    {
+        uint64_t dividend = join(un[j + n], un[j + n - 1]);
+        uint32_t divisor = vn[n - 1];
+        uint64_t qhat = dividend / divisor;  // Estimated quotient digit.
+        uint64_t rhat = dividend % divisor;  // A remainder.
+
+        const uint64_t base = uint64_t(1) << 32;  // Number base (32 bits).
+        uint32_t next_divisor = vn[n - 2];
+        uint64_t pd = join(lo_half(rhat), un[j + n - 2]);
+        if (qhat == base || qhat * next_divisor > pd)
+        {
+            qhat--;
+            rhat += divisor;
+            pd = join(lo_half(rhat), un[j + n - 2]);
+            if (rhat < base && (qhat == base || qhat * next_divisor > pd))
+                qhat--;
+        }
+
+        // Multiply and subtract.
+        int64_t borrow = 0;
+        for (int i = 0; i < n; i++)
+        {
+            uint64_t p = qhat * vn[i];
+            int64_t t = int64_t(un[i + j]) - borrow - lo_half(p);
+            auto s = static_cast<uint64_t>(t);
+            un[i+j] = lo_half(s);
+            borrow = hi_half(p) - hi_half(s);
+        }
+        int64_t t = un[j + n] - borrow;
+        un[j + n] = static_cast<uint32_t>(t);
+
+        q[j] = lo_half(qhat); // Store quotient digit.
+        if (t < 0)
+        {            // If we subtracted too
+            --q[j];  // much, add back.
+            uint64_t carry = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                // TODO: Consider using bool carry. See LLVM version.
+                uint64_t u_tmp = uint64_t(un[i + j]) + uint64_t(vn[i]) + carry;
+                un[i + j] = lo_half(u_tmp);
+                carry = hi_half(u_tmp);
+            }
+            un[j + n] = lo_half(uint64_t(un[j + n]) + carry);
+        }
+    }
+
+    for (int i = 0; i < n; ++i)
+        r[i] = shift ? (un[i] >> shift) | (un[i + 1] << lshift) : un[i];
+}
+
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
 {
     // Skip dividend's leading zero limbs.
@@ -476,6 +571,25 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
     auto p_q = (uint32_t*)&q;
     auto p_r = (uint32_t*)&r;
     udiv_knuth_internal(p_q, p_r, p_x, p_y, m, n);
+
+    return {q, r};
+}
+
+std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y)
+{
+    // Skip dividend's leading zero limbs.
+    const unsigned m = 8 - (clz(x) / (4 * 8));
+    const unsigned n = 8 - (clz(y) / (4 * 8));
+
+    if (n > m)
+        return {0, x};
+
+    uint256 q, r;
+    auto p_x = (uint32_t*)&x;
+    auto p_y = (uint32_t*)&y;
+    auto p_q = (uint32_t*)&q;
+    auto p_r = (uint32_t*)&r;
+    udiv_knuth_internal_base(p_q, p_r, p_x, p_y, m, n);
 
     return {q, r};
 }

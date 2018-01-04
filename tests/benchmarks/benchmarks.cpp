@@ -137,6 +137,7 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_shift);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_llvm_base);
+BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, gmp_udiv_qr);
 
@@ -145,6 +146,7 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_shift);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_llvm_base);
+BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, gmp_udiv_qr);
 
@@ -152,6 +154,7 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_shift);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_llvm_base);
+BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, gmp_udiv_qr);
 
@@ -159,6 +162,7 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_shift);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_llvm_base);
+BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, gmp_udiv_qr);
 

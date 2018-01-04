@@ -484,8 +484,9 @@ inline std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
 }
 
 std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y);
-std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v);
+std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y);
+std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y);
 
 inline std::string to_string(uint256 x)
 {
