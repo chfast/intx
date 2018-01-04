@@ -147,12 +147,32 @@ TEST_F(Uint256Test, udiv_against_gmp)
                 continue;
 
             uint256 q, r, q_gmp, r_gmp;
+            uint256 n_gmp = a;
+            uint256 d_gmp = d;
             std::tie(q, r) = udiv_qr_unr(a, d);
-            std::tie(q_gmp, r_gmp) = gmp_udiv_qr(a, d);
+            std::tie(q_gmp, r_gmp) = gmp_udiv_qr(n_gmp, d_gmp);
+            EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
+            EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+
+            std::tie(q, r) = udiv_qr_knuth_hd_base(a, d);
             EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
             EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
         }
     }
+}
+
+TEST_F(Uint256Test, udiv_against_gmp_single_case)
+{
+    uint256 n = 19;
+    n = n << 200;
+    uint256 d = 17;
+    d = d << 135;
+
+    uint256 q, r, q_gmp, r_gmp;
+    std::tie(q, r) = udiv_qr_unr(n, d);
+    std::tie(q_gmp, r_gmp) = gmp_udiv_qr(n, d);
+    EXPECT_EQ(q, q_gmp) << to_string(n) << " / " << to_string(d) << " = " << to_string(q);
+    EXPECT_EQ(r, r_gmp) << to_string(n) << " % " << to_string(d) << " = " << to_string(r);
 }
 
 TEST_F(Uint256Test, add_against_sub)
@@ -170,12 +190,46 @@ TEST_F(Uint256Test, add_against_sub)
 
 TEST_F(Uint256Test, simple_udiv)
 {
-    uint256 a = 0xffffffffffffffff;
-    uint256 b = 0xffffffffffffffff;
-    uint256 q, r;
-    std::tie(q, r) = udiv_qr_unr(mul(a, b), b);
-    EXPECT_EQ(q, a);
-    EXPECT_EQ(r, 0);
+    const char* data_set[][4] = {
+        {"85171522646011351805059701872822457992110823852603410913834565603426987238690",
+            "3417151701427854447", "24924712183665270310773198889627251242355172875064429410821",
+            "3066111968632467703"},
+        {"42429462377568411210060890623633389837910568534950317291651048757561669458086",
+            "7143279538687112481018702353923999316900435882171572239553505938008016523868", "5",
+            "6713064684132848804967378854013393253408389124092456093883519067521586838746"},
+        {"51944969322778123844493301323979731028491878961505469250051328399321622613545",
+            "16442292418272115516", "3159229139183312667023399387580659588781817989553028093847",
+            "4502998155949783493"},
+        {"36893488147419103231", "36893488147419103231", "1", "0"},
+        {"39614081294025656944191078399", "19342813113834066526863360", "2048",
+            "36893488697174917119"},
+        {"57896044618658097711785492504343953925954427598978405092802042789093028397056",
+            "4184734490257787176003953737778757098546805126749757636608", "13835058055282163711",
+            "2615459056411116984492047535730315491393232528557125664768"}};
+
+    for (size_t i = 0; i < sizeof(data_set) / sizeof(data_set[0]); ++i)
+    {
+        // if (i != 5) continue;
+
+        const auto& data = data_set[i];
+        uint256 n = from_string(data[0]);
+        uint256 d = from_string(data[1]);
+        uint256 expected_q = from_string(data[2]);
+        uint256 expected_r = from_string(data[3]);
+
+        uint256 q, r;
+        std::tie(q, r) = udiv_qr_unr(n, d);
+        EXPECT_EQ(q, expected_q);
+        EXPECT_EQ(r, expected_r);
+
+        std::tie(q, r) = udiv_qr_knuth_hd_base(n, d);
+        EXPECT_EQ(q, expected_q) << "data index: " << i;
+        EXPECT_EQ(r, expected_r) << "data index: " << i;
+
+        std::tie(q, r) = udiv_qr_knuth_llvm_base(n, d);
+        EXPECT_EQ(q, expected_q) << "data index: " << i;
+        EXPECT_EQ(r, expected_r) << "data index: " << i;
+    }
 }
 
 TEST_F(Uint256Test, mul_against_div)
@@ -257,6 +311,9 @@ TEST(Uint64Test, clz)
 {
     for (auto n : maximal)
     {
+        if (n == 0)  // clz undefined for 0.
+            continue;
+
         auto c = intx::clz(n);
         auto d = intx::generic::clz(n);
         EXPECT_EQ(c, d) << std::hex << n;

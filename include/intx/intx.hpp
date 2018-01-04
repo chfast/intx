@@ -20,7 +20,7 @@ struct uint128
 };
 
 
-unsigned clz(uint64_t a)
+inline unsigned clz(uint64_t a)
 {
     unsigned c = 0;
     for (; c < 64; ++c)
@@ -37,9 +37,14 @@ namespace gcc
 {
 using uint128 = unsigned __int128;
 
-unsigned clz(uint64_t a)
+inline unsigned clz(uint64_t a)
 {
     return __builtin_clzl(a);
+}
+
+inline unsigned clz(unsigned x)
+{
+    return __builtin_clz(x);
 }
 }
 
@@ -98,6 +103,16 @@ struct traits<uint256>
     static constexpr int unr_iterations = 8;
 };
 
+constexpr uint32_t lo_half(uint64_t x)
+{
+    return static_cast<uint32_t>(x);
+}
+
+constexpr uint32_t hi_half(uint64_t x)
+{
+    return static_cast<uint32_t>(x >> 32);
+}
+
 constexpr uint64_t lo_half(uint128 x)
 {
     return static_cast<uint64_t>(x);
@@ -126,6 +141,11 @@ constexpr uint256 lo_half(uint512 x)
 constexpr uint256 hi_half(uint512 x)
 {
     return x.hi;
+}
+
+constexpr uint64_t join(uint32_t hi, uint32_t lo)
+{
+    return (uint64_t(hi) << 32) | lo;
 }
 
 template <typename T>
@@ -231,14 +251,14 @@ inline uint256 lsr(uint256 x, uint256 shift)
 }
 
 
-std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b)
+inline std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b)
 {
     auto s = a + b;
     auto k = s < a;
     return std::make_tuple(s, k);
 }
 
-std::tuple<uint256, bool> add_with_carry(uint256 a, uint256 b)
+inline std::tuple<uint256, bool> add_with_carry(uint256 a, uint256 b)
 {
     uint256 s;
     bool k1, k2, k3;
@@ -248,7 +268,7 @@ std::tuple<uint256, bool> add_with_carry(uint256 a, uint256 b)
     return std::make_tuple(s, k2 || k3);
 }
 
-uint256 add(uint256 a, uint256 b)
+inline uint256 add(uint256 a, uint256 b)
 {
     return std::get<0>(add_with_carry(a, b));
 }
@@ -329,7 +349,7 @@ typename traits<Int>::double_type umul_full(Int a, Int b)
     return {l, h};
 }
 
-uint256 mul(uint256 a, uint256 b)
+inline uint256 mul(uint256 a, uint256 b)
 {
     auto t = umul_full(a.lo, b.lo);
     auto l = t.lo;
@@ -347,7 +367,7 @@ uint256 mul(uint256 a, uint256 b)
 }
 
 template <typename Int>
-Int umul_hi(Int a, Int b)
+inline Int umul_hi(Int a, Int b)
 {
     return hi_half(umul_full(a, b));
 }
@@ -355,7 +375,7 @@ Int umul_hi(Int a, Int b)
 using gcc::clz;
 
 template <typename Int>
-unsigned clz(Int x)
+inline unsigned clz(Int x)
 {
     auto l = lo_half(x);
     auto h = hi_half(x);
@@ -437,7 +457,7 @@ inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
     return {q, r};
 }
 
-std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
+inline std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
 {
     uint256 r = x;
     uint256 q = 0;
@@ -463,7 +483,10 @@ std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
     return {q, r};
 }
 
-std::string to_string(uint256 x)
+std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y);
+std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v);
+
+inline std::string to_string(uint256 x)
 {
     if (x == 0)
         return "0";
@@ -516,7 +539,7 @@ inline void add_to_opt(uint256& a, uint128 b)
 }
 
 
-uint64_t add2(uint64_t ah, uint64_t al, uint64_t bh, uint64_t bl)
+inline uint64_t add2(uint64_t ah, uint64_t al, uint64_t bh, uint64_t bl)
 {
     (void)ah;
     auto l = al + bl;
@@ -525,7 +548,7 @@ uint64_t add2(uint64_t ah, uint64_t al, uint64_t bh, uint64_t bl)
     return h;
 }
 
-void add_128(uint64_t* r, const uint64_t* a, const uint64_t* b)
+inline void add_128(uint64_t* r, const uint64_t* a, const uint64_t* b)
 {
     // Intermediate values are used to avoid memory aliasing issues.
     auto l = a[0] + b[0];
@@ -535,7 +558,7 @@ void add_128(uint64_t* r, const uint64_t* a, const uint64_t* b)
     r[1] = h;
 }
 
-bool adc_128(uint64_t* r, const uint64_t* a, const uint64_t* b)
+inline bool adc_128(uint64_t* r, const uint64_t* a, const uint64_t* b)
 {
     // Intermediate values are used to avoid memory aliasing issues.
     auto l = a[0] + b[0];
@@ -551,7 +574,7 @@ bool adc_128(uint64_t* r, const uint64_t* a, const uint64_t* b)
     return c1 | c2;
 }
 
-void add_128(uint64_t* r, const uint64_t* a, uint64_t b)
+inline void add_128(uint64_t* r, const uint64_t* a, uint64_t b)
 {
     auto l = a[0] + b;
     auto c = l < a[0];
@@ -560,14 +583,14 @@ void add_128(uint64_t* r, const uint64_t* a, uint64_t b)
     r[1] = h;  // TODO: Do not store if not needed.
 }
 
-bool lt_128(const uint64_t* a, const uint64_t* b)
+inline bool lt_128(const uint64_t* a, const uint64_t* b)
 {
     if (a[1] < b[1])
         return true;
     return a[0] < b[0];
 }
 
-void add_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
+inline void add_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
 {
     uint64_t l[2];
     add_128(l, a, b);
@@ -581,7 +604,7 @@ void add_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
     r[3] = h[1];
 }
 
-void add2_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
+inline void add2_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
 {
     uint64_t l[2];
     auto c = adc_128(l, a, b);
@@ -594,7 +617,7 @@ void add2_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
     r[3] = h[1];
 }
 
-bool add3_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
+inline bool add3_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
 {
     uint64_t l[4];
     bool c = 0;
@@ -615,7 +638,7 @@ bool add3_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
     return c;
 }
 
-void add_no_carry_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
+inline void add_no_carry_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
 {
     add3_256(r, a, b);
 }

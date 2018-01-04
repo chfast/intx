@@ -17,7 +17,7 @@ struct lcg
     explicit lcg(std::random_device::result_type seed) : state(seed)
     {
         // Run for some time to fill the state.
-        for (int i = 0; i < 17; ++i)
+        for (int i = 0; i < 97; ++i)
             (*this)();
     }
 
@@ -106,7 +106,12 @@ static void udiv(benchmark::State& state)
     {
         auto x = output_q[i] * input_y[i] + output_r[i];
         if (input_x[i] != x)
-            state.SkipWithError("wrong result");
+        {
+            std::string error = to_string(input_x[i]) + " / " + to_string(input_y[i]) + " = " +
+                                to_string(output_q[i]) + " % " + to_string(output_r[i]);
+            state.SkipWithError(error.data());
+            break;
+        }
     }
 }
 
@@ -117,12 +122,18 @@ BENCHMARK_TEMPLATE(udiv, uint128, uint128, udiv_qr_unr);
 
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_shift);
+BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_hd_base);
+BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, gmp_udiv_qr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_shift);
+BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_hd_base);
+BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, gmp_udiv_qr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_shift);
+BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_hd_base);
+BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, gmp_udiv_qr);
 
 using binary_fn256 = uint256 (*)(uint256, uint256);
