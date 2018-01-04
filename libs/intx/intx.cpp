@@ -3,6 +3,9 @@
 #include <cassert>
 #include <cstring>
 
+namespace intx
+{
+
 #if 0
 #include <iostream>
 #define DEBUG(X) X
@@ -179,10 +182,11 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
     if (m < n || n <= 0 || v[n-1] == 0)
         return 1; // Return if invalid param.
     if (n == 1) { // Take care of
-        int64_t k = 0; // the case of a
+        uint64_t d = v[0];
+        uint64_t k = 0; // the case of a
         for (j = m - 1; j >= 0; j--) { // single-digit
-            q[j] = intx::lo_half((k*b + u[j])/v[0]); // divisor here.
-            k = (k*b + u[j]) - q[j]*v[0];
+            q[j] = intx::lo_half((k*b + u[j])/d); // divisor here.
+            k = (k*b + u[j]) - q[j]*d;
         }
         if (r)
             r[0] = static_cast<unsigned>(k);
@@ -287,8 +291,151 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
     return 0;
 }
 
-namespace intx
+static void udiv_knuth_internal(
+    unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
 {
+    if (n == 1)
+    {
+        // Handle the case of a single-digit divisor.
+
+        // Load the divisor once. The enabled more optimization because compiler
+        // knows that divisor remains unchanged when storing to q[j].
+        uint32_t divisor = v[0];
+        uint32_t remainder = 0;
+        for (int j = m - 1; j >= 0; --j)
+        {
+            uint64_t dividend = join(remainder, u[j]);
+
+            // Perform long division. The compiler should use single instruction
+            // here to compute both quotient and remainder. This is better than
+            // classic multiplication `reminder = dividend - q[j] * divisor`.
+            q[j] = lo_half(dividend / divisor);
+            remainder = lo_half(dividend % divisor);
+        }
+        r[0] = remainder;
+        return;
+    }
+
+    const uint64_t b = uint64_t(1) << 32; // Number base (32 bits).
+    unsigned *un, *vn; // Normalized form of u, v.
+    int i, j;
+
+    DEBUG(dbgs() << "KnuthHD: m=" << m << " n=" << n << '\n');
+    DEBUG(dbgs() << "KnuthHD: original:");
+    DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << u[i]);
+    DEBUG(dbgs() << " by");
+    DEBUG(for (int i = n; i >0; i--) dbgs() << " " << v[i-1]);
+    DEBUG(dbgs() << '\n');
+
+// Normalize by shifting v left just enough so that
+// its high-order bit is on, and shift u left the
+// same amount. We may have to append a high-order
+// digit on the dividend; we do that unconditionally.
+    unsigned shift = intx::clz(v[n-1]);
+    vn = static_cast<uint32_t*>(alloca(n * sizeof(uint32_t)));
+    // shift == 0, we would get shift by 32 => UB. Consider using uint64.
+    for (i = n - 1; i > 0; i--)
+        vn[i] = shift != 0 ? (v[i] << shift) | (v[i - 1] >> (32 - shift)) : v[i];
+    vn[0] = v[0] << shift;
+
+    un = static_cast<uint32_t*>(alloca((m + 1) * sizeof(uint32_t)));
+    un[m] = shift != 0 ? u[m - 1] >> (32 - shift) : 0;
+    for (i = m - 1; i > 0; i--)
+        un[i] = shift != 0 ? (u[i] << shift) | (u[i - 1] >> (32 - shift)) : u[i];
+    un[0] = u[0] << shift;
+
+    DEBUG(dbgs() << "KnuthHD:   normal:");
+    DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
+    DEBUG(dbgs() << " by");
+    DEBUG(for (int i = n; i >0; i--) dbgs() << " " << vn[i-1]);
+    DEBUG(dbgs() << '\n');
+
+    for (j = m - n; j >= 0; j--)  // Main loop.
+    {
+
+        DEBUG(dbgs() << "KnuthHD: quotient digit #" << j << '\n');
+
+        auto dividend = un[j+n]*b + un[j+n-1];
+        DEBUG(dbgs() << "KnuthHD: dividend == " << dividend << '\n');
+
+        // Compute estimate qhat of q[j].
+        uint64_t qhat = dividend / vn[n-1];         // Estimated quotient digit.
+        uint64_t rhat = dividend - qhat * vn[n-1];  // A remainder.
+        again:
+        if (qhat >= b || qhat*vn[n-2] > b*rhat + un[j+n-2])
+        {
+            qhat--;
+            rhat += vn[n-1];
+            if (rhat < b)
+                goto again;
+        }
+
+        DEBUG(dbgs() << "KnuthHD: qp == " << qhat << ", rp == " << rhat << '\n');
+
+        // Multiply and subtract.
+        int64_t borrow = 0;
+        for (int i = 0; i < n; i++)
+        {
+            uint64_t p = qhat*vn[i];
+            uint64_t t = int64_t(un[i+j]) - borrow - static_cast<unsigned>(p);
+            un[i+j] = static_cast<unsigned>(t);
+            borrow = unsigned(p >> 32) - unsigned(t >> 32);
+
+            DEBUG(dbgs() << "KnuthHD: u[" << (j + i) << "] = " << u[j+i]
+                         << ", borrow = " << borrow << '\n');
+        }
+        int64_t t = un[j+n] - borrow;
+        un[j+n] = static_cast<unsigned>(t);
+
+        DEBUG(dbgs() << "KnuthHD: after subtraction:");
+        DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
+        DEBUG(dbgs() << '\n');
+
+        q[j] = static_cast<unsigned>(qhat); // Store quotient digit.
+        if (t < 0) { // If we subtracted too
+            q[j]--; // much, add back.
+            uint64_t carry = 0;
+            for (int i = 0; i < n; i++)
+            {
+                // TODO: Consider using bool carry. See LLVM version.
+                uint64_t t = uint64_t(un[i+j]) + vn[i] + carry;
+                un[i+j] = static_cast<unsigned>(t);
+                carry = t >> 32;
+            }
+            un[j+n] = static_cast<unsigned>(un[j+n] + carry);
+        }
+
+        DEBUG(dbgs() << "KnuthHD: after correction:");
+        DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
+        DEBUG(dbgs() << "\nKnuthHD: digit result = " << q[j] << '\n');
+    } // End j.
+// If the caller wants the remainder, unnormalize
+// it and pass it back.
+    if (r) {
+        for (i = 0; i < n; i++)
+            r[i] = shift != 0 ? (un[i] >> shift) | (un[i + 1] << (32-shift)) : un[i];
+    }
+}
+
+std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
+{
+    // Skip dividend's leading zero limbs.
+    const unsigned m = 8 - (clz(x) / (4 * 8));
+    const unsigned n = 8 - (clz(y) / (4 * 8));
+
+    if (n > m)
+        return {0, x};
+
+    uint256 q, r;
+    auto p_x = (uint32_t*)&x;
+    auto p_y = (uint32_t*)&y;
+    auto p_q = (uint32_t*)&q;
+    auto p_r = (uint32_t*)&r;
+    udiv_knuth_internal(p_q, p_r, p_x, p_y, m, n);
+
+    return {q, r};
+}
+
 std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y)
 {
     // Skip dividend's leading zero limbs.
@@ -351,7 +498,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v)
                 remainder = lo_half(partial_dividend - (p_q[i] * divisor));
             }
         }
-        p_v[0] = remainder;
+        p_r[0] = remainder;
     } else {
         // Now we're ready to invoke the Knuth classical divide algorithm. In this
         // case n > 1.

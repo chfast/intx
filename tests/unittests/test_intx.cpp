@@ -154,7 +154,15 @@ TEST_F(Uint256Test, udiv_against_gmp)
             EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
             EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
 
+            std::tie(q, r) = udiv_qr_knuth_opt(a, d);
+            EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
+            EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+
             std::tie(q, r) = udiv_qr_knuth_hd_base(a, d);
+            EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
+            EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+
+            std::tie(q, r) = udiv_qr_knuth_llvm_base(a, d);
             EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
             EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
         }
@@ -205,7 +213,10 @@ TEST_F(Uint256Test, simple_udiv)
             "36893488697174917119"},
         {"57896044618658097711785492504343953925954427598978405092802042789093028397056",
             "4184734490257787176003953737778757098546805126749757636608", "13835058055282163711",
-            "2615459056411116984492047535730315491393232528557125664768"}};
+            "2615459056411116984492047535730315491393232528557125664768"},
+        {"12345678901234567890123456789012345678901234567890123456789012345678901234567",
+            "56565656", "218253968472222224208333353174801785714307539682561507936706547621031",
+            "43323231"}};
 
     for (size_t i = 0; i < sizeof(data_set) / sizeof(data_set[0]); ++i)
     {
@@ -221,6 +232,10 @@ TEST_F(Uint256Test, simple_udiv)
         std::tie(q, r) = udiv_qr_unr(n, d);
         EXPECT_EQ(q, expected_q);
         EXPECT_EQ(r, expected_r);
+
+        std::tie(q, r) = udiv_qr_knuth_opt(n, d);
+        EXPECT_EQ(q, expected_q) << "data index: " << i;
+        EXPECT_EQ(r, expected_r) << "data index: " << i;
 
         std::tie(q, r) = udiv_qr_knuth_hd_base(n, d);
         EXPECT_EQ(q, expected_q) << "data index: " << i;
