@@ -414,6 +414,28 @@ static void udiv_knuth_internal_base(
     }
 }
 
+std::tuple<uint256, uint64_t> udivrem_1(uint256 x, uint64_t y)
+{
+    uint64_t r = 0;
+    uint256 q = 0;
+
+    uint64_t u[4];
+    std::memcpy(u, &x, sizeof(x));
+
+    auto qt = (uint64_t*)&q;
+
+    for (int j = 4 - 1; j >= 0; --j)
+    {
+        uint128 dividend = join(r, u[j]);
+
+        // Perform long division. The compiler should use single instruction
+        // here to compute both quotient and remainder. This is better than
+        // classic multiplication `reminder = dividend - q[j] * divisor`.
+        std::tie(qt[j], r) = udiv_qr_unr(dividend, uint128(y));
+    }
+    return {q, r};
+}
+
 static void udiv_knuth_internal(
     unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
 {
@@ -432,8 +454,7 @@ static void udiv_knuth_internal(
             // Perform long division. The compiler should use single instruction
             // here to compute both quotient and remainder. This is better than
             // classic multiplication `reminder = dividend - q[j] * divisor`.
-            q[j] = lo_half(dividend / divisor);
-            remainder = lo_half(dividend % divisor);
+            std::tie(q[j], remainder) = udiv_qr_unr(dividend, uint64_t(divisor));
         }
         r[0] = remainder;
         return;
@@ -558,12 +579,15 @@ static void udiv_knuth_internal(
 
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
 {
+    if (x < y)
+        return {0, x};
+
+    if (y <= std::numeric_limits<uint64_t>::max())
+        return udivrem_1(x, static_cast<uint64_t>(y));
+
     // Skip dividend's leading zero limbs.
     const unsigned m = 8 - (clz(x) / (4 * 8));
     const unsigned n = 8 - (clz(y) / (4 * 8));
-
-    if (n > m)
-        return {0, x};
 
     uint256 q, r;
     auto p_x = (uint32_t*)&x;

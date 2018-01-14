@@ -191,8 +191,10 @@ static void udiv(benchmark::State& state)
 
 BENCHMARK_TEMPLATE(udiv, uint128, uint64_t, udiv_qr);
 BENCHMARK_TEMPLATE(udiv, uint128, uint64_t, udiv_qr_unr);
+BENCHMARK_TEMPLATE(udiv, uint128, uint64_t, udiv_dc);
 BENCHMARK_TEMPLATE(udiv, uint128, uint128, udiv_qr);
 BENCHMARK_TEMPLATE(udiv, uint128, uint128, udiv_qr_unr);
+BENCHMARK_TEMPLATE(udiv, uint128, uint128, udiv_dc);
 
 // Single digit divisor:
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_unr);

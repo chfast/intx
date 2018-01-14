@@ -200,6 +200,16 @@ TEST_F(Uint256Test, add_against_sub)
     }
 }
 
+TEST_F(Uint256Test, simple_udiv128)
+{
+    uint128 u = from_string("9297908619707014221872256226986501789").lo;
+    uint128 v = 693770641275760104;
+    uint128 q, r;
+    std::tie(q, r) = udiv_dc(u, v);
+    EXPECT_EQ(q, u / v);
+    EXPECT_EQ(r, u % v);
+}
+
 TEST_F(Uint256Test, simple_udiv)
 {
     const char* data_set[][4] = {

@@ -101,6 +101,16 @@ struct traits
 };
 
 template <>
+struct traits<uint64_t>
+{
+    using double_type = uint128;
+
+    static constexpr unsigned bits = 64;
+    static constexpr unsigned half_bits = 32;
+    static constexpr int unr_iterations = 6;
+};
+
+template <>
 struct traits<uint128>
 {
     using double_type = uint256;
@@ -163,6 +173,11 @@ constexpr uint256 hi_half(uint512 x)
 constexpr uint64_t join(uint32_t hi, uint32_t lo)
 {
     return (uint64_t(hi) << 32) | lo;
+}
+
+constexpr uint128 join(uint64_t hi, uint64_t lo)
+{
+    return (uint128(hi) << 64) | lo;
 }
 
 template <typename T>
@@ -295,6 +310,11 @@ inline uint128 minus(uint128 x)
     return -x;
 }
 
+inline uint64_t minus(uint64_t x)
+{
+    return -x;
+}
+
 inline uint256 minus(uint256 x)
 {
     return add(bitwise_not(x), 1);
@@ -315,12 +335,22 @@ inline uint128 mul(uint128 a, uint128 b)
     return a * b;
 }
 
+inline uint64_t mul(uint64_t a, uint64_t b)
+{
+    return a * b;
+}
+
 inline std::tuple<uint128, uint128> udiv_qr(uint128 a, uint128 b)
 {
     return {a / b, a % b};
 }
 
 inline uint128 add(uint128 a, uint128 b)
+{
+    return a + b;
+}
+
+inline uint64_t add(uint64_t a, uint64_t b)
 {
     return a + b;
 }
@@ -333,6 +363,16 @@ inline uint128 bitwise_or(uint128 a, uint128 b)
 inline uint128 shl(uint128 a, uint128 b)
 {
     return a << b;
+}
+
+inline uint64_t shl(uint64_t a, uint64_t b)
+{
+    return a << b;
+}
+
+inline uint128 umul_full(uint64_t a, uint64_t b)
+{
+    return uint128(a) * uint128(b);
 }
 
 
@@ -356,11 +396,11 @@ typename traits<Int>::double_type umul_full(Int a, Int b)
     h = hi_half(t);
 
     u = mul(al, bh);
-    t = add(u, lo_half(t));
+    t = add(u, Int(lo_half(t)));
     u = shl(t, traits<Int>::half_bits);
     l = bitwise_or(l, u);
     u = mul(ah, bh);
-    t = add(u, hi_half(t));
+    t = add(u, Int(hi_half(t)));
     h = add(h, t);
 
     return {l, h};
@@ -504,6 +544,95 @@ std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y);
+
+inline std::tuple<uint64_t, uint64_t> udiv_long(uint128 u, uint64_t v)
+{
+    using Int = uint64_t;
+
+    Int u0 = lo_half(u);
+    //    Int u1 = hi_half(u);
+
+    const uint64_t b = uint64_t(1) << 32;
+    uint64_t un1, un0, vn1, vn0, q1, q0, un21, un10, rhat;
+
+    unsigned s = clz(v);
+    v <<= s;
+    vn1 = v >> 32;
+    vn0 = v & 0xffffffff;
+
+    // TODO: Check out this way of shifting by 0:
+    // un32 = (u1 << s) | ((u0 >> (64 - s)) & (-s >> 31));
+
+    auto un32 = hi_half(u << s);
+    un10 = u0 << s;
+
+    un1 = un10 >> 32;
+    un0 = un10 & 0xffffffff;
+
+    q1 = un32 / vn1;
+    rhat = un32 - q1 * vn1;
+again1:
+    if (q1 >= b || q1 * vn0 > b * rhat + un1)
+    {
+        q1 = q1 - 1;
+        rhat = rhat + vn1;
+        if (rhat < b)
+            goto again1;
+    }
+
+    un21 = un32 * b + un1 - q1 * v;
+
+    q0 = un21 / vn1;
+    rhat = un21 - q0 * vn1;
+again2:
+    if (q0 >= b || q0 * vn0 > b * rhat + un0)
+    {
+        q0 = q0 - 1;
+        rhat = rhat + vn1;
+        if (rhat < b)
+            goto again2;
+    }
+
+    uint64_t r = (un21 * b + un0 - q0 * v) >> s;
+    uint64_t q = q1 * b + q0;
+
+    return {q, r};
+}
+
+inline std::tuple<uint128, uint128> udiv_dc(uint128 u, uint128 v)
+{
+    if (v >> 64 == 0)
+    {
+        uint64_t v0 = static_cast<uint64_t>(v);
+        uint128 u1 = static_cast<uint64_t>(u >> 64);
+        if (u1 < v)
+        {
+            auto t = udiv_long(u, v0);
+            return {std::get<0>(t), std::get<1>(t)};
+        }
+        else
+        {
+            uint128 u0 = static_cast<uint64_t>(u);
+            uint128 q1 = std::get<0>(udiv_long(u1, v0));
+            uint128 k = u1 - q1 * v;
+            uint128 q0 = std::get<0>(udiv_long((k << 64) + u0, v0));
+            uint128 q = (q1 << 64) + q0;
+            uint128 r = u - v * q;
+            return {q, r};
+        }
+    }
+    unsigned n = clz(v);
+    uint64_t v1 = static_cast<uint64_t>((v << n) >> 64);
+    uint128 u1 = u >> 1;
+    uint128 q1 = std::get<0>(udiv_long(u1, v1));
+    uint128 q0 = (q1 << n) >> 63;
+    if (q0 != 0)
+        q0 = q0 - 1;
+    if ((u - q0 * v) >= v)
+        q0 = q0 + 1;
+    uint128 r = u - v * q0;
+    return {q0, r};
+}
 
 inline std::string to_string(uint256 x)
 {
