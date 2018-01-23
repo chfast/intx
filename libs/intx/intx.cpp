@@ -14,6 +14,47 @@ inline std::ostream& dbgs() { return std::cerr; }
 #define DEBUG(X) do {} while (false)
 #endif
 
+// The fastest for 256 / 32.
+static void udivrem_1_stable(uint32_t* q, uint32_t* r, const uint32_t* u, uint32_t v, int m)
+{
+    // Load the divisor once. The enabled more optimization because compiler
+    // knows that divisor remains unchanged when storing to q[j].
+    uint32_t remainder = 0;
+
+    // TODO: Use fixed m, i.e. m = 8 for uint256.
+    for (int j = m - 1; j >= 0; --j)
+    {
+        uint64_t dividend = join(remainder, u[j]);
+        // This cannot overflow because the high part of the devidend is the
+        // remainder of the previous division so smaller than v.
+        std::tie(q[j], remainder) = udivrem_long(dividend, v);
+    }
+    *r = remainder;
+}
+
+static void udivrem_1_3(uint32_t q[], uint32_t* r, const uint32_t u[], uint32_t v, int m)
+{
+    uint32_t divisor = v;
+    uint32_t remainder = 0;
+    for (int i = m; i >= 0; i--) {
+        uint64_t partial_dividend = join(remainder, u[i]);
+        if (partial_dividend == 0) {
+            q[i] = 0;
+            remainder = 0;
+        } else if (partial_dividend < divisor) {
+            q[i] = 0;
+            remainder = lo_half(partial_dividend);
+        } else if (partial_dividend == divisor) {
+            q[i] = 1;
+            remainder = 0;
+        } else {
+            q[i] = lo_half(partial_dividend / divisor);
+            remainder = lo_half(partial_dividend - (q[i] * divisor));
+        }
+    }
+    *r = remainder;
+}
+
 /// Implementation of Knuth's Algorithm D (Division of nonnegative integers)
 /// from "Art of Computer Programming, Volume 2", section 4.3.1, p. 272. The
 /// variables here have the same names as in the algorithm. Comments explain
@@ -195,15 +236,9 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
     int i, j;
     if (m < n || n <= 0 || v[n-1] == 0)
         return 1; // Return if invalid param.
-    if (n == 1) { // Take care of
-        uint64_t d = v[0];
-        uint64_t k = 0; // the case of a
-        for (j = m - 1; j >= 0; j--) { // single-digit
-            q[j] = intx::lo_half((k*b + u[j])/d); // divisor here.
-            k = (k*b + u[j]) - q[j]*d;
-        }
-        if (r)
-            r[0] = static_cast<unsigned>(k);
+
+    if (n == 1) {
+        udivrem_1_stable(q, r, u, v[0], m);
         return 0;
     }
 
@@ -309,26 +344,7 @@ static void udiv_knuth_internal_base(
     unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
 {
     if (n == 1)
-    {
-        // Handle the case of a single-digit divisor.
-
-        // Load the divisor once. The enabled more optimization because compiler
-        // knows that divisor remains unchanged when storing to q[j].
-        uint32_t divisor = v[0];
-        uint32_t remainder = 0;
-        for (int j = m - 1; j >= 0; --j)
-        {
-            uint64_t dividend = join(remainder, u[j]);
-
-            // Perform long division. The compiler should use single instruction
-            // here to compute both quotient and remainder. This is better than
-            // classic multiplication `reminder = dividend - q[j] * divisor`.
-            q[j] = lo_half(dividend / divisor);
-            remainder = lo_half(dividend % divisor);
-        }
-        r[0] = remainder;
-        return;
-    }
+        return udivrem_1_stable(q, r, u, v[0], m);
 
     DEBUG(dbgs() << "KnuthHD: m=" << m << " n=" << n << '\n');
     DEBUG(dbgs() << "KnuthHD: original:");
@@ -432,26 +448,7 @@ static void udiv_knuth_internal(
     unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
 {
     if (n == 1)
-    {
-        // Handle the case of a single-digit divisor.
-
-        // Load the divisor once. The enabled more optimization because compiler
-        // knows that divisor remains unchanged when storing to q[j].
-        uint32_t divisor = v[0];
-        uint32_t remainder = 0;
-        for (int j = m - 1; j >= 0; --j)
-        {
-            uint64_t dividend = join(remainder, u[j]);
-
-            // Perform long division. The compiler should use single instruction
-            // here to compute both quotient and remainder. This is better than
-            // classic multiplication `reminder = dividend - q[j] * divisor`.
-            q[j] = lo_half(dividend / divisor);
-            remainder = lo_half(dividend % divisor);
-        }
-        r[0] = remainder;
-        return;
-    }
+        return udivrem_1_stable(q, r, u, v[0], m);
 
     // Normalize by shifting the divisor v left so that its highest bit is on,
     // and shift the dividend u left the same amount.
@@ -652,25 +649,8 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v)
     // series of such operations. This is just like doing short division but we
     // are using base 2^32 instead of base 10.
     if (n == 1) {
-        uint32_t divisor = p_v[0];
-        uint32_t remainder = 0;
-        for (int i = m; i >= 0; i--) {
-            uint64_t partial_dividend = join(remainder, u_data[i]);
-            if (partial_dividend == 0) {
-                p_q[i] = 0;
-                remainder = 0;
-            } else if (partial_dividend < divisor) {
-                p_q[i] = 0;
-                remainder = lo_half(partial_dividend);
-            } else if (partial_dividend == divisor) {
-                p_q[i] = 1;
-                remainder = 0;
-            } else {
-                p_q[i] = lo_half(partial_dividend / divisor);
-                remainder = lo_half(partial_dividend - (p_q[i] * divisor));
-            }
-        }
-        p_r[0] = remainder;
+        // FIXME: Replace with udivrem_1_stable().
+        udivrem_1_3(p_q, p_r, u_data, p_v[0], m);
     } else {
         // Now we're ready to invoke the Knuth classical divide algorithm. In this
         // case n > 1.
