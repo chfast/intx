@@ -125,14 +125,31 @@ TEST_F(Uint256Test, mul_against_gmp)
     {
         for (auto b : numbers)
         {
-            uint256 gmp;
-            auto p_gmp = (mp_ptr)&gmp;
-            auto p_a = (mp_srcptr)&a;
-            auto p_b = (mp_srcptr)&b;
-            mpn_mul_n(p_gmp, p_a, p_b, limbs);
+            uint256 gmp = gmp_mul(a, b);
 
             auto p = mul(a, b);
+            auto q = mul_loop(a, b);
+            auto r = mul_loop_opt(a, b);
             EXPECT_EQ(gmp, p);
+            EXPECT_EQ(gmp, q);
+            EXPECT_EQ(gmp, r);
+        }
+    }
+}
+
+
+TEST_F(Uint256Test, umul_full_against_gmp)
+{
+    for (auto a : numbers)
+    {
+        for (auto b : numbers)
+        {
+            uint512 gmp = gmp_mul_full(a, b);
+
+            uint512 p = umul_full(a, b);
+            uint512 q = umul_full_loop(a, b);
+            EXPECT_EQ(gmp, p);
+            EXPECT_EQ(gmp, q);
         }
     }
 }
@@ -405,7 +422,7 @@ TEST_P(Uint256ParamTest, mul_against_add)
         for (int i = 0; i < factor; ++i)
             s = add(s, a);
 
-        uint256 p = mul(a, factor);
+        uint256 p = mul(a, uint256(factor));
         EXPECT_EQ(p, s);
     }
 }

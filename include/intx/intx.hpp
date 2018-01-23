@@ -40,7 +40,7 @@ using uint128 = unsigned __int128;
 
 inline unsigned clz(uint64_t a)
 {
-    return __builtin_clzl(a);
+    return static_cast<unsigned>(__builtin_clzl(a));
 }
 
 inline unsigned clz(unsigned x)
@@ -533,6 +533,53 @@ inline uint256 mul2(uint256 u, uint256 v)
     auto t0 = m0;
 
     return t4 + t3 + t2 + t1 + t0;
+}
+
+inline uint512 umul_full_loop(uint256 u, uint256 v)
+{
+    uint512 p;
+    auto pw = reinterpret_cast<uint64_t*>(&p);
+    auto uw = reinterpret_cast<const uint64_t*>(&u);
+    auto vw = reinterpret_cast<const uint64_t*>(&v);
+
+    for (int j = 0; j < 4; j++)
+    {
+        uint64_t k = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            uint128 t = uint128(uw[i]) * vw[j] + pw[i + j] + k;
+            pw[i + j] = lo_half(t);
+            k = hi_half(t);
+        }
+        pw[j + 4] = k;
+    }
+    return p;
+}
+
+inline uint256 mul_loop(uint256 u, uint256 v)
+{
+    return umul_full_loop(u, v).lo;
+}
+
+inline uint256 mul_loop_opt(uint256 u, uint256 v)
+{
+    uint256 p;
+    auto pw = reinterpret_cast<uint64_t*>(&p);
+    auto uw = reinterpret_cast<const uint64_t*>(&u);
+    auto vw = reinterpret_cast<const uint64_t*>(&v);
+
+    for (int j = 0; j < 4; j++)
+    {
+        uint64_t k = 0;
+        for (int i = 0; i < (4 - j); i++)
+        {
+            uint128 t = uint128(uw[i]) * vw[j] + pw[i + j] + k;
+            pw[i + j] = lo_half(t);
+            k = hi_half(t);
+        }
+//        pw[j + 4] = k;
+    }
+    return p;
 }
 
 template <typename Int>

@@ -270,6 +270,8 @@ static void binary_op256(benchmark::State& state)
 }
 
 BENCHMARK_TEMPLATE(binary_op256, (binary_fn256)&mul);
+BENCHMARK_TEMPLATE(binary_op256, mul_loop);
+BENCHMARK_TEMPLATE(binary_op256, mul_loop_opt);
 BENCHMARK_TEMPLATE(binary_op256, gmp_mul);
 
 using binary_fn256_full = uint512 (*)(uint256, uint256);
@@ -298,6 +300,7 @@ static void binary_op256_full(benchmark::State& state)
 }
 
 BENCHMARK_TEMPLATE(binary_op256_full, &umul_full<uint256>);
+BENCHMARK_TEMPLATE(binary_op256_full, &umul_full_loop);
 BENCHMARK_TEMPLATE(binary_op256_full, gmp_mul_full);
 
 using binary_fn512 = uint512 (*)(uint512, uint512);
