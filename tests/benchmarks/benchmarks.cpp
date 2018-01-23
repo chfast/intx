@@ -269,7 +269,7 @@ static void binary_op256(benchmark::State& state)
     }
 }
 
-BENCHMARK_TEMPLATE(binary_op256, (binary_fn256)&mul);
+BENCHMARK_TEMPLATE(binary_op256, mul);
 BENCHMARK_TEMPLATE(binary_op256, mul_loop);
 BENCHMARK_TEMPLATE(binary_op256, mul_loop_opt);
 BENCHMARK_TEMPLATE(binary_op256, gmp_mul);

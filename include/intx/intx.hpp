@@ -45,7 +45,7 @@ inline unsigned clz(uint64_t a)
 
 inline unsigned clz(unsigned x)
 {
-    return __builtin_clz(x);
+    return static_cast<unsigned>(__builtin_clz(x));
 }
 
 inline std::tuple<uint64_t, uint64_t> udivrem_long(uint128 u, uint64_t v)
