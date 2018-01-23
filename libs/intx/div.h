@@ -104,14 +104,14 @@ std::tuple<uint64_t, uint64_t> udivrem_long_unr(unsigned __int128 x, uint64_t y)
             q = q + 1;
         }
     }
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 
 std::tuple<uint64_t, uint64_t> udivrem_long_gcc(unsigned __int128 x, uint64_t y)
 {
     auto q = static_cast<uint64_t>(x / y);
     auto r = static_cast<uint64_t>(x % y);
-    return {q, r};
+    return std::make_tuple(q, r);
 };
 
 uint64_t soft_div_shift(uint64_t x, uint64_t y)

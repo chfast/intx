@@ -54,14 +54,14 @@ inline std::tuple<uint64_t, uint64_t> udivrem_long(uint128 u, uint64_t v)
     uint64_t uh = static_cast<uint64_t>(u >> 64);
     uint64_t ul = static_cast<uint64_t>(u);
     asm("divq %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 
 inline std::tuple<uint32_t, uint32_t> udivrem_long(uint64_t u, uint32_t v)
 {
     auto q = static_cast<uint32_t>(u / v);
     auto r = static_cast<uint32_t>(u % v);
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 }
 
@@ -317,7 +317,7 @@ inline uint128 mul(uint128 a, uint128 b)
 
 inline std::tuple<uint128, uint128> udiv_qr(uint128 a, uint128 b)
 {
-    return {a / b, a % b};
+    return std::make_tuple(a / b, a % b);
 }
 
 inline uint128 add(uint128 a, uint128 b)
@@ -471,7 +471,7 @@ inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
             q = add(q, 1);
         }
     }
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 
 inline std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
@@ -497,7 +497,7 @@ inline std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
             y = y >> 1;
         }
     }
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 
 std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y);
