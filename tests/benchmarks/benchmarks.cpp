@@ -138,6 +138,7 @@ static void udivrem_long_64(benchmark::State& state)
     }
 }
 BENCHMARK_TEMPLATE(udivrem_long_64, udivrem_long_gcc);
+BENCHMARK_TEMPLATE(udivrem_long_64, udivrem_long_rt);
 BENCHMARK_TEMPLATE(udivrem_long_64, gcc::udivrem_long);
 
 
