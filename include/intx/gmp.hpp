@@ -12,12 +12,32 @@ static constexpr size_t gmp_limbs = sizeof(uint256) / sizeof(mp_limb_t);
 
 uint256 gmp_mul(uint256 x, uint256 y) noexcept
 {
-    uint256 p;
+    uint256 p[2];
+    auto p_p = (mp_ptr)&p;
+    auto p_x = (mp_srcptr)&x;
+    auto p_y = (mp_srcptr)&y;
+    mpn_mul_n(p_p, p_x, p_y, gmp_limbs);
+    return p[0];
+}
+
+uint512 gmp_mul_full(uint256 x, uint256 y) noexcept
+{
+    uint512 p;
     auto p_p = (mp_ptr)&p;
     auto p_x = (mp_srcptr)&x;
     auto p_y = (mp_srcptr)&y;
     mpn_mul_n(p_p, p_x, p_y, gmp_limbs);
     return p;
+}
+
+uint512 gmp_mul(uint512 x, uint512 y) noexcept
+{
+    uint512 p[2];
+    auto p_p = (mp_ptr)&p;
+    auto p_x = (mp_srcptr)&x;
+    auto p_y = (mp_srcptr)&y;
+    mpn_mul_n(p_p, p_x, p_y, gmp_limbs * 2);
+    return p[0];
 }
 
 template<typename Int>

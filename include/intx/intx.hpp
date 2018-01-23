@@ -89,6 +89,7 @@ struct uint256
 
 struct uint512
 {
+    constexpr uint512(uint128 lo) : lo(lo) {}
     constexpr uint512(uint256 lo = 0, uint256 hi = 0) : lo(lo), hi(hi) {}
 
     uint256 lo = 0;
@@ -195,10 +196,20 @@ constexpr unsigned num_bits(const T&)
     return sizeof(T) * 8;
 }
 
-
-inline bool operator==(uint256 a, uint256 b)
+template<typename Int>
+inline bool operator==(Int a, Int b)
 {
-    return (a.lo == b.lo) & (a.hi == b.hi);
+    auto a_lo = lo_half(a);
+    auto a_hi = hi_half(a);
+    auto b_lo = lo_half(b);
+    auto b_hi = hi_half(b);
+    return (a_lo == b_lo) & (a_hi == b_hi);
+}
+
+template<typename Int>
+inline bool operator==(Int a, uint64_t b)
+{
+    return a == Int(b);
 }
 
 inline bool operator!=(uint256 a, uint256 b)
@@ -206,12 +217,23 @@ inline bool operator!=(uint256 a, uint256 b)
     return !(a == b);
 }
 
-inline bool operator<(uint256 a, uint256 b)
+template<typename Int>
+inline bool operator<(Int a, Int b)
 {
+    auto a_lo = lo_half(a);
+    auto a_hi = hi_half(a);
+    auto b_lo = lo_half(b);
+    auto b_hi = hi_half(b);
     // Bitwise operators are used to implement logic here to avoid branching.
     // It also should make the function smaller, but no proper benchmark has
     // been done.
-    return (a.hi < b.hi) | ((a.hi == b.hi) & (a.lo < b.lo));
+    return (a_hi < b_hi) | ((a_hi == b_hi) & (a_lo < b_lo));
+}
+
+template<typename Int>
+inline bool operator<(Int a, uint64_t b)
+{
+    return a < Int(b);
 }
 
 inline bool operator>=(uint256 a, uint256 b)
@@ -219,7 +241,8 @@ inline bool operator>=(uint256 a, uint256 b)
     return !(a < b);
 }
 
-inline bool operator<=(uint256 a, uint256 b)
+template<typename Int>
+inline bool operator<=(Int a, Int b)
 {
     return (a < b) || (a == b);
 }
@@ -314,9 +337,26 @@ inline std::tuple<uint256, bool> add_with_carry(uint256 a, uint256 b)
     return std::make_tuple(s, k2 || k3);
 }
 
-inline uint256 add(uint256 a, uint256 b)
+inline std::tuple<uint512, bool> add_with_carry(uint512 a, uint512 b)
+{
+    uint512 s;
+    bool k1, k2, k3;
+    std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
+    std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
+    std::tie(s.hi, k3) = add_with_carry(s.hi, static_cast<uint256>(k1));
+    return std::make_tuple(s, k2 || k3);
+}
+
+template<typename Int>
+inline Int add(Int a, Int b)
 {
     return std::get<0>(add_with_carry(a, b));
+}
+
+template<typename Int, typename Int2>
+inline Int add(Int a, Int2 b)
+{
+    return add(a, Int(b));
 }
 
 inline uint128 minus(uint128 x)
@@ -331,7 +371,7 @@ inline uint64_t minus(uint64_t x)
 
 inline uint256 minus(uint256 x)
 {
-    return add(bitwise_not(x), 1);
+    return add(bitwise_not(x), uint64_t(1));
 }
 
 inline uint128 sub(uint128 a, uint128 b)
@@ -389,9 +429,16 @@ inline uint128 umul_full(uint64_t a, uint64_t b)
     return uint128(a) * uint128(b);
 }
 
-inline uint256 operator+(uint256 x, uint256 y)
+template<typename Int>
+inline Int operator+(Int x, Int y)
 {
     return add(x, y);
+}
+
+template<typename Int>
+inline Int operator+(Int x, uint64_t y)
+{
+    return add(x, Int(y));
 }
 
 inline uint256 operator-(uint256 x, uint256 y)
@@ -445,21 +492,27 @@ typename traits<Int>::double_type umul_full(Int a, Int b)
     return {l, h};
 }
 
-inline uint256 mul(uint256 a, uint256 b)
+template<typename Int>
+inline Int mul(Int a, Int b)
 {
     auto t = umul_full(a.lo, b.lo);
-    auto l = t.lo;
-    auto u = t.hi;
+    auto l = lo_half(t);
+    auto u = hi_half(t);
     t = umul_full(a.hi, b.lo);
-    t = add(t, u);
+    t = t + Int(u);
 
-    u = t.lo;
+    u = lo_half(t);
     t = umul_full(a.lo, b.hi);
-    t = add(t, u);
+    t = t + Int(u);
 
-    auto h = t.lo;
+    auto h = lo_half(t);
 
     return {l, h};
+}
+
+inline uint512 mul512(uint512 a, uint512 b)
+{
+    return mul(a, b);
 }
 
 inline uint256 mul2(uint256 u, uint256 v)
@@ -489,6 +542,11 @@ inline Int umul_hi(Int a, Int b)
 }
 
 inline uint256 operator*(uint256 x, uint256 y)
+{
+    return mul(x, y);
+}
+
+inline uint512 operator*(uint512 x, uint512 y)
 {
     return mul(x, y);
 }

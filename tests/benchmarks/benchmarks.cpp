@@ -272,6 +272,62 @@ static void binary_op256(benchmark::State& state)
 BENCHMARK_TEMPLATE(binary_op256, (binary_fn256)&mul);
 BENCHMARK_TEMPLATE(binary_op256, gmp_mul);
 
+using binary_fn256_full = uint512 (*)(uint256, uint256);
+template<binary_fn256_full BinFn>
+static void binary_op256_full(benchmark::State& state)
+{
+    // Pick random operands. Keep the divisor small, because this is the worst
+    // case for most algorithms.
+    lcg<uint256> rng(get_seed());
+
+    constexpr size_t size = 1000;
+    std::vector<uint256> input_x(size);
+    std::vector<uint256> input_y(size);
+    std::vector<uint512> output(size);
+    for (auto& x : input_x)
+        x = rng();
+    for (auto& y : input_y)
+        y = rng();
+
+    for (auto _ : state)
+    {
+        for (size_t i = 0; i < size; ++i)
+            output[i] = BinFn(input_x[i], input_y[i]);
+        benchmark::DoNotOptimize(output.data());
+    }
+}
+
+BENCHMARK_TEMPLATE(binary_op256_full, &umul_full<uint256>);
+BENCHMARK_TEMPLATE(binary_op256_full, gmp_mul_full);
+
+using binary_fn512 = uint512 (*)(uint512, uint512);
+template<binary_fn512 BinFn>
+static void binary_op512(benchmark::State& state)
+{
+    // Pick random operands. Keep the divisor small, because this is the worst
+    // case for most algorithms.
+    lcg<uint512> rng(get_seed());
+
+    constexpr size_t size = 1000;
+    std::vector<uint512> input_x(size);
+    std::vector<uint512> input_y(size);
+    std::vector<uint512> output(size);
+    for (auto& x : input_x)
+        x = rng();
+    for (auto& y : input_y)
+        y = rng();
+
+    for (auto _ : state)
+    {
+        for (size_t i = 0; i < size; ++i)
+            output[i] = BinFn(input_x[i], input_y[i]);
+        benchmark::DoNotOptimize(output.data());
+    }
+}
+
+BENCHMARK_TEMPLATE(binary_op512, mul512);
+BENCHMARK_TEMPLATE(binary_op512, gmp_mul);
+
 
 static void count_sigificant_words32_256_loop(benchmark::State& state)
 {
