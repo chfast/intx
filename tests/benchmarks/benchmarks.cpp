@@ -138,6 +138,7 @@ static void udivrem_long_64(benchmark::State& state)
     }
 }
 BENCHMARK_TEMPLATE(udivrem_long_64, udivrem_long_gcc);
+BENCHMARK_TEMPLATE(udivrem_long_64, udivrem_long_rt);
 BENCHMARK_TEMPLATE(udivrem_long_64, gcc::udivrem_long);
 
 
@@ -234,8 +235,8 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, gmp_udiv_qr);
 
-BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_unr);
-BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_dc);
+//BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_unr);
+//BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_dc);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_shift);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_hd_base);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_llvm_base);

@@ -137,6 +137,19 @@ TEST_F(Uint256Test, mul_against_gmp)
     }
 }
 
+TEST_F(Uint256Test, DISABLED_mul_against_mul2)
+{
+    for (auto a : numbers)
+    {
+        for (auto b : numbers)
+        {
+            auto p = mul(a, b);
+            auto p2 = mul2(a, b);
+            EXPECT_EQ(p2, p);
+        }
+    }
+}
+
 TEST_F(Uint256Test, count_significant_words)
 {
     constexpr auto csw = count_significant_words<uint32_t, uint256>;
@@ -245,7 +258,8 @@ TEST_F(Uint256Test, simple_udiv)
             "43323231"},
         {"9813564515590581114928356250914803191147154229112146631813240906425389644712",
             "203321047708396209413466481480208389591", "48266348350049972453284846493339986789",
-            "190176170282161844008482834634484531413"}};
+            "190176170282161844008482834634484531413"},
+        {"8589934592", "1", "8589934592", "0"}};
 
     for (size_t i = 0; i < sizeof(data_set) / sizeof(data_set[0]); ++i)
     {

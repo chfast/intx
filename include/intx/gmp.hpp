@@ -33,6 +33,6 @@ std::tuple<Int, Int> gmp_udiv_qr(Int x, Int y) noexcept
     auto p_x = (mp_srcptr)&x;
     auto p_y = (mp_srcptr)&y;
     mpn_tdiv_qr(p_q, p_r, 0, p_x, gmp_limbs, p_y, y_limbs);
-    return {q, r};
+    return std::make_tuple(q, r);
 };
 }

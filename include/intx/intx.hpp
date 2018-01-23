@@ -55,14 +55,14 @@ inline std::tuple<uint64_t, uint64_t> udivrem_long(uint128 u, uint64_t v)
     uint64_t uh = static_cast<uint64_t>(u >> 64);
     uint64_t ul = static_cast<uint64_t>(u);
     asm("divq %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 
 inline std::tuple<uint32_t, uint32_t> udivrem_long(uint64_t u, uint32_t v)
 {
     auto q = static_cast<uint32_t>(u / v);
     auto r = static_cast<uint32_t>(u % v);
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 }
 
@@ -356,7 +356,7 @@ inline uint64_t mul(uint64_t a, uint64_t b)
 
 inline std::tuple<uint128, uint128> udiv_qr(uint128 a, uint128 b)
 {
-    return {a / b, a % b};
+    return std::make_tuple(a / b, a % b);
 }
 
 inline uint128 add(uint128 a, uint128 b)
@@ -387,6 +387,31 @@ inline uint64_t shl(uint64_t a, uint64_t b)
 inline uint128 umul_full(uint64_t a, uint64_t b)
 {
     return uint128(a) * uint128(b);
+}
+
+inline uint256 operator+(uint256 x, uint256 y)
+{
+    return add(x, y);
+}
+
+inline uint256 operator-(uint256 x, uint256 y)
+{
+    return sub(x, y);
+}
+
+inline uint256 operator<<(uint256 x, uint256 y)
+{
+    return shl(x, y);
+}
+
+inline uint256 operator>>(uint256 x, uint256 y)
+{
+    return lsr(x, y);
+}
+
+inline uint256& operator+=(uint256& x, uint256 y)
+{
+    return x = x + y;
 }
 
 
@@ -437,10 +462,40 @@ inline uint256 mul(uint256 a, uint256 b)
     return {l, h};
 }
 
+inline uint256 mul2(uint256 u, uint256 v)
+{
+    auto u1 = hi_half(u);
+    auto u0 = lo_half(u);
+    auto v1 = hi_half(v);
+    auto v0 = lo_half(v);
+
+    auto m2 = umul_full(u1, v1);
+    auto m1 = umul_full(u1 - u0, v0 - v1);
+    auto m0 = umul_full(u0, v0);
+
+    auto t4 = m2 << 128;
+    auto t3 = m2 << 64;
+    auto t2 = m1 << 64;
+    auto t1 = m0 << 64;
+    auto t0 = m0;
+
+    return t4 + t3 + t2 + t1 + t0;
+}
+
 template <typename Int>
 inline Int umul_hi(Int a, Int b)
 {
     return hi_half(umul_full(a, b));
+}
+
+inline uint256 operator*(uint256 x, uint256 y)
+{
+    return mul(x, y);
+}
+
+inline uint256& operator*=(uint256& x, uint256 y)
+{
+    return x = x * y;
 }
 
 using gcc::clz;
@@ -455,41 +510,6 @@ inline unsigned clz(Int x)
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
     // FIXME: For `x == 0` this is UB.
     return h == 0 ? clz(l) + half_bits : clz(h);
-}
-
-inline uint256 operator+(uint256 x, uint256 y)
-{
-    return add(x, y);
-}
-
-inline uint256 operator-(uint256 x, uint256 y)
-{
-    return sub(x, y);
-}
-
-inline uint256 operator*(uint256 x, uint256 y)
-{
-    return mul(x, y);
-}
-
-inline uint256 operator<<(uint256 x, uint256 y)
-{
-    return shl(x, y);
-}
-
-inline uint256 operator>>(uint256 x, uint256 y)
-{
-    return lsr(x, y);
-}
-
-inline uint256& operator+=(uint256& x, uint256 y)
-{
-    return x = x + y;
-}
-
-inline uint256& operator*=(uint256& x, uint256 y)
-{
-    return x = x * y;
 }
 
 template<typename Word, typename Int>
@@ -527,6 +547,12 @@ inline unsigned count_significant_words<uint32_t, uint32_t>(uint32_t x) noexcept
     return x != 0 ? 1 : 0;
 }
 
+template<>
+inline unsigned count_significant_words<uint64_t, uint64_t>(uint64_t x) noexcept
+{
+    return x != 0 ? 1 : 0;
+}
+
 template<typename Int>
 inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
 {
@@ -560,7 +586,7 @@ inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
             q = add(q, 1);
         }
     }
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 
 inline std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
@@ -586,7 +612,7 @@ inline std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
             y = y >> 1;
         }
     }
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 
 std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y);
