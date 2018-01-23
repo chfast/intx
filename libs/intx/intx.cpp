@@ -582,12 +582,13 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
     if (x < y)
         return {0, x};
 
-    if (y <= std::numeric_limits<uint64_t>::max())
+    const unsigned n = count_significant_words<uint32_t>(y);
+
+    if (n <= 2)
         return udivrem_1(x, static_cast<uint64_t>(y));
 
     // Skip dividend's leading zero limbs.
     const unsigned m = 8 - (clz(x) / (4 * 8));
-    const unsigned n = 8 - (clz(y) / (4 * 8));
 
     uint256 q, r;
     auto p_x = (uint32_t*)&x;

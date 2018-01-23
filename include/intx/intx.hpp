@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include <tuple>
 
@@ -104,6 +105,7 @@ template <>
 struct traits<uint64_t>
 {
     using double_type = uint128;
+    using half_type = uint32_t;
 
     static constexpr unsigned bits = 64;
     static constexpr unsigned half_bits = 32;
@@ -114,6 +116,7 @@ template <>
 struct traits<uint128>
 {
     using double_type = uint256;
+    using half_type = uint64_t;
 
     static constexpr unsigned bits = 128;
     static constexpr unsigned half_bits = 64;
@@ -124,6 +127,7 @@ template <>
 struct traits<uint256>
 {
     using double_type = uint512;
+    using half_type = uint128;
 
     static constexpr unsigned bits = 256;
     static constexpr unsigned half_bits = 128;
@@ -178,6 +182,11 @@ constexpr uint64_t join(uint32_t hi, uint32_t lo)
 constexpr uint128 join(uint64_t hi, uint64_t lo)
 {
     return (uint128(hi) << 64) | lo;
+}
+
+constexpr uint256 join(uint128 hi, uint128 lo)
+{
+    return uint256{lo, hi};
 }
 
 template <typename T>
@@ -238,21 +247,26 @@ inline constexpr uint256 bitwise_not(uint256 x)
 
 inline uint256 shl(uint256 x, uint256 shift)
 {
+    using Int = uint256;
+
     if (shift == 0)
         return x;
 
-    if (shift < 128)
+    constexpr auto bits = traits<Int>::bits;
+    constexpr auto half_bits = traits<Int>::half_bits;
+
+    if (shift < half_bits)
     {
         auto lo = x.lo << shift.lo;
-        auto lo_overflow = x.lo >> (128 - shift.lo);
+        auto lo_overflow = x.lo >> (half_bits - shift.lo);
         auto hi_part = x.hi << shift.lo;
         auto hi = hi_part | lo_overflow;
         return {lo, hi};
     }
 
-    if (shift < 256)
+    if (shift < bits)
     {
-        auto hi = x.lo << (shift.lo - 128);
+        auto hi = x.lo << (shift.lo - half_bits);
         return {0, hi};
     }
 
@@ -478,6 +492,41 @@ inline uint256& operator*=(uint256& x, uint256 y)
     return x = x * y;
 }
 
+template<typename Word, typename Int>
+std::array<Word, sizeof(Int) / sizeof(Word)> to_words(Int x) noexcept
+{
+    std::array<Word, sizeof(Int) / sizeof(Word)> words;
+    std::memcpy(&words, &x, sizeof(x));
+    return words;
+}
+
+template<typename Word>
+unsigned count_significant_words_loop(uint256 x) noexcept
+{
+    auto words = to_words<Word>(x);
+    for (size_t i = words.size(); i > 0; --i)
+    {
+        if (words[i - 1] != 0)
+            return static_cast<unsigned>(i);
+    }
+    return 0;
+}
+
+template<typename Word, typename Int>
+inline unsigned count_significant_words(Int x) noexcept
+{
+    constexpr auto num_words = static_cast<unsigned>(sizeof(x) / sizeof(Word));
+    auto h = count_significant_words<Word>(hi_half(x));
+    auto l = count_significant_words<Word>(lo_half(x));
+    return h != 0 ? h + (num_words / 2) : l;
+}
+
+template<>
+inline unsigned count_significant_words<uint32_t, uint32_t>(uint32_t x) noexcept
+{
+    return x != 0 ? 1 : 0;
+}
+
 template<typename Int>
 inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
 {
@@ -545,34 +594,34 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y);
 
-inline std::tuple<uint64_t, uint64_t> udiv_long(uint128 u, uint64_t v)
+template<typename Int>
+inline std::tuple<Int, Int> udiv_long(typename traits<Int>::double_type u, Int v)
 {
-    using Int = uint64_t;
+    using tr = traits<Int>;
 
-    Int u0 = lo_half(u);
-    //    Int u1 = hi_half(u);
-
-    const uint64_t b = uint64_t(1) << 32;
-    uint64_t un1, un0, vn1, vn0, q1, q0, un21, un10, rhat;
+    constexpr Int b = Int(1) << (tr::bits / 2);
 
     unsigned s = clz(v);
     v <<= s;
-    vn1 = v >> 32;
-    vn0 = v & 0xffffffff;
+    Int vn1 = hi_half(v);
+    Int vn0 = lo_half(v);
 
     // TODO: Check out this way of shifting by 0:
     // un32 = (u1 << s) | ((u0 >> (64 - s)) & (-s >> 31));
 
-    auto un32 = hi_half(u << s);
-    un10 = u0 << s;
+    u = u << s;
+    Int un32 = hi_half(u);
+    Int un10 = lo_half(u);
 
-    un1 = un10 >> 32;
-    un0 = un10 & 0xffffffff;
+    auto un1 = hi_half(un10);
+    auto un0 = lo_half(un10);
+    using half_type = decltype(un0);
 
-    q1 = un32 / vn1;
-    rhat = un32 - q1 * vn1;
+    Int q1 = un32 / vn1;
+    Int rhat = un32 % vn1;
+
 again1:
-    if (q1 >= b || q1 * vn0 > b * rhat + un1)
+    if (q1 >= b || q1 * vn0 > join(static_cast<half_type>(rhat), un1))
     {
         q1 = q1 - 1;
         rhat = rhat + vn1;
@@ -580,12 +629,13 @@ again1:
             goto again1;
     }
 
-    un21 = un32 * b + un1 - q1 * v;
+    Int un21 = join(static_cast<half_type>(un32), un1) - q1 * v;
 
-    q0 = un21 / vn1;
-    rhat = un21 - q0 * vn1;
+    Int q0 = un21 / vn1;
+    rhat = un21 % vn1;
+
 again2:
-    if (q0 >= b || q0 * vn0 > b * rhat + un0)
+    if (q0 >= b || q0 * vn0 > join(static_cast<half_type>(rhat), un0))
     {
         q0 = q0 - 1;
         rhat = rhat + vn1;
@@ -593,18 +643,23 @@ again2:
             goto again2;
     }
 
-    uint64_t r = (un21 * b + un0 - q0 * v) >> s;
-    uint64_t q = q1 * b + q0;
+    Int r = (un21 * b + un0 - q0 * v) >> s;
+    Int q = q1 * b + q0;
 
     return {q, r};
 }
 
-inline std::tuple<uint128, uint128> udiv_dc(uint128 u, uint128 v)
+template<typename Int>
+inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
 {
-    if (v >> 64 == 0)
+    using tr = traits<Int>;
+
+    auto v1 = hi_half(v);
+    auto v0 = lo_half(v);
+
+    if (v1 == 0)
     {
-        uint64_t v0 = static_cast<uint64_t>(v);
-        uint128 u1 = static_cast<uint64_t>(u >> 64);
+        Int u1 = hi_half(u);
         if (u1 < v)
         {
             auto t = udiv_long(u, v0);
@@ -612,25 +667,26 @@ inline std::tuple<uint128, uint128> udiv_dc(uint128 u, uint128 v)
         }
         else
         {
-            uint128 u0 = static_cast<uint64_t>(u);
-            uint128 q1 = std::get<0>(udiv_long(u1, v0));
-            uint128 k = u1 - q1 * v;
-            uint128 q0 = std::get<0>(udiv_long((k << 64) + u0, v0));
-            uint128 q = (q1 << 64) + q0;
-            uint128 r = u - v * q;
+            auto u0 = lo_half(u);
+            typename tr::half_type q1, k;
+            std::tie(q1, k) = udiv_long(u1, v0);
+            auto q0 = std::get<0>(udiv_long(join(k, u0), v0));
+            Int q = join(q1, q0);
+            Int r = u - v * q;
             return {q, r};
         }
     }
     unsigned n = clz(v);
-    uint64_t v1 = static_cast<uint64_t>((v << n) >> 64);
-    uint128 u1 = u >> 1;
-    uint128 q1 = std::get<0>(udiv_long(u1, v1));
-    uint128 q0 = (q1 << n) >> 63;
+    auto vn = v << n;
+    auto vn1 = hi_half(vn);
+    Int u1 = u >> 1;
+    Int q1 = std::get<0>(udiv_long(u1, vn1));
+    Int q0 = (q1 << n) >> 63;
     if (q0 != 0)
         q0 = q0 - 1;
     if ((u - q0 * v) >= v)
         q0 = q0 + 1;
-    uint128 r = u - v * q0;
+    Int r = u - v * q0;
     return {q0, r};
 }
 

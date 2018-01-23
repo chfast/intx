@@ -20,12 +20,14 @@ uint256 gmp_mul(uint256 x, uint256 y) noexcept
     return p;
 }
 
-std::tuple<uint256, uint256> gmp_udiv_qr(uint256 x, uint256 y) noexcept
+template<typename Int>
+std::tuple<Int, Int> gmp_udiv_qr(Int x, Int y) noexcept
 {
     // Skip dividend's leading zero limbs.
-    const size_t y_limbs = gmp_limbs - (clz(y) / (sizeof(mp_limb_t) * 8));
+    constexpr size_t gmp_limbs = sizeof(Int) / sizeof(mp_limb_t);
+    const size_t y_limbs = count_significant_words<mp_limb_t>(y);
 
-    uint256 q, r;
+    Int q, r;
     auto p_q = (mp_ptr)&q;
     auto p_r = (mp_ptr)&r;
     auto p_x = (mp_srcptr)&x;
