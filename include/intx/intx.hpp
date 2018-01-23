@@ -335,6 +335,31 @@ inline uint128 shl(uint128 a, uint128 b)
     return a << b;
 }
 
+inline uint256 operator+(uint256 x, uint256 y)
+{
+    return add(x, y);
+}
+
+inline uint256 operator-(uint256 x, uint256 y)
+{
+    return sub(x, y);
+}
+
+inline uint256 operator<<(uint256 x, uint256 y)
+{
+    return shl(x, y);
+}
+
+inline uint256 operator>>(uint256 x, uint256 y)
+{
+    return lsr(x, y);
+}
+
+inline uint256& operator+=(uint256& x, uint256 y)
+{
+    return x = x + y;
+}
+
 
 template <typename Int>
 typename traits<Int>::double_type umul_full(Int a, Int b)
@@ -383,10 +408,40 @@ inline uint256 mul(uint256 a, uint256 b)
     return {l, h};
 }
 
+inline uint256 mul2(uint256 u, uint256 v)
+{
+    auto u1 = hi_half(u);
+    auto u0 = lo_half(u);
+    auto v1 = hi_half(v);
+    auto v0 = lo_half(v);
+
+    auto m2 = umul_full(u1, v1);
+    auto m1 = umul_full(u1 - u0, v0 - v1);
+    auto m0 = umul_full(u0, v0);
+
+    auto t4 = m2 << 128;
+    auto t3 = m2 << 64;
+    auto t2 = m1 << 64;
+    auto t1 = m0 << 64;
+    auto t0 = m0;
+
+    return t4 + t3 + t2 + t1 + t0;
+}
+
 template <typename Int>
 inline Int umul_hi(Int a, Int b)
 {
     return hi_half(umul_full(a, b));
+}
+
+inline uint256 operator*(uint256 x, uint256 y)
+{
+    return mul(x, y);
+}
+
+inline uint256& operator*=(uint256& x, uint256 y)
+{
+    return x = x * y;
 }
 
 using gcc::clz;
@@ -401,41 +456,6 @@ inline unsigned clz(Int x)
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
     // FIXME: For `x == 0` this is UB.
     return h == 0 ? clz(l) + half_bits : clz(h);
-}
-
-inline uint256 operator+(uint256 x, uint256 y)
-{
-    return add(x, y);
-}
-
-inline uint256 operator-(uint256 x, uint256 y)
-{
-    return sub(x, y);
-}
-
-inline uint256 operator*(uint256 x, uint256 y)
-{
-    return mul(x, y);
-}
-
-inline uint256 operator<<(uint256 x, uint256 y)
-{
-    return shl(x, y);
-}
-
-inline uint256 operator>>(uint256 x, uint256 y)
-{
-    return lsr(x, y);
-}
-
-inline uint256& operator+=(uint256& x, uint256 y)
-{
-    return x = x + y;
-}
-
-inline uint256& operator*=(uint256& x, uint256 y)
-{
-    return x = x * y;
 }
 
 template<typename Int>
