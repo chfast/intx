@@ -83,13 +83,27 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
         // too large.
         uint64_t dividend = intx::join(u[j+n], u[j+n-1]);
         DEBUG(dbgs() << "KnuthLL: dividend == " << dividend << '\n');
-        uint64_t qp = dividend / v[n-1];
-        uint64_t rp = dividend % v[n-1];
+
+        uint64_t qp, rp;
+        if (u[j+n] >= v[n-1])
+        {
+            // Overflow:
+            qp = b;
+            rp = dividend - qp * v[n-1];
+        }
+        else
+        {
+            qp = dividend / v[n-1];
+            rp = dividend % v[n-1];
+        }
+
+
         if (qp == b || qp*v[n-2] > b*rp + u[j+n-2]) {
             qp--;
             rp += v[n-1];
-            if (rp < b && (qp == b || qp*v[n-2] > b*rp + u[j+n-2]))
+            if (rp < b && (qp == b || qp*v[n-2] > b*rp + u[j+n-2])) {
                 qp--;
+            }
         }
         DEBUG(dbgs() << "KnuthLL: qp == " << qp << ", rp == " << rp << '\n');
 
