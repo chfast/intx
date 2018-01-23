@@ -150,8 +150,9 @@ TEST_F(Uint256Test, DISABLED_mul_against_mul2)
     }
 }
 
-TEST_F(Uint256Test, count_significant_words)
+TEST_F(Uint256Test, count_significant_words_32)
 {
+    // FIXME: Test uint512.
     constexpr auto csw = count_significant_words<uint32_t, uint256>;
 
     uint256 x;
@@ -160,6 +161,19 @@ TEST_F(Uint256Test, count_significant_words)
     x = 1;
     for (unsigned s = 0; s < 256; ++s)
         EXPECT_EQ(csw(x << s), s / 32 + 1);
+}
+
+TEST_F(Uint256Test, count_significant_words_64)
+{
+    // FIXME: Test uint512.
+    constexpr auto csw = count_significant_words<uint64_t, uint256>;
+
+    uint256 x;
+    EXPECT_EQ(csw(x), 0);
+
+    x = 1;
+    for (unsigned s = 0; s < 256; ++s)
+        EXPECT_EQ(csw(x << s), s / 64 + 1);
 }
 
 TEST_F(Uint256Test, udiv_against_gmp)

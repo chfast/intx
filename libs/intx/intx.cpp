@@ -55,6 +55,28 @@ static void udivrem_1_3(uint32_t q[], uint32_t* r, const uint32_t u[], uint32_t 
     *r = remainder;
 }
 
+std::tuple<uint256, uint64_t> udivrem_1(uint256 x, uint64_t y)
+{
+    uint64_t r = 0;
+    uint256 q = 0;
+
+    uint64_t u[4];
+    std::memcpy(u, &x, sizeof(x));
+
+    auto qt = (uint64_t*)&q;
+
+    for (int j = 4 - 1; j >= 0; --j)
+    {
+        uint128 dividend = join(r, u[j]);
+
+        // Perform long division. The compiler should use single instruction
+        // here to compute both quotient and remainder. This is better than
+        // classic multiplication `reminder = dividend - q[j] * divisor`.
+        std::tie(qt[j], r) = udiv_qr_unr(dividend, uint128(y));
+    }
+    return {q, r};
+}
+
 /// Implementation of Knuth's Algorithm D (Division of nonnegative integers)
 /// from "Art of Computer Programming, Volume 2", section 4.3.1, p. 272. The
 /// variables here have the same names as in the algorithm. Comments explain
@@ -442,28 +464,6 @@ static void udiv_knuth_internal_base(
         for (int i = 0; i < n; i++)
             r[i] = shift != 0 ? (un[i] >> shift) | (un[i + 1] << (32-shift)) : un[i];
     }
-}
-
-std::tuple<uint256, uint64_t> udivrem_1(uint256 x, uint64_t y)
-{
-    uint64_t r = 0;
-    uint256 q = 0;
-
-    uint64_t u[4];
-    std::memcpy(u, &x, sizeof(x));
-
-    auto qt = (uint64_t*)&q;
-
-    for (int j = 4 - 1; j >= 0; --j)
-    {
-        uint128 dividend = join(r, u[j]);
-
-        // Perform long division. The compiler should use single instruction
-        // here to compute both quotient and remainder. This is better than
-        // classic multiplication `reminder = dividend - q[j] * divisor`.
-        std::tie(qt[j], r) = udiv_qr_unr(dividend, uint128(y));
-    }
-    return {q, r};
 }
 
 static void udiv_knuth_internal(
