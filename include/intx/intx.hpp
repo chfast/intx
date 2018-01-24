@@ -690,9 +690,16 @@ inline unsigned clz(Int x)
     auto h = hi_half(x);
     unsigned half_bits = num_bits(x) / 2;
 
+    // TODO: Try:
+    // bool take_hi = h != 0;
+    // bool take_lo = !take_hi;
+    // unsigned clz_hi = take_hi * clz(h);
+    // unsigned clz_lo = take_lo * (clz(l) | half_bits);
+    // return clz_hi | clz_lo;
+
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
     // FIXME: For `x == 0` this is UB.
-    return h == 0 ? clz(l) + half_bits : clz(h);
+    return h == 0 ? clz(l) | half_bits : clz(h);
 }
 
 template<typename Word, typename Int>
