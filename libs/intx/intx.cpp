@@ -589,6 +589,119 @@ static void udiv_knuth_internal(
         r[i] = shift ? (un[i] >> shift) | (un[i + 1] << lshift) : un[i];
 }
 
+
+
+static void udiv_knuth_internal_64(
+    unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
+{
+    if (n == 1)  // TODO: Try udiv_qr_unr().
+        return udivrem_1_stable(q, r, u, v[0], m);
+
+    // Normalize by shifting the divisor v left so that its highest bit is on,
+    // and shift the dividend u left the same amount.
+    auto vn = static_cast<uint32_t*>(alloca(n * sizeof(uint32_t)));
+    auto un = static_cast<uint32_t*>(alloca((m + 1) * sizeof(uint32_t)));
+
+    unsigned shift = clz(v[n - 1]);
+    unsigned lshift = num_bits(v[0]) - shift;
+
+    for (int i = n - 1; i > 0; i--)
+        vn[i] = shift ? (v[i] << shift) | (v[i - 1] >> lshift) : v[i];
+    vn[0] = v[0] << shift;
+
+    un[m] = shift != 0 ? u[m - 1] >> lshift : 0;
+    for (int i = m - 1; i > 0; i--)
+        un[i] = shift ? (u[i] << shift) | (u[i - 1] >> lshift) : u[i];
+    un[0] = u[0] << shift;
+
+
+    constexpr uint64_t base = uint64_t(1) << 32;  // Number base (32 bits).
+    for (int j = m - n; j >= 0; j--)  // Main loop.
+    {
+        uint64_t qhat, rhat;
+        uint32_t divisor = vn[n - 1];
+        uint64_t dividend = join(un[j + n], un[j + n - 1]);
+        if (hi_half(dividend) > divisor)  // Will overflow:
+        {
+            qhat = base;
+            rhat = dividend - qhat * divisor;
+        }
+        else
+        {
+            qhat = dividend / divisor;  // Estimated quotient digit.
+            rhat = dividend % divisor;  // A remainder.
+        }
+
+        uint32_t next_divisor = vn[n - 2];
+        uint64_t pd = join(lo_half(rhat), un[j + n - 2]);
+        if (qhat == base || qhat * next_divisor > pd)
+        {
+            qhat--;
+            rhat += divisor;
+            pd = join(lo_half(rhat), un[j + n - 2]);
+            if (rhat < base && (qhat == base || qhat * next_divisor > pd))
+                qhat--;
+        }
+
+        // Multiply and subtract.
+        int64_t borrow = 0;
+        for (int i = 0; i < n; i++)
+        {
+            uint64_t p = qhat * vn[i];
+            int64_t t = int64_t(un[i + j]) - borrow - lo_half(p);
+            auto s = static_cast<uint64_t>(t);
+            un[i+j] = lo_half(s);
+            borrow = hi_half(p) - hi_half(s);
+        }
+        int64_t t = un[j + n] - borrow;
+        un[j + n] = static_cast<uint32_t>(t);
+
+        q[j] = lo_half(qhat); // Store quotient digit.
+        if (t < 0)
+        {            // If we subtracted too
+            --q[j];  // much, add back.
+            uint64_t carry = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                // TODO: Consider using bool carry. See LLVM version.
+                uint64_t u_tmp = uint64_t(un[i + j]) + uint64_t(vn[i]) + carry;
+                un[i + j] = lo_half(u_tmp);
+                carry = hi_half(u_tmp);
+            }
+            un[j + n] = lo_half(uint64_t(un[j + n]) + carry);
+        }
+    }
+
+    for (int i = 0; i < n; ++i)
+        r[i] = shift ? (un[i] >> shift) | (un[i + 1] << lshift) : un[i];
+}
+
+std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y)
+{
+    if (x < y)
+        return {0, x};
+
+    const unsigned n = count_significant_words<uint32_t>(y);
+
+    if (n <= 2)
+        return udivrem_1(x, static_cast<uint64_t>(y));
+
+    // Skip dividend's leading zero limbs.
+    const unsigned m = count_significant_words<uint32_t>(x);
+
+    if (n > m)
+        return std::make_tuple(0, x);
+
+    uint256 q, r;
+    auto p_x = (uint32_t*)&x;
+    auto p_y = (uint32_t*)&y;
+    auto p_q = (uint32_t*)&q;
+    auto p_r = (uint32_t*)&r;
+    udiv_knuth_internal_64(p_q, p_r, p_x, p_y, m, n);
+
+    return std::make_tuple(q, r);
+}
+
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
 {
     if (x < y)

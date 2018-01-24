@@ -724,6 +724,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y);
+std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y);
 
 template<typename Int>
 inline std::tuple<Int, Int> udiv_long(typename traits<Int>::double_type u, Int v)
