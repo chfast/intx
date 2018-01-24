@@ -674,7 +674,7 @@ static void udiv_knuth_internal_64(
             borrow = hi_half(p) - hi_half(s);
         }
         __int128 t = un[j + n] - borrow;
-        un[j + n] = static_cast<uint32_t>(t);
+        un[j + n] = static_cast<uint64_t>(t);
 
         q[j] = lo_half(qhat); // Store quotient digit.
         if (t < 0)
