@@ -3,8 +3,6 @@
 #include <cassert>
 #include <cstring>
 
-namespace intx
-{
 
 #if 0
 #include <iostream>
@@ -13,6 +11,9 @@ inline std::ostream& dbgs() { return std::cerr; }
 #else
 #define DEBUG(X) do {} while (false)
 #endif
+
+namespace intx
+{
 
 // The fastest for 256 / 32.
 static void udivrem_1_stable(uint32_t* q, uint32_t* r, const uint32_t* u, uint32_t v, int m)
@@ -492,9 +493,6 @@ static void udiv_knuth_internal_base(
 static void udiv_knuth_internal(
     unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
 {
-    if (n == 1)  // TODO: Try udiv_qr_unr().
-        return udivrem_1_stable(q, r, u, v[0], m);
-
     // Normalize by shifting the divisor v left so that its highest bit is on,
     // and shift the dividend u left the same amount.
     auto vn = static_cast<uint32_t*>(alloca(n * sizeof(uint32_t)));
@@ -511,6 +509,14 @@ static void udiv_knuth_internal(
     for (int i = m - 1; i > 0; i--)
         un[i] = shift ? (u[i] << shift) | (u[i - 1] >> lshift) : u[i];
     un[0] = u[0] << shift;
+
+//    DEBUG(dbgs() << std::hex << "un: ");
+//    DEBUG(for (int i = m; i >= 0; i--) dbgs() << un[i]);
+//    DEBUG(dbgs() << "\n");
+
+    DEBUG(dbgs() << std::hex << "vn: ");
+    DEBUG(for (int i = n - 1; i >= 0; i--) dbgs() << vn[i] << " ");
+    DEBUG(dbgs() << "\n");
 
 //    uint32_t v_carry = 0;
 //    uint32_t u_carry = 0;
@@ -564,7 +570,6 @@ static void udiv_knuth_internal(
     const uint64_t base = uint64_t(1) << 32;  // Number base (32 bits).
     for (int j = m - n; j >= 0; j--)  // Main loop.
     {
-
         uint64_t qhat, rhat;
         uint32_t divisor = vn[n - 1];
         uint64_t dividend = join(un[j + n], un[j + n - 1]);
@@ -595,14 +600,17 @@ static void udiv_knuth_internal(
         {
             uint64_t p = qhat * vn[i];
             int64_t t = int64_t(un[i + j]) - borrow - lo_half(p);
-            auto s = static_cast<uint64_t>(t);
+            uint64_t s = static_cast<uint64_t>(t);
             un[i+j] = lo_half(s);
             borrow = hi_half(p) - hi_half(s);
         }
+        DEBUG(dbgs() << "borrow: " << (int)borrow << "\n");
         int64_t t = un[j + n] - borrow;
         un[j + n] = static_cast<uint32_t>(t);
 
         q[j] = lo_half(qhat); // Store quotient digit.
+        DEBUG(dbgs() << std::hex << "q[" << j << "]: " << q[j] << "\n");
+
         if (t < 0)
         {            // If we subtracted too
             --q[j];  // much, add back.
@@ -644,6 +652,14 @@ static void udiv_knuth_internal_64(
         un[i] = shift ? (u[i] << shift) | (u[i - 1] >> lshift) : u[i];
     un[0] = u[0] << shift;
 
+//    DEBUG(dbgs() << std::hex << "un: ");
+//    DEBUG(for (int i = m; i >= 0; i--) dbgs() << un[i]);
+//    DEBUG(dbgs() << "\n");
+
+    DEBUG(dbgs() << std::hex << "vn: ");
+    DEBUG(for (int i = n - 1; i >= 0; i--) dbgs() << vn[i] << " ");
+    DEBUG(dbgs() << "\n");
+
 
     constexpr uint128 base = uint128(1) << 64;  // Number base (32 bits).
     for (int j = m - n; j >= 0; j--)  // Main loop.
@@ -679,14 +695,17 @@ static void udiv_knuth_internal_64(
         {
             uint128 p = qhat * vn[i];
             __int128 t = __int128(un[i + j]) - borrow - lo_half(p);
-            auto s = static_cast<uint64_t>(t);
+            uint128 s = static_cast<uint128>(t);
             un[i+j] = lo_half(s);
             borrow = hi_half(p) - hi_half(s);
         }
+        DEBUG(dbgs() << "borrow: " << (int)borrow << "\n");
         __int128 t = un[j + n] - borrow;
         un[j + n] = static_cast<uint64_t>(t);
 
         q[j] = lo_half(qhat); // Store quotient digit.
+        DEBUG(dbgs() << std::hex << "q[" << j << "]: " << q[j] << "\n");
+
         if (t < 0)
         {            // If we subtracted too
             --q[j];  // much, add back.

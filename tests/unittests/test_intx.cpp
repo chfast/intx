@@ -315,6 +315,10 @@ TEST_F(Uint256Test, simple_udiv)
         EXPECT_EQ(q, expected_q) << "data index: " << i;
         EXPECT_EQ(r, expected_r) << "data index: " << i;
 
+        std::tie(q, r) = udiv_qr_knuth_64(n, d);
+        EXPECT_EQ(q, expected_q) << "data index: " << i;
+        EXPECT_EQ(r, expected_r) << "data index: " << i;
+
         std::tie(q, r) = udiv_qr_knuth_hd_base(n, d);
         EXPECT_EQ(q, expected_q) << "data index: " << i;
         EXPECT_EQ(r, expected_r) << "data index: " << i;
