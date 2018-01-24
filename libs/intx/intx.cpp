@@ -765,7 +765,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
     const unsigned m = 8 - (clz(x) / (4 * 8));
 
     if (n > m)
-        return std::make_tuple(0, x);
+        return std::make_tuple(uint256(0), x);
 
     uint256 q, r;
     auto p_x = (uint32_t*)&x;
@@ -808,7 +808,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y)
     const unsigned n = 8 - (clz(y) / (4 * 8));
 
     if (n > m)
-        return std::make_tuple(0, x);
+        return std::make_tuple(uint256(0), x);
 
     uint256 q, r;
     auto p_x = (uint32_t*)&x;
@@ -827,7 +827,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y)
     const unsigned n = 8 - (clz(y) / (4 * 8));
 
     if (n > m)
-        return std::make_tuple(0, x);
+        return std::make_tuple(uint256(0), x);
 
     uint256 q, r;
     auto p_x = (uint32_t*)&x;
@@ -846,7 +846,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v)
     const unsigned n = 8 - (clz(v) / (4 * 8));
 
     if (n > u_limbs)
-        return std::make_tuple(0, u);
+        return std::make_tuple(uint256(0), u);
 
     unsigned m = u_limbs - n;
 
