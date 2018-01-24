@@ -135,6 +135,17 @@ struct traits<uint256>
     static constexpr int unr_iterations = 8;
 };
 
+template <>
+struct traits<uint512>
+{
+//    using double_type = uint1024;
+    using half_type = uint256;
+
+    static constexpr unsigned bits = 512;
+    static constexpr unsigned half_bits = 256;
+//    static constexpr int unr_iterations = 8;
+};
+
 constexpr uint32_t lo_half(uint64_t x)
 {
     return static_cast<uint32_t>(x);
@@ -273,51 +284,76 @@ inline constexpr uint256 bitwise_not(uint256 x)
     return {~x.lo, ~x.hi};
 }
 
-inline uint256 shl(uint256 x, uint256 shift)
+inline uint128 shl(uint128 a, unsigned b)
 {
-    using Int = uint256;
+    return a << b;
+}
 
-    if (shift == 0)
-        return x;
+inline uint64_t shl(uint64_t a, unsigned b)
+{
+    return a << b;
+}
 
+inline uint128 lsr(uint128 a, unsigned b)
+{
+    return a >> b;
+}
+
+inline uint256 lsr(uint256 x, unsigned shift);
+
+inline uint256 operator|(uint256 x, uint256 y)
+{
+    return bitwise_or(x, y);
+}
+
+template<typename Int>
+inline Int shl(Int x, unsigned shift)
+{
+    using half_type = typename traits<Int>::half_type;
     constexpr auto bits = traits<Int>::bits;
     constexpr auto half_bits = traits<Int>::half_bits;
 
     if (shift < half_bits)
     {
-        auto lo = x.lo << shift.lo;
-        auto lo_overflow = x.lo >> (half_bits - shift.lo);
-        auto hi_part = x.hi << shift.lo;
-        auto hi = hi_part | lo_overflow;
-        return {lo, hi};
+        half_type lo = shl(x.lo, shift);
+
+        // Find the part moved from lo to hi.
+        // The shift left here can be invalid:
+        // for shift == 0 => lshift == half_bits.
+        // Split it into 2 valid shifts by (lshift - 1) and 1.
+        unsigned lshift = half_bits - shift;
+        half_type lo_overflow = lsr(lsr(x.lo, lshift - 1), 1);
+        half_type hi_part = shl(x.hi, shift);
+        half_type hi = hi_part | lo_overflow;
+        return Int{lo, hi};
     }
 
     if (shift < bits)
     {
-        auto hi = x.lo << (shift.lo - half_bits);
-        return {0, hi};
+        half_type hi = shl(x.lo, shift - half_bits);
+        return Int{0, hi};
     }
 
     return 0;
 }
 
-inline uint256 lsr(uint256 x, uint256 shift)
+inline uint256 lsr(uint256 x, unsigned shift)
 {
     if (shift == 0)
         return x;
 
     if (shift < 128)
     {
-        auto hi = x.hi >> shift.lo;
-        auto hi_overflow = x.hi << (128 - shift.lo);
-        auto lo_part = x.lo >> shift.lo;
+        auto hi = x.hi >> shift;
+        auto hi_overflow = x.hi << (128 - shift);
+        auto lo_part = x.lo >> shift;
         auto lo = lo_part | hi_overflow;
         return {lo, hi};
     }
 
     if (shift < 256)
     {
-        auto lo = x.hi >> (shift.lo - 128);
+        auto lo = x.hi >> (shift - 128);
         return {lo, 0};
     }
 
@@ -419,16 +455,6 @@ inline uint128 bitwise_or(uint128 a, uint128 b)
     return a | b;
 }
 
-inline uint128 shl(uint128 a, uint128 b)
-{
-    return a << b;
-}
-
-inline uint64_t shl(uint64_t a, uint64_t b)
-{
-    return a << b;
-}
-
 inline uint128 umul_full(uint64_t a, uint64_t b)
 {
     return uint128(a) * uint128(b);
@@ -451,12 +477,12 @@ inline uint256 operator-(uint256 x, uint256 y)
     return sub(x, y);
 }
 
-inline uint256 operator<<(uint256 x, uint256 y)
+inline uint256 operator<<(uint256 x, unsigned y)
 {
     return shl(x, y);
 }
 
-inline uint256 operator>>(uint256 x, uint256 y)
+inline uint256 operator>>(uint256 x, unsigned y)
 {
     return lsr(x, y);
 }

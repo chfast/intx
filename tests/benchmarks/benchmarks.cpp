@@ -304,8 +304,8 @@ static void binary_op256_full(benchmark::State& state)
     }
 }
 
-BENCHMARK_TEMPLATE(binary_op256_full, &umul_full<uint256>);
-BENCHMARK_TEMPLATE(binary_op256_full, &umul_full_loop);
+BENCHMARK_TEMPLATE(binary_op256_full, umul_full<uint256>);
+BENCHMARK_TEMPLATE(binary_op256_full, umul_full_loop);
 BENCHMARK_TEMPLATE(binary_op256_full, gmp_mul_full);
 
 using binary_fn512 = uint512 (*)(uint512, uint512);
@@ -336,6 +336,33 @@ static void binary_op512(benchmark::State& state)
 BENCHMARK_TEMPLATE(binary_op512, mul512);
 BENCHMARK_TEMPLATE(binary_op512, gmp_mul);
 
+template<typename Int, Int ShiftFn(Int, unsigned)>
+static void shift(benchmark::State& state)
+{
+    lcg<Int> rng_x(get_seed());
+
+    std::mt19937_64 rng{get_seed()};
+    std::uniform_int_distribution<unsigned> dist_y(0, traits<Int>::bits);
+
+    constexpr size_t size = 1000;
+    std::vector<Int> input_x(size);
+    std::vector<unsigned> input_y(size);
+    std::vector<Int> output(size);
+    for (auto& x : input_x)
+        x = rng_x();
+    for (auto& y : input_y)
+        y = dist_y(rng);
+
+    for (auto _ : state)
+    {
+        for (size_t i = 0; i < size; ++i)
+            output[i] = ShiftFn(input_x[i], input_y[i]);
+        benchmark::DoNotOptimize(output.data());
+    }
+}
+BENCHMARK_TEMPLATE(shift, uint256, shl);
+BENCHMARK_TEMPLATE(shift, uint512, shl);
+//BENCHMARK_TEMPLATE(shift_512, lsr);
 
 static void count_sigificant_words32_256_loop(benchmark::State& state)
 {
