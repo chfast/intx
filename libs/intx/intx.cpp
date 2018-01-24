@@ -674,8 +674,7 @@ static void udiv_knuth_internal_64(
         }
         else
         {
-            qhat = dividend / divisor;  // Estimated quotient digit.
-            rhat = dividend % divisor;  // A remainder.
+            std::tie(qhat, rhat) = udivrem_long(dividend, divisor);
         }
 
         uint64_t next_divisor = vn[n - 2];
@@ -773,6 +772,33 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
     auto p_q = (uint32_t*)&q;
     auto p_r = (uint32_t*)&r;
     udiv_knuth_internal(p_q, p_r, p_x, p_y, m, n);
+
+    return std::make_tuple(q, r);
+}
+
+std::tuple<uint512, uint512> udiv_qr_knuth_512_64(uint512 x, uint512 y)
+{
+    if (x < y)
+        return std::make_tuple(0, x.lo);
+
+    const unsigned n = count_significant_words<uint64_t>(y);
+
+    if (n == 1)
+        return udivrem_1(x, static_cast<uint64_t>(y.lo.lo));
+
+    // Skip dividend's leading zero limbs.
+    const unsigned m = count_significant_words<uint64_t>(x);
+
+    if (n > m)
+        return std::make_tuple(0, x);
+
+    uint512 q;
+    uint256 r;
+    auto p_x = (uint64_t*)&x;
+    auto p_y = (uint64_t*)&y;
+    auto p_q = (uint64_t*)&q;
+    auto p_r = (uint64_t*)&r;
+    udiv_knuth_internal_64(p_q, p_r, p_x, p_y, m, n);
 
     return std::make_tuple(q, r);
 }
