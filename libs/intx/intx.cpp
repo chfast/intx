@@ -560,14 +560,24 @@ static void udiv_knuth_internal(
 //        }
 //    }
 
+
+    const uint64_t base = uint64_t(1) << 32;  // Number base (32 bits).
     for (int j = m - n; j >= 0; j--)  // Main loop.
     {
-        uint64_t dividend = join(un[j + n], un[j + n - 1]);
-        uint32_t divisor = vn[n - 1];
-        uint64_t qhat = dividend / divisor;  // Estimated quotient digit.
-        uint64_t rhat = dividend % divisor;  // A remainder.
 
-        const uint64_t base = uint64_t(1) << 32;  // Number base (32 bits).
+        uint64_t qhat, rhat;
+        uint32_t divisor = vn[n - 1];
+        uint64_t dividend = join(un[j + n], un[j + n - 1]);
+        if (hi_half(dividend) > divisor)  // Will overflow:
+        {
+            qhat = base;
+            rhat = dividend - qhat * divisor;
+        }
+        else
+        {
+            std::tie(qhat, rhat) = udivrem_long_asm(dividend, divisor);
+        }
+
         uint32_t next_divisor = vn[n - 2];
         uint64_t pd = join(lo_half(rhat), un[j + n - 2]);
         if (qhat == base || qhat * next_divisor > pd)
