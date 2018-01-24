@@ -74,8 +74,31 @@ std::tuple<uint256, uint64_t> udivrem_1(uint256 x, uint64_t y)
         // classic multiplication `reminder = dividend - q[j] * divisor`.
         std::tie(qt[j], r) = udiv_qr_unr(dividend, uint128(y));
     }
-    return {q, r};
+    return std::make_tuple(q, r);
 }
+
+std::tuple<uint512, uint64_t> udivrem_1(uint512 x, uint64_t y)
+{
+    uint64_t r = 0;
+    uint512 q = 0;
+
+    uint64_t u[8];
+    std::memcpy(u, &x, sizeof(x));
+
+    auto qt = (uint64_t*)&q;
+
+    for (int j = 8 - 1; j >= 0; --j)
+    {
+        uint128 dividend = join(r, u[j]);
+
+        // Perform long division. The compiler should use single instruction
+        // here to compute both quotient and remainder. This is better than
+        // classic multiplication `reminder = dividend - q[j] * divisor`.
+        std::tie(qt[j], r) = udiv_qr_unr(dividend, uint128(y));
+    }
+    return std::make_tuple(q, r);
+}
+
 
 /// Implementation of Knuth's Algorithm D (Division of nonnegative integers)
 /// from "Art of Computer Programming, Volume 2", section 4.3.1, p. 272. The
@@ -676,7 +699,7 @@ static void udiv_knuth_internal_64(
 std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y)
 {
     if (x < y)
-        return {0, x};
+        return std::make_tuple(0, x);
 
     const unsigned n = count_significant_words<uint64_t>(y);
 
@@ -702,7 +725,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y)
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
 {
     if (x < y)
-        return {0, x};
+        return std::make_tuple(0, x);
 
     const unsigned n = count_significant_words<uint32_t>(y);
 
@@ -716,6 +739,30 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
         return std::make_tuple(0, x);
 
     uint256 q, r;
+    auto p_x = (uint32_t*)&x;
+    auto p_y = (uint32_t*)&y;
+    auto p_q = (uint32_t*)&q;
+    auto p_r = (uint32_t*)&r;
+    udiv_knuth_internal(p_q, p_r, p_x, p_y, m, n);
+
+    return std::make_tuple(q, r);
+}
+
+std::tuple<uint512, uint512> udiv_qr_knuth_512(uint512 x, uint512 y)
+{
+    if (x < uint512(y))
+        return std::make_tuple(0, x.lo);
+
+    const unsigned n = count_significant_words<uint32_t>(y);
+
+    if (n <= 2)
+        return udivrem_1(x, static_cast<uint64_t>(y.lo.lo));
+
+    // Skip dividend's leading zero limbs.
+    const unsigned m = count_significant_words<uint32_t>(x);
+
+    uint512 q;
+    uint256 r;
     auto p_x = (uint32_t*)&x;
     auto p_y = (uint32_t*)&y;
     auto p_q = (uint32_t*)&q;

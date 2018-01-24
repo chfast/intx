@@ -217,6 +217,11 @@ inline bool operator!=(uint256 a, uint256 b)
     return !(a == b);
 }
 
+inline bool operator!=(uint512 a, uint512 b)
+{
+    return !(a == b);
+}
+
 template<typename Int>
 inline bool operator<(Int a, Int b)
 {
@@ -725,6 +730,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y);
+std::tuple<uint512, uint512> udiv_qr_knuth_512(uint512 x, uint512 y);
 
 template<typename Int>
 inline std::tuple<Int, Int> udiv_long(typename traits<Int>::double_type u, Int v)
@@ -778,7 +784,7 @@ again2:
     Int r = (un21 * b + un0 - q0 * v) >> s;
     Int q = q1 * b + q0;
 
-    return {q, r};
+    return std::make_tuple(q, r);
 }
 
 template<typename Int>
@@ -795,7 +801,7 @@ inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
         if (u1 < v)
         {
             auto t = udiv_long(u, v0);
-            return {std::get<0>(t), std::get<1>(t)};
+            return std::make_tuple(std::get<0>(t), std::get<1>(t));
         }
         else
         {
@@ -805,7 +811,7 @@ inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
             auto q0 = std::get<0>(udiv_long(join(k, u0), v0));
             Int q = join(q1, q0);
             Int r = u - v * q;
-            return {q, r};
+            return std::make_tuple(q, r);
         }
     }
     unsigned n = clz(v);
@@ -819,7 +825,7 @@ inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
     if ((u - q0 * v) >= v)
         q0 = q0 + 1;
     Int r = u - v * q0;
-    return {q0, r};
+    return std::make_tuple(q0, r);
 }
 
 inline std::string to_string(uint256 x)
@@ -833,6 +839,28 @@ inline std::string to_string(uint256 x)
         uint256 r;
         std::tie(x, r) = udiv_qr_unr(x, uint256(10));
         auto c = static_cast<size_t>(r);
+        s.push_back(static_cast<char>('0' + c));
+    }
+    std::reverse(s.begin(), s.end());
+    return s;
+}
+
+inline std::string to_string(uint128 x)
+{
+    return to_string(uint256(x));
+}
+
+inline std::string to_string(uint512 x)
+{
+    if (x == 0)
+        return "0";
+
+    std::string s;
+    while (x != 0)
+    {
+        uint512 r;
+        std::tie(x, r) = udiv_qr_knuth_512(x, uint512(10));
+        auto c = static_cast<size_t>(r.lo);
         s.push_back(static_cast<char>('0' + c));
     }
     std::reverse(s.begin(), s.end());

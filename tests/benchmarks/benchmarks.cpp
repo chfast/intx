@@ -245,7 +245,8 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint256, gmp_udiv_qr);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_hd_base);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_llvm_base);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_opt_base);
-//BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_opt);
+BENCHMARK_TEMPLATE(udiv, uint512, uint256, udiv_qr_knuth_512);
+BENCHMARK_TEMPLATE(udiv, uint512, uint256, udiv_qr_knuth_512);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, gmp_udiv_qr);
 
 using binary_fn256 = uint256 (*)(uint256, uint256);
