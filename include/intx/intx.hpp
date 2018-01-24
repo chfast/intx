@@ -368,6 +368,35 @@ inline Int lsr(Int x, unsigned shift)
     return 0;
 }
 
+template<typename Int>
+inline std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>& as_words(Int& x)
+{
+    return reinterpret_cast<std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>&>(x);
+}
+
+/// Implementation of shift left as a loop.
+/// This one is slower than the one using "split" strategy.
+template<typename Int>
+inline Int shl_loop(Int x, unsigned shift)
+{
+    Int r;
+    constexpr unsigned word_bits = sizeof(uint64_t) * 8;
+    auto& rw = as_words(r);
+    const auto& words = as_words(x);
+    unsigned s = shift % word_bits;
+    unsigned skip = shift / word_bits;
+
+    uint64_t carry = 0;
+    for (size_t i = 0; i < (words.size() - skip); ++i)
+    {
+        auto w = words[i];
+        auto v = (w << s) | carry;
+        carry = (w >> (word_bits - s - 1)) >> 1;
+        rw[i + skip] = v;
+    }
+    return r;
+}
+
 
 inline std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b)
 {

@@ -361,7 +361,9 @@ static void shift(benchmark::State& state)
     }
 }
 BENCHMARK_TEMPLATE(shift, uint256, shl);
+BENCHMARK_TEMPLATE(shift, uint256, shl_loop);
 BENCHMARK_TEMPLATE(shift, uint512, shl);
+BENCHMARK_TEMPLATE(shift, uint512, shl_loop);
 //BENCHMARK_TEMPLATE(shift_512, lsr);
 
 static void count_sigificant_words32_256_loop(benchmark::State& state)

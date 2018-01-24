@@ -356,6 +356,17 @@ TEST_F(Uint256Test, shift_one_bit)
     }
 }
 
+TEST_F(Uint256Test, shift_loop_one_bit)
+{
+    for (unsigned shift = 0; shift < 256; ++shift)
+    {
+        uint256 x = 1;
+        uint256 y = shl_loop(x, shift);
+        uint256 z = lsr(y, shift);
+        EXPECT_EQ(x, z) << "shift: " << shift;
+    }
+}
+
 TEST_F(Uint256Test, not_of_zero)
 {
     uint256 ones = bitwise_not(uint256(0));
