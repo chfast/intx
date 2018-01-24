@@ -573,19 +573,14 @@ typename traits<Int>::double_type umul_full(Int a, Int b)
 template<typename Int>
 inline Int mul(Int a, Int b)
 {
+    // Requires 1 full mul, 2 muls and 2 adds.
+    // Clang & GCC implements 128-bit multiplication this way.
+
     auto t = umul_full(a.lo, b.lo);
-    auto l = lo_half(t);
-    auto u = hi_half(t);
-    t = umul_full(a.hi, b.lo);
-    t = t + Int(u);
+    auto hi = (a.lo * b.hi) + (a.hi * b.lo) + hi_half(t);
+    auto lo = lo_half(t);
 
-    u = lo_half(t);
-    t = umul_full(a.lo, b.hi);
-    t = t + Int(u);
-
-    auto h = lo_half(t);
-
-    return {l, h};
+    return {lo, hi};
 }
 
 inline uint512 mul512(uint512 a, uint512 b)
