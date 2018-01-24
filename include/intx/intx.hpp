@@ -299,7 +299,6 @@ inline uint128 lsr(uint128 a, unsigned b)
     return a >> b;
 }
 
-inline uint256 lsr(uint256 x, unsigned shift);
 
 inline uint256 operator|(uint256 x, uint256 y)
 {
@@ -318,16 +317,18 @@ inline Int shl(Int x, unsigned shift)
         half_type lo = shl(x.lo, shift);
 
         // Find the part moved from lo to hi.
-        // The shift left here can be invalid:
+        // The shift right here can be invalid:
         // for shift == 0 => lshift == half_bits.
-        // Split it into 2 valid shifts by (lshift - 1) and 1.
-        unsigned lshift = half_bits - shift;
-        half_type lo_overflow = lsr(lsr(x.lo, lshift - 1), 1);
+        // Split it into 2 valid shifts by (rshift - 1) and 1.
+        unsigned rshift = half_bits - shift;
+        half_type lo_overflow = lsr(lsr(x.lo, rshift - 1), 1);
         half_type hi_part = shl(x.hi, shift);
         half_type hi = hi_part | lo_overflow;
         return Int{lo, hi};
     }
 
+    // This check is only needed if we want "defined" behavior for shifts
+    // larger than size of the Int.
     if (shift < bits)
     {
         half_type hi = shl(x.lo, shift - half_bits);
@@ -337,24 +338,31 @@ inline Int shl(Int x, unsigned shift)
     return 0;
 }
 
-inline uint256 lsr(uint256 x, unsigned shift)
+template<typename Int>
+inline Int lsr(Int x, unsigned shift)
 {
-    if (shift == 0)
-        return x;
+    using half_type = typename traits<Int>::half_type;
+    constexpr auto bits = traits<Int>::bits;
+    constexpr auto half_bits = traits<Int>::half_bits;
 
-    if (shift < 128)
+    if (shift < half_bits)
     {
-        auto hi = x.hi >> shift;
-        auto hi_overflow = x.hi << (128 - shift);
-        auto lo_part = x.lo >> shift;
-        auto lo = lo_part | hi_overflow;
-        return {lo, hi};
+        half_type hi = lsr(x.hi, shift);
+
+        // Find the part moved from hi to lo.
+        // To avoid invalid shift left,
+        // split them into 2 valid shifts by (lshift - 1) and 1.
+        unsigned lshift = half_bits - shift;
+        half_type hi_overflow = shl(shl(x.hi, lshift - 1), 1);
+        half_type lo_part = lsr(x.lo, shift);
+        half_type lo = lo_part | hi_overflow;
+        return Int{lo, hi};
     }
 
-    if (shift < 256)
+    if (shift < bits)
     {
-        auto lo = x.hi >> (shift - 128);
-        return {lo, 0};
+        auto lo = lsr(x.hi, shift - half_bits);
+        return Int{lo, 0};
     }
 
     return 0;
