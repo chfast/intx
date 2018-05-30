@@ -38,23 +38,6 @@ constexpr uint64_t maximal[] = {
     0xffffffffffffffff,
 };
 
-constexpr uint64_t normal[] = {
-    0x0000000000000000,
-    0x0000000000000001,
-    0x000000000000000f,
-    0x0000000000000010,
-    0x00000000000000ff,
-    0x5555555555555555,
-    0x7fffffffffffffff,
-    0x8000000000000000,
-    0x8000000000000001,
-    0xaaaaaaaaaaaaaaaa,
-    0xeeeeeeeeeeeeeeee,
-    0xff00000000000000,
-    0xfffffffffffffffe,
-    0xffffffffffffffff,
-};
-
 constexpr uint64_t minimal[] = {
     0x0000000000000000,
     0x0000000000000001,

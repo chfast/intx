@@ -101,10 +101,12 @@ TEST(safe_int, compare_plus_infinities)
 {
     auto inf = 1 + safe_int{std::numeric_limits<int>::max()};
 
-    EXPECT_THROW(inf == inf, intx::bad_operation);
-    EXPECT_THROW(inf != inf, intx::bad_operation);
-    EXPECT_THROW(inf < inf, intx::bad_operation);
-    EXPECT_THROW(inf <= inf, intx::bad_operation);
-    EXPECT_THROW(inf >= inf, intx::bad_operation);
-    EXPECT_THROW(inf > inf, intx::bad_operation);
+    bool f = false;
+    EXPECT_THROW(f = inf == inf, intx::bad_operation);
+    EXPECT_THROW(f = inf != inf, intx::bad_operation);
+    EXPECT_THROW(f = inf < inf, intx::bad_operation);
+    EXPECT_THROW(f = inf <= inf, intx::bad_operation);
+    EXPECT_THROW(f = inf >= inf, intx::bad_operation);
+    EXPECT_THROW(f = inf > inf, intx::bad_operation);
+    (void)f;
 }
