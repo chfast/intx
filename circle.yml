@@ -1,0 +1,158 @@
+defaults:
+
+  install-deps: &install-deps
+    run:
+      name: "Install dependencies"
+      command: |
+        sudo apt -q update
+        sudo apt install -qy libgmp-dev
+
+  environment-info: &environment-info
+    run:
+      name: "Environment info"
+      command: |
+        echo CXX: $CXX
+        $CXX --version
+        $CXX --version > compiler.version
+
+  update-submodules: &update-submodules
+    run:
+      name: "Update git submodules"
+      command: |
+        git submodule update --init --recursive
+
+  configure: &configure
+    run:
+      name: "Configure"
+      # Build "out-of-source" to have better coverage report
+      # (ninja is using relative paths otherwise).
+      working_directory: ~/build
+      command: |
+        cmake ../project -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=/tmp/local $CMAKE_OPTIONS
+
+  build: &build
+    run:
+      name: "Build"
+      working_directory: ~/build
+      command: |
+        cmake --build . -- -j $BUILD_PARALLEL_JOBS
+        cmake --build . --target install
+
+  test: &test
+    run:
+      name: "Test"
+      working_directory: ~/build
+      command: |
+        if [ -z "$GTEST_FILTER" ]; then
+          tests/unittests/intx-test
+        else
+          tests/unittests/intx-test --gtest_filter=$GTEST_FILTER
+        fi
+
+  benchmark: &benchmark
+    run:
+      name: "Benchmark"
+      working_directory: ~/build
+      command: |
+        tests/benchmarks/bench
+
+  upload-coverage-data: &upload-coverage-data
+    run:
+      name: "Upload coverage data"
+      command: |
+        codecov --required --gcov-exec "$GCOV" --gcov-root ~/build
+
+
+version: 2
+jobs:
+
+  linux-gcc6-coverage:
+    environment:
+      - CXX: g++-6
+      - CC:  gcc-6
+      - GCOV: gcov-6
+      - BUILD_PARALLEL_JOBS: 2
+      - BUILD_TYPE: Debug
+      - CMAKE_OPTIONS: -DCOVERAGE=ON
+    docker:
+      - image: ethereum/cpp-build-env:2
+    steps:
+      - *install-deps
+      - checkout
+      - *configure
+      - *build
+      - *test
+      # - *upload-coverage-data
+
+  linux-clang6-ubsan:
+    environment:
+      - CXX: clang++-6.0
+      - CC:  clang-6.0
+      - BUILD_PARALLEL_JOBS: 2
+      - CMAKE_OPTIONS: -DSANITIZE=undefined,integer,nullability
+      - UBSAN_OPTIONS: halt_on_error=1
+    docker:
+      - image: ethereum/cpp-build-env:2
+    steps:
+      - *install-deps
+      - checkout
+      - *configure
+      - *build
+      - *test
+      - *benchmark
+
+  linux-clang6-asan:
+    environment:
+      - CXX: clang++-6.0
+      - CC:  clang-6.0
+      - BUILD_PARALLEL_JOBS: 2
+      - CMAKE_OPTIONS: -DSANITIZE=address
+      - ASAN_OPTIONS: allocator_may_return_null=1
+    docker:
+      - image: ethereum/cpp-build-env:2
+    steps:
+      - *install-deps
+      - checkout
+      - *configure
+      - *build
+      - *test
+      - *benchmark
+
+  linux-gcc4.8:
+    environment:
+      - CXX: g++-4.8
+      - CC:  gcc-4.8
+      - BUILD_PARALLEL_JOBS: 2
+    docker:
+      - image: ethereum/cpp-build-env:2
+    steps:
+      - *install-deps
+      - checkout
+      - *configure
+      - *build
+      - *test
+
+  linux-clang3.8:
+    environment:
+      - CXX: clang++-3.8
+      - CC:  clang-3.8
+      - BUILD_PARALLEL_JOBS: 2
+      - CMAKE_OPTIONS: -DETHASH_BUILD_TESTS=OFF
+    docker:
+      - image: ethereum/cpp-build-env:2
+    steps:
+      - *install-deps
+      - checkout
+      - *configure
+      - *build
+
+
+workflows:
+  version: 2
+  intx:
+    jobs:
+      - linux-gcc6-coverage
+      - linux-clang6-ubsan
+      - linux-clang6-asan
+      - linux-clang3.8
+      # - linux-gcc4.8
