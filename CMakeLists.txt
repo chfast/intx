@@ -17,6 +17,7 @@ HunterGate(
 
 project(intx)
 
+option(INTX_TESTING "Build IntX with tests" ON)
 # FIXME: Add back -Wconversion, test with clang.
 add_compile_options(-Werror -Wall -Wextra)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
@@ -26,4 +27,6 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Og")
 
 add_subdirectory(libs/intx)
 
-add_subdirectory(tests)
+if(INTX_TESTING)
+	add_subdirectory(tests)
+endif()
