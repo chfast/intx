@@ -1,3 +1,7 @@
+# intx: extended precision integer library.
+# Copyright 2017 Pawel Bylica.
+# Licensed under the Apache License, Version 2.0. See the LICENSE file.
+
 cmake_minimum_required(VERSION 3.5)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
