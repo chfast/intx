@@ -25,8 +25,8 @@ add_compile_options(-Werror -Wall -Wextra)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Og")
 
-add_subdirectory(libs/intx)
+add_subdirectory(lib/intx)
 
 if(INTX_TESTING)
-	add_subdirectory(tests)
+    add_subdirectory(test)
 endif()

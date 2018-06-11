@@ -44,9 +44,9 @@ defaults:
       working_directory: ~/build
       command: |
         if [ -z "$GTEST_FILTER" ]; then
-          tests/unittests/intx-test
+          test/unittests/intx-test
         else
-          tests/unittests/intx-test --gtest_filter=$GTEST_FILTER
+          test/unittests/intx-test --gtest_filter=$GTEST_FILTER
         fi
 
   benchmark: &benchmark
@@ -54,7 +54,7 @@ defaults:
       name: "Benchmark"
       working_directory: ~/build
       command: |
-        tests/benchmarks/bench
+        test/benchmarks/bench
 
   upload-coverage-data: &upload-coverage-data
     run:
