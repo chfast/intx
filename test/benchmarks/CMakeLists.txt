@@ -4,6 +4,4 @@
 
 add_executable(intx-bench benchmarks.cpp)
 target_link_libraries(intx-bench PRIVATE intx benchmark::benchmark GMP::gmp)
-target_compile_options(intx-bench PRIVATE -fno-omit-frame-pointer)
-target_compile_options(intx-bench PRIVATE -march=native -mtune=native)
 set_target_properties(intx-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)
