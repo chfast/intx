@@ -4,6 +4,7 @@
 
 #include <intx/intx.hpp>
 
+#include "gmp_wrappers.hpp"
 #include "../utils/random.hpp"
 #include <benchmark/benchmark.h>
 
@@ -35,7 +36,7 @@ static void udivrem_1(benchmark::State& state)
 
     uint512 eq;
     uint64_t er = 1;
-    std::tie(eq, er) = udivrem_1_64(x, y);
+    std::tie(eq, er) = udivrem_1_64_gmp(x, y);
     if (q != eq || r != er)
         state.SkipWithError("incorrect division result");
 }
@@ -44,3 +45,4 @@ BENCHMARK_TEMPLATE(udivrem_1, uint32_t, udivrem_1_32_unr);
 
 BENCHMARK_TEMPLATE(udivrem_1, uint64_t, udivrem_1_64);
 BENCHMARK_TEMPLATE(udivrem_1, uint64_t, udivrem_1_64_unr);
+BENCHMARK_TEMPLATE(udivrem_1, uint64_t, udivrem_1_64_gmp);
