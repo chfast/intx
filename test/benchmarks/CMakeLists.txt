@@ -5,6 +5,8 @@
 add_executable(intx-bench
     bench_mul_full.cpp
     benchmarks.cpp
+    div_benchmarks.cpp
+    div_implementations.cpp
 )
 target_link_libraries(intx-bench PRIVATE intx benchmark::benchmark GMP::gmp)
 set_target_properties(intx-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)
