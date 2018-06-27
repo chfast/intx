@@ -7,6 +7,7 @@ add_executable(intx-bench
     benchmarks.cpp
     div_benchmarks.cpp
     div_implementations.cpp
+    div_knuth_implementations.cpp
     gmp_wrappers.hpp
 )
 target_link_libraries(intx-bench PRIVATE intx benchmark::benchmark GMP::gmp)

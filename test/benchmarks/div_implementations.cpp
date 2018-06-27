@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2017 Pawel Bylica.
+// Copyright 2018 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 #include <intx/intx.hpp>

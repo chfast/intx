@@ -53,3 +53,40 @@ BENCHMARK_TEMPLATE(udivrem_1, uint512, uint32_t, udivrem_1_32_unr);
 BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_long);
 BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_unr);
 BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_gmp);
+
+
+std::pair<std::array<uint32_t, 17>, std::array<uint32_t, 16>> udivrem_knuth_normalize_32_llvm2(
+    const uint32_t u[], const uint32_t v[], size_t n) noexcept;
+std::pair<std::array<uint32_t, 17>, std::array<uint32_t, 16>> udivrem_knuth_normalize_32_llvm3(
+    const uint32_t u[], const uint32_t v[], size_t n) noexcept;
+std::pair<std::array<uint32_t, 17>, std::array<uint32_t, 16>> udivrem_knuth_normalize_32_hd2(
+    const uint32_t u[], const uint32_t v[], size_t n) noexcept;
+std::pair<std::array<uint32_t, 17>, std::array<uint32_t, 16>> udivrem_knuth_normalize_32_hd3(
+    const uint32_t u[], const uint32_t v[], size_t n) noexcept;
+
+template<decltype(udivrem_knuth_normalize_32_llvm2) Fn>
+static void udivrem_knuth_normalize(benchmark::State& state)
+{
+    lcg<uint32_t> rng(get_seed());
+
+    uint32_t u[16];
+    uint32_t v[16];
+
+    size_t n = 3;
+
+    for (auto& w : u)
+        w = rng();
+
+    for (size_t i = 0; i < n; ++i)
+        v[i] = rng();
+
+    while (v[n - 1] == 0 || (v[n - 1] & 0x80000000))
+        v[n - 1] = rng();
+
+    for (auto _ : state)
+        Fn(u, v, n);
+}
+BENCHMARK_TEMPLATE(udivrem_knuth_normalize, udivrem_knuth_normalize_32_llvm2);
+BENCHMARK_TEMPLATE(udivrem_knuth_normalize, udivrem_knuth_normalize_32_llvm3);
+BENCHMARK_TEMPLATE(udivrem_knuth_normalize, udivrem_knuth_normalize_32_hd2);
+BENCHMARK_TEMPLATE(udivrem_knuth_normalize, udivrem_knuth_normalize_32_hd3);

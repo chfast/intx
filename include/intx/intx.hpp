@@ -717,6 +717,18 @@ unsigned count_significant_words_loop(uint256 x) noexcept
     return 0;
 }
 
+template<typename Word>
+unsigned count_significant_words_loop(uint512 x) noexcept
+{
+    auto words = to_words<Word>(x);
+    for (size_t i = words.size(); i > 0; --i)
+    {
+        if (words[i - 1] != 0)
+            return static_cast<unsigned>(i);
+    }
+    return 0;
+}
+
 template<typename Word, typename Int>
 inline unsigned count_significant_words(Int x) noexcept
 {
@@ -1094,3 +1106,4 @@ inline void add_no_carry_256(uint64_t* r, const uint64_t* a, const uint64_t* b)
 //{
 //    return std::equal(a.limbs.begin(), a.limbs.end(), b.limbs.begin());
 //}
+

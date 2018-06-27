@@ -343,7 +343,6 @@ static void count_sigificant_words32_256_loop(benchmark::State& state)
 {
     auto s = static_cast<unsigned>(state.range(0));
     auto x = s != 0 ? uint256(0xff) << (s * 32 - 17) : uint256(0);
-    benchmark::DoNotOptimize(x);
 
     for (auto _ : state)
     {
@@ -358,8 +357,6 @@ static void count_sigificant_words32_256(benchmark::State& state)
 {
     auto s = static_cast<unsigned>(state.range(0));
     auto x = s != 0 ? uint256(0xff) << (s * 32 - 17) : uint256(0);
-    benchmark::DoNotOptimize(x);
-    benchmark::ClobberMemory();
 
     for (auto _ : state)
     {
@@ -369,5 +366,35 @@ static void count_sigificant_words32_256(benchmark::State& state)
     }
 }
 BENCHMARK(count_sigificant_words32_256)->DenseRange(0, 8);
+
+static void count_sigificant_words32_512_loop(benchmark::State& state)
+{
+    lcg<uint512> rng_x(get_seed());
+    auto x = rng_x();
+    x = 1;
+
+    for (auto _ : state)
+    {
+        benchmark::ClobberMemory();
+        auto w = count_significant_words_loop<uint32_t>(x);
+        benchmark::DoNotOptimize(w);
+    }
+}
+BENCHMARK(count_sigificant_words32_512_loop);
+
+static void count_sigificant_words32_512(benchmark::State& state)
+{
+    lcg<uint512> rng_x(get_seed());
+    auto x = rng_x();
+    x = 1;
+
+    for (auto _ : state)
+    {
+        benchmark::ClobberMemory();
+        auto w = count_significant_words<uint32_t>(x);
+        benchmark::DoNotOptimize(w);
+    }
+}
+BENCHMARK(count_sigificant_words32_512);
 
 BENCHMARK_MAIN();
