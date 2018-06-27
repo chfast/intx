@@ -10,22 +10,26 @@
 
 using namespace intx;
 
-std::tuple<uint512, uint32_t> udivrem_1_32_stable(const uint512& x, uint32_t y) noexcept;
+std::tuple<uint256, uint32_t> udivrem_1_32_long(const uint256& x, uint32_t y) noexcept;
+std::tuple<uint256, uint32_t> udivrem_1_32_unr(const uint256& x, uint32_t y) noexcept;
+
+std::tuple<uint512, uint32_t> udivrem_1_32_long(const uint512& x, uint32_t y) noexcept;
 std::tuple<uint512, uint32_t> udivrem_1_32_unr(const uint512& x, uint32_t y) noexcept;
 
-std::tuple<uint512, uint64_t> udivrem_1_64(const uint512& u, uint64_t v) noexcept;
+std::tuple<uint512, uint64_t> udivrem_1_64_long(const uint512& u, uint64_t v) noexcept;
 std::tuple<uint512, uint64_t> udivrem_1_64_unr(const uint512& u, uint64_t v) noexcept;
 
-template<typename DivisorT, std::tuple<uint512, DivisorT> DivFn(const uint512&, DivisorT)>
+template <typename DividendT, typename DivisorT,
+    std::tuple<DividendT, DivisorT> DivFn(const DividendT&, DivisorT)>
 static void udivrem_1(benchmark::State& state)
 {
-    lcg<uint512> rng512(get_seed());
-    lcg<DivisorT> rng(get_seed());
+    lcg<DividendT> rng_x(get_seed());
+    lcg<DivisorT> rng_y(get_seed());
 
-    const auto x = rng512();
-    const auto y = rng();
+    const auto x = rng_x();
+    const auto y = rng_y();
 
-    uint512 q;
+    DividendT q;
     DivisorT r = 0;
 
     for (auto _ : state)
@@ -34,15 +38,18 @@ static void udivrem_1(benchmark::State& state)
         std::tie(q, r) = DivFn(x, y);
     }
 
-    uint512 eq;
+    DividendT eq;
     uint64_t er = 1;
     std::tie(eq, er) = udivrem_1_64_gmp(x, y);
     if (q != eq || r != er)
         state.SkipWithError("incorrect division result");
 }
-BENCHMARK_TEMPLATE(udivrem_1, uint32_t, udivrem_1_32_stable);
-BENCHMARK_TEMPLATE(udivrem_1, uint32_t, udivrem_1_32_unr);
+BENCHMARK_TEMPLATE(udivrem_1, uint256, uint32_t, udivrem_1_32_long);
+BENCHMARK_TEMPLATE(udivrem_1, uint256, uint32_t, udivrem_1_32_unr);
 
-BENCHMARK_TEMPLATE(udivrem_1, uint64_t, udivrem_1_64);
-BENCHMARK_TEMPLATE(udivrem_1, uint64_t, udivrem_1_64_unr);
-BENCHMARK_TEMPLATE(udivrem_1, uint64_t, udivrem_1_64_gmp);
+BENCHMARK_TEMPLATE(udivrem_1, uint512, uint32_t, udivrem_1_32_long);
+BENCHMARK_TEMPLATE(udivrem_1, uint512, uint32_t, udivrem_1_32_unr);
+
+BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_long);
+BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_unr);
+BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_gmp);

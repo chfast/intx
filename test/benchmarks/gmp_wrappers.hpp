@@ -9,6 +9,19 @@
 
 using namespace intx;
 
+std::tuple<uint256, uint64_t> udivrem_1_64_gmp(const uint256& u, uint64_t v) noexcept
+{
+    static_assert(sizeof(mp_limb_t) == sizeof(uint64_t), "Wrong GMP mp_limb_t type");
+    constexpr size_t gmp_limbs = sizeof(u) / sizeof(mp_limb_t);
+
+    uint256 q;
+    uint64_t r;
+    auto p_q = (mp_ptr)&q;
+    auto p_u = (mp_srcptr)&u;
+    mpn_tdiv_qr(p_q, &r, 0, p_u, gmp_limbs, &v, 1);
+    return std::make_tuple(q, r);
+};
+
 std::tuple<uint512, uint64_t> udivrem_1_64_gmp(const uint512& u, uint64_t v) noexcept
 {
     static_assert(sizeof(mp_limb_t) == sizeof(uint64_t), "Wrong GMP mp_limb_t type");
