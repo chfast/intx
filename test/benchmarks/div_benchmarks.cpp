@@ -19,6 +19,11 @@ std::tuple<uint512, uint32_t> udivrem_1_32_unr(const uint512& x, uint32_t y) noe
 std::tuple<uint512, uint64_t> udivrem_1_64_long(const uint512& u, uint64_t v) noexcept;
 std::tuple<uint512, uint64_t> udivrem_1_64_unr(const uint512& u, uint64_t v) noexcept;
 
+std::tuple<uint512, uint64_t> udivrem_1_64_recint(const uint512& u, uint64_t v) noexcept;
+std::tuple<uint512, uint512> udivrem_recint(const uint512& u, const uint512& v) noexcept;
+std::tuple<uint512, uint256> udivrem_recint(const uint512& u, const uint256& v) noexcept;
+std::tuple<uint512, uint128> udivrem_recint(const uint512& u, const uint128& v) noexcept;
+
 template <typename DividendT, typename DivisorT,
     std::tuple<DividendT, DivisorT> DivFn(const DividendT&, DivisorT)>
 static void udivrem_1(benchmark::State& state)
@@ -39,7 +44,7 @@ static void udivrem_1(benchmark::State& state)
     }
 
     DividendT eq;
-    uint64_t er = 1;
+    DivisorT er = 1;
     std::tie(eq, er) = udivrem_1_64_gmp(x, y);
     if (q != eq || r != er)
         state.SkipWithError("incorrect division result");
@@ -53,6 +58,39 @@ BENCHMARK_TEMPLATE(udivrem_1, uint512, uint32_t, udivrem_1_32_unr);
 BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_long);
 BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_unr);
 BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_gmp);
+BENCHMARK_TEMPLATE(udivrem_1, uint512, uint64_t, udivrem_1_64_recint);
+
+template <typename DividendT, typename DivisorT,
+    std::tuple<DividendT, DivisorT> DivFn(const DividendT&, const DivisorT&)>
+static void udivrem(benchmark::State& state)
+{
+    lcg<DividendT> rng_x(get_seed());
+    lcg<DivisorT> rng_y(get_seed());
+
+    const auto x = rng_x();
+    const auto y = rng_y();
+
+    DividendT q;
+    DivisorT r{};
+
+    for (auto _ : state)
+    {
+        benchmark::ClobberMemory();
+        std::tie(q, r) = DivFn(x, y);
+    }
+
+    DividendT eq;
+    DivisorT er;
+    std::tie(eq, er) = udivrem_gmp(x, y);
+    if (q != eq || r != er)
+        state.SkipWithError("incorrect division result");
+}
+BENCHMARK_TEMPLATE(udivrem, uint512, uint128, udivrem_gmp);
+BENCHMARK_TEMPLATE(udivrem, uint512, uint128, udivrem_recint);
+BENCHMARK_TEMPLATE(udivrem, uint512, uint256, udivrem_gmp);
+BENCHMARK_TEMPLATE(udivrem, uint512, uint256, udivrem_recint);
+BENCHMARK_TEMPLATE(udivrem, uint512, uint512, udivrem_gmp);
+BENCHMARK_TEMPLATE(udivrem, uint512, uint512, udivrem_recint);
 
 
 std::pair<std::array<uint32_t, 17>, std::array<uint32_t, 16>> udivrem_knuth_normalize_32_llvm2(

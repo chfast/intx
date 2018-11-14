@@ -34,3 +34,48 @@ std::tuple<uint512, uint64_t> udivrem_1_64_gmp(const uint512& u, uint64_t v) noe
     mpn_tdiv_qr(p_q, &r, 0, p_u, gmp_limbs, &v, 1);
     return std::make_tuple(q, r);
 };
+
+std::tuple<uint512, uint512> udivrem_gmp(const uint512& u, const uint512& v) noexcept
+{
+    static_assert(sizeof(mp_limb_t) == sizeof(uint64_t), "Wrong GMP mp_limb_t type");
+    constexpr size_t gmp_limbs = sizeof(u) / sizeof(mp_limb_t);
+
+    uint512 q;
+    uint512 r;
+    auto p_q = (mp_ptr)&q;
+    auto p_r = (mp_ptr)&r;
+    auto p_u = (mp_srcptr)&u;
+    auto p_v = (mp_srcptr)&v;
+    mpn_tdiv_qr(p_q, p_r, 0, p_u, gmp_limbs, p_v, gmp_limbs);
+    return std::make_tuple(q, r);
+};
+
+std::tuple<uint512, uint256> udivrem_gmp(const uint512& u, const uint256& v) noexcept
+{
+    static_assert(sizeof(mp_limb_t) == sizeof(uint64_t), "Wrong GMP mp_limb_t type");
+    constexpr size_t gmp_limbs = sizeof(u) / sizeof(mp_limb_t);
+
+    uint512 q;
+    uint256 r;
+    auto p_q = (mp_ptr)&q;
+    auto p_r = (mp_ptr)&r;
+    auto p_u = (mp_srcptr)&u;
+    auto p_v = (mp_srcptr)&v;
+    mpn_tdiv_qr(p_q, p_r, 0, p_u, gmp_limbs, p_v, gmp_limbs / 2);
+    return std::make_tuple(q, r);
+};
+
+std::tuple<uint512, uint128> udivrem_gmp(const uint512& u, const uint128& v) noexcept
+{
+    static_assert(sizeof(mp_limb_t) == sizeof(uint64_t), "Wrong GMP mp_limb_t type");
+    constexpr size_t gmp_limbs = sizeof(u) / sizeof(mp_limb_t);
+
+    uint512 q;
+    uint128 r;
+    auto p_q = (mp_ptr)&q;
+    auto p_r = (mp_ptr)&r;
+    auto p_u = (mp_srcptr)&u;
+    auto p_v = (mp_srcptr)&v;
+    mpn_tdiv_qr(p_q, p_r, 0, p_u, gmp_limbs, p_v, gmp_limbs / 4);
+    return std::make_tuple(q, r);
+};
