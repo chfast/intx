@@ -1,10 +1,12 @@
-// Copyright 2017 Pawel Bylica.
-// Governed by the Apache License, Version 2.0. See the LICENSE file.
+// intx: extended precision integer library.
+// Copyright 2018 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
-#include <intx/intx.hpp>
-#include <intx/gmp.hpp>
-#include <div.h>
+#include "../utils/gmp.hpp"
+
 #include <benchmark/benchmark.h>
+#include <div.h>
+#include <intx/intx.hpp>
 #include <random>
 
 using namespace intx;
