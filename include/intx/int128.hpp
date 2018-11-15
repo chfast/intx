@@ -152,6 +152,16 @@ constexpr uint128 operator>>(const uint128& x, unsigned shift) noexcept
                (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
 }
 
+inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
+{
+    return x = x << shift;
+}
+
+inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
+{
+    return x = x >> shift;
+}
+
 
 inline int clz(const uint128& x)
 {
