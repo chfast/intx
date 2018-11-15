@@ -1,42 +1,15 @@
-// Copyright 2017 Pawel Bylica.
-// Governed by the Apache License, Version 2.0. See the LICENSE file.
+// intx: extended precision integer library.
+// Copyright 2018 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
-#include <intx/intx.hpp>
-#include <intx/gmp.hpp>
-#include <div.h>
+#include "../utils/gmp.hpp"
+#include "../utils/random.hpp"
+
 #include <benchmark/benchmark.h>
-#include <random>
+#include <div.h>
+#include <intx/intx.hpp>
 
 using namespace intx;
-
-using seed_type = std::random_device::result_type;
-
-template<typename Int>
-struct lcg
-{
-    Int state = 0;
-
-    explicit lcg(seed_type seed) : state(seed)
-    {
-        // Run for some time to fill the state.
-        for (int i = 0; i < 97; ++i)
-            (*this)();
-    }
-
-    Int operator()()
-    {
-        state = static_cast<Int>(6364136223846793005 * state + 1442695040888963407);
-        return state;
-    }
-};
-
-
-
-static seed_type get_seed()
-{
-    static const auto seed = std::random_device{}();
-    return seed;
-}
 
 template<uint64_t DivFn(uint64_t, uint64_t)>
 static void udivrem_64(benchmark::State& state)

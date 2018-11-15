@@ -7,11 +7,11 @@ include(GNUInstallDirs)
 set(include_dir ${PROJECT_SOURCE_DIR}/include)
 
 add_library(intx
-    ${include_dir}/intx/gmp.hpp
+    ${include_dir}/intx/int128.hpp
     ${include_dir}/intx/intx.hpp
+    ${include_dir}/intx/mul_full.h
     ${include_dir}/intx/safe.hpp
     intx.cpp
-    mul.h
     div.h
 )
 target_include_directories(intx PUBLIC ${include_dir} ${CMAKE_CURRENT_SOURCE_DIR})

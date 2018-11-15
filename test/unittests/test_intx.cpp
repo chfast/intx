@@ -1,5 +1,10 @@
+// intx: extended precision integer library.
+// Copyright 2018 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+
+#include "../utils/gmp.hpp"
+
 #include <intx/intx.hpp>
-#include <intx/gmp.hpp>
 
 #include <gtest/gtest.h>
 #include <gmp.h>
