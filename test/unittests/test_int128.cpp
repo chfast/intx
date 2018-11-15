@@ -110,9 +110,9 @@ TEST(int128, shl)
     uint128 x = 1;
     for (unsigned s = 0; s < 127; ++s)
         EXPECT_EQ(clz(x << s), 127 - s);
-    EXPECT_EQ(x << 128, 0);
 
-    EXPECT_EQ((uint128(3) << 63), uint128(1, uint64_t(1) << 63));
+    static_assert((x << 128) == 0, "");
+    static_assert((uint128(3) << 63) == uint128(1, uint64_t(1) << 63), "");
 }
 
 TEST(int128, shr)
@@ -120,7 +120,7 @@ TEST(int128, shr)
     uint128 x = uint128(1) << 127;
     for (unsigned s = 0; s < 127; ++s)
         EXPECT_EQ(clz(x >> s), s);
-    EXPECT_EQ(x >> 128, 0);
 
-    EXPECT_EQ((uint128(3, 0) >> 1), uint128(1, uint64_t(1) << 63));
+    static_assert((x >> 128) == 0, "");
+    static_assert((uint128(3, 0) >> 1) == uint128(1, uint64_t(1) << 63), "");
 }

@@ -128,42 +128,28 @@ inline uint128 operator*(const uint128& x, const uint128& y) noexcept
 }
 
 
-inline uint128 operator<<(const uint128& x, unsigned shift) noexcept
+constexpr uint128 operator<<(const uint128& x, unsigned shift) noexcept
 {
-    if (shift < 64)
-    {
-        // Find the part moved from lo to hi.
-        // For shift == 0 => rshift == 64 is invalid so
-        // split it into 2 valid shifts by 1 and (rshift - 1).
-        unsigned rshift = 64 - shift;
-        auto lo_overflow = (x.lo >> 1) >> (rshift - 1);
-        return {(x.hi << shift) | lo_overflow, x.lo << shift};
-    }
+    return (shift < 64) ?
+               // Find the part moved from lo to hi.
+               // For shift == 0 right shift by (64 - shift) is invalid so
+               // split it into 2 shifts by 1 and (63 - shift).
+               uint128{(x.hi << shift) | ((x.lo >> 1) >> (63 - shift)), x.lo << shift} :
 
-    // Guarantee "defined" behavior for shifts larger than 128.
-    if (shift < 128)
-        return {x.lo << (shift - 64), 0};
-
-    return 0;
+               // Guarantee "defined" behavior for shifts larger than 128.
+               (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
 }
 
-inline uint128 operator>>(const uint128& x, unsigned shift) noexcept
+constexpr uint128 operator>>(const uint128& x, unsigned shift) noexcept
 {
-    if (shift < 64)
-    {
-        // Find the part moved from lo to hi.
-        // For shift == 0 => lshift == 64 is invalid so
-        // split it into 2 valid shifts by 1 and (lshift - 1).
-        unsigned lshift = 64 - shift;
-        auto hi_overflow = (x.hi << 1) << (lshift - 1);
-        return {x.hi >> shift, (x.lo >> shift) | hi_overflow};
-    }
+    return (shift < 64) ?
+               // Find the part moved from lo to hi.
+               // For shift == 0 left shift by (64 - shift) is invalid so
+               // split it into 2 shifts by 1 and (63 - shift).
+               uint128{x.hi >> shift, (x.lo >> shift) | ((x.hi << 1) << (63 - shift))} :
 
-    // Guarantee "defined" behavior for shifts larger than 128.
-    if (shift < 128)
-        return {0, x.hi >> (shift - 64)};
-
-    return 0;
+               // Guarantee "defined" behavior for shifts larger than 128.
+               (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
 }
 
 
