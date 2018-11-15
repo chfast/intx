@@ -105,8 +105,10 @@ TEST(int128, mul_random)
 }
 #endif
 
-TEST(int128, clz)
+TEST(int128, shl)
 {
     uint128 x = 1;
-    EXPECT_EQ(clz(x), 127);
+    for (unsigned s = 0; s < 127; ++s)
+        EXPECT_EQ(clz(x << s), 127 - s);
+    EXPECT_EQ(x << 128, 0);
 }
