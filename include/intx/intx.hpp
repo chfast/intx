@@ -19,19 +19,6 @@ struct uint128
     uint64_t lo = 0;
     uint64_t hi = 0;
 };
-
-
-inline unsigned clz(uint64_t a)
-{
-    unsigned c = 0;
-    for (; c < 64; ++c)
-    {
-        if ((a & 0x8000000000000000) != 0)
-            break;
-        a <<= 1;
-    }
-    return c;
-}
 }
 
 namespace gcc

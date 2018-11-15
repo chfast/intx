@@ -11,37 +11,37 @@
 
 using namespace intx;
 
-constexpr uint64_t maximal[] = {
-    0x0000000000000000,
-    0x0000000000000001,
-    0x0000000000000002,
-    0x000000000000000f,
-    0x0000000000000010,
-    0x00000000fffffffe,
-    0x00000000ffffffff,
-    0x0000000100000000,
-    0x0000000100000001,
-    0x00000001fffffffe,
-    0x00000001ffffffff,
-    0x0000000200000000,
-    0x0000000200000001,
-    0x0fffffffffffffff,
-    0x1000000000000000,
-    0x1000000000000001,
-    0x1010101010101010,
-    0x1ffffffffffffffe,
-    0x1fffffffffffffff,
-    0x2000000000000000,
-    0x7000000000000000,
-    0x7ffffffffffffffd,
-    0x7ffffffffffffffe,
-    0x7fffffffffffffff,
-    0x8000000000000000,
-    0x8000000000000001,
-    0xfffffffffffffffd,
-    0xfffffffffffffffe,
-    0xffffffffffffffff,
-};
+//constexpr uint64_t maximal[] = {
+//    0x0000000000000000,
+//    0x0000000000000001,
+//    0x0000000000000002,
+//    0x000000000000000f,
+//    0x0000000000000010,
+//    0x00000000fffffffe,
+//    0x00000000ffffffff,
+//    0x0000000100000000,
+//    0x0000000100000001,
+//    0x00000001fffffffe,
+//    0x00000001ffffffff,
+//    0x0000000200000000,
+//    0x0000000200000001,
+//    0x0fffffffffffffff,
+//    0x1000000000000000,
+//    0x1000000000000001,
+//    0x1010101010101010,
+//    0x1ffffffffffffffe,
+//    0x1fffffffffffffff,
+//    0x2000000000000000,
+//    0x7000000000000000,
+//    0x7ffffffffffffffd,
+//    0x7ffffffffffffffe,
+//    0x7fffffffffffffff,
+//    0x8000000000000000,
+//    0x8000000000000001,
+//    0xfffffffffffffffd,
+//    0xfffffffffffffffe,
+//    0xffffffffffffffff,
+//};
 
 constexpr uint64_t minimal[] = {
     0x0000000000000000,
@@ -400,19 +400,6 @@ TEST_F(Uint256Test, string_conversions)
         auto s = to_string(n);
         auto v = from_string(s);
         EXPECT_EQ(n, v);
-    }
-}
-
-TEST(Uint64Test, clz)
-{
-    for (auto n : maximal)
-    {
-        if (n == 0)  // clz undefined for 0.
-            continue;
-
-        auto c = intx::clz(n);
-        auto d = intx::generic::clz(n);
-        EXPECT_EQ(c, d) << std::hex << n;
     }
 }
 
