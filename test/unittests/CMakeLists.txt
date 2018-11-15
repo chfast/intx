@@ -5,6 +5,7 @@
 add_executable(intx-test
     test_int128.cpp
     test_intx.cpp
+    test_mul_full.cpp
     test_safe.cpp
     test_uint256_api.cpp
 )
