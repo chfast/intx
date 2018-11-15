@@ -4,6 +4,9 @@
 
 #include <intx/int128.hpp>
 
+#include "../utils/random.hpp"
+#include <gtest/gtest.h>
+
 using namespace intx;
 
 void static_test_comparison()
@@ -60,3 +63,44 @@ void static_test_arith()
     static_assert(s + 0 == s, "");
     static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff}, "");
 }
+
+TEST(int128, mul)
+{
+    uint128 zero;
+    uint128 one = 1;
+    uint128 two = 2;
+
+    EXPECT_EQ(zero * zero, 0);
+    EXPECT_EQ(zero * two, 0);
+    EXPECT_EQ(one * one, 1);
+    EXPECT_EQ(one * two, 2);
+
+    uint128 f = 0xffffffffffffffff;
+    EXPECT_EQ(f * f, uint128(0xfffffffffffffffe, 1));
+
+    uint128 b1{1, 0};
+    EXPECT_EQ(b1 * b1, zero);
+    EXPECT_EQ(b1 * f, uint128(0xffffffffffffffff, 0));
+}
+
+#ifdef __SIZEOF_INT128__
+TEST(int128, mul_random)
+{
+    size_t n = 1000;
+
+    lcg<unsigned __int128> rng(get_seed());
+    while (n-- > 0)
+    {
+        auto x = rng();
+        auto y = rng();
+        auto p = x * y;
+
+        uint128 a{uint64_t(x >> 64), uint64_t(x)};
+        uint128 b{uint64_t(y >> 64), uint64_t(y)};
+
+        auto r = a * b;
+        uint128 expected{uint64_t(p >> 64), uint64_t(p)};
+        EXPECT_EQ(r, expected);
+    }
+}
+#endif

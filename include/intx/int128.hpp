@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <intx/mul_full.h>
 #include <cstdint>
 
 namespace intx
@@ -91,5 +92,38 @@ constexpr uint128 operator-(const uint128& x, const uint128& y) noexcept
     return x + -y;
 }
 
+inline uint128& operator+=(uint128& x, const uint128& y) noexcept
+{
+    return x = x + y;
+}
+
+inline uint128& operator-=(uint128& x, const uint128& y) noexcept
+{
+    return x = x - y;
+}
+
+inline uint128& operator|=(uint128& x, const uint128& y) noexcept
+{
+    return x = x | y;
+}
+
+inline uint128& operator&=(uint128& x, const uint128& y) noexcept
+{
+    return x = x & y;
+}
+
+inline uint128& operator^=(uint128& x, const uint128& y) noexcept
+{
+    return x = x ^ y;
+}
+
+
+inline uint128 operator*(const uint128& x, const uint128& y) noexcept
+{
+    uint128 p;
+    p.lo = mul_full_64(x.lo, y.lo, &p.hi);
+    p.hi += (x.lo * y.hi) + (x.hi * y.lo);
+    return p;
+}
 
 }  // namespace intx
