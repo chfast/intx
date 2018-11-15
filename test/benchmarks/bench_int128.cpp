@@ -4,6 +4,7 @@
 
 #include <intx/int128.hpp>
 
+#include "gmp_wrappers.hpp"
 #include <benchmark/benchmark.h>
 
 using namespace intx;
@@ -13,6 +14,12 @@ uint128 div_gcc(uint128 x, uint128 y) noexcept;
 inline uint128 div_uint128(uint128 x, uint128 y) noexcept
 {
     return x / y;
+}
+
+
+inline uint128 div_gmp(uint128 x, uint128 y) noexcept
+{
+    return std::get<0>(udivrem_gmp(x, y));
 }
 
 template <decltype(div_gcc) DivFn>
@@ -30,6 +37,7 @@ static void udiv128(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128, div_gcc);
 BENCHMARK_TEMPLATE(udiv128, div_uint128);
+BENCHMARK_TEMPLATE(udiv128, div_gmp);
 
 
 template <decltype(div_gcc) DivFn>
@@ -47,3 +55,4 @@ static void udiv128_worst_shift(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gcc);
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128);
+BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);

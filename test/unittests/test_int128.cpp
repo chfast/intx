@@ -203,23 +203,3 @@ TEST(int128, div_random)
         EXPECT_EQ(r.lo, uint64_t(s)) << c;
     }
 }
-
-TEST(int128, div_random)
-{
-    int c = 100000000;
-
-    lcg<uint128> dist{get_seed()};
-
-    while (c-- > 0)
-    {
-        auto x = dist();
-        auto y = dist();
-        auto r = x / y;
-
-        auto nx = ((unsigned __int128)x.hi << 64) | x.lo;
-        auto ny = ((unsigned __int128)y.hi << 64) | y.lo;
-        auto s = nx / ny;
-        EXPECT_EQ(r.hi, uint64_t(s >> 64)) << c;
-        EXPECT_EQ(r.lo, uint64_t(s)) << c++;
-    }
-}
