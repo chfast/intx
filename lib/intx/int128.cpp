@@ -4,8 +4,13 @@
 
 #include <intx/int128.hpp>
 
+#include <tuple>
+
 namespace intx
 {
+void udiv_knuth_internal_64(
+    uint64_t q[], uint64_t r[], const uint64_t u[], const uint64_t v[], int m, int n);
+
 namespace
 {
 uint128 udivrem_128(uint128 n, uint128 d, uint128* rem)
@@ -39,7 +44,6 @@ uint128 udivrem_128(uint128 n, uint128 d, uint128* rem)
     /* n.hi != 0 */
     if (d.lo == 0)
     {
-
         /* K K
          * ---
          * K 0
@@ -191,12 +195,55 @@ uint128 udivrem_128(uint128 n, uint128 d, uint128* rem)
         *rem = r;
     return q;
 }
+
+template<typename T>
+struct div_result
+{
+    T q;
+    T r;
+};
+
+
+inline div_result<uint64_t> udivrem_long(uint128 u, uint64_t v) noexcept
+{
+    // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
+    uint64_t q, r;
+    asm("divq %4" : "=d"(r), "=a"(q) : "d"(u.hi), "a"(u.lo), "g"(v));
+    return {q, r};
+}
+
+inline div_result<uint128> udivrem_1(const uint128& x, uint64_t y)
+{
+    auto res = udivrem_long({x.hi % y, x.lo}, y);
+    return {{x.hi / y, res.q}, res.r};
+}
+
+div_result<uint128> udivrem_128_knuth_64(uint128 x, uint128 y)
+{
+    if (y.hi == 0)                  // XX
+        return udivrem_1(x, y.lo);  // 0K
+
+    if (x.hi == 0)      // 0X
+        return {0, x};  // KX
+
+    uint128 q, r;
+    udiv_knuth_internal_64(&q.lo, &r.lo, &x.lo, &y.lo, 2, 2);
+    return {q, r};
+}
+
+
 }  // namespace
 
-uint128 operator/(const uint128& x, const uint128& y) noexcept
+uint128 operator_div_broken(const uint128& x, const uint128& y) noexcept
 {
     uint128 rem;
     return udivrem_128(x, y, &rem);
+}
+
+
+uint128 operator/(const uint128& x, const uint128& y) noexcept
+{
+    return udivrem_128_knuth_64(x, y).q;
 }
 
 }  // namespace intx

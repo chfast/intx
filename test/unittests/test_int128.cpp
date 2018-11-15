@@ -140,7 +140,7 @@ TEST(int128, div64)
 }
 
 static const uint128 division_test_vectors[][2] = {
-    {{0xee657725ff64cd48, 0xb8fe188a09dc4f78}, {0, 3}},
+    {{0xee657725ff64cd48, 0xb8fe188a09dc4f78}, {0, 3}},  // Worst case for shift divs.
     {{0xbaf3f54fc23ec50a, 0x8db107aae7021a11}, {1, 0xa8d309c2d1c0a3ab}},
     {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, {0xb5967a16d599854c, 0xa8d309c2d1c0a3ab}},
     {{0x395df916dfd1b5e, 0xe7e47d96b32ef2d5}, {0x537e3fbc5318dbc0, 0x38ae7c47ce8a620f}},

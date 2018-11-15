@@ -632,7 +632,7 @@ static void udiv_knuth_internal(
 
 
 
-static void udiv_knuth_internal_64(
+void udiv_knuth_internal_64(
     uint64_t q[], uint64_t r[], const uint64_t u[], const uint64_t v[], int m, int n)
 {
     // Normalize by shifting the divisor v left so that its highest bit is on,
