@@ -6,76 +6,40 @@
 
 namespace intx
 {
-union utwords
+namespace
 {
-    unsigned __int128 all;
-    struct
-    {
-        uint64_t low;
-        uint64_t high;
-    } s;
-};
-
-uint128 udivrem_128(uint128 a, uint128 b, uint128* rem)
+uint128 udivrem_128(uint128 n, uint128 d, uint128* rem)
 {
-    using du_int = uint64_t;
-    using tu_int = unsigned __int128;
-    const unsigned n_udword_bits = sizeof(du_int) * 8;
-    const unsigned n_utword_bits = sizeof(tu_int) * 8;
-    uint128 n = a;
-    uint128 d = b;
-    uint128 q;
-    uint128 r;
-    unsigned sr;
-    /* special cases, X is unknown, K != 0 */
     if (n.hi == 0)
     {
         if (d.hi == 0)
         {
-            /* 0 X
-             * ---
-             * 0 X
-             */
-            if (rem)
-                *rem = n.lo % d.lo;
+            *rem = n.lo % d.lo;
             return n.lo / d.lo;
         }
-        /* 0 X
-         * ---
-         * K X
-         */
-        if (rem)
-            *rem = n.lo;
+        *rem = n.lo;
         return 0;
     }
+
+    if (d.lo == 0)
+    {
+        if (n.lo == 0)
+        {
+            *rem = uint128{n.hi % d.hi, 0};
+            return n.hi / d.hi;
+        }
+    }
+
+    constexpr unsigned n_udword_bits = 64;
+    constexpr unsigned n_utword_bits = 128;
+    uint128 q;
+    uint128 r;
+    unsigned sr;
+    /* special cases, X is unknown, K != 0 */
     /* n.hi != 0 */
     if (d.lo == 0)
     {
-        if (d.hi == 0)
-        {
-            /* K X
-             * ---
-             * 0 0
-             */
-            if (rem)
-                *rem = n.hi % d.lo;
-            return n.hi / d.lo;
-        }
-        /* d.hi != 0 */
-        if (n.lo == 0)
-        {
-            /* K 0
-             * ---
-             * K 0
-             */
-            if (rem)
-            {
-                r.hi = n.hi % d.hi;
-                r.lo = 0;
-                *rem = r;
-            }
-            return n.hi / d.hi;
-        }
+
         /* K K
          * ---
          * K 0
@@ -227,4 +191,12 @@ uint128 udivrem_128(uint128 a, uint128 b, uint128* rem)
         *rem = r;
     return q;
 }
+}  // namespace
+
+uint128 operator/(const uint128& x, const uint128& y) noexcept
+{
+    uint128 rem;
+    return udivrem_128(x, y, &rem);
+}
+
 }  // namespace intx
