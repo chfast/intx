@@ -128,7 +128,7 @@ inline uint128 operator*(const uint128& x, const uint128& y) noexcept
 }
 
 
-inline uint128 operator<<(const uint128& x, unsigned shift)
+inline uint128 operator<<(const uint128& x, unsigned shift) noexcept
 {
     if (shift < 64)
     {
@@ -143,6 +143,25 @@ inline uint128 operator<<(const uint128& x, unsigned shift)
     // Guarantee "defined" behavior for shifts larger than 128.
     if (shift < 128)
         return {x.lo << (shift - 64), 0};
+
+    return 0;
+}
+
+inline uint128 operator>>(const uint128& x, unsigned shift) noexcept
+{
+    if (shift < 64)
+    {
+        // Find the part moved from lo to hi.
+        // For shift == 0 => lshift == 64 is invalid so
+        // split it into 2 valid shifts by 1 and (lshift - 1).
+        unsigned lshift = 64 - shift;
+        auto hi_overflow = (x.hi << 1) << (lshift - 1);
+        return {x.hi >> shift, (x.lo >> shift) | hi_overflow};
+    }
+
+    // Guarantee "defined" behavior for shifts larger than 128.
+    if (shift < 128)
+        return {0, x.hi >> (shift - 64)};
 
     return 0;
 }
