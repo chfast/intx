@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <intx/builtins.h>
 #include <intx/mul_full.h>
 #include <cstdint>
 
@@ -124,6 +125,13 @@ inline uint128 operator*(const uint128& x, const uint128& y) noexcept
     p.lo = mul_full_64(x.lo, y.lo, &p.hi);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
     return p;
+}
+
+
+inline int clz(const uint128& x)
+{
+    // In this order `h == 0` we get less instructions than in case of `h != 0`.
+    return x.hi == 0 ? builtins::clz(x.lo) | 64 : builtins::clz(x.hi);
 }
 
 }  // namespace intx

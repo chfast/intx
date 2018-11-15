@@ -104,3 +104,9 @@ TEST(int128, mul_random)
     }
 }
 #endif
+
+TEST(int128, clz)
+{
+    uint128 x = 1;
+    EXPECT_EQ(clz(x), 127);
+}
