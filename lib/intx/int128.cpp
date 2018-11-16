@@ -8,193 +8,8 @@
 
 namespace intx
 {
-void udiv_knuth_internal_64(
-    uint64_t q[], uint64_t r[], const uint64_t u[], const uint64_t v[], int m, int n);
-
 namespace
 {
-uint128 udivrem_128(uint128 n, uint128 d, uint128* rem)
-{
-    if (n.hi == 0)
-    {
-        if (d.hi == 0)
-        {
-            *rem = n.lo % d.lo;
-            return n.lo / d.lo;
-        }
-        *rem = n.lo;
-        return 0;
-    }
-
-    if (d.lo == 0)
-    {
-        if (n.lo == 0)
-        {
-            *rem = uint128{n.hi % d.hi, 0};
-            return n.hi / d.hi;
-        }
-    }
-
-    constexpr unsigned n_udword_bits = 64;
-    constexpr unsigned n_utword_bits = 128;
-    uint128 q;
-    uint128 r;
-    unsigned sr;
-    /* special cases, X is unknown, K != 0 */
-    /* n.hi != 0 */
-    if (d.lo == 0)
-    {
-        /* K K
-         * ---
-         * K 0
-         */
-        if ((d.hi & (d.hi - 1)) == 0) /* if d is a power of 2 */
-        {
-            if (rem)
-            {
-                r.lo = n.lo;
-                r.hi = n.hi & (d.hi - 1);
-                *rem = r;
-            }
-            return n.hi >> __builtin_ctzll(d.hi);
-        }
-        /* K K
-         * ---
-         * K 0
-         */
-        sr = __builtin_clzll(d.hi) - __builtin_clzll(n.hi);
-        /* 0 <= sr <= n_udword_bits - 2 or sr large */
-        if (sr > n_udword_bits - 2)
-        {
-            if (rem)
-                *rem = n;
-            return 0;
-        }
-        ++sr;
-        /* 1 <= sr <= n_udword_bits - 1 */
-        /* q = n << (n_utword_bits - sr); */
-        q.lo = 0;
-        q.hi = n.lo << (n_udword_bits - sr);
-        /* r = n >> sr; */
-        r.hi = n.hi >> sr;
-        r.lo = (n.hi << (n_udword_bits - sr)) | (n.lo >> sr);
-    }
-    else /* d.lo != 0 */
-    {
-        if (d.hi == 0)
-        {
-            /* K X
-             * ---
-             * 0 K
-             */
-            if ((d.lo & (d.lo - 1)) == 0) /* if d is a power of 2 */
-            {
-                if (rem)
-                    *rem = n.lo & (d.lo - 1);
-                if (d.lo == 1)
-                    return n;
-                sr = __builtin_ctzll(d.lo);
-                q.hi = n.hi >> sr;
-                q.lo = (n.hi << (n_udword_bits - sr)) | (n.lo >> sr);
-                return q;
-            }
-            /* K X
-             * ---
-             * 0 K
-             */
-            sr = 1 + n_udword_bits + __builtin_clzll(d.lo) - __builtin_clzll(n.hi);
-            /* 2 <= sr <= n_utword_bits - 1
-             * q = n << (n_utword_bits - sr);
-             * r = n >> sr;
-             */
-            if (sr == n_udword_bits)
-            {
-                q.lo = 0;
-                q.hi = n.lo;
-                r.hi = 0;
-                r.lo = n.hi;
-            }
-            else if (sr < n_udword_bits)  // 2 <= sr <= n_udword_bits - 1
-            {
-                q.lo = 0;
-                q.hi = n.lo << (n_udword_bits - sr);
-                r.hi = n.hi >> sr;
-                r.lo = (n.hi << (n_udword_bits - sr)) | (n.lo >> sr);
-            }
-            else  // n_udword_bits + 1 <= sr <= n_utword_bits - 1
-            {
-                q.lo = n.lo << (n_utword_bits - sr);
-                q.hi = (n.hi << (n_utword_bits - sr)) | (n.lo >> (sr - n_udword_bits));
-                r.hi = 0;
-                r.lo = n.hi >> (sr - n_udword_bits);
-            }
-        }
-        else
-        {
-            /* K X
-             * ---
-             * K K
-             */
-            sr = __builtin_clzll(d.hi) - __builtin_clzll(n.hi);
-            /*0 <= sr <= n_udword_bits - 1 or sr large */
-            if (sr > n_udword_bits - 1)
-            {
-                if (rem)
-                    *rem = n;
-                return 0;
-            }
-            ++sr;
-            /* 1 <= sr <= n_udword_bits
-             * q = n << (n_utword_bits - sr);
-             * r = n >> sr;
-             */
-            q.lo = 0;
-            if (sr == n_udword_bits)
-            {
-                q.hi = n.lo;
-                r.hi = 0;
-                r.lo = n.hi;
-            }
-            else
-            {
-                r.hi = n.hi >> sr;
-                r.lo = (n.hi << (n_udword_bits - sr)) | (n.lo >> sr);
-                q.hi = n.lo << (n_udword_bits - sr);
-            }
-        }
-    }
-    /* Not a special case
-     * q and r are initialized with:
-     * q = n << (n_utword_bits - sr);
-     * r = n >> sr;
-     * 1 <= sr <= n_utword_bits - 1
-     */
-    unsigned carry = 0;
-    for (; sr > 0; --sr)
-    {
-        /* r:q = ((r:q)  << 1) | carry */
-        r.hi = (r.hi << 1) | (r.lo >> (n_udword_bits - 1));
-        r.lo = (r.lo << 1) | (q.hi >> (n_udword_bits - 1));
-        q.hi = (q.hi << 1) | (q.lo >> (n_udword_bits - 1));
-        q.lo = (q.lo << 1) | carry;
-        /* carry = 0;
-         * if (r >= d)
-         * {
-         *     r -= d;
-         *      carry = 1;
-         * }
-         */
-        auto da = d - r - 1;
-        __int128 dx = (__int128(da.hi) << 64) | da.lo;
-        const __int128 s = dx >> (n_utword_bits - 1);
-        carry = s & 1;
-        r -= d & s;
-    }
-    q = (q << 1) | carry;
-    if (rem)
-        *rem = r;
-    return q;
-}
 
 template<typename T>
 struct div_result
@@ -210,6 +25,90 @@ inline div_result<uint64_t> udivrem_long(uint128 u, uint64_t v) noexcept
     uint64_t q, r;
     asm("divq %4" : "=d"(r), "=a"(q) : "d"(u.hi), "a"(u.lo), "g"(v));
     return {q, r};
+}
+
+void udiv_knuth_internal_64(
+    uint64_t q[], uint64_t r[], const uint64_t u[], const uint64_t v[], int m, int n)
+{
+    // Normalize by shifting the divisor v left so that its highest bit is on,
+    // and shift the dividend u left the same amount.
+    auto vn = static_cast<uint64_t*>(alloca(n * sizeof(uint64_t)));
+    auto un = static_cast<uint64_t*>(alloca((m + 1) * sizeof(uint64_t)));
+
+    unsigned shift = builtins::clz(v[n - 1]);
+    unsigned lshift = 64 - shift;
+
+    for (int i = n - 1; i > 0; i--)
+        vn[i] = shift ? (v[i] << shift) | (v[i - 1] >> lshift) : v[i];
+    vn[0] = v[0] << shift;
+
+    un[m] = shift != 0 ? u[m - 1] >> lshift : 0;
+    for (int i = m - 1; i > 0; i--)
+        un[i] = shift ? (u[i] << shift) | (u[i - 1] >> lshift) : u[i];
+    un[0] = u[0] << shift;
+
+    constexpr uint128 base = uint128(1) << 64;  // Number base (32 bits).
+    for (int j = m - n; j >= 0; j--)  // Main loop.
+    {
+        uint128 qhat, rhat;
+        uint64_t divisor = vn[n - 1];
+        uint128 dividend{un[j + n], un[j + n - 1]};
+        if (dividend.hi >= divisor)  // Will overflow:
+        {
+            qhat = base;
+            rhat = dividend - qhat * divisor;
+        }
+        else
+        {
+            auto res = udivrem_long(dividend, divisor);
+            qhat = res.q;
+            rhat = res.r;
+        }
+
+        uint64_t next_divisor = vn[n - 2];
+        uint128 pd{rhat.lo, un[j + n - 2]};
+        if (qhat == base || qhat * next_divisor > pd)
+        {
+            qhat -= 1;  // TODO: Implement ++ / --.
+            rhat += divisor;
+            pd = uint128{rhat.lo, un[j + n - 2]};
+            if (rhat < base && (qhat == base || qhat * next_divisor > pd))
+                qhat -= 1;
+        }
+
+        // Multiply and subtract.
+        __int128 borrow = 0;
+        for (int i = 0; i < n; i++)
+        {
+            uint128 p = qhat * vn[i];
+            __int128 t = __int128(un[i + j]) - borrow - p.lo;
+            unsigned __int128 ut(t);
+            uint128 s{uint64_t(ut >> 64), uint64_t(ut)};
+            un[i+j] = s.lo;
+            borrow = p.hi - s.hi;
+        }
+        __int128 t = un[j + n] - borrow;
+        un[j + n] = static_cast<uint64_t>(t);
+
+        q[j] = qhat.lo; // Store quotient digit.
+
+        if (t < 0)
+        {            // If we subtracted too
+            --q[j];  // much, add back.
+            uint128 carry = 0;
+            for (int i = 0; i < n; ++i)
+            {
+                // TODO: Consider using bool carry. See LLVM version.
+                uint128 u_tmp = uint128(un[i + j]) + uint128(vn[i]) + carry;
+                un[i + j] = u_tmp.lo;
+                carry = u_tmp.hi;
+            }
+            un[j + n] = (uint128(un[j + n]) + carry).lo;
+        }
+    }
+
+    for (int i = 0; i < n; ++i)
+        r[i] = shift ? (un[i] >> shift) | (un[i + 1] << lshift) : un[i];
 }
 
 inline div_result<uint128> udivrem_1(const uint128& x, uint64_t y)
@@ -233,13 +132,6 @@ div_result<uint128> udivrem_128_knuth_64(uint128 x, uint128 y)
 
 
 }  // namespace
-
-uint128 operator_div_broken(const uint128& x, const uint128& y) noexcept
-{
-    uint128 rem;
-    return udivrem_128(x, y, &rem);
-}
-
 
 uint128 operator/(const uint128& x, const uint128& y) noexcept
 {
