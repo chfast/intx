@@ -9,7 +9,8 @@ using namespace intx;
 
 enum class op
 {
-    div
+    div,
+    rem,
 };
 
 inline void expect_eq(uint128 a, unsigned __int128 b) noexcept
@@ -38,6 +39,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     case op::div:
         if (v != 0)
             expect_eq(a / b, u / v);
+
+    case op::rem:
+        if (v != 0)
+            expect_eq(a % b, u % v);
 
     default:
         break;
