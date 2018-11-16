@@ -161,6 +161,7 @@ static const uint128 division_test_vectors[][2] = {
     {{1, 0xe7e47d96b32ef2d5}, {0x537e3fbc5318dbc0, 0}},
     {{0x657725ff64cd486d, 0xb8fe188a09dc4f78}, {0, 1ul << 61}},
     {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, {0, 1}},
+    {{0x1313131313131313, 0x0000000000000020}, {0x1313131313131313, 0x1313131313134013}},
 };
 
 TEST(int128, div)
@@ -178,6 +179,27 @@ TEST(int128, div)
         uint128 eq{uint64_t(nq >> 64), uint64_t(nq)};
         uint128 er{uint64_t(nr >> 64), uint64_t(nr)};
         EXPECT_EQ(q, eq) << index;
-        EXPECT_EQ(r, er) << index++;
+        EXPECT_EQ(r, er) << index;
+        index++;
+    }
+}
+
+TEST(int128, div_random)
+{
+    int c = 100000000;
+
+    lcg<uint128> dist{get_seed()};
+
+    while (c-- > 0)
+    {
+        auto x = dist();
+        auto y = dist();
+        auto r = x / y;
+
+        auto nx = ((unsigned __int128)x.hi << 64) | x.lo;
+        auto ny = ((unsigned __int128)y.hi << 64) | y.lo;
+        auto s = nx / ny;
+        EXPECT_EQ(r.hi, uint64_t(s >> 64)) << c;
+        EXPECT_EQ(r.lo, uint64_t(s)) << c;
     }
 }
