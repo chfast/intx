@@ -140,6 +140,7 @@ TEST(int128, div64)
 }
 
 static const uint128 division_test_vectors[][2] = {
+    {{0xffffffffffffffff, 0xffffffffffffffff}, {1, 0xffffffffffffffff}},
     {{0xee657725ff64cd48, 0xb8fe188a09dc4f78}, {0, 3}},  // Worst case for shift divs.
     {{0xbaf3f54fc23ec50a, 0x8db107aae7021a11}, {1, 0xa8d309c2d1c0a3ab}},
     {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, {0xb5967a16d599854c, 0xa8d309c2d1c0a3ab}},
@@ -162,6 +163,7 @@ static const uint128 division_test_vectors[][2] = {
     {{0x657725ff64cd486d, 0xb8fe188a09dc4f78}, {0, 1ul << 61}},
     {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, {0, 1}},
     {{0x1313131313131313, 0x0000000000000020}, {0x1313131313131313, 0x1313131313134013}},
+    {{0xffffffffffffffff, 0xff00000000002100}, {0x000000000000ffff, 0xffffffffffffffff}},
 };
 
 TEST(int128, div)
