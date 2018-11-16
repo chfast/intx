@@ -168,12 +168,16 @@ TEST(int128, div)
     int index = 0;
     for (auto& v : division_test_vectors)
     {
-        auto r = v[0] / v[1];
+        auto q = v[0] / v[1];
+        auto r = v[0] % v[1];
 
         auto x = ((unsigned __int128)v[0].hi << 64) | v[0].lo;
         auto y = ((unsigned __int128)v[1].hi << 64) | v[1].lo;
-        auto s = x / y;
-        EXPECT_EQ(r.hi, uint64_t(s >> 64)) << index;
-        EXPECT_EQ(r.lo, uint64_t(s)) << index++;
+        auto nq = x / y;
+        auto nr = x % y;
+        uint128 eq{uint64_t(nq >> 64), uint64_t(nq)};
+        uint128 er{uint64_t(nr >> 64), uint64_t(nr)};
+        EXPECT_EQ(q, eq) << index;
+        EXPECT_EQ(r, er) << index++;
     }
 }

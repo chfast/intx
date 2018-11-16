@@ -246,4 +246,9 @@ uint128 operator/(const uint128& x, const uint128& y) noexcept
     return udivrem_128_knuth_64(x, y).q;
 }
 
+uint128 operator%(const uint128& x, const uint128& y) noexcept
+{
+    return udivrem_128_knuth_64(x, y).r;
+}
+
 }  // namespace intx
