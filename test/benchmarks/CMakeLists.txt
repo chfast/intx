@@ -6,6 +6,7 @@ add_executable(intx-bench
     bench_int128.cpp
     bench_mul_full.cpp
     benchmarks.cpp
+    div.h
     utils.cpp
 )
 target_link_libraries(intx-bench PRIVATE intx benchmark::benchmark GMP::gmp)

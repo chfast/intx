@@ -4,9 +4,9 @@
 
 #include "../utils/gmp.hpp"
 #include "../utils/random.hpp"
+#include "div.h"
 
 #include <benchmark/benchmark.h>
-#include <div.h>
 #include <intx/intx.hpp>
 
 using namespace intx;

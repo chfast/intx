@@ -13,7 +13,6 @@ add_library(intx
     ${include_dir}/intx/safe.hpp
     int128.cpp
     intx.cpp
-    div.h
 )
 target_include_directories(intx PUBLIC ${include_dir} ${CMAKE_CURRENT_SOURCE_DIR})
 
