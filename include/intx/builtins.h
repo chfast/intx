@@ -55,11 +55,11 @@ static inline int __builtin_popcount(unsigned int x)
 #ifdef __cplusplus
 namespace builtins
 {
-int clz(unsigned int x)
+inline int clz(unsigned int x)
 {
     return __builtin_clz(x);
 }
-int clz(unsigned long x)
+inline int clz(unsigned long x)
 {
     return __builtin_clzl(x);
 }

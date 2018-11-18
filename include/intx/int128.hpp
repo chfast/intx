@@ -163,6 +163,10 @@ inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
 }
 
 
+uint128 operator/(const uint128& x, const uint128& y) noexcept;
+uint128 operator%(const uint128& x, const uint128& y) noexcept;
+
+
 inline int clz(const uint128& x)
 {
     // In this order `h == 0` we get less instructions than in case of `h != 0`.

@@ -28,8 +28,8 @@ add_compile_options(-Werror -Wall -Wextra)
 #add_compile_options(-mtune=native -march=native)
 add_compile_options(-mtune=generic)
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Og")
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
+#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Og")
 
 add_subdirectory(lib/intx)
 
