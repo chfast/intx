@@ -55,4 +55,5 @@ static void udiv128_worst_shift(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gcc);
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128);
-BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);
+// Disabled, sometimes hangs the release build.
+// BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);
