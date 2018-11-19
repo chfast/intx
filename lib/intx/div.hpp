@@ -11,6 +11,10 @@ namespace intx
 {
 namespace div
 {
+std::tuple<uint256, uint256> udivrem_512(uint256 u, uint256 v);
+std::tuple<uint512, uint512> udivrem_512(uint512 x, uint512 y);
+
+
 struct normalized_args
 {
     std::array<uint32_t, sizeof(uint512) / sizeof(uint32_t) + 1> numerator;
@@ -32,11 +36,11 @@ inline normalized_args normalize(const uint512& numerator, const uint512& denomi
     auto* vn = &na.denominator[0];
 
     auto& m = na.num_numerator_words;
-    for (m = num_words; m > 0 && u[m - 1] != 0; --m)
+    for (m = num_words; m > 0 && u[m - 1] == 0; --m)
         ;
 
     auto& n = na.num_denominator_words;
-    for (n = num_words; n > 0 && v[n - 1] != 0; --n)
+    for (n = num_words; n > 0 && v[n - 1] == 0; --n)
         ;
 
     na.shift = builtins::clz(v[n - 1]);
