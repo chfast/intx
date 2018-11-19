@@ -793,6 +793,8 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y);
 std::tuple<uint512, uint512> udiv_qr_knuth_512(uint512 x, uint512 y);
+std::tuple<uint256, uint256> udivrem_512(uint256 u, uint256 v);
+std::tuple<uint512, uint512> udivrem_512(uint512 x, uint512 y);
 std::tuple<uint512, uint512> udiv_qr_knuth_512_64(uint512 x, uint512 y);
 
 template<typename Int>

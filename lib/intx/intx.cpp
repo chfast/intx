@@ -1,5 +1,10 @@
+// intx: extended precision integer library.
+// Copyright 2018 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
+#include "div.hpp"
 #include <intx/intx.hpp>
+
 #include <cassert>
 #include <cstring>
 
@@ -274,6 +279,146 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
     }
     DEBUG(dbgs() << '\n');
 }
+
+
+/// Implementation of Knuth's Algorithm D (Division of nonnegative integers)
+/// from "Art of Computer Programming, Volume 2", section 4.3.1, p. 272. The
+/// variables here have the same names as in the algorithm. Comments explain
+/// the algorithm and any deviation from it.
+static std::tuple<uint512, uint512> udivrem_knuth(div::normalized_args& na) noexcept
+{
+    // b denotes the base of the number system. In our case b is 2^32.
+    constexpr uint64_t b = uint64_t(1) << 32;
+
+    auto* u = &na.numerator[0];
+    auto* v = &na.denominator[0];
+    auto m = na.num_numerator_words - na.num_denominator_words;
+    auto n = na.num_denominator_words;
+
+    uint512 qq;
+    uint512 rr;
+    auto* q = reinterpret_cast<uint32_t*>(&qq);
+    auto* r = reinterpret_cast<uint32_t*>(&rr);
+
+
+    // D2. [Initialize j.]  Set j to m. This is the loop counter over the places.
+    int j = m;
+    do {
+        // D3. [Calculate q'.].
+        //     Set qp = (u[j+n]*b + u[j+n-1]) / v[n-1]. (qp=qprime=q')
+        //     Set rp = (u[j+n]*b + u[j+n-1]) % v[n-1]. (rp=rprime=r')
+        // Now test if qp == b or qp*v[n-2] > b*rp + u[j+n-2]; if so, decrease
+        // qp by 1, increase rp by v[n-1], and repeat this test if rp < b. The test
+        // on v[n-2] determines at high speed most of the cases in which the trial
+        // value qp is one too large, and it eliminates all cases where qp is two
+        // too large.
+        uint64_t dividend = intx::join(u[j+n], u[j+n-1]);
+
+        uint64_t qp, rp;
+        if (u[j+n] >= v[n-1])
+        {
+            // Overflow:
+            qp = b;
+            rp = dividend - qp * v[n-1];
+        }
+        else
+        {
+            qp = dividend / v[n-1];
+            rp = dividend % v[n-1];
+        }
+
+
+        if (qp == b || qp*v[n-2] > b*rp + u[j+n-2]) {
+            qp--;
+            rp += v[n-1];
+            if (rp < b && (qp == b || qp*v[n-2] > b*rp + u[j+n-2])) {
+                qp--;
+            }
+        }
+        DEBUG(dbgs() << "KnuthLL: qp == " << qp << ", rp == " << rp << '\n');
+
+        // D4. [Multiply and subtract.] Replace (u[j+n]u[j+n-1]...u[j]) with
+        // (u[j+n]u[j+n-1]..u[j]) - qp * (v[n-1]...v[1]v[0]). This computation
+        // consists of a simple multiplication by a one-place number, combined with
+        // a subtraction.
+        // The digits (u[j+n]...u[j]) should be kept positive; if the result of
+        // this step is actually negative, (u[j+n]...u[j]) should be left as the
+        // true value plus b**(n+1), namely as the b's complement of
+        // the true value, and a "borrow" to the left should be remembered.
+        int64_t borrow = 0;
+        for (int i = 0; i < n; ++i) {
+            uint64_t p = qp * v[i];
+            uint64_t subres = int64_t(u[j+i]) - borrow - intx::lo_half(p);
+            u[j+i] = intx::lo_half(subres);
+            borrow = intx::hi_half(p) - intx::hi_half(subres);
+            DEBUG(dbgs() << "KnuthLL: u[" << (j + i) << "] = " << u[j+i]
+                         << ", borrow = " << borrow << '\n');
+        }
+        bool isNeg = u[j+n] < borrow;
+        u[j+n] -= intx::lo_half(static_cast<uint64_t>(borrow));
+
+        DEBUG(dbgs() << "KnuthLL: after subtraction:");
+        DEBUG(for (int i = m+n; i >=0; i--) dbgs() << " " << u[i]);
+        DEBUG(dbgs() << '\n');
+
+        // D5. [Test remainder.] Set q[j] = qp. If the result of step D4 was
+        // negative, go to step D6; otherwise go on to step D7.
+        q[j] = intx::lo_half(qp);
+        if (isNeg) {
+            // D6. [Add back]. The probability that this step is necessary is very
+            // small, on the order of only 2/b. Make sure that test data accounts for
+            // this possibility. Decrease q[j] by 1
+            q[j]--;
+            // and add (0v[n-1]...v[1]v[0]) to (u[j+n]u[j+n-1]...u[j+1]u[j]).
+            // A carry will occur to the left of u[j+n], and it should be ignored
+            // since it cancels with the borrow that occurred in D4.
+            bool carry = false;
+            for (int i = 0; i < n; i++) {
+                uint32_t limit = std::min(u[j+i],v[i]);
+                DEBUG(dbgs() << "KnuthLL: u[" << (j+i) << "] = " << u[j+i] << " + " << v[i] << " + " << (int)carry << '\n');
+                u[j+i] += v[i] + carry;
+                carry = u[j+i] < limit || (carry && u[j+i] == limit);
+            }
+            u[j+n] += carry;
+        }
+        DEBUG(dbgs() << "KnuthLL: after correction:");
+        DEBUG(for (int i = m+n; i >=0; i--) dbgs() << " " << u[i]);
+        DEBUG(dbgs() << "\nKnuthLL: digit result = " << q[j] << '\n');
+
+        // D7. [Loop on j.]  Decrease j by one. Now if j >= 0, go back to D3.
+    } while (--j >= 0);
+
+    DEBUG(dbgs() << "KnuthLL: quotient:");
+    DEBUG(for (int i = m; i >=0; i--) dbgs() <<" " << q[i]);
+    DEBUG(dbgs() << '\n');
+
+    // D8. [Unnormalize]. Now q[...] is the desired quotient, and the desired
+    // remainder may be obtained by dividing u[...] by d. If r is non-null we
+    // compute the remainder (urem uses this).
+    if (r) {
+        // The value d is expressed by the "shift" value above since we avoided
+        // multiplication by d by using a shift left. So, all we have to do is
+        // shift right here.
+        if (na.shift) {
+            uint32_t carry = 0;
+            DEBUG(dbgs() << "KnuthLL: remainder:");
+            for (int i = n-1; i >= 0; i--) {
+                r[i] = (u[i] >> na.shift) | carry;
+                carry = u[i] << (32 - na.shift);
+                DEBUG(dbgs() << " " << r[i]);
+            }
+        } else {
+            for (int i = n-1; i >= 0; i--) {
+                r[i] = u[i];
+                DEBUG(dbgs() << " " << r[i]);
+            }
+        }
+        DEBUG(dbgs() << '\n');
+    }
+    DEBUG(dbgs() << '\n');
+    return std::make_tuple(qq, rr);
+}
+
 
 int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
 {
@@ -900,4 +1045,24 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v)
 
     return std::make_tuple(q, r);
 }
+
+std::tuple<uint512, uint512> udivrem_512(uint512 u, uint512 v)
+{
+    auto na = div::normalize(u, v);
+
+    if (na.num_denominator_words > na.num_numerator_words)
+        return {0, u};
+
+    if (na.num_denominator_words == 1)
+        return {};
+
+    return udivrem_knuth(na);
+}
+
+std::tuple<uint256, uint256> udivrem_512(uint256 u, uint256 v)
+{
+    auto x = udivrem_512(uint512(u), uint512(v));
+    return {std::get<0>(x).lo, std::get<1>(x).lo};
+}
+
 }
