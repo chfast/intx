@@ -11,8 +11,8 @@ namespace intx
 {
 namespace div
 {
-std::tuple<uint256, uint256> udivrem_512(uint256 u, uint256 v);
-std::tuple<uint512, uint512> udivrem_512(uint512 x, uint512 y);
+std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v);
+std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y);
 
 
 struct normalized_args

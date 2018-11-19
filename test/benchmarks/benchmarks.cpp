@@ -7,6 +7,7 @@
 #include "div.h"
 
 #include <benchmark/benchmark.h>
+#include <div.hpp>
 #include <intx/intx.hpp>
 
 using namespace intx;
@@ -48,7 +49,7 @@ static void udivrem_64(benchmark::State& state)
 
 static uint64_t div(uint64_t x, uint64_t y) { return x / y; }
 
-BENCHMARK_TEMPLATE(udivrem_64, div);
+BENCHMARK_TEMPLATE(udivrem_64, ::div);
 BENCHMARK_TEMPLATE(udivrem_64, soft_div_unr);
 BENCHMARK_TEMPLATE(udivrem_64, soft_div_unr_unrolled);
 
@@ -111,7 +112,6 @@ BENCHMARK_TEMPLATE(udiv, uint128, uint128, udiv_dc);
 // Single digit divisor:
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_dc);
-BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_shift);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_opt_base);
@@ -122,7 +122,6 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, gmp_udiv_qr);
 // Small divisor:
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_dc);
-BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_shift);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_opt_base);
@@ -132,7 +131,6 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, gmp_udiv_qr);
 
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_dc);
-BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_shift);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_opt_base);
@@ -142,25 +140,31 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint128, gmp_udiv_qr);
 
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_dc);
-BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_shift);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_64);
-BENCHMARK_TEMPLATE(udiv, uint256, uint256, udivrem_512);
+//BENCHMARK_TEMPLATE(udiv, uint256, uint256, div::udivrem_512);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, gmp_udiv_qr);
 
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_unr);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_dc);
-//BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_shift);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_hd_base);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_llvm_base);
 //BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint512, uint256, udiv_qr_knuth_512);
 BENCHMARK_TEMPLATE(udiv, uint512, uint256, udiv_qr_knuth_512_64);
-BENCHMARK_TEMPLATE(udiv, uint512, uint256, udivrem_512);
+//BENCHMARK_TEMPLATE(udiv, uint512, uint256, div::udivrem_512);
 BENCHMARK_TEMPLATE(udiv, uint512, uint256, gmp_udiv_qr);
+BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, udiv_qr_knuth_512);
+BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, udiv_qr_knuth_512_64);
+//BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, div::udivrem_512);
+BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, gmp_udiv_qr);
+BENCHMARK_TEMPLATE(udiv, uint512, uint32_t, udiv_qr_knuth_512);
+BENCHMARK_TEMPLATE(udiv, uint512, uint32_t, udiv_qr_knuth_512_64);
+//BENCHMARK_TEMPLATE(udiv, uint512, uint32_t, div::udivrem_512);
+BENCHMARK_TEMPLATE(udiv, uint512, uint32_t, gmp_udiv_qr);
 
 using binary_fn256 = uint256 (*)(uint256, uint256);
 template<binary_fn256 BinFn>

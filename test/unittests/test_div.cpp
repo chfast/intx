@@ -74,3 +74,22 @@ TEST(div, normalize)
     EXPECT_EQ(na.denominator[4], 0xfffffffc);
     EXPECT_EQ(na.denominator[5], 0);
 }
+
+//static const char* div_tests[][2] = {
+//    {"114985996462255550791716983618628317438843204990487060894154871723529666670495818727603768585"
+//     "47580936454739751935356826554181006922789206592312369735468831",
+//        "34423876519961882806530261309917882426503998231435401563510253050001326285506"}};
+//
+//TEST(div, udivrem_512)
+//{
+//    for (auto& t : div_tests)
+//    {
+//        auto u = from_string_512(t[0]);
+//        auto v = from_string_512(t[1]);
+//
+//        uint512 q, r;
+//        std::tie(q, r) = div::udivrem(u, v);
+//        EXPECT_EQ(q, 1);
+//        EXPECT_EQ(r, 1);
+//    }
+//}

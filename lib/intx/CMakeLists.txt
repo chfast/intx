@@ -11,6 +11,7 @@ add_library(intx
     ${include_dir}/intx/intx.hpp
     ${include_dir}/intx/mul_full.h
     ${include_dir}/intx/safe.hpp
+    div.cpp
     div.hpp
     int128.cpp
     intx.cpp

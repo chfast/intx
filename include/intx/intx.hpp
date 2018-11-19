@@ -526,6 +526,11 @@ inline uint256& operator+=(uint256& x, uint256 y)
     return x = x + y;
 }
 
+inline uint512& operator+=(uint512& x, uint512 y)
+{
+    return x = x + y;
+}
+
 
 template <typename Int>
 typename traits<Int>::double_type umul_full(Int a, Int b)
@@ -663,6 +668,11 @@ inline uint256& operator*=(uint256& x, uint256 y)
     return x = x * y;
 }
 
+inline uint512& operator*=(uint512& x, uint512 y)
+{
+    return x = x * y;
+}
+
 using gcc::clz;
 
 template <typename Int>
@@ -761,40 +771,12 @@ inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
     return std::make_tuple(q, r);
 }
 
-inline std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
-{
-    uint256 r = x;
-    uint256 q = 0;
-    if (r >= y)
-    {
-        unsigned i = clz(y) - clz(r);
-        y = y << i;
-        // quotient computing phase
-        for (;;)
-        {
-            if (r >= y)
-            {
-                r = r - y;
-                q = q + 1;
-            }
-            if (i == 0)
-                break;
-            i = i - 1;
-            q = q + q;
-            y = y >> 1;
-        }
-    }
-    return std::make_tuple(q, r);
-}
-
 std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y);
 std::tuple<uint512, uint512> udiv_qr_knuth_512(uint512 x, uint512 y);
-std::tuple<uint256, uint256> udivrem_512(uint256 u, uint256 v);
-std::tuple<uint512, uint512> udivrem_512(uint512 x, uint512 y);
 std::tuple<uint512, uint512> udiv_qr_knuth_512_64(uint512 x, uint512 y);
 
 template<typename Int>
@@ -935,6 +917,19 @@ inline std::string to_string(uint512 x)
 inline uint256 from_string(const std::string& s)
 {
     uint256 x;
+
+    for (auto c : s)
+    {
+        auto v = c - '0';
+        x *= 10;
+        x += v;
+    }
+    return x;
+}
+
+inline uint512 from_string_512(const std::string& s)
+{
+    uint512 x;
 
     for (auto c : s)
     {
