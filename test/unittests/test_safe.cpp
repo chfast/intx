@@ -74,6 +74,13 @@ TEST(safe_int, add)
     s = b + a;
     EXPECT_EQ(s, a);
     EXPECT_TRUE(s.normal());
+
+    a = std::numeric_limits<int>::min();
+    b = std::numeric_limits<int>::min();
+    s = a + b;
+    EXPECT_EQ(s.get_status(), status::minus_infinity);
+    s = b + a;
+    EXPECT_EQ(s.get_status(), status::minus_infinity);
 }
 
 TEST(safe_int, compare_with_plus_infinity)

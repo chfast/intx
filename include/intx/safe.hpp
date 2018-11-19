@@ -1,8 +1,10 @@
-// Copyright 2017 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// intx: extended precision integer library.
+// Copyright 2018 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #pragma once
 
+#include <cassert>
 #include <limits>
 #include <stdexcept>
 
@@ -17,9 +19,10 @@ enum class status : char
 };
 
 class bad_operation : public std::exception
-{};
+{
+};
 
-template<typename Int>
+template <typename Int>
 struct safe
 {
     static constexpr auto max_value = std::numeric_limits<Int>::max();
@@ -27,13 +30,9 @@ struct safe
 
     safe() noexcept = default;
 
-    constexpr safe(Int value) noexcept
-        : m_value(value)
-    {}
+    constexpr safe(Int value) noexcept : m_value(value) {}
 
-    constexpr explicit safe(status st) noexcept
-        : m_status(st)
-    {}
+    constexpr explicit safe(status st) noexcept : m_status(st) {}
 
     Int value() const
     {
@@ -51,7 +50,7 @@ private:
     status m_status = status::normal;
 };
 
-template<typename Int>
+template <typename Int>
 safe<Int> add(safe<Int> a, safe<Int> b)
 {
     if (b.value() >= 0)
@@ -67,23 +66,33 @@ safe<Int> add(safe<Int> a, safe<Int> b)
     return a.value() + b.value();
 }
 
-template<typename Int>
+template <typename Int>
 safe<Int> operator+(safe<Int> a, safe<Int> b)
 {
     // This implementation is much smaller and faster.
     Int s;
     if (__builtin_add_overflow(a.value(), b.value(), &s))
-        return safe<Int>{status::plus_infinity};
+        return safe<Int>{a.value() > 0 ? status::plus_infinity : status::minus_infinity};
     return s;
 }
 
-template<typename Int>
+// template <typename Int>
+// safe<Int> operator*(safe<Int> a, safe<Int> b)
+// {
+//     assert(a.normal());
+//     assert(b.normal());
+
+//     Int p;
+
+// }
+
+template <typename Int>
 safe<Int> operator+(Int a, safe<Int> b)
 {
     return safe<Int>{a} + b;
 }
 
-template<typename Int>
+template <typename Int>
 bool operator==(safe<Int> a, safe<Int> b)
 {
     if (a.normal() && b.normal())
@@ -98,16 +107,19 @@ bool operator==(safe<Int> a, safe<Int> b)
     throw bad_operation{};
 }
 
-template<typename Int>
-bool operator==(safe<Int> a, Int b)
+template <typename Int1, typename Int2>
+bool operator==(safe<Int1> a, Int2 b)
 {
-    return a == safe<Int>{b};
+    return a == safe<Int1>(b);
 }
 
-template<typename Int>
-bool operator!=(safe<Int> a, safe<Int> b) { return !(a == b); }
+template <typename Int>
+bool operator!=(safe<Int> a, safe<Int> b)
+{
+    return !(a == b);
+}
 
-template<typename Int>
+template <typename Int>
 bool operator<(safe<Int> a, safe<Int> b)
 {
     switch (a.get_status())
@@ -153,18 +165,27 @@ bool operator<(safe<Int> a, safe<Int> b)
     }
 }
 
-template<typename Int>
-bool operator<=(safe<Int> a, safe<Int> b) { return a < b || a == b; }
+template <typename Int>
+bool operator<=(safe<Int> a, safe<Int> b)
+{
+    return a < b || a == b;
+}
 
-template<typename Int>
-bool operator>=(safe<Int> a, safe<Int> b) { return !(a < b); }
+template <typename Int>
+bool operator>=(safe<Int> a, safe<Int> b)
+{
+    return !(a < b);
+}
 
-template<typename Int>
-bool operator>(safe<Int> a, safe<Int> b) { return !(a <= b); }
+template <typename Int>
+bool operator>(safe<Int> a, safe<Int> b)
+{
+    return !(a <= b);
+}
 
 using safe_int = safe<int>;
 
 template safe_int operator+<int>(safe_int a, safe_int b);
 template safe_int add<int>(safe_int a, safe_int b);
 
-}
+}  // namespace intx
