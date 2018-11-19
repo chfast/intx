@@ -3,6 +3,7 @@
 # Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 add_executable(intx-test
+    test_div.cpp
     test_int128.cpp
     test_intx.cpp
     test_mul_full.cpp

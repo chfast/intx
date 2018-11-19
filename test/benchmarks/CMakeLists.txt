@@ -3,6 +3,7 @@
 # Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 add_executable(intx-bench
+    bench_div.cpp
     bench_int128.cpp
     bench_mul_full.cpp
     benchmarks.cpp
