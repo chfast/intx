@@ -954,6 +954,33 @@ inline Int bswap(const Int& x) noexcept
 }
 
 
+inline uint512 operator "" _u512(const char* s)
+{
+    uint512 x;
+
+    if (s[0] == '0' && s[1] == 'x')
+    {
+        s += 2;
+        while (auto c = *s++)
+        {
+            x *= 16;
+            if (c <= '9')
+                x += (c - '0');
+            else
+                x += (c - 'a' + 10);
+        }
+        return x;
+    }
+
+    while (auto c = *s++)
+    {
+        x *= 10;
+        x += (c - '0');
+    }
+    return x;
+}
+
+
 namespace experiments
 {
 /// Classic implementation of +=.

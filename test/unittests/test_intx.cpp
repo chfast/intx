@@ -418,3 +418,19 @@ TEST_P(Uint256ParamTest, mul_against_add)
 }
 INSTANTIATE_TEST_CASE_P(primes, Uint256ParamTest,
     testing::Values(0, 1, 2, 3, 17, 19, 32, 512, 577, 2048, 2069, 3011, 7919, 8192));
+
+TEST(uint512, literal)
+{
+    auto x = 1_u512;
+    static_assert(std::is_same<decltype(x), uint512>::value, "");
+    EXPECT_EQ(x, 1);
+
+    x = 0_u512;
+    EXPECT_EQ(x, 0);
+
+    x = 0xab_u512;
+    EXPECT_EQ(x, 0xab);
+
+    x = 0xab12ff00_u512;
+    EXPECT_EQ(x, 0xab12ff00);
+}
