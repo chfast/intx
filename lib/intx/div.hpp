@@ -11,10 +11,6 @@ namespace intx
 {
 namespace div
 {
-std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v);
-std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y);
-
-
 struct normalized_args
 {
     std::array<uint32_t, sizeof(uint512) / sizeof(uint32_t) + 1> numerator;

@@ -875,6 +875,9 @@ inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
     return std::make_tuple(q0, r);
 }
 
+std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v);
+std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y);
+
 inline std::string to_string(uint256 x)
 {
     if (x == 0)
