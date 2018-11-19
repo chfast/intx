@@ -943,6 +943,22 @@ inline uint512 from_string_512(const std::string& s)
     return x;
 }
 
+inline uint64_t bswap(uint64_t x) noexcept
+{
+    return __builtin_bswap64(x);
+}
+
+inline unsigned __int128 bswap(unsigned __int128 x) noexcept
+{
+    return join(bswap(uint64_t(x >> 64)), bswap(uint64_t(x)));
+}
+
+template<typename Int>
+inline Int bswap(const Int& x) noexcept
+{
+    return {bswap(x.lo), bswap(x.hi)};
+}
+
 
 namespace experiments
 {

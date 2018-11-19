@@ -31,6 +31,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     // FIXME: Add bswap()
     std::memcpy(&a, &data[1], s);
     std::memcpy(&b, &data[1 + s], s);
+    a = bswap(a);
+    b = bswap(b);
 
     switch (op(data[0]))
     {
