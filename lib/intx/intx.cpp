@@ -1,5 +1,10 @@
+// intx: extended precision integer library.
+// Copyright 2018 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
+#include "div.hpp"
 #include <intx/intx.hpp>
+
 #include <cassert>
 #include <cstring>
 
@@ -274,6 +279,7 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
     }
     DEBUG(dbgs() << '\n');
 }
+
 
 int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
 {
@@ -900,4 +906,5 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v)
 
     return std::make_tuple(q, r);
 }
+
 }

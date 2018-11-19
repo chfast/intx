@@ -3,9 +3,11 @@
 # Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 add_executable(intx-bench
+    bench_div.cpp
     bench_int128.cpp
     bench_mul_full.cpp
     benchmarks.cpp
+    div.h
     utils.cpp
 )
 target_link_libraries(intx-bench PRIVATE intx benchmark::benchmark GMP::gmp)

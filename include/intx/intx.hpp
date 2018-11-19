@@ -19,7 +19,7 @@ struct uint128
     uint64_t lo = 0;
     uint64_t hi = 0;
 };
-}
+}  // namespace generic
 
 namespace gcc
 {
@@ -61,7 +61,7 @@ inline std::tuple<uint32_t, uint32_t> udivrem_long(uint64_t u, uint32_t v)
     auto r = static_cast<uint32_t>(u % v);
     return std::make_tuple(q, r);
 }
-}
+}  // namespace gcc
 
 using namespace gcc;
 
@@ -73,15 +73,9 @@ struct uint256
     uint128 lo = 0;
     uint128 hi = 0;
 
-    explicit operator unsigned() const
-    {
-        return static_cast<unsigned>(lo);
-    }
+    explicit operator unsigned() const { return static_cast<unsigned>(lo); }
 
-    explicit operator unsigned long() const
-    {
-        return static_cast<unsigned long>(lo);
-    }
+    explicit operator unsigned long() const { return static_cast<unsigned long>(lo); }
 };
 
 struct uint512
@@ -135,12 +129,12 @@ struct traits<uint256>
 template <>
 struct traits<uint512>
 {
-//    using double_type = uint1024;
+    //    using double_type = uint1024;
     using half_type = uint256;
 
     static constexpr unsigned bits = 512;
     static constexpr unsigned half_bits = 256;
-//    static constexpr int unr_iterations = 8;
+    //    static constexpr int unr_iterations = 8;
 };
 
 constexpr uint32_t lo_half(uint64_t x)
@@ -204,7 +198,7 @@ constexpr unsigned num_bits(const T&)
     return sizeof(T) * 8;
 }
 
-template<typename Int>
+template <typename Int>
 inline bool operator==(Int a, Int b)
 {
     auto a_lo = lo_half(a);
@@ -214,7 +208,7 @@ inline bool operator==(Int a, Int b)
     return (a_lo == b_lo) & (a_hi == b_hi);
 }
 
-template<typename Int>
+template <typename Int>
 inline bool operator==(Int a, uint64_t b)
 {
     return a == Int(b);
@@ -230,7 +224,7 @@ inline bool operator!=(uint512 a, uint512 b)
     return !(a == b);
 }
 
-template<typename Int>
+template <typename Int>
 inline bool operator<(Int a, Int b)
 {
     auto a_lo = lo_half(a);
@@ -243,7 +237,7 @@ inline bool operator<(Int a, Int b)
     return (a_hi < b_hi) | ((a_hi == b_hi) & (a_lo < b_lo));
 }
 
-template<typename Int>
+template <typename Int>
 inline bool operator<(Int a, uint64_t b)
 {
     return a < Int(b);
@@ -254,7 +248,7 @@ inline bool operator>=(uint256 a, uint256 b)
     return !(a < b);
 }
 
-template<typename Int>
+template <typename Int>
 inline bool operator<=(Int a, Int b)
 {
     return (a < b) || (a == b);
@@ -302,7 +296,7 @@ inline uint256 operator|(uint256 x, uint256 y)
     return bitwise_or(x, y);
 }
 
-template<typename Int>
+template <typename Int>
 inline Int shl(Int x, unsigned shift)
 {
     using half_type = typename traits<Int>::half_type;
@@ -335,7 +329,7 @@ inline Int shl(Int x, unsigned shift)
     return 0;
 }
 
-template<typename Int>
+template <typename Int>
 inline Int lsr(Int x, unsigned shift)
 {
     using half_type = typename traits<Int>::half_type;
@@ -365,7 +359,7 @@ inline Int lsr(Int x, unsigned shift)
     return 0;
 }
 
-template<typename Int>
+template <typename Int>
 inline std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>& as_words(Int& x)
 {
     return reinterpret_cast<std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>&>(x);
@@ -373,7 +367,7 @@ inline std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>& as_words(Int& x)
 
 /// Implementation of shift left as a loop.
 /// This one is slower than the one using "split" strategy.
-template<typename Int>
+template <typename Int>
 inline Int shl_loop(Int x, unsigned shift)
 {
     Int r;
@@ -422,13 +416,13 @@ inline std::tuple<uint512, bool> add_with_carry(uint512 a, uint512 b)
     return std::make_tuple(s, k2 || k3);
 }
 
-template<typename Int>
+template <typename Int>
 inline Int add(Int a, Int b)
 {
     return std::get<0>(add_with_carry(a, b));
 }
 
-template<typename Int, typename Int2>
+template <typename Int, typename Int2>
 inline Int add(Int a, Int2 b)
 {
     return add(a, Int(b));
@@ -494,13 +488,13 @@ inline uint128 umul_full(uint64_t a, uint64_t b)
     return uint128(a) * uint128(b);
 }
 
-template<typename Int>
+template <typename Int>
 inline Int operator+(Int x, Int y)
 {
     return add(x, y);
 }
 
-template<typename Int>
+template <typename Int>
 inline Int operator+(Int x, uint64_t y)
 {
     return add(x, Int(y));
@@ -522,6 +516,11 @@ inline uint256 operator>>(uint256 x, unsigned y)
 }
 
 inline uint256& operator+=(uint256& x, uint256 y)
+{
+    return x = x + y;
+}
+
+inline uint512& operator+=(uint512& x, uint512 y)
 {
     return x = x + y;
 }
@@ -557,7 +556,7 @@ typename traits<Int>::double_type umul_full(Int a, Int b)
     return {l, h};
 }
 
-template<typename Int>
+template <typename Int>
 inline Int mul(Int a, Int b)
 {
     // Requires 1 full mul, 2 muls and 2 adds.
@@ -637,7 +636,7 @@ inline uint256 mul_loop_opt(uint256 u, uint256 v)
             pw[i + j] = lo_half(t);
             k = hi_half(t);
         }
-//        pw[j + 4] = k;
+        //        pw[j + 4] = k;
     }
     return p;
 }
@@ -663,6 +662,11 @@ inline uint256& operator*=(uint256& x, uint256 y)
     return x = x * y;
 }
 
+inline uint512& operator*=(uint512& x, uint512 y)
+{
+    return x = x * y;
+}
+
 using gcc::clz;
 
 template <typename Int>
@@ -684,7 +688,7 @@ inline unsigned clz(Int x)
     return h == 0 ? clz(l) | half_bits : clz(h);
 }
 
-template<typename Word, typename Int>
+template <typename Word, typename Int>
 std::array<Word, sizeof(Int) / sizeof(Word)> to_words(Int x) noexcept
 {
     std::array<Word, sizeof(Int) / sizeof(Word)> words;
@@ -692,7 +696,7 @@ std::array<Word, sizeof(Int) / sizeof(Word)> to_words(Int x) noexcept
     return words;
 }
 
-template<typename Word>
+template <typename Word>
 unsigned count_significant_words_loop(uint256 x) noexcept
 {
     auto words = to_words<Word>(x);
@@ -704,7 +708,7 @@ unsigned count_significant_words_loop(uint256 x) noexcept
     return 0;
 }
 
-template<typename Word, typename Int>
+template <typename Word, typename Int>
 inline unsigned count_significant_words(Int x) noexcept
 {
     constexpr auto num_words = static_cast<unsigned>(sizeof(x) / sizeof(Word));
@@ -713,19 +717,19 @@ inline unsigned count_significant_words(Int x) noexcept
     return h != 0 ? h + (num_words / 2) : l;
 }
 
-template<>
+template <>
 inline unsigned count_significant_words<uint32_t, uint32_t>(uint32_t x) noexcept
 {
     return x != 0 ? 1 : 0;
 }
 
-template<>
+template <>
 inline unsigned count_significant_words<uint64_t, uint64_t>(uint64_t x) noexcept
 {
     return x != 0 ? 1 : 0;
 }
 
-template<typename Int>
+template <typename Int>
 inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
 {
     // decent start
@@ -738,8 +742,8 @@ inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
     {
         auto m = mul(my, z);
         auto zd = umul_hi(z, m);
-//        if (zd == 0)
-//            break;
+        //        if (zd == 0)
+        //            break;
         z = add(z, zd);
     }
 
@@ -761,32 +765,6 @@ inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
     return std::make_tuple(q, r);
 }
 
-inline std::tuple<uint256, uint256> udiv_qr_shift(uint256 x, uint256 y)
-{
-    uint256 r = x;
-    uint256 q = 0;
-    if (r >= y)
-    {
-        unsigned i = clz(y) - clz(r);
-        y = y << i;
-        // quotient computing phase
-        for (;;)
-        {
-            if (r >= y)
-            {
-                r = r - y;
-                q = q + 1;
-            }
-            if (i == 0)
-                break;
-            i = i - 1;
-            q = q + q;
-            y = y >> 1;
-        }
-    }
-    return std::make_tuple(q, r);
-}
-
 std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y);
 std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v);
 std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y);
@@ -795,7 +773,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y);
 std::tuple<uint512, uint512> udiv_qr_knuth_512(uint512 x, uint512 y);
 std::tuple<uint512, uint512> udiv_qr_knuth_512_64(uint512 x, uint512 y);
 
-template<typename Int>
+template <typename Int>
 inline std::tuple<Int, Int> udiv_long(typename traits<Int>::double_type u, Int v)
 {
     using tr = traits<Int>;
@@ -850,7 +828,7 @@ again2:
     return std::make_tuple(q, r);
 }
 
-template<typename Int>
+template <typename Int>
 inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
 {
     using tr = traits<Int>;
@@ -890,6 +868,9 @@ inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
     Int r = u - v * q0;
     return std::make_tuple(q0, r);
 }
+
+std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v);
+std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y);
 
 inline std::string to_string(uint256 x)
 {
@@ -943,6 +924,62 @@ inline uint256 from_string(const std::string& s)
     return x;
 }
 
+inline uint512 from_string_512(const std::string& s)
+{
+    uint512 x;
+
+    for (auto c : s)
+    {
+        auto v = c - '0';
+        x *= 10;
+        x += v;
+    }
+    return x;
+}
+
+inline uint64_t bswap(uint64_t x) noexcept
+{
+    return __builtin_bswap64(x);
+}
+
+inline unsigned __int128 bswap(unsigned __int128 x) noexcept
+{
+    return join(bswap(uint64_t(x >> 64)), bswap(uint64_t(x)));
+}
+
+template <typename Int>
+inline Int bswap(const Int& x) noexcept
+{
+    return {bswap(x.lo), bswap(x.hi)};
+}
+
+
+inline uint512 operator "" _u512(const char* s)
+{
+    uint512 x;
+
+    if (s[0] == '0' && s[1] == 'x')
+    {
+        s += 2;
+        while (auto c = *s++)
+        {
+            x *= 16;
+            if (c <= '9')
+                x += (c - '0');
+            else
+                x += (c - 'a' + 10);
+        }
+        return x;
+    }
+
+    while (auto c = *s++)
+    {
+        x *= 10;
+        x += (c - '0');
+    }
+    return x;
+}
+
 
 namespace experiments
 {
@@ -962,8 +999,8 @@ inline void add_to_opt(uint256& a, uint128 b)
     std::tie(a.lo, carry) = add_with_carry(a.lo, b);
     a.hi += carry;
 }
-}
-}
+}  // namespace experiments
+}  // namespace intx
 
 
 inline uint64_t add2(uint64_t ah, uint64_t al, uint64_t bh, uint64_t bl)
