@@ -20,6 +20,6 @@ set_property(TARGET GMP::gmp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GMP_INCLUD
 add_subdirectory(benchmarks)
 add_subdirectory(unittests)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+if(INTX_FUZZING)
     add_subdirectory(fuzzer)
 endif()
