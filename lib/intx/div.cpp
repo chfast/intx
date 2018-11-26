@@ -15,7 +15,7 @@ inline std::tuple<uint64_t, uint64_t> udivrem(uint64_t u, uint64_t v) noexcept
     return {u / v, u % v};
 }
 
-inline std::tuple<uint512, uint32_t> udivrem_1(const uint512& x, uint64_t v)
+inline std::tuple<uint512, uint32_t> udivrem_1(const uint512& x, uint32_t v)
 {
     static constexpr int num_words = sizeof(uint512) / sizeof(uint32_t);
 
@@ -125,7 +125,7 @@ std::tuple<uint512, uint512> udivrem(const uint512& u, const uint512& v)
         return {0, u};
 
     if (na.num_denominator_words == 1)
-        div::udivrem_1(u, static_cast<uint32_t>(u.lo.lo));
+        div::udivrem_1(u, static_cast<uint32_t>(v.lo.lo));
 
     return div::udivrem_knuth(na);
 }
