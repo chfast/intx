@@ -4,6 +4,8 @@
 
 #include "div.hpp"
 
+#include <iostream>
+
 namespace intx
 {
 namespace div
@@ -125,7 +127,7 @@ std::tuple<uint512, uint512> udivrem(const uint512& u, const uint512& v)
         return {0, u};
 
     if (na.num_denominator_words == 1)
-        div::udivrem_1(u, static_cast<uint32_t>(v.lo.lo));
+        return div::udivrem_1(u, static_cast<uint32_t>(v.lo.lo));
 
     return div::udivrem_knuth(na);
 }
