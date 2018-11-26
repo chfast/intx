@@ -434,3 +434,10 @@ TEST(uint512, literal)
     x = 0xab12ff00_u512;
     EXPECT_EQ(x, 0xab12ff00);
 }
+
+TEST(uint512, bswap)
+{
+    auto x = 1_u512;
+    auto y = bswap(x);
+    EXPECT_EQ(y, shl(1_u512, 504));
+}

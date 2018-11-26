@@ -944,13 +944,13 @@ inline uint64_t bswap(uint64_t x) noexcept
 
 inline unsigned __int128 bswap(unsigned __int128 x) noexcept
 {
-    return join(bswap(uint64_t(x >> 64)), bswap(uint64_t(x)));
+    return join(bswap(uint64_t(x)), bswap(uint64_t(x >> 64)));
 }
 
 template <typename Int>
 inline Int bswap(const Int& x) noexcept
 {
-    return {bswap(x.lo), bswap(x.hi)};
+    return {bswap(x.hi), bswap(x.lo)};
 }
 
 
