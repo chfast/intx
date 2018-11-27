@@ -13,6 +13,7 @@ enum class op : uint8_t
 {
     divrem,
     mul,
+    shl,
 };
 
 template <typename T>
@@ -45,11 +46,21 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
             expect_eq(std::get<0>(x), std::get<0>(y));
             expect_eq(std::get<1>(x), std::get<1>(y));
         }
+        break;
     case op::mul:
     {
         auto x = a * b;
         auto y = gmp_mul(a, b);
         expect_eq(x, y);
+        break;
+    }
+    case op::shl:
+    {
+        auto x = a << b;
+        auto s = T(1) << b;
+        auto y = a * s;
+        expect_eq(x, y);
+        break;
     }
 
     default:

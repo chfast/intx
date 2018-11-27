@@ -330,6 +330,32 @@ inline Int shl(Int x, unsigned shift)
 }
 
 template <typename Int>
+inline Int operator<<(const Int& x, unsigned shift) noexcept
+{
+    return shl(x, shift);
+}
+
+template<typename Target>
+inline Target narrow_cast(unsigned __int128 x) noexcept
+{
+    return static_cast<Target>(x);
+}
+
+template<typename Target, typename Int>
+inline Target narrow_cast(const Int& x) noexcept
+{
+    return narrow_cast<Target>(x.lo);
+}
+
+template <typename Int>
+inline Int operator<<(const Int& x, const Int& shift) noexcept
+{
+    if (shift < traits<Int>::bits)
+        return x << narrow_cast<unsigned>(shift);
+    return 0;
+}
+
+template <typename Int>
 inline Int lsr(Int x, unsigned shift)
 {
     using half_type = typename traits<Int>::half_type;
