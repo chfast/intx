@@ -15,6 +15,7 @@ enum class op : uint8_t
     mul,
     shl,
     lsr,
+    add,
 };
 
 template <typename T>
@@ -71,6 +72,9 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         expect_eq(x, y);
         break;
     }
+    case op::add:
+        expect_eq(a + b, gmp::add(a, b));
+        break;
 
     default:
         break;

@@ -56,4 +56,20 @@ std::tuple<Int, Int> gmp_udiv_qr(Int x, Int y) noexcept
     mpn_tdiv_qr(p_q, p_r, 0, p_x, gmp_limbs, p_y, y_limbs);
     return std::make_tuple(q, r);
 };
+
+namespace gmp
+{
+template<typename Int>
+Int add(const Int& x, const Int& y) noexcept
+{
+    constexpr size_t gmp_limbs = sizeof(Int) / sizeof(mp_limb_t);
+
+    Int s;
+    auto p_s = (mp_ptr)&s;
+    auto p_x = (mp_srcptr)&x;
+    auto p_y = (mp_srcptr)&y;
+    mpn_add(p_s, p_x, gmp_limbs, p_y, gmp_limbs);
+    return s;
+};
+}
 }
