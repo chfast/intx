@@ -9,7 +9,7 @@
 
 using namespace intx;
 
-enum class op
+enum class op : uint8_t
 {
     divrem,
 };
@@ -21,19 +21,20 @@ inline void expect_eq(const T& x, const T& y) noexcept
         __builtin_trap();
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+template <typename T>
+inline void test_op(const uint8_t* data, size_t data_size) noexcept
 {
-    static constexpr auto s = sizeof(uint512);
-    if (size != 2 * s + 1)
-        return 0;
+    static constexpr auto arg_size = sizeof(T);
+    if (data_size != 2 * arg_size + 1)
+        return;
 
-    uint512 a, b;
-    std::memcpy(&a, &data[1], s);
-    std::memcpy(&b, &data[1 + s], s);
-    a = bswap(a);
+    T a, b;
+    std::memcpy(&a, &data[1], arg_size);
+    std::memcpy(&b, &data[1 + arg_size], arg_size);
+    a = bswap(a);  // Bswap for BE - easier to extract the test from corpus.
     b = bswap(b);
 
-    switch (op(data[0]))
+    switch (static_cast<op>(data[0]))
     {
     case op::divrem:
         if (b != 0)
@@ -47,6 +48,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     default:
         break;
     }
+}
 
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t data_size) noexcept
+{
+    test_op<uint512>(data, data_size);
     return 0;
 }
