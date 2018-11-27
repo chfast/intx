@@ -4,8 +4,6 @@
 
 #include "div.hpp"
 
-#include <iostream>
-
 namespace intx
 {
 namespace div

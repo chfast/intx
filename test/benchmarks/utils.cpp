@@ -4,10 +4,15 @@
 
 #include <intx/int128.hpp>
 
+#include <cstring>
+
 using namespace intx;
 
 uint128 div_gcc(uint128 x, uint128 y) noexcept
 {
-    auto q = (*(unsigned __int128*)&x) / (*(unsigned __int128*)&y);
+    unsigned __int128 u, v;
+    std::memcpy(&u, &x, sizeof(u));
+    std::memcpy(&v, &y, sizeof(v));
+    auto q = u / y;
     return *(uint128*)&q;
 }

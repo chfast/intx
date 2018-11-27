@@ -275,6 +275,11 @@ inline constexpr uint256 bitwise_not(uint256 x)
     return {~x.lo, ~x.hi};
 }
 
+inline constexpr uint512 bitwise_not(uint512 x)
+{
+    return {bitwise_not(x.lo), bitwise_not(x.hi)};
+}
+
 inline uint128 shl(uint128 a, unsigned b)
 {
     return a << b;
@@ -326,6 +331,40 @@ inline Int shl(Int x, unsigned shift)
         return Int{0, hi};
     }
 
+    return 0;
+}
+
+template <typename Int>
+inline Int operator<<(const Int& x, unsigned shift) noexcept
+{
+    return shl(x, shift);
+}
+
+template <typename Target>
+inline Target narrow_cast(unsigned __int128 x) noexcept
+{
+    return static_cast<Target>(x);
+}
+
+template <typename Target, typename Int>
+inline Target narrow_cast(const Int& x) noexcept
+{
+    return narrow_cast<Target>(x.lo);
+}
+
+template <typename Int>
+inline Int operator<<(const Int& x, const Int& shift) noexcept
+{
+    if (shift < traits<Int>::bits)
+        return x << narrow_cast<unsigned>(shift);
+    return 0;
+}
+
+template <typename Int>
+inline Int operator>>(const Int& x, const Int& shift) noexcept
+{
+    if (shift < traits<Int>::bits)
+        return lsr(x, narrow_cast<unsigned>(shift));
     return 0;
 }
 
@@ -438,7 +477,8 @@ inline uint64_t minus(uint64_t x)
     return -x;
 }
 
-inline uint256 minus(uint256 x)
+template <typename Int>
+inline Int minus(Int x)
 {
     return add(bitwise_not(x), uint64_t(1));
 }
@@ -448,7 +488,14 @@ inline uint128 sub(uint128 a, uint128 b)
     return a - b;
 }
 
-inline uint256 sub(uint256 a, uint256 b)
+template <typename Int>
+inline Int sub(Int a, uint64_t b)
+{
+    return add(a, minus(b));
+}
+
+template <typename Int>
+inline Int sub(Int a, Int b)
 {
     return add(a, minus(b));
 }
@@ -500,7 +547,8 @@ inline Int operator+(Int x, uint64_t y)
     return add(x, Int(y));
 }
 
-inline uint256 operator-(uint256 x, uint256 y)
+template <typename Int1, typename Int2>
+inline decltype(sub(Int1{}, Int2{})) operator-(const Int1& x, const Int2& y)
 {
     return sub(x, y);
 }
@@ -871,6 +919,12 @@ inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
 
 std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v);
 std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y);
+
+template <typename Int>
+inline Int operator/(const Int& x, const Int& y) noexcept
+{
+    return std::get<0>(udivrem(x, y));
+}
 
 inline std::string to_string(uint256 x)
 {
