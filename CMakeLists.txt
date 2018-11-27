@@ -22,6 +22,14 @@ HunterGate(
 project(intx)
 
 option(INTX_TESTING "Build IntX with tests" ON)
+option(INTX_FUZZING "Build intx fuzzers" OFF)
+
+if(INTX_FUZZING)
+    set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined)
+    add_compile_options(${fuzzing_flags})
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${fuzzing_flags}")
+endif()
+
 # FIXME: Add back -Wconversion, test with clang.
 add_compile_options(-Werror -Wall -Wextra)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
