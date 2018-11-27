@@ -41,7 +41,7 @@ uint512 gmp_mul(uint512 x, uint512 y) noexcept
     return p[0];
 }
 
-template<typename Int>
+template <typename Int>
 std::tuple<Int, Int> gmp_udiv_qr(Int x, Int y) noexcept
 {
     // Skip dividend's leading zero limbs.
@@ -59,7 +59,7 @@ std::tuple<Int, Int> gmp_udiv_qr(Int x, Int y) noexcept
 
 namespace gmp
 {
-template<typename Int>
+template <typename Int>
 Int add(const Int& x, const Int& y) noexcept
 {
     constexpr size_t gmp_limbs = sizeof(Int) / sizeof(mp_limb_t);
@@ -68,8 +68,21 @@ Int add(const Int& x, const Int& y) noexcept
     auto p_s = (mp_ptr)&s;
     auto p_x = (mp_srcptr)&x;
     auto p_y = (mp_srcptr)&y;
-    mpn_add(p_s, p_x, gmp_limbs, p_y, gmp_limbs);
+    mpn_add_n(p_s, p_x, p_y, gmp_limbs);
     return s;
-};
 }
+
+template <typename Int>
+Int sub(const Int& x, const Int& y) noexcept
+{
+    constexpr size_t gmp_limbs = sizeof(Int) / sizeof(mp_limb_t);
+
+    Int s;
+    auto p_s = (mp_ptr)&s;
+    auto p_x = (mp_srcptr)&x;
+    auto p_y = (mp_srcptr)&y;
+    mpn_sub_n(p_s, p_x, p_y, gmp_limbs);
+    return s;
 }
+}  // namespace gmp
+}  // namespace intx
