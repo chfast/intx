@@ -14,6 +14,7 @@ enum class op : uint8_t
     divrem,
     mul,
     shl,
+    lsr,
 };
 
 template <typename T>
@@ -59,6 +60,14 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         auto x = a << b;
         auto s = T(1) << b;
         auto y = a * s;
+        expect_eq(x, y);
+        break;
+    }
+    case op::lsr:
+    {
+        auto x = a >> b;
+        auto s = T(1) << b;
+        auto y = (s != 0) ? a / s : 0;
         expect_eq(x, y);
         break;
     }

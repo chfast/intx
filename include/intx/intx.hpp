@@ -335,13 +335,13 @@ inline Int operator<<(const Int& x, unsigned shift) noexcept
     return shl(x, shift);
 }
 
-template<typename Target>
+template <typename Target>
 inline Target narrow_cast(unsigned __int128 x) noexcept
 {
     return static_cast<Target>(x);
 }
 
-template<typename Target, typename Int>
+template <typename Target, typename Int>
 inline Target narrow_cast(const Int& x) noexcept
 {
     return narrow_cast<Target>(x.lo);
@@ -352,6 +352,14 @@ inline Int operator<<(const Int& x, const Int& shift) noexcept
 {
     if (shift < traits<Int>::bits)
         return x << narrow_cast<unsigned>(shift);
+    return 0;
+}
+
+template <typename Int>
+inline Int operator>>(const Int& x, const Int& shift) noexcept
+{
+    if (shift < traits<Int>::bits)
+        return lsr(x, narrow_cast<unsigned>(shift));
     return 0;
 }
 
@@ -897,6 +905,12 @@ inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
 
 std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v);
 std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y);
+
+template <typename Int>
+inline Int operator/(const Int& x, const Int& y) noexcept
+{
+    return std::get<0>(udivrem(x, y));
+}
 
 inline std::string to_string(uint256 x)
 {
