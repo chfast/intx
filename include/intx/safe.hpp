@@ -136,6 +136,7 @@ bool operator<(safe<Int> a, safe<Int> b)
         case status::invalid:
             throw bad_operation{};
         }
+        break;
     case status::plus_infinity:
         switch (b.get_status())
         {
@@ -148,6 +149,7 @@ bool operator<(safe<Int> a, safe<Int> b)
         case status::invalid:
             throw bad_operation{};
         }
+        break;
     case status::minus_infinity:
         switch (b.get_status())
         {
@@ -160,9 +162,11 @@ bool operator<(safe<Int> a, safe<Int> b)
         case status::invalid:
             throw bad_operation{};
         }
+        break;
     default:
-        throw bad_operation{};
+        break;
     }
+    throw bad_operation{};
 }
 
 template <typename Int>
