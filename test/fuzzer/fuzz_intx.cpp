@@ -12,6 +12,7 @@ using namespace intx;
 enum class op : uint8_t
 {
     divrem,
+    mul,
 };
 
 template <typename T>
@@ -44,6 +45,12 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
             expect_eq(std::get<0>(x), std::get<0>(y));
             expect_eq(std::get<1>(x), std::get<1>(y));
         }
+    case op::mul:
+    {
+        auto x = a * b;
+        auto y = gmp_mul(a, b);
+        expect_eq(x, y);
+    }
 
     default:
         break;
@@ -53,5 +60,6 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t data_size) noexcept
 {
     test_op<uint512>(data, data_size);
+    test_op<uint256>(data, data_size);
     return 0;
 }
