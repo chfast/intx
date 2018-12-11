@@ -16,6 +16,7 @@ add_library(intx
     int128.cpp
     intx.cpp
 )
+add_library(intx::intx ALIAS intx)
 target_include_directories(intx PUBLIC ${include_dir} ${CMAKE_CURRENT_SOURCE_DIR})
 
 install(
