@@ -243,6 +243,12 @@ inline bool operator<(Int a, uint64_t b)
     return a < Int(b);
 }
 
+template <typename Int>
+inline bool operator<(uint64_t a, Int b)
+{
+    return Int(a) < b;
+}
+
 inline bool operator>=(uint256 a, uint256 b)
 {
     return !(a < b);
@@ -1034,6 +1040,23 @@ inline uint512 operator "" _u512(const char* s)
     return x;
 }
 
+namespace be  // Conversions to/from BE bytes.
+{
+inline intx::uint256 uint256(const uint8_t bytes[32]) noexcept
+{
+    intx::uint256 x;
+    std::memcpy(&x, bytes, sizeof(x));
+    return bswap(x);
+}
+
+template<typename Int>
+inline void store(uint8_t* dst, const Int& x) noexcept
+{
+    auto d = bswap(x);
+    std::memcpy(dst, &d, sizeof(d));
+}
+
+}  // namespace be
 
 namespace experiments
 {
