@@ -78,7 +78,7 @@ std::tuple<uint256, uint64_t> udivrem_1(uint256 x, uint64_t y)
         // Perform long division. The compiler should use single instruction
         // here to compute both quotient and remainder. This is better than
         // classic multiplication `reminder = dividend - q[j] * divisor`.
-        std::tie(qt[j], r) = udiv_qr_unr(dividend, uint128(y));
+        std::tie(qt[j], r) = udivrem_unr(dividend, uint128(y));
     }
     return std::make_tuple(q, r);
 }
@@ -100,7 +100,7 @@ std::tuple<uint512, uint64_t> udivrem_1(uint512 x, uint64_t y)
         // Perform long division. The compiler should use single instruction
         // here to compute both quotient and remainder. This is better than
         // classic multiplication `reminder = dividend - q[j] * divisor`.
-        std::tie(qt[j], r) = udiv_qr_unr(dividend, uint128(y));
+        std::tie(qt[j], r) = udivrem_unr(dividend, uint128(y));
     }
     return std::make_tuple(q, r);
 }
@@ -730,7 +730,7 @@ static void udiv_knuth_internal_64(
         r[i] = shift ? (un[i] >> shift) | (un[i + 1] << lshift) : un[i];
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y)
+std::tuple<uint256, uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y)
 {
     if (x < y)
         return std::make_tuple(0, x);
@@ -756,7 +756,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y)
     return std::make_tuple(q, r);
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
+std::tuple<uint256, uint256> udiv_qr_knuth_opt(const uint256& x, const uint256& y)
 {
     if (x < y)
         return std::make_tuple(0, x);
@@ -782,7 +782,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y)
     return std::make_tuple(q, r);
 }
 
-std::tuple<uint512, uint512> udiv_qr_knuth_512_64(uint512 x, uint512 y)
+std::tuple<uint512, uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y)
 {
     if (x < y)
         return std::make_tuple(0, x.lo);
@@ -809,7 +809,7 @@ std::tuple<uint512, uint512> udiv_qr_knuth_512_64(uint512 x, uint512 y)
     return std::make_tuple(q, r);
 }
 
-std::tuple<uint512, uint512> udiv_qr_knuth_512(uint512 x, uint512 y)
+std::tuple<uint512, uint512> udiv_qr_knuth_512(const uint512& x, const uint512& y)
 {
     if (x < uint512(y))
         return std::make_tuple(0, x.lo);
@@ -833,7 +833,7 @@ std::tuple<uint512, uint512> udiv_qr_knuth_512(uint512 x, uint512 y)
     return std::make_tuple(q, r);
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y)
+std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(const uint256& x, const uint256& y)
 {
     // Skip dividend's leading zero limbs.
     const unsigned m = 8 - (clz(x) / (4 * 8));
@@ -852,7 +852,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y)
     return std::make_tuple(q, r);
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y)
+std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint256& y)
 {
     // Skip dividend's leading zero limbs.
     const unsigned m = 8 - (clz(x) / (4 * 8));
@@ -871,7 +871,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y)
     return std::make_tuple(q, r);
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v)
+std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v)
 {
     // Skip dividend's leading zero limbs.
     const unsigned u_limbs = 8 - (clz(u) / (4 * 8));
@@ -895,10 +895,13 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v)
     // by a 32-bit quantity at hardware speed and short division is simply a
     // series of such operations. This is just like doing short division but we
     // are using base 2^32 instead of base 10.
-    if (n == 1) {
+    if (n == 1)
+    {
         // FIXME: Replace with udivrem_1_stable().
         udivrem_1_3(p_q, p_r, u_data, p_v[0], m);
-    } else {
+    }
+    else
+    {
         // Now we're ready to invoke the Knuth classical divide algorithm. In this
         // case n > 1.
         KnuthDiv(u_data, p_v, p_q, p_r, m, n);
@@ -907,4 +910,4 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v)
     return std::make_tuple(q, r);
 }
 
-}
+}  // namespace intx
