@@ -276,14 +276,14 @@ inline constexpr uint256 bitwise_xor(uint256 x, uint256 y)
     return {x.lo ^ y.lo, x.hi ^ y.hi};
 }
 
-inline constexpr uint256 bitwise_not(uint256 x)
+inline constexpr uint256 operator~(const uint256& x) noexcept
 {
     return {~x.lo, ~x.hi};
 }
 
-inline constexpr uint512 bitwise_not(uint512 x)
+inline constexpr uint512 operator~(const uint512& x) noexcept
 {
-    return {bitwise_not(x.lo), bitwise_not(x.hi)};
+    return {~x.lo, ~x.hi};
 }
 
 inline uint128 shl(uint128 a, unsigned b)
@@ -486,7 +486,7 @@ inline uint64_t minus(uint64_t x)
 template <typename Int>
 inline Int minus(Int x)
 {
-    return add(bitwise_not(x), uint64_t(1));
+    return add(~x, uint64_t(1));
 }
 
 inline uint128 sub(uint128 a, uint128 b)

@@ -361,7 +361,7 @@ TEST_F(Uint256Test, shift_loop_one_bit)
 
 TEST_F(Uint256Test, not_of_zero)
 {
-    uint256 ones = bitwise_not(uint256(0));
+    uint256 ones = ~uint256(0);
     for (unsigned pos = 0; pos < 256; ++pos)
     {
         uint256 probe = shl(uint256(1), pos);
