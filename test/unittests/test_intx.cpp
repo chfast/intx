@@ -419,6 +419,17 @@ TEST_P(Uint256ParamTest, mul_against_add)
 INSTANTIATE_TEST_CASE_P(primes, Uint256ParamTest,
     testing::Values(0, 1, 2, 3, 17, 19, 32, 512, 577, 2048, 2069, 3011, 7919, 8192));
 
+TEST(uint256, negation_overflow)
+{
+    auto x = -1_u256;
+    auto z = 0_u256;
+    EXPECT_NE(x, z);
+    EXPECT_EQ(x, ~z);
+
+    auto m = 1_u256 << 255;  // Minimal signed value.
+    EXPECT_EQ(-m, m);
+}
+
 TEST(uint512, literal)
 {
     auto x = 1_u512;

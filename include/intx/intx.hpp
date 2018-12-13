@@ -1004,7 +1004,12 @@ inline Int bswap(const Int& x) noexcept
 }
 
 
-inline uint512 operator "" _u512(const char* s)
+constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
+{
+    return uint256{x};
+}
+
+inline uint512 operator"" _u512(const char* s)
 {
     uint512 x;
 
