@@ -473,18 +473,8 @@ inline Int add(Int a, Int2 b)
     return add(a, Int(b));
 }
 
-inline uint128 minus(uint128 x)
-{
-    return -x;
-}
-
-inline uint64_t minus(uint64_t x)
-{
-    return -x;
-}
-
 template <typename Int>
-inline Int minus(Int x)
+inline constexpr Int operator-(const Int& x) noexcept
 {
     return add(~x, uint64_t(1));
 }
@@ -497,13 +487,13 @@ inline uint128 sub(uint128 a, uint128 b)
 template <typename Int>
 inline Int sub(Int a, uint64_t b)
 {
-    return add(a, minus(b));
+    return add(a, -b);
 }
 
 template <typename Int>
 inline Int sub(Int a, Int b)
 {
-    return add(a, minus(b));
+    return add(a, -b);
 }
 
 inline uint128 mul(uint128 a, uint128 b)
@@ -791,7 +781,7 @@ inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
     auto z = shl(Int(1), c);
 
     // z recurrence
-    auto my = minus(y);
+    auto my = -y;
     for (int i = 0; i < traits<Int>::unr_iterations; ++i)
     {
         auto m = mul(my, z);
