@@ -45,7 +45,7 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         if (b != 0)
         {
             auto x = udivrem(a, b);
-            auto y = gmp_udiv_qr(a, b);
+            auto y = gmp::udivrem(a, b);
             expect_eq(std::get<0>(x), std::get<0>(y));
             expect_eq(std::get<1>(x), std::get<1>(y));
         }
@@ -53,7 +53,7 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
     case op::mul:
     {
         auto x = a * b;
-        auto y = gmp_mul(a, b);
+        auto y = gmp::mul(a, b);
         expect_eq(x, y);
         break;
     }
