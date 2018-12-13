@@ -11,13 +11,13 @@ using namespace intx;
 
 enum class op : uint8_t
 {
-    divrem,
-    mul,
-    shl,
-    lsr,
-    add,
-    sub,
-    sdivrem,
+    divrem = 0x00,
+    mul = 0x01,
+    shl = 0x02,
+    lsr = 0x03,
+    add = 0x04,
+    sub = 0x05,
+    sdivrem = 0x06,
 };
 
 template <typename T>

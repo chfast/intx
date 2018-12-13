@@ -1008,14 +1008,17 @@ inline Int bswap(const Int& x) noexcept
 }
 
 
-constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
-{
-    return uint256{x};
-}
+//constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
+//{
+//    return uint256{x};
+//}
 
-inline uint512 operator"" _u512(const char* s)
+template <typename Int>
+inline Int parse_literal(const char* s) noexcept
 {
-    uint512 x;
+    // TODO: It can buffer overflow.
+    // TODO: Control the length of the s, not to overflow the integer.
+    Int x;
 
     if (s[0] == '0' && s[1] == 'x')
     {
@@ -1037,6 +1040,16 @@ inline uint512 operator"" _u512(const char* s)
         x += (c - '0');
     }
     return x;
+}
+
+inline uint256 operator"" _u256(const char* s) noexcept
+{
+    return parse_literal<uint256>(s);
+}
+
+inline uint512 operator"" _u512(const char* s) noexcept
+{
+    return parse_literal<uint512>(s);
 }
 
 namespace be  // Conversions to/from BE bytes.

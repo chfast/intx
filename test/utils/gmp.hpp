@@ -16,7 +16,7 @@ namespace gmp
 {
 static constexpr size_t uint256_limbs = sizeof(uint256) / sizeof(mp_limb_t);
 
-uint256 mul(const uint256& x, const uint256& y) noexcept
+inline uint256 mul(const uint256& x, const uint256& y) noexcept
 {
     uint256 p[2];
     auto p_p = (mp_ptr)&p;
@@ -26,7 +26,7 @@ uint256 mul(const uint256& x, const uint256& y) noexcept
     return p[0];
 }
 
-uint512 mul_full(const uint256& x, const uint256& y) noexcept
+inline uint512 mul_full(const uint256& x, const uint256& y) noexcept
 {
     uint512 p;
     auto p_p = (mp_ptr)&p;
@@ -36,7 +36,7 @@ uint512 mul_full(const uint256& x, const uint256& y) noexcept
     return p;
 }
 
-uint512 mul(const uint512& x, const uint512& y) noexcept
+inline uint512 mul(const uint512& x, const uint512& y) noexcept
 {
     uint512 p[2];
     auto p_p = (mp_ptr)&p;
@@ -47,7 +47,7 @@ uint512 mul(const uint512& x, const uint512& y) noexcept
 }
 
 template <typename Int>
-std::tuple<Int, Int> udivrem(const Int& x, const Int& y) noexcept
+inline std::tuple<Int, Int> udivrem(const Int& x, const Int& y) noexcept
 {
     // Skip dividend's leading zero limbs.
     constexpr size_t x_limbs = sizeof(Int) / sizeof(mp_limb_t);
@@ -63,7 +63,7 @@ std::tuple<Int, Int> udivrem(const Int& x, const Int& y) noexcept
 };
 
 template <typename Int>
-std::tuple<Int, Int> sdivrem(const Int& x, const Int& y) noexcept
+inline std::tuple<Int, Int> sdivrem(const Int& x, const Int& y) noexcept
 {
     const auto sign_bit_mask = Int(1) << (sizeof(Int) * 8 - 1);
     auto x_is_neg = (x & sign_bit_mask) != 0;
@@ -80,7 +80,7 @@ std::tuple<Int, Int> sdivrem(const Int& x, const Int& y) noexcept
     mpz_t y_gmp;
     mpz_init_set_str(y_gmp, to_string(y_abs).c_str(), 10);
     if (y_is_neg)
-        mpz_neg(x_gmp, x_gmp);
+        mpz_neg(y_gmp, y_gmp);
 
     mpz_t q_gmp;
     mpz_init(q_gmp);
@@ -89,18 +89,27 @@ std::tuple<Int, Int> sdivrem(const Int& x, const Int& y) noexcept
 
     mpz_tdiv_qr(q_gmp, r_gmp, x_gmp, y_gmp);
 
-    char buf[100];
-    mpz_get_str(buf, sizeof(buf), q_gmp);
-    auto q = from_string(buf);
+    char buf[200];
 
-    mpz_get_str(buf, sizeof(buf), r_gmp);
-    auto r = from_string(buf);
+    mpz_get_str(buf, 10, q_gmp);
+    auto q_is_neg = buf[0] == '-';
+    auto q = from_string(&buf[q_is_neg]);
+    if (q_is_neg)
+        q = -q;
+
+    mpz_get_str(buf, 10, r_gmp);
+    auto r_is_neg = buf[0] == '-';
+    auto r = from_string(&buf[r_is_neg]);
+    if (r_is_neg)
+        r = -r;
+
+    mpz_clears(x_gmp, y_gmp, q_gmp, r_gmp, NULL);
 
     return {q, r};
 };
 
 template <typename Int>
-Int add(const Int& x, const Int& y) noexcept
+inline Int add(const Int& x, const Int& y) noexcept
 {
     constexpr size_t gmp_limbs = sizeof(Int) / sizeof(mp_limb_t);
 
@@ -113,7 +122,7 @@ Int add(const Int& x, const Int& y) noexcept
 }
 
 template <typename Int>
-Int sub(const Int& x, const Int& y) noexcept
+inline Int sub(const Int& x, const Int& y) noexcept
 {
     constexpr size_t gmp_limbs = sizeof(Int) / sizeof(mp_limb_t);
 

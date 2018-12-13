@@ -8,6 +8,8 @@
 #include "../utils/random.hpp"
 #include <gtest/gtest.h>
 
+#include "../utils/gmp.hpp"
+
 using namespace intx;
 
 TEST(div, normalize)
@@ -131,5 +133,27 @@ TEST(div, sdivrem_256)
         std::tie(q, r) = sdivrem(t.numerator, t.denominator);
         EXPECT_EQ(q, t.quotient);
         EXPECT_EQ(r, t.reminder);
+
+        uint256 k, l;
+        std::tie(k, l) = gmp::sdivrem(t.numerator, t.denominator);
+        EXPECT_EQ(k, q);
+        EXPECT_EQ(l, r);
     }
+}
+
+TEST(div, sdivrem_512)
+{
+    auto n = -13_u512;
+    auto d = -3_u512;
+
+    uint512 q, r;
+    std::tie(q, r) = sdivrem(n, d);
+
+    EXPECT_EQ(q, 4_u512);
+    EXPECT_EQ(r, -1_u512);
+
+    uint512 k, l;
+    std::tie(k, l) = gmp::sdivrem(n, d);
+    EXPECT_EQ(k, q);
+    EXPECT_EQ(l, r);
 }
