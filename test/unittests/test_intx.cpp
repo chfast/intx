@@ -361,7 +361,7 @@ TEST_F(Uint256Test, shift_loop_one_bit)
 
 TEST_F(Uint256Test, not_of_zero)
 {
-    uint256 ones = bitwise_not(uint256(0));
+    uint256 ones = ~uint256(0);
     for (unsigned pos = 0; pos < 256; ++pos)
     {
         uint256 probe = shl(uint256(1), pos);
@@ -418,6 +418,17 @@ TEST_P(Uint256ParamTest, mul_against_add)
 }
 INSTANTIATE_TEST_CASE_P(primes, Uint256ParamTest,
     testing::Values(0, 1, 2, 3, 17, 19, 32, 512, 577, 2048, 2069, 3011, 7919, 8192));
+
+TEST(uint256, negation_overflow)
+{
+    auto x = -1_u256;
+    auto z = 0_u256;
+    EXPECT_NE(x, z);
+    EXPECT_EQ(x, ~z);
+
+    auto m = 1_u256 << 255;  // Minimal signed value.
+    EXPECT_EQ(-m, m);
+}
 
 TEST(uint512, literal)
 {

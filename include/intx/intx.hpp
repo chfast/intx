@@ -276,14 +276,14 @@ inline constexpr uint256 bitwise_xor(uint256 x, uint256 y)
     return {x.lo ^ y.lo, x.hi ^ y.hi};
 }
 
-inline constexpr uint256 bitwise_not(uint256 x)
+inline constexpr uint256 operator~(const uint256& x) noexcept
 {
     return {~x.lo, ~x.hi};
 }
 
-inline constexpr uint512 bitwise_not(uint512 x)
+inline constexpr uint512 operator~(const uint512& x) noexcept
 {
-    return {bitwise_not(x.lo), bitwise_not(x.hi)};
+    return {~x.lo, ~x.hi};
 }
 
 inline uint128 shl(uint128 a, unsigned b)
@@ -473,20 +473,10 @@ inline Int add(Int a, Int2 b)
     return add(a, Int(b));
 }
 
-inline uint128 minus(uint128 x)
-{
-    return -x;
-}
-
-inline uint64_t minus(uint64_t x)
-{
-    return -x;
-}
-
 template <typename Int>
-inline Int minus(Int x)
+inline constexpr Int operator-(const Int& x) noexcept
 {
-    return add(bitwise_not(x), uint64_t(1));
+    return add(~x, uint64_t(1));
 }
 
 inline uint128 sub(uint128 a, uint128 b)
@@ -497,13 +487,13 @@ inline uint128 sub(uint128 a, uint128 b)
 template <typename Int>
 inline Int sub(Int a, uint64_t b)
 {
-    return add(a, minus(b));
+    return add(a, -b);
 }
 
 template <typename Int>
 inline Int sub(Int a, Int b)
 {
-    return add(a, minus(b));
+    return add(a, -b);
 }
 
 inline uint128 mul(uint128 a, uint128 b)
@@ -791,7 +781,7 @@ inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
     auto z = shl(Int(1), c);
 
     // z recurrence
-    auto my = minus(y);
+    auto my = -y;
     for (int i = 0; i < traits<Int>::unr_iterations; ++i)
     {
         auto m = mul(my, z);
@@ -1014,7 +1004,12 @@ inline Int bswap(const Int& x) noexcept
 }
 
 
-inline uint512 operator "" _u512(const char* s)
+constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
+{
+    return uint256{x};
+}
+
+inline uint512 operator"" _u512(const char* s)
 {
     uint512 x;
 
