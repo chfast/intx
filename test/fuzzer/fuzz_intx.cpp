@@ -17,6 +17,7 @@ enum class op : uint8_t
     lsr,
     add,
     sub,
+    sdivrem,
 };
 
 template <typename T>
@@ -46,6 +47,15 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         {
             auto x = udivrem(a, b);
             auto y = gmp::udivrem(a, b);
+            expect_eq(std::get<0>(x), std::get<0>(y));
+            expect_eq(std::get<1>(x), std::get<1>(y));
+        }
+        break;
+    case op::sdivrem:
+        if (b != 0)
+        {
+            auto x = sdivrem(a, b);
+            auto y = gmp::sdivrem(a, b);
             expect_eq(std::get<0>(x), std::get<0>(y));
             expect_eq(std::get<1>(x), std::get<1>(y));
         }

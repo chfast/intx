@@ -5,6 +5,7 @@
 #include <div.hpp>
 #include <intx/intx.hpp>
 
+#include "../utils/random.hpp"
 #include <gtest/gtest.h>
 
 using namespace intx;
@@ -76,15 +77,16 @@ TEST(div, normalize)
     EXPECT_EQ(na.denominator[5], 0);
 }
 
+template<typename Int>
 struct div_test_case
 {
-    uint512 numerator;
-    uint512 denominator;
-    uint512 quotient;
-    uint512 reminder;
+    Int numerator;
+    Int denominator;
+    Int quotient;
+    Int reminder;
 };
 
-static div_test_case div_test_cases[] = {
+static div_test_case<uint512> div_test_cases[] = {
     {
         0x10000000000000000_u512,
         2,
@@ -105,6 +107,28 @@ TEST(div, udivrem_512)
     {
         uint512 q, r;
         std::tie(q, r) = udivrem(t.numerator, t.denominator);
+        EXPECT_EQ(q, t.quotient);
+        EXPECT_EQ(r, t.reminder);
+    }
+}
+
+
+static div_test_case<uint256> sdivrem_test_cases[] = {
+    {13_u256, 3_u256, 4_u256, 1_u256},
+    {-13_u256, 3_u256, -4_u256, -1_u256},
+    {13_u256, -3_u256, -4_u256, 1_u256},
+    {-13_u256, -3_u256, 4_u256, -1_u256},
+    {1_u256 << 255, -1_u256, 1_u256 << 255, 0},
+};
+
+TEST(div, sdivrem_256)
+{
+    for (auto& t : sdivrem_test_cases)
+    {
+        EXPECT_EQ(t.denominator * t.quotient + t.reminder, t.numerator);
+
+        uint256 q, r;
+        std::tie(q, r) = sdivrem(t.numerator, t.denominator);
         EXPECT_EQ(q, t.quotient);
         EXPECT_EQ(r, t.reminder);
     }
