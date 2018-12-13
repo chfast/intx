@@ -113,7 +113,7 @@ TEST_F(Uint256Test, mul_against_gmp)
     {
         for (auto b : numbers)
         {
-            uint256 gmp = gmp_mul(a, b);
+            uint256 gmp = gmp::mul(a, b);
 
             auto p = mul(a, b);
             auto q = mul_loop(a, b);
@@ -132,7 +132,7 @@ TEST_F(Uint256Test, umul_full_against_gmp)
     {
         for (auto b : numbers)
         {
-            uint512 gmp = gmp_mul_full(a, b);
+            uint512 gmp = gmp::mul_full(a, b);
 
             uint512 p = umul_full(a, b);
             uint512 q = umul_full_loop(a, b);
@@ -193,8 +193,8 @@ TEST_F(Uint256Test, udiv_against_gmp)
             uint256 q, r, q_gmp, r_gmp;
             uint256 n_gmp = a;
             uint256 d_gmp = d;
-            std::tie(q, r) = udiv_qr_unr(a, d);
-            std::tie(q_gmp, r_gmp) = gmp_udiv_qr(n_gmp, d_gmp);
+            std::tie(q, r) = udivrem_unr(a, d);
+            std::tie(q_gmp, r_gmp) = gmp::udivrem(n_gmp, d_gmp);
             EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
             EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
 
@@ -225,8 +225,8 @@ TEST_F(Uint256Test, udiv_against_gmp_single_case)
     d = d << 135;
 
     uint256 q, r, q_gmp, r_gmp;
-    std::tie(q, r) = udiv_qr_unr(n, d);
-    std::tie(q_gmp, r_gmp) = gmp_udiv_qr(n, d);
+    std::tie(q, r) = udivrem_unr(n, d);
+    std::tie(q_gmp, r_gmp) = gmp::udivrem(n, d);
     EXPECT_EQ(q, q_gmp) << to_string(n) << " / " << to_string(d) << " = " << to_string(q);
     EXPECT_EQ(r, r_gmp) << to_string(n) << " % " << to_string(d) << " = " << to_string(r);
 }
@@ -249,7 +249,7 @@ TEST_F(Uint256Test, simple_udiv128)
     uint128 u = from_string("9297908619707014221872256226986501789").lo;
     uint128 v = 693770641275760104;
     uint128 q, r;
-    std::tie(q, r) = udiv_dc(u, v);
+    std::tie(q, r) = udivrem_dc(u, v);
     EXPECT_EQ(q, u / v);
     EXPECT_EQ(r, u % v);
 }
@@ -291,7 +291,7 @@ TEST_F(Uint256Test, simple_udiv)
         uint256 expected_r = from_string(data[3]);
 
         uint256 q, r;
-        std::tie(q, r) = udiv_qr_unr(n, d);
+        std::tie(q, r) = udivrem_unr(n, d);
         EXPECT_EQ(q, expected_q);
         EXPECT_EQ(r, expected_r);
 
@@ -330,7 +330,7 @@ TEST_F(Uint256Test, mul_against_div)
                 continue;
             uint256 prod = mul(a, b);
             uint256 q, r;
-            std::tie(q, r) = udiv_qr_unr(prod, b);
+            std::tie(q, r) = udivrem_unr(prod, b);
             EXPECT_EQ(a, q);
             EXPECT_EQ(r, 0);
         }

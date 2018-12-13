@@ -188,7 +188,7 @@ TEST(int128, div)
 
 TEST(int128, div_random)
 {
-    int c = 100000000;
+    int c = 10000000;
 
     lcg<uint128> dist{get_seed()};
 

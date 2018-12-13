@@ -496,7 +496,7 @@ inline Int sub(Int a, Int b)
     return add(a, -b);
 }
 
-inline uint128 mul(uint128 a, uint128 b)
+inline uint128 mul(const uint128& a, const uint128& b)
 {
     return a * b;
 }
@@ -506,7 +506,7 @@ inline uint64_t mul(uint64_t a, uint64_t b)
     return a * b;
 }
 
-inline std::tuple<uint128, uint128> udiv_qr(uint128 a, uint128 b)
+inline std::tuple<uint128, uint128> udivrem(const uint128& a, const uint128& b)
 {
     return std::make_tuple(a / b, a % b);
 }
@@ -571,7 +571,7 @@ inline uint512& operator+=(uint512& x, uint512 y)
 
 
 template <typename Int>
-typename traits<Int>::double_type umul_full(Int a, Int b)
+typename traits<Int>::double_type umul_full(const Int& a, const Int& b) noexcept
 {
     // Hacker's Delight version.
 
@@ -601,7 +601,7 @@ typename traits<Int>::double_type umul_full(Int a, Int b)
 }
 
 template <typename Int>
-inline Int mul(Int a, Int b)
+inline Int mul(const Int& a, const Int& b) noexcept
 {
     // Requires 1 full mul, 2 muls and 2 adds.
     // Clang & GCC implements 128-bit multiplication this way.
@@ -611,11 +611,6 @@ inline Int mul(Int a, Int b)
     auto lo = lo_half(t);
 
     return {lo, hi};
-}
-
-inline uint512 mul512(uint512 a, uint512 b)
-{
-    return mul(a, b);
 }
 
 inline uint256 mul2(uint256 u, uint256 v)
@@ -638,7 +633,7 @@ inline uint256 mul2(uint256 u, uint256 v)
     return t4 + t3 + t2 + t1 + t0;
 }
 
-inline uint512 umul_full_loop(uint256 u, uint256 v)
+inline uint512 umul_full_loop(const uint256& u, const uint256& v) noexcept
 {
     uint512 p;
     auto pw = reinterpret_cast<uint64_t*>(&p);
@@ -659,12 +654,12 @@ inline uint512 umul_full_loop(uint256 u, uint256 v)
     return p;
 }
 
-inline uint256 mul_loop(uint256 u, uint256 v)
+inline uint256 mul_loop(const uint256& u, const uint256& v) noexcept
 {
     return umul_full_loop(u, v).lo;
 }
 
-inline uint256 mul_loop_opt(uint256 u, uint256 v)
+inline uint256 mul_loop_opt(const uint256& u, const uint256& v) noexcept
 {
     uint256 p;
     auto pw = reinterpret_cast<uint64_t*>(&p);
@@ -680,7 +675,6 @@ inline uint256 mul_loop_opt(uint256 u, uint256 v)
             pw[i + j] = lo_half(t);
             k = hi_half(t);
         }
-        //        pw[j + 4] = k;
     }
     return p;
 }
@@ -774,7 +768,7 @@ inline unsigned count_significant_words<uint64_t, uint64_t>(uint64_t x) noexcept
 }
 
 template <typename Int>
-inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
+inline std::tuple<Int, Int> udivrem_unr(const Int& x, const Int& y) noexcept
 {
     // decent start
     unsigned c = clz(y);
@@ -809,13 +803,13 @@ inline std::tuple<Int, Int> udiv_qr_unr(Int x, Int y)
     return std::make_tuple(q, r);
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(uint256 x, uint256 y);
-std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(uint256 u, uint256 v);
-std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(uint256 x, uint256 y);
-std::tuple<uint256, uint256> udiv_qr_knuth_opt(uint256 x, uint256 y);
-std::tuple<uint256, uint256> udiv_qr_knuth_64(uint256 x, uint256 y);
-std::tuple<uint512, uint512> udiv_qr_knuth_512(uint512 x, uint512 y);
-std::tuple<uint512, uint512> udiv_qr_knuth_512_64(uint512 x, uint512 y);
+std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint256& y);
+std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v);
+std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(const uint256& x, const uint256& y);
+std::tuple<uint256, uint256> udiv_qr_knuth_opt(const uint256& x, const uint256& y);
+std::tuple<uint256, uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y);
+std::tuple<uint512, uint512> udiv_qr_knuth_512(const uint512& x, const uint512& y);
+std::tuple<uint512, uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y);
 
 template <typename Int>
 inline std::tuple<Int, Int> udiv_long(typename traits<Int>::double_type u, Int v)
@@ -873,7 +867,7 @@ again2:
 }
 
 template <typename Int>
-inline std::tuple<Int, Int> udiv_dc(Int u, Int v)
+inline std::tuple<Int, Int> udivrem_dc(const Int& u, const Int& v)
 {
     using tr = traits<Int>;
 
@@ -931,7 +925,7 @@ inline std::string to_string(uint256 x)
     while (x != 0)
     {
         uint256 r;
-        std::tie(x, r) = udiv_qr_unr(x, uint256(10));
+        std::tie(x, r) = udivrem_unr(x, uint256(10));
         auto c = static_cast<size_t>(r);
         s.push_back(static_cast<char>('0' + c));
     }
