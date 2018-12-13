@@ -1053,23 +1053,4 @@ inline void store(uint8_t* dst, const Int& x) noexcept
 
 }  // namespace be
 
-namespace experiments
-{
-/// Classic implementation of +=.
-inline void add_to(uint256& a, uint128 b)
-{
-    a = add(a, b);
-}
-
-/// "Optimized" implementation of +=.
-///
-/// On clang-5 the results are these same, except the order of instructions
-/// is different.
-inline void add_to_opt(uint256& a, uint128 b)
-{
-    bool carry = false;
-    std::tie(a.lo, carry) = add_with_carry(a.lo, b);
-    a.hi += carry;
-}
-}  // namespace experiments
 }  // namespace intx
