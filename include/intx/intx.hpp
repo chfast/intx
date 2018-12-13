@@ -260,28 +260,26 @@ inline bool operator<=(Int a, Int b)
     return (a < b) || (a == b);
 }
 
-
-inline constexpr uint256 operator|(const uint256& x, const uint256& y) noexcept
+template <typename Int>
+inline constexpr Int operator|(const Int& x, const Int& y) noexcept
 {
     return {x.lo | y.lo, x.hi | y.hi};
 }
 
-inline constexpr uint256 operator&(const uint256& x, const uint256& y) noexcept
+template <typename Int>
+inline constexpr Int operator&(const Int& x, const Int& y) noexcept
 {
     return {x.lo & y.lo, x.hi & y.hi};
 }
 
-inline constexpr uint256 operator^(const uint256& x, const uint256& y) noexcept
+template <typename Int>
+inline constexpr Int operator^(const Int& x, const Int& y) noexcept
 {
     return {x.lo ^ y.lo, x.hi ^ y.hi};
 }
 
-inline constexpr uint256 operator~(const uint256& x) noexcept
-{
-    return {~x.lo, ~x.hi};
-}
-
-inline constexpr uint512 operator~(const uint512& x) noexcept
+template <typename Int>
+inline constexpr Int operator~(const Int& x) noexcept
 {
     return {~x.lo, ~x.hi};
 }
