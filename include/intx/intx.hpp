@@ -965,22 +965,10 @@ inline std::string to_string(uint512 x)
     return s;
 }
 
-inline uint256 from_string(const std::string& s)
+template<typename Int>
+inline Int from_string(const std::string& s)
 {
-    uint256 x;
-
-    for (auto c : s)
-    {
-        auto v = c - '0';
-        x *= 10;
-        x += v;
-    }
-    return x;
-}
-
-inline uint512 from_string_512(const std::string& s)
-{
-    uint512 x;
+    Int x{};
 
     for (auto c : s)
     {

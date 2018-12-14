@@ -93,13 +93,13 @@ inline std::tuple<Int, Int> sdivrem(const Int& x, const Int& y) noexcept
 
     mpz_get_str(buf, 10, q_gmp);
     auto q_is_neg = buf[0] == '-';
-    auto q = from_string(&buf[q_is_neg]);
+    auto q = from_string<Int>(&buf[q_is_neg]);
     if (q_is_neg)
         q = -q;
 
     mpz_get_str(buf, 10, r_gmp);
     auto r_is_neg = buf[0] == '-';
-    auto r = from_string(&buf[r_is_neg]);
+    auto r = from_string<Int>(&buf[r_is_neg]);
     if (r_is_neg)
         r = -r;
 

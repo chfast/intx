@@ -246,7 +246,7 @@ TEST_F(Uint256Test, add_against_sub)
 
 TEST_F(Uint256Test, simple_udiv128)
 {
-    uint128 u = from_string("9297908619707014221872256226986501789").lo;
+    uint128 u = from_string<uint128>("9297908619707014221872256226986501789");
     uint128 v = 693770641275760104;
     uint128 q, r;
     std::tie(q, r) = udivrem_dc(u, v);
@@ -285,10 +285,10 @@ TEST_F(Uint256Test, simple_udiv)
         // if (i != 5) continue;
 
         const auto& data = data_set[i];
-        uint256 n = from_string(data[0]);
-        uint256 d = from_string(data[1]);
-        uint256 expected_q = from_string(data[2]);
-        uint256 expected_r = from_string(data[3]);
+        uint256 n = from_string<uint256>(data[0]);
+        uint256 d = from_string<uint256>(data[1]);
+        uint256 expected_q = from_string<uint256>(data[2]);
+        uint256 expected_r = from_string<uint256>(data[3]);
 
         uint256 q, r;
         std::tie(q, r) = udivrem_unr(n, d);
@@ -398,7 +398,7 @@ TEST_F(Uint256Test, string_conversions)
     for (auto n : numbers)
     {
         auto s = to_string(n);
-        auto v = from_string(s);
+        auto v = from_string<uint256>(s);
         EXPECT_EQ(n, v);
     }
 }
