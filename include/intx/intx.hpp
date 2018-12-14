@@ -73,9 +73,12 @@ struct uint256
     uint128 lo = 0;
     uint128 hi = 0;
 
-    explicit operator unsigned() const { return static_cast<unsigned>(lo); }
-
-    explicit operator unsigned long() const { return static_cast<unsigned long>(lo); }
+    /// Explicit converting operator for all builtin integral types.
+    template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    explicit operator Int() const noexcept
+    {
+        return static_cast<Int>(lo);
+    }
 };
 
 struct uint512
