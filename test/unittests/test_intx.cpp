@@ -365,7 +365,7 @@ TEST_F(Uint256Test, not_of_zero)
     for (unsigned pos = 0; pos < 256; ++pos)
     {
         uint256 probe = shl(uint256(1), pos);
-        uint256 test = bitwise_and(probe, ones);
+        uint256 test = probe & ones;
         EXPECT_NE(test, 0) << "bit position: " << pos;
     }
 }

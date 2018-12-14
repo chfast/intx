@@ -260,28 +260,26 @@ inline bool operator<=(Int a, Int b)
     return (a < b) || (a == b);
 }
 
-
-inline constexpr uint256 bitwise_or(uint256 x, uint256 y)
+template <typename Int>
+inline constexpr Int operator|(const Int& x, const Int& y) noexcept
 {
     return {x.lo | y.lo, x.hi | y.hi};
 }
 
-inline constexpr uint256 bitwise_and(uint256 x, uint256 y)
+template <typename Int>
+inline constexpr Int operator&(const Int& x, const Int& y) noexcept
 {
     return {x.lo & y.lo, x.hi & y.hi};
 }
 
-inline constexpr uint256 bitwise_xor(uint256 x, uint256 y)
+template <typename Int>
+inline constexpr Int operator^(const Int& x, const Int& y) noexcept
 {
     return {x.lo ^ y.lo, x.hi ^ y.hi};
 }
 
-inline constexpr uint256 operator~(const uint256& x) noexcept
-{
-    return {~x.lo, ~x.hi};
-}
-
-inline constexpr uint512 operator~(const uint512& x) noexcept
+template <typename Int>
+inline constexpr Int operator~(const Int& x) noexcept
 {
     return {~x.lo, ~x.hi};
 }
@@ -299,12 +297,6 @@ inline uint64_t shl(uint64_t a, unsigned b)
 inline uint128 lsr(uint128 a, unsigned b)
 {
     return a >> b;
-}
-
-
-inline uint256 operator|(uint256 x, uint256 y)
-{
-    return bitwise_or(x, y);
 }
 
 template <typename Int>
@@ -592,7 +584,7 @@ typename traits<Int>::double_type umul_full(const Int& a, const Int& b) noexcept
     u = mul(al, bh);
     t = add(u, Int(lo_half(t)));
     u = shl(t, traits<Int>::half_bits);
-    l = bitwise_or(l, u);
+    l = l | u;
     u = mul(ah, bh);
     t = add(u, Int(hi_half(t)));
     h = add(h, t);
