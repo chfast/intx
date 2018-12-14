@@ -117,7 +117,7 @@ std::tuple<uint512, uint512> udivrem_knuth(div::normalized_args& na) noexcept
 }  // namespace
 }  // namespace div
 
-std::tuple<uint512, uint512> udivrem(const uint512& u, const uint512& v)
+std::tuple<uint512, uint512> udivrem(const uint512& u, const uint512& v) noexcept
 {
     auto na = div::normalize(u, v);
 
@@ -130,7 +130,7 @@ std::tuple<uint512, uint512> udivrem(const uint512& u, const uint512& v)
     return div::udivrem_knuth(na);
 }
 
-std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v)
+std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v) noexcept
 {
     auto x = udivrem(uint512(u), uint512(v));
     return {std::get<0>(x).lo, std::get<1>(x).lo};

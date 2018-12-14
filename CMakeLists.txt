@@ -25,7 +25,7 @@ option(INTX_TESTING "Build IntX with tests" ON)
 option(INTX_FUZZING "Build intx fuzzers" OFF)
 
 if(INTX_FUZZING)
-    set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined)
+    set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined,address)
     add_compile_options(${fuzzing_flags})
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${fuzzing_flags}")
 endif()

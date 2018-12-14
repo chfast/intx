@@ -300,7 +300,7 @@ inline uint128 lsr(uint128 a, unsigned b)
 }
 
 template <typename Int>
-inline Int shl(Int x, unsigned shift)
+inline Int shl(Int x, unsigned shift) noexcept
 {
     using half_type = typename traits<Int>::half_type;
     constexpr auto bits = traits<Int>::bits;
@@ -541,7 +541,7 @@ inline decltype(sub(Int1{}, Int2{})) operator-(const Int1& x, const Int2& y)
     return sub(x, y);
 }
 
-inline uint256 operator<<(uint256 x, unsigned y)
+inline uint256 operator<<(uint256 x, unsigned y) noexcept
 {
     return shl(x, y);
 }
@@ -899,8 +899,26 @@ inline std::tuple<Int, Int> udivrem_dc(const Int& u, const Int& v)
     return std::make_tuple(q0, r);
 }
 
-std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v);
-std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y);
+std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v) noexcept;
+std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y) noexcept;
+
+template <typename Int>
+std::tuple<Int, Int> sdivrem(const Int& u, const Int& v) noexcept
+{
+    const auto sign_mask = Int(1) << (sizeof(Int) * 8 - 1);
+    auto u_is_neg = (u & sign_mask) != 0;
+    auto v_is_neg = (v & sign_mask) != 0;
+
+    auto u_abs = u_is_neg ? -u : u;
+    auto v_abs = v_is_neg ? -v : v;
+
+    auto q_is_neg = u_is_neg ^ v_is_neg;
+
+    Int q, r;
+    std::tie(q, r) = udivrem(u_abs, v_abs);
+
+    return {q_is_neg ? -q : q, u_is_neg ? -r: r};
+}
 
 template <typename Int>
 inline Int operator/(const Int& x, const Int& y) noexcept
@@ -947,22 +965,10 @@ inline std::string to_string(uint512 x)
     return s;
 }
 
-inline uint256 from_string(const std::string& s)
+template<typename Int>
+inline Int from_string(const std::string& s)
 {
-    uint256 x;
-
-    for (auto c : s)
-    {
-        auto v = c - '0';
-        x *= 10;
-        x += v;
-    }
-    return x;
-}
-
-inline uint512 from_string_512(const std::string& s)
-{
-    uint512 x;
+    Int x{};
 
     for (auto c : s)
     {
@@ -990,14 +996,17 @@ inline Int bswap(const Int& x) noexcept
 }
 
 
-constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
-{
-    return uint256{x};
-}
+//constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
+//{
+//    return uint256{x};
+//}
 
-inline uint512 operator"" _u512(const char* s)
+template <typename Int>
+inline Int parse_literal(const char* s) noexcept
 {
-    uint512 x;
+    // TODO: It can buffer overflow.
+    // TODO: Control the length of the s, not to overflow the integer.
+    Int x;
 
     if (s[0] == '0' && s[1] == 'x')
     {
@@ -1019,6 +1028,16 @@ inline uint512 operator"" _u512(const char* s)
         x += (c - '0');
     }
     return x;
+}
+
+inline uint256 operator"" _u256(const char* s) noexcept
+{
+    return parse_literal<uint256>(s);
+}
+
+inline uint512 operator"" _u512(const char* s) noexcept
+{
+    return parse_literal<uint512>(s);
 }
 
 namespace be  // Conversions to/from BE bytes.

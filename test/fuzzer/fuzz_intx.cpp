@@ -11,12 +11,13 @@ using namespace intx;
 
 enum class op : uint8_t
 {
-    divrem,
-    mul,
-    shl,
-    lsr,
-    add,
-    sub,
+    divrem = 0x00,
+    mul = 0x01,
+    shl = 0x02,
+    lsr = 0x03,
+    add = 0x04,
+    sub = 0x05,
+    sdivrem = 0x06,
 };
 
 template <typename T>
@@ -46,6 +47,15 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         {
             auto x = udivrem(a, b);
             auto y = gmp::udivrem(a, b);
+            expect_eq(std::get<0>(x), std::get<0>(y));
+            expect_eq(std::get<1>(x), std::get<1>(y));
+        }
+        break;
+    case op::sdivrem:
+        if (b != 0)
+        {
+            auto x = sdivrem(a, b);
+            auto y = gmp::sdivrem(a, b);
             expect_eq(std::get<0>(x), std::get<0>(y));
             expect_eq(std::get<1>(x), std::get<1>(y));
         }
