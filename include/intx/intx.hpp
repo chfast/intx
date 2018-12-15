@@ -73,9 +73,12 @@ struct uint256
     uint128 lo = 0;
     uint128 hi = 0;
 
-    explicit operator unsigned() const { return static_cast<unsigned>(lo); }
-
-    explicit operator unsigned long() const { return static_cast<unsigned long>(lo); }
+    /// Explicit converting operator for all builtin integral types.
+    template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    explicit operator Int() const noexcept
+    {
+        return static_cast<Int>(lo);
+    }
 };
 
 struct uint512
@@ -551,15 +554,24 @@ inline uint256 operator>>(uint256 x, unsigned y)
     return lsr(x, y);
 }
 
-inline uint256& operator+=(uint256& x, uint256 y)
+template<typename Int1, typename Int2>
+inline Int1& operator+=(Int1& x, const Int2& y)
 {
     return x = x + y;
 }
 
-inline uint512& operator+=(uint512& x, uint512 y)
+template<typename Int1, typename Int2>
+inline Int1& operator-=(Int1& x, const Int2& y)
 {
-    return x = x + y;
+    return x = x - y;
 }
+
+template<typename Int1, typename Int2>
+inline Int1& operator*=(Int1& x, const Int2& y)
+{
+    return x = x * y;
+}
+
 
 
 template <typename Int>
