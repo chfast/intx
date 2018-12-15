@@ -554,15 +554,24 @@ inline uint256 operator>>(uint256 x, unsigned y)
     return lsr(x, y);
 }
 
-inline uint256& operator+=(uint256& x, uint256 y)
+template<typename Int1, typename Int2>
+inline Int1& operator+=(Int1& x, const Int2& y)
 {
     return x = x + y;
 }
 
-inline uint512& operator+=(uint512& x, uint512 y)
+template<typename Int1, typename Int2>
+inline Int1& operator-=(Int1& x, const Int2& y)
 {
-    return x = x + y;
+    return x = x - y;
 }
+
+template<typename Int1, typename Int2>
+inline Int1& operator*=(Int1& x, const Int2& y)
+{
+    return x = x * y;
+}
+
 
 
 template <typename Int>
