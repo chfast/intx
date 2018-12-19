@@ -7,6 +7,7 @@
 #include <intx/builtins.h>
 #include <intx/mul_full.h>
 #include <cstdint>
+#include <type_traits>
 
 namespace intx
 {
@@ -17,9 +18,20 @@ struct uint128
 
     constexpr uint128() noexcept = default;
 
-    constexpr uint128(uint64_t x) noexcept : lo{x} {}
+    template <typename T>
+    constexpr uint128(typename std::enable_if<std::is_unsigned<T>::value>::type x) noexcept : lo{x}
+    {}
+
+    template <typename T>
+    constexpr explicit uint128(typename std::enable_if<std::is_signed<T>::value>::type x) noexcept
+      : lo{static_cast<uint64_t>(x)}
+    {}
 
     constexpr uint128(uint64_t hi, uint64_t lo) noexcept : lo{lo}, hi{hi} {}
+
+#ifdef __SIZEOF_INT128__
+    constexpr uint128(unsigned __int128 x) noexcept : lo{uint64_t(x)}, hi{uint64_t(x >> 64)} {}
+#endif
 };
 
 
