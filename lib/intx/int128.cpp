@@ -45,12 +45,12 @@ div_result<uint128> udivrem(uint128 x, uint128 y)
 
 }  // namespace
 
-uint128 operator/(const uint128& x, const uint128& y) noexcept
+uint128 operator/(uint128 x, uint128 y) noexcept
 {
     return udivrem(x, y).quot;
 }
 
-uint128 operator%(const uint128& x, const uint128& y) noexcept
+uint128 operator%(uint128 x, uint128 y) noexcept
 {
     return udivrem(x, y).rem;
 }
