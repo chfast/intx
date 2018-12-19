@@ -57,3 +57,21 @@ BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gcc);
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128);
 // Disabled, sometimes hangs the release build.
 // BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);
+
+
+template <decltype(div_gcc) DivFn>
+static void udiv128_single_long(benchmark::State& state)
+{
+    uint128 x = {0x0e657725ff64cd48, 0xb8fe188a09dc4f78};
+    uint128 y = 0xe7e47d96b32ef2d5;
+
+    for (auto _ : state)
+    {
+        benchmark::ClobberMemory();
+        auto q = DivFn(x, y);
+        benchmark::DoNotOptimize(q);
+    }
+}
+BENCHMARK_TEMPLATE(udiv128_single_long, div_gcc);
+BENCHMARK_TEMPLATE(udiv128_single_long, div_uint128);
+BENCHMARK_TEMPLATE(udiv128_single_long, div_gmp);
