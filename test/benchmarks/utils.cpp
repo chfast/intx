@@ -6,13 +6,11 @@
 
 #include <cstring>
 
-using namespace intx;
-
-uint128 div_gcc(uint128 x, uint128 y) noexcept
+intx::uint128 div_gcc(intx::uint128 x, intx::uint128 y) noexcept
 {
     unsigned __int128 u, v;
     std::memcpy(&u, &x, sizeof(u));
     std::memcpy(&v, &y, sizeof(v));
-    auto q = u / y;
-    return *(uint128*)&q;
+    auto q = u / v;
+    return {uint64_t(q >> 64), uint64_t(q)};
 }
