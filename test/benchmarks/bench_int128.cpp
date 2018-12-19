@@ -16,6 +16,11 @@ inline uint128 div_uint128(uint128 x, uint128 y) noexcept
     return x / y;
 }
 
+inline uint128 div_uint128_udiv(uint128 x, uint128 y) noexcept
+{
+    return udiv(x, y);
+}
+
 
 inline uint128 div_gmp(uint128 x, uint128 y) noexcept
 {
@@ -37,6 +42,7 @@ static void udiv128(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128, div_gcc);
 BENCHMARK_TEMPLATE(udiv128, div_uint128);
+BENCHMARK_TEMPLATE(udiv128, div_uint128_udiv);
 BENCHMARK_TEMPLATE(udiv128, div_gmp);
 
 
@@ -55,8 +61,9 @@ static void udiv128_worst_shift(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gcc);
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128);
+BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128_udiv);
 // Disabled, sometimes hangs the release build.
-// BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);
+//BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);
 
 
 template <decltype(div_gcc) DivFn>
@@ -74,4 +81,5 @@ static void udiv128_single_long(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128_single_long, div_gcc);
 BENCHMARK_TEMPLATE(udiv128_single_long, div_uint128);
+BENCHMARK_TEMPLATE(udiv128_single_long, div_uint128_udiv);
 BENCHMARK_TEMPLATE(udiv128_single_long, div_gmp);

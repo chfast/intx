@@ -142,6 +142,13 @@ TEST(int128, div64)
 }
 
 static const uint128 division_test_vectors[][2] = {
+    {{0x8000000000000000, 1}, {0x8000000000000000, 1}},
+    {{0x8000000000000000, 1}, {0x8000000000000001, 1}},
+    {{0x8000000000000001, 1}, {0x8000000000000000, 1}},
+    {{0x8000000000000000, 2}, {0x8000000000000000, 1}},
+    {{0x8000000000000000, 1}, {0x8000000000000000, 2}},
+    {{1, 5}, {0, 7}},
+    {{1, 5}, {2, 7}},
     {{0xffffffffffffffff, 0xffffffffffffffff}, {1, 0xffffffffffffffff}},
     {{0xee657725ff64cd48, 0xb8fe188a09dc4f78}, {0, 3}},  // Worst case for shift divs.
     {{0xbaf3f54fc23ec50a, 0x8db107aae7021a11}, {1, 0xa8d309c2d1c0a3ab}},
@@ -184,6 +191,10 @@ TEST(int128, div)
         uint128 er{uint64_t(nr >> 64), uint64_t(nr)};
         EXPECT_EQ(q, eq) << index;
         EXPECT_EQ(r, er) << index;
+
+        auto e = udiv(v[0], v[1]);
+        EXPECT_EQ(e, q) << index;
+
         index++;
     }
 }
