@@ -23,7 +23,7 @@ inline div_result<uint64_t> udivrem_long(uint128 u, uint64_t v) noexcept
     return {q, r};
 }
 
-div_result<uint128> udivrem(uint128 x, uint128 y)
+div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 {
     if (y.hi == 0)
     {
