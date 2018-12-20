@@ -62,6 +62,8 @@ void static_test_arith()
     static_assert(s - 0 == s, "");
     static_assert(s + 0 == s, "");
     static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff}, "");
+    static_assert(0 - uint128(2) == uint128{0xffffffffffffffff, 0xfffffffffffffffe}, "");
+    static_assert(uint128(13) - 17 == uint128{0xffffffffffffffff, 0xfffffffffffffffc}, "");
 }
 
 TEST(int128, mul)
