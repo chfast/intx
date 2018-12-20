@@ -102,7 +102,7 @@ constexpr uint128 operator-(const uint128& x) noexcept
 
 constexpr uint128 operator-(const uint128& x, const uint128& y) noexcept
 {
-    return x + -y;
+    return {x.hi - y.hi - (x.lo < (x.lo - y.lo)), x.lo - y.lo};
 }
 
 inline uint128& operator+=(uint128& x, const uint128& y) noexcept
