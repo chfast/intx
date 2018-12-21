@@ -15,18 +15,27 @@ inline std::tuple<uint64_t, uint64_t> udivrem(uint64_t u, uint64_t v) noexcept
     return {u / v, u % v};
 }
 
-inline std::tuple<uint512, uint32_t> udivrem_1(const uint512& x, uint32_t v)
+union uint512_words
 {
     static constexpr int num_words = sizeof(uint512) / sizeof(uint32_t);
 
-    uint32_t r = 0;
-    uint512 qq = 0;
-    auto* u = reinterpret_cast<const uint32_t*>(&x);
-    auto* q = reinterpret_cast<uint32_t*>(&qq);
+    const uint512 number;
+    uint32_t words[num_words];
 
-    for (int j = num_words - 1; j >= 0; --j)
+    constexpr explicit uint512_words(uint512 number = {}) noexcept : number{number} {}
+
+    uint32_t& operator[](size_t index) { return words[index]; }
+};
+
+inline std::tuple<uint512, uint32_t> udivrem_1(const uint512& x, uint32_t v)
+{
+    uint32_t r = 0;
+    uint512_words q;
+    uint512_words u{x};
+
+    for (int j = decltype(q)::num_words - 1; j >= 0; --j)
         std::tie(q[j], r) = udivrem(join(r, u[j]), v);
-    return {qq, r};
+    return {q.number, r};
 }
 
 std::tuple<uint512, uint512> udivrem_knuth(div::normalized_args& na) noexcept
@@ -39,10 +48,8 @@ std::tuple<uint512, uint512> udivrem_knuth(div::normalized_args& na) noexcept
     auto m = na.num_numerator_words - na.num_denominator_words;
     auto n = na.num_denominator_words;
 
-    uint512 qq;
-    uint512 rr;
-    auto* q = reinterpret_cast<uint32_t*>(&qq);
-    auto* r = reinterpret_cast<uint32_t*>(&rr);
+    uint512_words q;
+    uint512_words r;
 
     int j = m;
     do
@@ -112,7 +119,7 @@ std::tuple<uint512, uint512> udivrem_knuth(div::normalized_args& na) noexcept
         for (int i = n - 1; i >= 0; i--)
             r[i] = u[i];
     }
-    return {qq, rr};
+    return {q.number, r.number};
 }
 }  // namespace
 }  // namespace div
