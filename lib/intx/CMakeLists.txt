@@ -13,6 +13,8 @@ add_library(intx
     ${include_dir}/intx/safe.hpp
     div.cpp
     div.hpp
+    experiments.cpp
+    experiments.hpp
     int128.cpp
     intx.cpp
 )
