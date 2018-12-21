@@ -38,7 +38,7 @@ div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 
     auto res = udivrem_long({unx, un.hi}, vn.hi);
     if (uint128(res.quot) * vn.lo > uint128{res.rem, un.lo})
-        res.quot -= 1;  // TODO: Implement ++ / --.
+        --res.quot;
 
     return {res.quot, x - (y * res.quot)};
 }
