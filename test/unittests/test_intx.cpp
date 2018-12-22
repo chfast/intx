@@ -3,15 +3,16 @@
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 #include "../utils/gmp.hpp"
+#include "test_cases.hpp"
 
 #include <intx/intx.hpp>
 
-#include <gtest/gtest.h>
 #include <gmp.h>
+#include <gtest/gtest.h>
 
 using namespace intx;
 
-//constexpr uint64_t maximal[] = {
+// constexpr uint64_t maximal[] = {
 //    0x0000000000000000,
 //    0x0000000000000001,
 //    0x0000000000000002,
@@ -54,9 +55,9 @@ constexpr uint64_t minimal[] = {
     0xffffffffffffffff,
 };
 
-class Uint256Test : public testing::Test {
+class Uint256Test : public testing::Test
+{
 protected:
-
     static constexpr size_t limbs = sizeof(uint256) / sizeof(mp_limb_t);
 
     std::vector<uint256> numbers;
@@ -85,7 +86,8 @@ protected:
 };
 
 class Uint256ParamTest : public Uint256Test, public ::testing::WithParamInterface<int>
-{};
+{
+};
 
 TEST_F(Uint256Test, add_against_gmp)
 {
@@ -451,4 +453,19 @@ TEST(uint512, bswap)
     auto x = 1_u512;
     auto y = bswap(x);
     EXPECT_EQ(y, shl(1_u512, 504));
+}
+
+TEST(uint256, arithmetic)
+{
+    for (const auto& t : arithmetic_test_cases)
+    {
+        EXPECT_EQ(t.x + t.y, t.sum);
+        EXPECT_EQ(t.y + t.x, t.sum);
+        EXPECT_EQ(t.sum - t.x, t.y);
+        EXPECT_EQ(t.sum - t.y, t.x);
+        EXPECT_EQ(t.sum + -t.x, t.y);
+        EXPECT_EQ(t.sum + -t.y, t.x);
+        EXPECT_EQ(t.x * t.y, t.product);
+        EXPECT_EQ(t.y * t.x, t.product);
+    }
 }
