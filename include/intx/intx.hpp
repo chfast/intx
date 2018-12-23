@@ -369,6 +369,12 @@ inline Int operator>>(const Int& x, const Int& shift) noexcept
     return 0;
 }
 
+template<typename Int>
+inline Int& operator>>=(Int& x, unsigned shift) noexcept
+{
+    return x = lsr(x, shift);
+}
+
 template <typename Int>
 inline Int lsr(Int x, unsigned shift)
 {
@@ -707,6 +713,20 @@ inline uint256& operator*=(uint256& x, uint256 y)
 inline uint512& operator*=(uint512& x, uint512 y)
 {
     return x = x * y;
+}
+
+template<typename Int>
+Int exp(Int base, Int exponent) noexcept
+{
+    Int result{1};
+    while (exponent != 0)
+    {
+        if ((exponent & Int{1}) != 0)
+            result *= base;
+        base *= base;
+        exponent >>= 1;
+    }
+    return result;
 }
 
 using gcc::clz;
