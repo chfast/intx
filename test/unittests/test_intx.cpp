@@ -469,3 +469,12 @@ TEST(uint256, arithmetic)
         EXPECT_EQ(t.y * t.x, t.product);
     }
 }
+
+TEST(uint256, exp)
+{
+    EXPECT_EQ(exp(3_u256, 0_u256), 1);
+    EXPECT_EQ(exp(3_u256, 1_u256), 3);
+    EXPECT_EQ(exp(3_u256, 2_u256), 9);
+    EXPECT_EQ(exp(3_u256, 20181229_u256),
+        83674153047243082998136072363356897816464308069321161820168341056719375264851_u256);
+}
