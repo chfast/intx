@@ -478,3 +478,10 @@ TEST(uint256, exp)
     EXPECT_EQ(exp(3_u256, 20181229_u256),
         83674153047243082998136072363356897816464308069321161820168341056719375264851_u256);
 }
+
+TEST(uint256, count_significant_bytes)
+{
+    auto w = count_significant_words<uint8_t>(1_u256 << 113);
+    EXPECT_EQ(w, 15);
+    EXPECT_EQ(count_significant_words<uint8_t>(0_u256), 0);
+}

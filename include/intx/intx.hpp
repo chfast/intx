@@ -1,4 +1,5 @@
-// Copyright 2017 Pawel Bylica.
+// intx: extended precision integer library.
+// Copyright 2018 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 #pragma once
@@ -140,9 +141,30 @@ struct traits<uint512>
     //    static constexpr int unr_iterations = 8;
 };
 
+
+constexpr uint8_t lo_half(uint16_t x)
+{
+    return static_cast<uint8_t>(x);
+}
+constexpr uint16_t lo_half(uint32_t x)
+{
+    return static_cast<uint16_t>(x);
+}
+
+
 constexpr uint32_t lo_half(uint64_t x)
 {
     return static_cast<uint32_t>(x);
+}
+
+constexpr uint8_t hi_half(uint16_t x)
+{
+    return static_cast<uint8_t>(x >> 8);
+}
+
+constexpr uint16_t hi_half(uint32_t x)
+{
+    return static_cast<uint16_t>(x >> 16);
 }
 
 constexpr uint32_t hi_half(uint64_t x)
@@ -771,7 +793,7 @@ unsigned count_significant_words_loop(uint256 x) noexcept
 }
 
 template <typename Word, typename Int>
-inline unsigned count_significant_words(Int x) noexcept
+inline unsigned count_significant_words(const Int& x) noexcept
 {
     constexpr auto num_words = static_cast<unsigned>(sizeof(x) / sizeof(Word));
     auto h = count_significant_words<Word>(hi_half(x));
@@ -780,13 +802,19 @@ inline unsigned count_significant_words(Int x) noexcept
 }
 
 template <>
-inline unsigned count_significant_words<uint32_t, uint32_t>(uint32_t x) noexcept
+inline unsigned count_significant_words<uint8_t, uint8_t>(const uint8_t& x) noexcept
 {
     return x != 0 ? 1 : 0;
 }
 
 template <>
-inline unsigned count_significant_words<uint64_t, uint64_t>(uint64_t x) noexcept
+inline unsigned count_significant_words<uint32_t, uint32_t>(const uint32_t& x) noexcept
+{
+    return x != 0 ? 1 : 0;
+}
+
+template <>
+inline unsigned count_significant_words<uint64_t, uint64_t>(const uint64_t& x) noexcept
 {
     return x != 0 ? 1 : 0;
 }
