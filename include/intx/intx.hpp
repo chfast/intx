@@ -958,6 +958,12 @@ inline Int operator/(const Int& x, const Int& y) noexcept
     return std::get<0>(udivrem(x, y));
 }
 
+template <typename Int>
+inline Int operator%(const Int& x, const Int& y) noexcept
+{
+    return std::get<1>(udivrem(x, y));
+}
+
 inline std::string to_string(uint256 x)
 {
     if (x == 0)
