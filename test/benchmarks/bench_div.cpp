@@ -2,7 +2,10 @@
 // Copyright 2018 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
+#include "../utils/random.hpp"
+
 #include <div.hpp>
+#include <experiments.hpp>
 
 #include <benchmark/benchmark.h>
 
@@ -22,3 +25,26 @@ static void div_normalize(benchmark::State& state)
     }
 }
 BENCHMARK_TEMPLATE(div_normalize, div::normalize);
+
+constexpr uint64_t neg(uint64_t x) noexcept
+{
+    return ~x;
+}
+
+template <decltype(experiments::reciprocal) Fn>
+static void div_unary(benchmark::State& state)
+{
+    auto input = gen_uniform_seq(1000);
+    for (auto& i : input)
+        i |= (uint64_t{1} << 63);
+
+    benchmark::ClobberMemory();
+    for (auto _ : state)
+    {
+        for (auto& i : input)
+            i = Fn(i);
+    }
+    benchmark::DoNotOptimize(input.data());
+}
+BENCHMARK_TEMPLATE(div_unary, neg);
+BENCHMARK_TEMPLATE(div_unary, experiments::reciprocal);
