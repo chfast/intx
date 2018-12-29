@@ -2,6 +2,7 @@
 // Copyright 2018 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
+#include "div.h"
 #include "../utils/random.hpp"
 
 #include <div.hpp>
@@ -48,3 +49,47 @@ static void div_unary(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(div_unary, neg);
 BENCHMARK_TEMPLATE(div_unary, experiments::reciprocal);
+
+template <uint64_t DivFn(uint64_t, uint64_t)>
+static void udiv64(benchmark::State& state)
+{
+    // Pick random operands. Keep the divisor small, because this is the worst
+    // case for most algorithms.
+    std::mt19937_64 rng{get_seed()};
+    std::uniform_int_distribution<uint64_t> dist_x;
+    std::uniform_int_distribution<uint64_t> dist_y(1, 200);
+
+    constexpr size_t size = 1000;
+    std::vector<uint64_t> input_x(size);
+    std::vector<uint64_t> input_y(size);
+    std::vector<uint64_t> output(size);
+    for (auto& x : input_x)
+        x = dist_x(rng);
+    for (auto& y : input_y)
+        y = dist_y(rng);
+
+    for (auto _ : state)
+    {
+        for (size_t i = 0; i < size; ++i)
+            output[i] = DivFn(input_x[i], input_y[i]);
+        benchmark::DoNotOptimize(output.data());
+    }
+
+    for (size_t i = 0; i < size; ++i)
+    {
+        if (output[i] != input_x[i] / input_y[i])
+        {
+            state.SkipWithError("wrong result");
+            break;
+        }
+    }
+}
+
+static uint64_t native(uint64_t x, uint64_t y) noexcept
+{
+    return x / y;
+}
+
+BENCHMARK_TEMPLATE(udiv64, native);
+BENCHMARK_TEMPLATE(udiv64, soft_div_unr);
+BENCHMARK_TEMPLATE(udiv64, soft_div_unr_unrolled);
