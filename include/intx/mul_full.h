@@ -42,18 +42,16 @@ inline uint64_t mul_full_64_generic(uint64_t x, uint64_t y, uint64_t* hi)
     uint64_t yl = y & 0xffffffff;
     uint64_t yh = y >> 32;
 
-    uint64_t t = xl * yl;
-    uint64_t l = t & 0xffffffff;
-    uint64_t h = t >> 32;
+    uint64_t t0 = xl * yl;
+    uint64_t t1 = xh * yl;
+    uint64_t t2 = xl * yh;
+    uint64_t t3 = xh * yh;
 
-    t = xh * yl;
-    t += h;
-    h = t >> 32;
+    uint64_t u1 = t1 + (t0 >> 32);
+    uint64_t u2 = t2 + (u1 & 0xffffffff);
 
-    t = xl * yh + (t & 0xffffffff);
-    l |= t << 32;
-    *hi = xh * yh + h + (t >> 32);
-    return l;
+    *hi = t3 + (u2 >> 32) + (u1 >> 32);
+    return (u2 << 32) | (t0 & 0xffffffff);
 }
 
 inline uint64_t mul_full_64(uint64_t x, uint64_t y, uint64_t* hi)
