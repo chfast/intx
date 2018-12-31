@@ -20,7 +20,7 @@ TEST(mul_full, random)
         auto generic_lo = mul_full_64_generic(x, y, &generic_hi);
 
         uint64_t native_hi = 0;
-        auto native_lo = mul_full_64_generic(x, y, &native_hi);
+        auto native_lo = mul_full_64_native(x, y, &native_hi);
 
         EXPECT_EQ(generic_hi, native_hi) << x << " x " << y;
         EXPECT_EQ(generic_lo, native_lo) << x << " x " << y;
