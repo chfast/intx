@@ -88,7 +88,7 @@ TEST(int128, mul)
 #ifdef __SIZEOF_INT128__
 TEST(int128, mul_random)
 {
-    size_t n = 1000;
+    size_t n = 10000;
 
     lcg<unsigned __int128> rng(get_seed());
     while (n-- > 0)

@@ -85,9 +85,8 @@ uint128 udiv(uint128 x, uint128 y) noexcept
     auto xn_ex = x.hi >> rsh;
     auto xn_hi = (x.lo >> rsh) | (x.hi << lsh);
     auto res = udivrem_long({xn_ex, xn_hi}, yn_hi);
-    uint64_t m_hi;
-    mul_full_64(res.quot, yn_lo, &m_hi);
-    if (res.rem <= m_hi)
+    auto m = mul_full_64(res.quot, yn_lo);
+    if (res.rem <= m.hi)
         --res.quot;
     return res.quot;
 }

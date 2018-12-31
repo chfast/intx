@@ -133,10 +133,9 @@ inline uint128& operator^=(uint128& x, const uint128& y) noexcept
 
 inline uint128 operator*(const uint128& x, const uint128& y) noexcept
 {
-    uint128 p;
-    p.lo = mul_full_64(x.lo, y.lo, &p.hi);
+    auto p = mul_full_64(x.lo, y.lo);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
-    return p;
+    return {p.hi, p.lo};
 }
 
 

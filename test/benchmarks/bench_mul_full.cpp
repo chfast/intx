@@ -19,9 +19,9 @@ static void mul_full(benchmark::State& state)
         uint64_t ahi = 0;
         for (size_t i = 0; i < inputs.size() - 1; ++i)
         {
-            uint64_t hi;
-            alo ^= MulFn(inputs[i], inputs[i + 1], &hi);
-            ahi ^= hi;
+            auto p = MulFn(inputs[i], inputs[i + 1]);
+            alo ^= p.lo;
+            ahi ^= p.hi;
         }
         benchmark::DoNotOptimize(alo);
         benchmark::DoNotOptimize(ahi);
