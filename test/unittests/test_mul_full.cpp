@@ -16,13 +16,11 @@ TEST(mul_full, random)
         auto x = inputs[i - 1];
         auto y = inputs[i];
 
-        uint64_t generic_hi = 0;
-        auto generic_lo = mul_full_64_generic(x, y, &generic_hi);
+        auto generic = mul_full_64_generic(x, y);
 
-        uint64_t native_hi = 0;
-        auto native_lo = mul_full_64_generic(x, y, &native_hi);
+        auto native = mul_full_64_native(x, y);
 
-        EXPECT_EQ(generic_hi, native_hi) << x << " x " << y;
-        EXPECT_EQ(generic_lo, native_lo) << x << " x " << y;
+        EXPECT_EQ(generic.hi, native.hi) << x << " x " << y;
+        EXPECT_EQ(generic.lo, native.lo) << x << " x " << y;
     }
 }
