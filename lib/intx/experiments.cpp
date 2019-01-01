@@ -62,5 +62,40 @@ uint64_t reciprocal(uint64_t d) noexcept
     return v4;
 }
 
+uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
+{
+    using u128 = unsigned __int128;
+
+    auto shift = __builtin_clzl(du);
+    auto u = u128{uu} << shift;
+    auto d = du << shift;
+    auto v = reciprocal(d);
+
+    auto u1 = uint64_t(u >> 64);
+    auto u0 = uint64_t(u);
+    auto q = u128{v} * u1;
+    q += u;
+
+    auto q1 = uint64_t(q >> 64);
+    auto q0 = uint64_t(q);
+    ++q1;
+
+    auto r = u0 - q1 * d;
+
+    if (r > q0)
+    {
+        --q1;
+        r += d;
+    }
+
+    if (r >= d)
+    {
+        ++q1;
+        r -= d;
+    }
+
+    return q1;
+}
+
 }  // namespace experiments
 }  // namespace intx

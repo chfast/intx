@@ -90,6 +90,13 @@ static uint64_t native(uint64_t x, uint64_t y) noexcept
     return x / y;
 }
 
+static uint64_t nop(uint64_t x, uint64_t y) noexcept
+{
+    return x ^ y;
+}
+
+BENCHMARK_TEMPLATE(udiv64, nop);
+BENCHMARK_TEMPLATE(udiv64, experiments::udiv_by_reciprocal);
 BENCHMARK_TEMPLATE(udiv64, native);
 BENCHMARK_TEMPLATE(udiv64, soft_div_unr);
 BENCHMARK_TEMPLATE(udiv64, soft_div_unr_unrolled);
