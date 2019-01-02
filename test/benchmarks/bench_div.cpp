@@ -2,13 +2,17 @@
 // Copyright 2018 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
-#include "div.h"
 #include "../utils/random.hpp"
 
 #include <div.hpp>
 #include <experiments.hpp>
 
 #include <benchmark/benchmark.h>
+
+uint64_t udiv_native(uint64_t x, uint64_t y) noexcept;
+uint64_t nop(uint64_t x, uint64_t y) noexcept;
+uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept;
+uint64_t soft_div_unr(uint64_t x, uint64_t y) noexcept;
 
 using namespace intx;
 
@@ -75,6 +79,10 @@ static void udiv64(benchmark::State& state)
         benchmark::DoNotOptimize(output.data());
     }
 
+    if (DivFn == nop)
+        return;
+
+    // Check results.
     for (size_t i = 0; i < size; ++i)
     {
         if (output[i] != input_x[i] / input_y[i])
@@ -85,18 +93,9 @@ static void udiv64(benchmark::State& state)
     }
 }
 
-static uint64_t native(uint64_t x, uint64_t y) noexcept
-{
-    return x / y;
-}
-
-static uint64_t nop(uint64_t x, uint64_t y) noexcept
-{
-    return x ^ y;
-}
 
 BENCHMARK_TEMPLATE(udiv64, nop);
 BENCHMARK_TEMPLATE(udiv64, experiments::udiv_by_reciprocal);
-BENCHMARK_TEMPLATE(udiv64, native);
+BENCHMARK_TEMPLATE(udiv64, udiv_native);
 BENCHMARK_TEMPLATE(udiv64, soft_div_unr);
 BENCHMARK_TEMPLATE(udiv64, soft_div_unr_unrolled);
