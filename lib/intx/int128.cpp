@@ -8,13 +8,6 @@ namespace intx
 {
 namespace
 {
-template <typename T>
-struct div_result
-{
-    T quot;
-    T rem;
-};
-
 inline div_result<uint64_t> udivrem_long(uint128 u, uint64_t v) noexcept
 {
     // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
@@ -23,7 +16,7 @@ inline div_result<uint64_t> udivrem_long(uint128 u, uint64_t v) noexcept
     return {q, r};
 }
 
-div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
+div_result<uint128> udivrem_old(uint128 x, uint128 y) noexcept
 {
     if (y.hi == 0)
     {
@@ -47,15 +40,15 @@ div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 
 uint128 operator/(uint128 x, uint128 y) noexcept
 {
-    return udivrem(x, y).quot;
+    return udivrem_old(x, y).quot;
 }
 
 uint128 operator%(uint128 x, uint128 y) noexcept
 {
-    return udivrem(x, y).rem;
+    return udivrem_old(x, y).rem;
 }
 
-uint128 udiv(uint128 x, uint128 y) noexcept
+div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 {
     if (y.hi == 0)
     {
@@ -66,17 +59,20 @@ uint128 udiv(uint128 x, uint128 y) noexcept
             hi = x.hi / y.lo;
             r = x.hi % y.lo;
         }
-        auto lo = udivrem_long({r, x.lo}, y.lo).quot;
-        return {hi, lo};
+        auto res = udivrem_long({r, x.lo}, y.lo);
+        return {{hi, res.quot}, res.rem};
     }
 
     if (y.hi > x.hi)
-        return 0;
+        return {0, x};
 
     auto lsh = __builtin_clzl(y.hi);
 
     if (lsh == 0)
-        return (y.hi < x.hi) | (y.lo <= x.lo);
+    {
+        bool q = (y.hi < x.hi) | (y.lo <= x.lo);
+        return {q, x - (q ? y : 0)};
+    }
 
     auto rsh = 64 - lsh;
 
@@ -88,7 +84,7 @@ uint128 udiv(uint128 x, uint128 y) noexcept
     auto m = mul_full_64(res.quot, yn_lo);
     if (res.rem <= m.hi)
         --res.quot;
-    return res.quot;
+    return {res.quot, x - y * res.quot};
 }
 
 }  // namespace intx

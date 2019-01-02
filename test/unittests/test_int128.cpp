@@ -192,8 +192,9 @@ TEST(int128, div)
         EXPECT_EQ(q, eq) << index;
         EXPECT_EQ(r, er) << index;
 
-        auto e = udiv(v[0], v[1]);
-        EXPECT_EQ(e, q) << index;
+        auto res = udivrem(v[0], v[1]);
+        EXPECT_EQ(res.quot, q) << index;
+        EXPECT_EQ(res.rem, r) << index;
 
         index++;
     }

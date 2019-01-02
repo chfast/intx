@@ -18,7 +18,7 @@ inline uint128 div_uint128(uint128 x, uint128 y) noexcept
 
 inline uint128 div_uint128_udiv(uint128 x, uint128 y) noexcept
 {
-    return udiv(x, y);
+    return udivrem(x, y).quot;
 }
 
 
