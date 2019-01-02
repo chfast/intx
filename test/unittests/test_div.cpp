@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 #include <div.hpp>
+#include <experiments.hpp>
 #include <intx/intx.hpp>
 
 #include "../utils/random.hpp"
@@ -11,6 +12,22 @@
 #include "../utils/gmp.hpp"
 
 using namespace intx;
+
+namespace
+{
+inline uint64_t udiv_long(uint64_t uh, uint64_t ul, uint64_t v) noexcept
+{
+    // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
+    uint64_t q, r;
+    asm("divq %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
+    return q;
+}
+
+inline uint64_t reciprocal_naive(uint64_t d) noexcept
+{
+    return udiv_long(~d, ~uint64_t(0), d);
+}
+}  // namespace
 
 TEST(div, normalize)
 {
@@ -79,7 +96,7 @@ TEST(div, normalize)
     EXPECT_EQ(na.denominator[5], 0);
 }
 
-template<typename Int>
+template <typename Int>
 struct div_test_case
 {
     Int numerator;
@@ -156,4 +173,23 @@ TEST(div, sdivrem_512)
     std::tie(k, l) = gmp::sdivrem(n, d);
     EXPECT_EQ(k, q);
     EXPECT_EQ(l, r);
+}
+
+TEST(div, reciprocal)
+{
+    constexpr auto n = 1000000;
+
+    constexpr auto d_start = uint64_t{1} << 63;
+    for (uint64_t d = d_start; d < d_start + n; ++d)
+    {
+        auto v = experiments::reciprocal(d);
+        EXPECT_EQ(v, reciprocal_naive(d)) << d;
+    }
+
+    constexpr auto d_end = ~uint64_t{0};
+    for (uint64_t d = d_end; d > d_end - n; --d)
+    {
+        auto v = experiments::reciprocal(d);
+        EXPECT_EQ(v, reciprocal_naive(d)) << d;
+    }
 }
