@@ -1,12 +1,12 @@
 # intx: extended precision integer library.
-# Copyright 2017 Pawel Bylica.
-# Licensed under the Apache License, Version 2.0. See the LICENSE file.
+# Copyright 2019 Pawel Bylica.
+# Licensed under the Apache License, Version 2.0.
 
 include(GNUInstallDirs)
 
 set(include_dir ${PROJECT_SOURCE_DIR}/include)
 
-add_library(intx
+add_library(intx STATIC
     ${include_dir}/intx/int128.hpp
     ${include_dir}/intx/intx.hpp
     ${include_dir}/intx/mul_full.h
