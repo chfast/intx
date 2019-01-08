@@ -115,7 +115,6 @@ div_result<uint64_t> udivrem_2by1(uint64_t u1, uint64_t u0, uint64_t d, uint64_t
 
     if (r >= d)
     {
-        // FIXME: Untested.
         ++q1;
         r -= d;
     }
@@ -152,7 +151,6 @@ div_result<uint128> udivrem_3by2(
 
     if (r >= d)
     {
-        // FIXME: Untested.
         ++q1;
         r -= d;
     }

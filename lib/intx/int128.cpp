@@ -88,9 +88,10 @@ div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     auto yn_hi = (y.lo >> rsh) | (y.hi << lsh);
     auto xn_ex = x.hi >> rsh;
     auto xn_hi = (x.lo >> rsh) | (x.hi << lsh);
+    auto xn_lo = x.lo << lsh;
     auto res = udivrem_long({xn_ex, xn_hi}, yn_hi);
     auto m = mul_full_64(res.quot, yn_lo);
-    if (res.rem <= m.hi)
+    if (m.hi > res.rem || (m.hi == res.rem && m.lo > xn_lo))
         --res.quot;
     return {res.quot, x - y * res.quot};
 }
