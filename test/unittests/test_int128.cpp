@@ -173,6 +173,8 @@ static const uint128 division_test_vectors[][2] = {
     {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, {0, 1}},
     {{0x1313131313131313, 0x0000000000000020}, {0x1313131313131313, 0x1313131313134013}},
     {{0xffffffffffffffff, 0xff00000000002100}, {0x000000000000ffff, 0xffffffffffffffff}},
+    {{7567426269009013610, 5683582526294251485}, {637377717142870109, 905842064019625512}},
+    {{17837195793149051481u, 13934821101650737475u}, {576552705938660309, 4226470430044458774}},
 };
 
 TEST(int128, div)
@@ -214,7 +216,7 @@ TEST(int128, div_random)
     {
         auto x = dist();
         auto y = dist();
-        auto r = x / y;
+        auto r = udivrem_by_reciprocal(x, y).quot;
 
         auto nx = ((unsigned __int128)x.hi << 64) | x.lo;
         auto ny = ((unsigned __int128)y.hi << 64) | y.lo;
