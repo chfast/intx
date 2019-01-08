@@ -178,7 +178,15 @@ uint128 operator/(uint128 x, uint128 y) noexcept;
 uint128 operator%(uint128 x, uint128 y) noexcept;
 
 // Experimental:
-uint128 udiv(uint128 x, uint128 y) noexcept;
+template <typename T>
+struct div_result
+{
+    T quot;
+    T rem;
+};
+
+div_result<uint128> udivrem(uint128 x, uint128 y) noexcept;
+div_result<uint128> udivrem_by_reciprocal(uint128 x, uint128 y) noexcept;
 
 
 inline int clz(const uint128& x)

@@ -173,6 +173,14 @@ static const uint128 division_test_vectors[][2] = {
     {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, {0, 1}},
     {{0x1313131313131313, 0x0000000000000020}, {0x1313131313131313, 0x1313131313134013}},
     {{0xffffffffffffffff, 0xff00000000002100}, {0x000000000000ffff, 0xffffffffffffffff}},
+    {{7567426269009013610, 5683582526294251485}, {637377717142870109, 905842064019625512}},
+    {{17837195793149051481u, 13934821101650737475u}, {576552705938660309, 4226470430044458774}},
+    {{0xe8e0eae8e8e8e8e5, 0xfffc000800000009}, {0, 0x000800091000e8e8}},
+    {{0xe8e0eae8e8e8e8e5, 0xfffc000000000000}, {0, 0x000800090000e8e8}},
+    {{0xffffffffffffffff, 0xff3f060e0e0e7a0a}, {0x10, 0x00000000401353ff}},
+    {{0xffffffffffffffff, 0xf000000000000000}, {1, 0x40000000}},
+    {{0xffffffffffffffff, 0xf000000000000000}, {1, 0x80000000}},
+    {{0x0f0f0f0f0f0f0f0f, 0x0f0f0f0f0f0f8f01}, {0x0f0f0f0f0f0f0f0f, 0x0f0f0f0f0f0f0f0f}},
 };
 
 TEST(int128, div)
@@ -192,8 +200,13 @@ TEST(int128, div)
         EXPECT_EQ(q, eq) << index;
         EXPECT_EQ(r, er) << index;
 
-        auto e = udiv(v[0], v[1]);
-        EXPECT_EQ(e, q) << index;
+        auto res = udivrem(v[0], v[1]);
+        EXPECT_EQ(res.quot, q) << index;
+        EXPECT_EQ(res.rem, r) << index;
+
+        res = udivrem_by_reciprocal(v[0], v[1]);
+        EXPECT_EQ(res.quot, q) << index;
+        EXPECT_EQ(res.rem, r) << index;
 
         index++;
     }
@@ -209,7 +222,7 @@ TEST(int128, div_random)
     {
         auto x = dist();
         auto y = dist();
-        auto r = x / y;
+        auto r = udivrem_by_reciprocal(x, y).quot;
 
         auto nx = ((unsigned __int128)x.hi << 64) | x.lo;
         auto ny = ((unsigned __int128)y.hi << 64) | y.lo;
