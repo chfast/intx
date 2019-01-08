@@ -62,6 +62,38 @@ uint64_t reciprocal(uint64_t d) noexcept
     return v4;
 }
 
+uint64_t reciprocal_3by2(uint64_t d1, uint64_t d0) noexcept
+{
+    using u128 = unsigned __int128;
+
+    auto v = reciprocal(d1);
+    auto p = d1 * v;
+    p += d0;
+    if (p < d0)
+    {
+        --v;
+        if (p >= d1)
+        {
+            --v;
+            p -= d1;
+        }
+        p -= d1;
+    }
+
+    auto t = u128{v} * d0;
+    auto t1 = uint64_t(t >> 64);
+    auto t0 = uint64_t(t);
+
+    p += t1;
+    if (p < t1)
+    {
+        --v;
+        if (uint128{p, t0} >= uint128{d1, d0})
+            --v;
+    }
+    return v;
+}
+
 div_result<uint64_t> udivrem_2by1(uint64_t u1, uint64_t u0, uint64_t d, uint64_t v) noexcept
 {
     using u128 = unsigned __int128;
@@ -76,6 +108,43 @@ div_result<uint64_t> udivrem_2by1(uint64_t u1, uint64_t u0, uint64_t d, uint64_t
     auto r = u0 - q1 * d;
 
     if (r > q0)
+    {
+        --q1;
+        r += d;
+    }
+
+    if (r >= d)
+    {
+        // FIXME: Untested.
+        ++q1;
+        r -= d;
+    }
+
+    return {q1, r};
+}
+
+div_result<uint128> udivrem_3by2(
+    uint64_t u2, uint64_t u1, uint64_t u0, uint64_t d1, uint64_t d0) noexcept
+{
+    auto v = reciprocal_3by2(d1, d0);
+    using u128 = unsigned __int128;
+    auto q = u128{v} * u2;
+    q += (u128{u2} << 64) | u1;
+
+    auto q1 = uint64_t(q >> 64);
+    auto q0 = uint64_t(q);
+
+    auto r1 = u1 - q1 * d1;
+
+    auto t = u128{d0} * q1;
+
+    auto d = ((u128{d1} << 64) | d0);
+    auto r = ((u128{r1} << 64) | u0) - t - d;
+    r1 = uint64_t(r >> 64);
+
+    ++q1;
+
+    if (r1 >= q0)
     {
         --q1;
         r += d;
