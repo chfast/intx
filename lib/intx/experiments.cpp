@@ -62,22 +62,15 @@ uint64_t reciprocal(uint64_t d) noexcept
     return v4;
 }
 
-uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
+div_result<uint64_t> udivrem_2by1(uint64_t u1, uint64_t u0, uint64_t d, uint64_t v) noexcept
 {
     using u128 = unsigned __int128;
-
-    auto shift = __builtin_clzl(du);
-    auto u = u128{uu} << shift;
-    auto d = du << shift;
-    auto v = reciprocal(d);
-
-    auto u1 = uint64_t(u >> 64);
-    auto u0 = uint64_t(u);
     auto q = u128{v} * u1;
-    q += u;
+    q += (u128{u1} << 64) | u0;
 
     auto q1 = uint64_t(q >> 64);
     auto q0 = uint64_t(q);
+
     ++q1;
 
     auto r = u0 - q1 * d;
@@ -90,11 +83,26 @@ uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 
     if (r >= d)
     {
+        // FIXME: Untested.
         ++q1;
         r -= d;
     }
 
-    return q1;
+    return {q1, r};
+}
+
+uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
+{
+    using u128 = unsigned __int128;
+
+    auto shift = __builtin_clzl(du);
+    auto u = u128{uu} << shift;
+    auto d = du << shift;
+    auto v = reciprocal(d);
+
+    auto u1 = uint64_t(u >> 64);
+    auto u0 = uint64_t(u);
+    return udivrem_2by1(u1, u0, d, v).quot;
 }
 
 }  // namespace experiments

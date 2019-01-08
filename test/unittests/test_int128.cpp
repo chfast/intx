@@ -196,6 +196,10 @@ TEST(int128, div)
         EXPECT_EQ(res.quot, q) << index;
         EXPECT_EQ(res.rem, r) << index;
 
+        res = udivrem_by_reciprocal(v[0], v[1]);
+        EXPECT_EQ(res.quot, q) << index;
+        EXPECT_EQ(res.rem, r) << index;
+
         index++;
     }
 }

@@ -186,6 +186,7 @@ struct div_result
 };
 
 div_result<uint128> udivrem(uint128 x, uint128 y) noexcept;
+div_result<uint128> udivrem_by_reciprocal(uint128 x, uint128 y) noexcept;
 
 
 inline int clz(const uint128& x)
