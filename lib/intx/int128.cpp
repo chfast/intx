@@ -9,9 +9,8 @@ namespace intx
 {
 namespace experiments
 {
-div_result<uint64_t> udivrem_2by1(uint64_t u1, uint64_t u0, uint64_t d, uint64_t v) noexcept;
-div_result<uint128> udivrem_3by2(
-    uint64_t u2, uint64_t u1, uint64_t u0, uint64_t d1, uint64_t d0) noexcept;
+div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept;
+div_result<uint128> udivrem_3by2(uint64_t u2, uint64_t u1, uint64_t u0, uint128 d) noexcept;
 }  // namespace experiments
 
 namespace
@@ -123,10 +122,10 @@ div_result<uint128> udivrem_by_reciprocal(uint128 x, uint128 y) noexcept
         auto v = experiments::reciprocal(yn);
 
         // OPT: If xn_ex is 0, the result q can be only 0 or 1.
-        auto res = experiments::udivrem_2by1(xn_ex, xn_hi, yn, v);
+        auto res = experiments::udivrem_2by1({xn_ex, xn_hi}, yn, v);
         auto q1 = res.quot;
 
-        res = experiments::udivrem_2by1(res.rem, xn_lo, yn, v);
+        res = experiments::udivrem_2by1({res.rem, xn_lo}, yn, v);
         auto q0 = res.quot;
 
         auto q = uint128{q1, q0};
@@ -152,7 +151,7 @@ div_result<uint128> udivrem_by_reciprocal(uint128 x, uint128 y) noexcept
     auto xn_hi = (x.lo >> rsh) | (x.hi << lsh);
     auto xn_lo = x.lo << lsh;
 
-    auto res = experiments::udivrem_3by2(xn_ex, xn_hi, xn_lo, yn_hi, yn_lo);
+    auto res = experiments::udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_hi, yn_lo});
 
     return {res.quot, res.rem >> lsh};
 }

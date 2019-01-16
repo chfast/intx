@@ -91,82 +91,68 @@ uint64_t reciprocal_3by2(uint128 d) noexcept
     return v;
 }
 
-div_result<uint64_t> udivrem_2by1(uint64_t u1, uint64_t u0, uint64_t d, uint64_t v) noexcept
+div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
-    using u128 = unsigned __int128;
-    auto q = u128{v} * u1;
-    q += (u128{u1} << 64) | u0;
+    auto q = uint128{v} * u.hi;
+    q = internal::optimized_add(q, u);
 
-    auto q1 = uint64_t(q >> 64);
-    auto q0 = uint64_t(q);
+    ++q.hi;
 
-    ++q1;
+    auto r = u.lo - q.hi * d;
 
-    auto r = u0 - q1 * d;
-
-    if (r > q0)
+    if (r > q.lo)
     {
-        --q1;
+        --q.hi;
         r += d;
     }
 
     if (r >= d)
     {
-        ++q1;
+        ++q.hi;
         r -= d;
     }
 
-    return {q1, r};
+    return {q.hi, r};
 }
 
-div_result<uint128> udivrem_3by2(
-    uint64_t u2, uint64_t u1, uint64_t u0, uint64_t d1, uint64_t d0) noexcept
+div_result<uint128> udivrem_3by2(uint64_t u2, uint64_t u1, uint64_t u0, uint128 d) noexcept
 {
-    auto v = reciprocal_3by2({d1, d0});
-    using u128 = unsigned __int128;
-    auto q = u128{v} * u2;
-    q += (u128{u2} << 64) | u1;
+    auto v = reciprocal_3by2(d);
+    auto q = uint128{v} * u2;
+    q = internal::optimized_add(q, {u2, u1});
 
-    auto q1 = uint64_t(q >> 64);
-    auto q0 = uint64_t(q);
+    auto r1 = u1 - q.hi * d.hi;
 
-    auto r1 = u1 - q1 * d1;
+    auto t = uint128{d.lo} * q.hi;
 
-    auto t = u128{d0} * q1;
+    auto r = uint128{r1, u0} - t - d;
+    r1 = r.hi;
 
-    auto d = ((u128{d1} << 64) | d0);
-    auto r = ((u128{r1} << 64) | u0) - t - d;
-    r1 = uint64_t(r >> 64);
+    ++q.hi;
 
-    ++q1;
-
-    if (r1 >= q0)
+    if (r1 >= q.lo)
     {
-        --q1;
+        --q.hi;
         r += d;
     }
 
     if (r >= d)
     {
-        ++q1;
+        ++q.hi;
         r -= d;
     }
 
-    return {q1, r};
+    return {q.hi, r};
 }
 
 uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 {
-    using u128 = unsigned __int128;
-
     auto shift = __builtin_clzl(du);
-    auto u = u128{uu} << shift;
+    auto u = uint128{uu} << shift;
     auto d = du << shift;
     auto v = reciprocal(d);
 
-    auto u1 = uint64_t(u >> 64);
-    auto u0 = uint64_t(u);
-    return udivrem_2by1(u1, u0, d, v).quot;
+    return udivrem_2by1(u, d, v).quot;
 }
 
 }  // namespace experiments
