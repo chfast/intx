@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <intx/int128.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -24,8 +26,6 @@ struct uint128
 
 namespace gcc
 {
-using uint128 = unsigned __int128;
-
 inline unsigned clz(uint64_t a)
 {
     return static_cast<unsigned>(__builtin_clzl(a));
@@ -40,8 +40,8 @@ inline std::tuple<uint64_t, uint64_t> udivrem_long(uint128 u, uint64_t v)
 {
     // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
     uint64_t q, r;
-    uint64_t uh = static_cast<uint64_t>(u >> 64);
-    uint64_t ul = static_cast<uint64_t>(u);
+    uint64_t uh = u.hi;
+    uint64_t ul = u.lo;
     asm("divq %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
     return std::make_tuple(q, r);
 }
@@ -69,7 +69,9 @@ using namespace gcc;
 
 struct uint256
 {
-    constexpr uint256(uint128 lo = 0, uint128 hi = 0) : lo(lo), hi(hi) {}
+    constexpr uint256(uint64_t x = 0) noexcept : lo(x) {}
+    constexpr uint256(uint128 lo) noexcept : lo(lo) {}
+    constexpr uint256(uint128 lo, uint128 hi) noexcept : lo(lo), hi(hi) {}
 
     uint128 lo = 0;
     uint128 hi = 0;
@@ -78,17 +80,18 @@ struct uint256
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
     explicit operator Int() const noexcept
     {
-        return static_cast<Int>(lo);
+        return static_cast<Int>(lo.lo);
     }
 };
 
 struct uint512
 {
-    constexpr uint512(uint128 lo) : lo(lo) {}
-    constexpr uint512(uint256 lo = 0, uint256 hi = 0) : lo(lo), hi(hi) {}
+    constexpr uint512(uint64_t x = 0) noexcept : lo(x) {}
+    constexpr uint512(uint256 lo) noexcept : lo(lo) {}
+    constexpr uint512(uint256 lo, uint256 hi) noexcept : lo(lo), hi(hi) {}
 
-    uint256 lo = 0;
-    uint256 hi = 0;
+    uint256 lo = {};
+    uint256 hi = {};
 };
 
 
@@ -174,12 +177,12 @@ constexpr uint32_t hi_half(uint64_t x)
 
 constexpr uint64_t lo_half(uint128 x)
 {
-    return static_cast<uint64_t>(x);
+    return x.lo;
 }
 
 constexpr uint64_t hi_half(uint128 x)
 {
-    return static_cast<uint64_t>(x >> 64);
+    return x.hi;
 }
 
 constexpr uint128 lo_half(uint256 x)
@@ -1003,14 +1006,14 @@ inline Int from_string(const std::string& s)
     return x;
 }
 
-inline uint64_t bswap(uint64_t x) noexcept
+constexpr uint64_t bswap(uint64_t x) noexcept
 {
     return __builtin_bswap64(x);
 }
 
-inline unsigned __int128 bswap(unsigned __int128 x) noexcept
+constexpr uint128 bswap(uint128 x) noexcept
 {
-    return join(bswap(uint64_t(x)), bswap(uint64_t(x >> 64)));
+    return {bswap(x.lo), bswap(x.hi)};
 }
 
 template <typename Int>

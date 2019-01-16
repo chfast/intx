@@ -78,7 +78,9 @@ std::tuple<uint256, uint64_t> udivrem_1(uint256 x, uint64_t y)
         // Perform long division. The compiler should use single instruction
         // here to compute both quotient and remainder. This is better than
         // classic multiplication `reminder = dividend - q[j] * divisor`.
-        std::tie(qt[j], r) = udivrem_unr(dividend, uint128(y));
+        auto res = udivrem_unr(dividend, uint128(y));
+        qt[j] = std::get<0>(res).lo;
+        r = std::get<1>(res).lo;
     }
     return std::make_tuple(q, r);
 }
@@ -100,7 +102,9 @@ std::tuple<uint512, uint64_t> udivrem_1(uint512 x, uint64_t y)
         // Perform long division. The compiler should use single instruction
         // here to compute both quotient and remainder. This is better than
         // classic multiplication `reminder = dividend - q[j] * divisor`.
-        std::tie(qt[j], r) = udivrem_unr(dividend, uint128(y));
+        auto res = udivrem_unr(dividend, uint128(y));
+        qt[j] = std::get<0>(res).lo;
+        r = std::get<1>(res).lo;
     }
     return std::make_tuple(q, r);
 }
@@ -687,11 +691,11 @@ static void udiv_knuth_internal_64(
         uint128 pd = join(lo_half(rhat), un[j + n - 2]);
         if (qhat == base || qhat * next_divisor > pd)
         {
-            qhat--;
+            --qhat;
             rhat += divisor;
             pd = join(lo_half(rhat), un[j + n - 2]);
             if (rhat < base && (qhat == base || qhat * next_divisor > pd))
-                qhat--;
+                --qhat;
         }
 
         // Multiply and subtract.
@@ -790,7 +794,7 @@ std::tuple<uint512, uint512> udiv_qr_knuth_512_64(const uint512& x, const uint51
     const unsigned n = count_significant_words<uint64_t>(y);
 
     if (n == 1)
-        return udivrem_1(x, static_cast<uint64_t>(y.lo.lo));
+        return udivrem_1(x, static_cast<uint64_t>(y.lo.lo.lo));
 
     // Skip dividend's leading zero limbs.
     const unsigned m = count_significant_words<uint64_t>(x);
@@ -817,7 +821,7 @@ std::tuple<uint512, uint512> udiv_qr_knuth_512(const uint512& x, const uint512& 
     const unsigned n = count_significant_words<uint32_t>(y);
 
     if (n <= 2)
-        return udivrem_1(x, static_cast<uint64_t>(y.lo.lo));
+        return udivrem_1(x, static_cast<uint64_t>(y.lo.lo.lo));
 
     // Skip dividend's leading zero limbs.
     const unsigned m = count_significant_words<uint32_t>(x);
