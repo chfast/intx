@@ -173,6 +173,23 @@ inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
     return x = x >> shift;
 }
 
+namespace internal
+{
+/// Optimized addition.
+///
+/// This keeps the multiprecision addition until CodeGen so the pattern is not
+/// broken during other optimizations.
+constexpr uint128 optimized_add(uint128 x, uint128 y) noexcept
+{
+#ifdef __SIZEOF_INT128__
+    using u128 = unsigned __int128;
+    return ((u128(x.hi) << 64) | x.lo) + ((u128(y.hi) << 64) | y.lo);
+#else
+    return x + y;
+#endif
+}
+}  // namespace internal
+
 
 uint128 operator/(uint128 x, uint128 y) noexcept;
 uint128 operator%(uint128 x, uint128 y) noexcept;
