@@ -1,11 +1,10 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include "../utils/random.hpp"
 
 #include <div.hpp>
-#include <experiments.hpp>
 
 #include <benchmark/benchmark.h>
 
@@ -16,7 +15,18 @@ uint64_t soft_div_unr(uint64_t x, uint64_t y) noexcept;
 
 using namespace intx;
 
-template <decltype(div::normalize) NormalizeFn>
+inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
+{
+    auto shift = __builtin_clzl(du);
+    auto u = uint128{uu} << shift;
+    auto d = du << shift;
+    auto v = reciprocal(d);
+
+    return udivrem_2by1(u, d, v).quot;
+}
+
+
+template <decltype(normalize) NormalizeFn>
 static void div_normalize(benchmark::State& state)
 {
     uint512 u{uint256{1324254353, 4343242153453}, uint256{100324254353, 48882153453}};
@@ -29,14 +39,14 @@ static void div_normalize(benchmark::State& state)
         benchmark::DoNotOptimize(x);
     }
 }
-BENCHMARK_TEMPLATE(div_normalize, div::normalize);
+BENCHMARK_TEMPLATE(div_normalize, normalize);
 
 constexpr uint64_t neg(uint64_t x) noexcept
 {
     return ~x;
 }
 
-template <decltype(experiments::reciprocal) Fn>
+template <decltype(reciprocal) Fn>
 static void div_unary(benchmark::State& state)
 {
     auto input = gen_uniform_seq(1000);
@@ -52,7 +62,7 @@ static void div_unary(benchmark::State& state)
     benchmark::DoNotOptimize(input.data());
 }
 BENCHMARK_TEMPLATE(div_unary, neg);
-BENCHMARK_TEMPLATE(div_unary, experiments::reciprocal);
+BENCHMARK_TEMPLATE(div_unary, reciprocal);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
 static void udiv64(benchmark::State& state)
@@ -95,7 +105,7 @@ static void udiv64(benchmark::State& state)
 
 
 BENCHMARK_TEMPLATE(udiv64, nop);
-BENCHMARK_TEMPLATE(udiv64, experiments::udiv_by_reciprocal);
+BENCHMARK_TEMPLATE(udiv64, udiv_by_reciprocal);
 BENCHMARK_TEMPLATE(udiv64, udiv_native);
 BENCHMARK_TEMPLATE(udiv64, soft_div_unr);
 BENCHMARK_TEMPLATE(udiv64, soft_div_unr_unrolled);

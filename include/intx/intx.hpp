@@ -36,14 +36,14 @@ inline unsigned clz(unsigned x)
     return static_cast<unsigned>(__builtin_clz(x));
 }
 
-inline std::tuple<uint64_t, uint64_t> udivrem_long(uint128 u, uint64_t v)
+inline div_result<uint64_t> udivrem_long(uint128 u, uint64_t v)
 {
     // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
     uint64_t q, r;
     uint64_t uh = u.hi;
     uint64_t ul = u.lo;
     asm("divq %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
 inline std::tuple<uint32_t, uint32_t> udivrem_long_asm(uint64_t u, uint32_t v)

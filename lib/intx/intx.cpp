@@ -684,7 +684,9 @@ static void udiv_knuth_internal_64(
         }
         else
         {
-            std::tie(qhat, rhat) = udivrem_long(dividend, divisor);
+            auto res = udivrem_long(dividend, divisor);
+            qhat = res.quot;
+            rhat = res.rem;
         }
 
         uint64_t next_divisor = vn[n - 2];

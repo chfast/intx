@@ -3,7 +3,6 @@
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 #include <div.hpp>
-#include <experiments.hpp>
 #include <intx/intx.hpp>
 
 #include "../utils/random.hpp"
@@ -33,7 +32,7 @@ TEST(div, normalize)
 {
     uint512 u;
     uint512 v = 1;
-    auto na = div::normalize(u, v);
+    auto na = normalize(u, v);
     EXPECT_EQ(na.shift, 31);
     EXPECT_EQ(na.num_denominator_words, 1);
     EXPECT_EQ(na.num_numerator_words, 0);
@@ -45,7 +44,7 @@ TEST(div, normalize)
 
     u = uint512{1313, 1414};
     v = uint512{1212, 12};
-    na = div::normalize(u, v);
+    na = normalize(u, v);
     EXPECT_EQ(na.shift, 28);
     EXPECT_EQ(na.num_denominator_words, 9);
     EXPECT_EQ(na.num_numerator_words, 9);
@@ -62,7 +61,7 @@ TEST(div, normalize)
 
     u = shl(uint512{3}, 510);
     v = uint512{uint256{1, 0xffffffff}, 0};
-    na = div::normalize(u, v);
+    na = normalize(u, v);
     EXPECT_EQ(na.shift, 0);
     EXPECT_EQ(na.num_denominator_words, 5);
     EXPECT_EQ(na.num_numerator_words, 16);
@@ -81,7 +80,7 @@ TEST(div, normalize)
 
     u = shl(uint512{7}, 509);
     v = uint512{uint256{1, 0x3fffffff}, 0};
-    na = div::normalize(u, v);
+    na = normalize(u, v);
     EXPECT_EQ(na.shift, 2);
     EXPECT_EQ(na.num_denominator_words, 5);
     EXPECT_EQ(na.num_numerator_words, 16);
@@ -182,14 +181,14 @@ TEST(div, reciprocal)
     constexpr auto d_start = uint64_t{1} << 63;
     for (uint64_t d = d_start; d < d_start + n; ++d)
     {
-        auto v = experiments::reciprocal(d);
+        auto v = reciprocal(d);
         EXPECT_EQ(v, reciprocal_naive(d)) << d;
     }
 
     constexpr auto d_end = ~uint64_t{0};
     for (uint64_t d = d_end; d > d_end - n; --d)
     {
-        auto v = experiments::reciprocal(d);
+        auto v = reciprocal(d);
         EXPECT_EQ(v, reciprocal_naive(d)) << d;
     }
 }
