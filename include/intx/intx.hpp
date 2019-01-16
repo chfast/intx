@@ -917,47 +917,6 @@ again2:
     return std::make_tuple(q, r);
 }
 
-template <typename Int>
-inline std::tuple<Int, Int> udivrem_dc(const Int& u, const Int& v)
-{
-    using tr = traits<Int>;
-
-    auto v1 = hi_half(v);
-    auto v0 = lo_half(v);
-
-    if (v1 == 0)
-    {
-        Int u1 = hi_half(u);
-        if (u1 < v)
-        {
-            auto t = udiv_long(u, v0);
-            return std::make_tuple(std::get<0>(t), std::get<1>(t));
-        }
-        else
-        {
-            auto u0 = lo_half(u);
-            typename tr::half_type q1, k;
-            std::tie(q1, k) = udiv_long(u1, v0);
-            auto q0 = std::get<0>(udiv_long(join(k, u0), v0));
-            Int q = join(q1, q0);
-            Int r = u - v * q;
-            return std::make_tuple(q, r);
-        }
-    }
-    unsigned n = clz(v);
-    auto vn = v << n;
-    auto vn1 = hi_half(vn);
-    Int u1 = u >> 1;
-    Int q1 = std::get<0>(udiv_long(u1, vn1));
-    Int q0 = (q1 << n) >> 63;
-    if (q0 != 0)
-        q0 = q0 - 1;
-    if ((u - q0 * v) >= v)
-        q0 = q0 + 1;
-    Int r = u - v * q0;
-    return std::make_tuple(q0, r);
-}
-
 std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v) noexcept;
 std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y) noexcept;
 
