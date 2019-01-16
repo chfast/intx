@@ -180,6 +180,16 @@ inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
     return x = x >> shift;
 }
 
+inline uint128& operator++(uint128& x) noexcept
+{
+    return x += 1;
+}
+
+inline uint128& operator--(uint128& x) noexcept
+{
+    return x -= 1;
+}
+
 namespace internal
 {
 /// Optimized addition.
