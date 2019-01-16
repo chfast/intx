@@ -38,8 +38,6 @@ constexpr uint16_t reciprocal_table[] = {REPEAT256()};
 /// Based on Algorithm 2 from "Improved division by invariant integers".
 uint64_t reciprocal(uint64_t d) noexcept
 {
-    using u128 = unsigned __int128;
-
     auto d9 = uint8_t(d >> 55);
     auto v0 = uint64_t{reciprocal_table[d9]};
 
@@ -51,44 +49,43 @@ uint64_t reciprocal(uint64_t d) noexcept
     auto d0 = d % 2;
     auto d63 = d / 2 + d0;  // ceil(d/2)
     auto e = ((v2 / 2) & -d0) - v2 * d63;
-    auto mh = uint64_t((u128{v2} * e) >> 64);
+    auto mh = (uint128{v2} * e).hi;  // umulh
     auto v3 = (v2 << 31) + (mh >> 1);
 
-    auto mf = u128{v3} * d + d;  // full mul
-    auto v3a = uint64_t(mf >> 64) + d;
+    // OPT: The compiler tries a bit too much with 128 + 64 addition and ends up using subtraction.
+    //      Compare with __int128.
+    auto mf = uint128{v3} * d;  // full mul
+    auto m = internal::optimized_add(mf, d);
+    auto v3a = m.hi + d;
 
     auto v4 = v3 - v3a;
 
     return v4;
 }
 
-uint64_t reciprocal_3by2(uint64_t d1, uint64_t d0) noexcept
+uint64_t reciprocal_3by2(uint128 d) noexcept
 {
-    using u128 = unsigned __int128;
-
-    auto v = reciprocal(d1);
-    auto p = d1 * v;
-    p += d0;
-    if (p < d0)
+    auto v = reciprocal(d.hi);
+    auto p = d.hi * v;
+    p += d.lo;
+    if (p < d.lo)
     {
         --v;
-        if (p >= d1)
+        if (p >= d.hi)
         {
             --v;
-            p -= d1;
+            p -= d.hi;
         }
-        p -= d1;
+        p -= d.hi;
     }
 
-    auto t = u128{v} * d0;
-    auto t1 = uint64_t(t >> 64);
-    auto t0 = uint64_t(t);
+    auto t = uint128{v} * d.lo;
 
-    p += t1;
-    if (p < t1)
+    p += t.hi;
+    if (p < t.hi)
     {
         --v;
-        if (uint128{p, t0} >= uint128{d1, d0})
+        if (uint128{p, t.lo} >= d)
             --v;
     }
     return v;
@@ -125,7 +122,7 @@ div_result<uint64_t> udivrem_2by1(uint64_t u1, uint64_t u0, uint64_t d, uint64_t
 div_result<uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint64_t d1, uint64_t d0) noexcept
 {
-    auto v = reciprocal_3by2(d1, d0);
+    auto v = reciprocal_3by2({d1, d0});
     using u128 = unsigned __int128;
     auto q = u128{v} * u2;
     q += (u128{u2} << 64) | u1;
