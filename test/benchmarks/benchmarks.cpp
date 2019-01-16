@@ -64,22 +64,22 @@ BENCHMARK_TEMPLATE(udiv, uint128, uint64_t, udivrem_unr);
 BENCHMARK_TEMPLATE(udiv, uint128, uint128, udivrem);
 BENCHMARK_TEMPLATE(udiv, uint128, uint128, udivrem_unr);
 
-// Single digit divisor:
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udivrem_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udiv_qr_knuth_64);
+BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udivrem);
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, gmp::udivrem);
 
-// Small divisor:
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udivrem_unr);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_hd_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udiv_qr_knuth_64);
+BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, udivrem);
 BENCHMARK_TEMPLATE(udiv, uint256, uint64_t, gmp::udivrem);
 
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udivrem_unr);
@@ -88,6 +88,7 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, udiv_qr_knuth_64);
+BENCHMARK_TEMPLATE(udiv, uint256, uint128, udivrem);
 BENCHMARK_TEMPLATE(udiv, uint256, uint128, gmp::udivrem);
 
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udivrem_unr);
@@ -96,26 +97,21 @@ BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_llvm_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_opt_base);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_opt);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, udiv_qr_knuth_64);
-//BENCHMARK_TEMPLATE(udiv, uint256, uint256, div::udivrem_512);
+BENCHMARK_TEMPLATE(udiv, uint256, uint256, udivrem);
 BENCHMARK_TEMPLATE(udiv, uint256, uint256, gmp::udivrem);
 
-//BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_unr);
-//BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_dc);
-//BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_hd_base);
-//BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_llvm_base);
-//BENCHMARK_TEMPLATE(udiv, uint512, uint512, udiv_qr_knuth_opt_base);
-BENCHMARK_TEMPLATE(udiv, uint512, uint256, udiv_qr_knuth_512);
-BENCHMARK_TEMPLATE(udiv, uint512, uint256, udiv_qr_knuth_512_64);
-//BENCHMARK_TEMPLATE(udiv, uint512, uint256, div::udivrem_512);
-BENCHMARK_TEMPLATE(udiv, uint512, uint256, gmp::udivrem);
-BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, udiv_qr_knuth_512);
-BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, udiv_qr_knuth_512_64);
-//BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, div::udivrem_512);
-BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, gmp::udivrem);
 BENCHMARK_TEMPLATE(udiv, uint512, uint32_t, udiv_qr_knuth_512);
 BENCHMARK_TEMPLATE(udiv, uint512, uint32_t, udiv_qr_knuth_512_64);
-//BENCHMARK_TEMPLATE(udiv, uint512, uint32_t, div::udivrem_512);
+BENCHMARK_TEMPLATE(udiv, uint512, uint32_t, udivrem);
 BENCHMARK_TEMPLATE(udiv, uint512, uint32_t, gmp::udivrem);
+BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, udiv_qr_knuth_512);
+BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, udiv_qr_knuth_512_64);
+BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, udivrem);
+BENCHMARK_TEMPLATE(udiv, uint512, uint64_t, gmp::udivrem);
+BENCHMARK_TEMPLATE(udiv, uint512, uint256, udiv_qr_knuth_512);
+BENCHMARK_TEMPLATE(udiv, uint512, uint256, udiv_qr_knuth_512_64);
+BENCHMARK_TEMPLATE(udiv, uint512, uint256, udivrem);
+BENCHMARK_TEMPLATE(udiv, uint512, uint256, gmp::udivrem);
 
 using binary_fn256 = uint256 (*)(const uint256&, const uint256&);
 template<binary_fn256 BinFn>
