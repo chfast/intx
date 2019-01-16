@@ -885,7 +885,8 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uin
     uint256 q, r;
     uint32_t u_data[9];  // u needs one limb more.
     std::memcpy(u_data, &u, sizeof(u));
-    auto p_v = (uint32_t*)&v;
+    uint32_t v_data[8];
+    std::memcpy(v_data, &v, sizeof(v));
     auto p_q = (uint32_t*)&q;
     auto p_r = (uint32_t*)&r;
 
@@ -898,13 +899,13 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uin
     if (n == 1)
     {
         // FIXME: Replace with udivrem_1_stable().
-        udivrem_1_3(p_q, p_r, u_data, p_v[0], m);
+        udivrem_1_3(p_q, p_r, u_data, v_data[0], m);
     }
     else
     {
         // Now we're ready to invoke the Knuth classical divide algorithm. In this
         // case n > 1.
-        KnuthDiv(u_data, p_v, p_q, p_r, m, n);
+        KnuthDiv(u_data, v_data, p_q, p_r, m, n);
     }
 
     return std::make_tuple(q, r);
