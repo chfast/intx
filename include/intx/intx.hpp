@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
+// Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 #pragma once
@@ -391,7 +391,7 @@ inline Int operator>>(const Int& x, const Int& shift) noexcept
     return 0;
 }
 
-template<typename Int>
+template <typename Int>
 inline Int& operator>>=(Int& x, unsigned shift) noexcept
 {
     return x = lsr(x, shift);
@@ -582,24 +582,23 @@ inline uint256 operator>>(uint256 x, unsigned y)
     return lsr(x, y);
 }
 
-template<typename Int1, typename Int2>
+template <typename Int1, typename Int2>
 inline Int1& operator+=(Int1& x, const Int2& y)
 {
     return x = x + y;
 }
 
-template<typename Int1, typename Int2>
+template <typename Int1, typename Int2>
 inline Int1& operator-=(Int1& x, const Int2& y)
 {
     return x = x - y;
 }
 
-template<typename Int1, typename Int2>
+template <typename Int1, typename Int2>
 inline Int1& operator*=(Int1& x, const Int2& y)
 {
     return x = x * y;
 }
-
 
 
 template <typename Int>
@@ -737,7 +736,7 @@ inline uint512& operator*=(uint512& x, uint512 y)
     return x = x * y;
 }
 
-template<typename Int>
+template <typename Int>
 Int exp(Int base, Int exponent) noexcept
 {
     Int result{1};
@@ -977,7 +976,7 @@ std::tuple<Int, Int> sdivrem(const Int& u, const Int& v) noexcept
     Int q, r;
     std::tie(q, r) = udivrem(u_abs, v_abs);
 
-    return {q_is_neg ? -q : q, u_is_neg ? -r: r};
+    return {q_is_neg ? -q : q, u_is_neg ? -r : r};
 }
 
 template <typename Int>
@@ -1031,7 +1030,7 @@ inline std::string to_string(uint512 x)
     return s;
 }
 
-template<typename Int>
+template <typename Int>
 inline Int from_string(const std::string& s)
 {
     Int x{};
@@ -1062,7 +1061,7 @@ inline Int bswap(const Int& x) noexcept
 }
 
 
-//constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
+// constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
 //{
 //    return uint256{x};
 //}
@@ -1115,7 +1114,7 @@ inline intx::uint256 uint256(const uint8_t bytes[32]) noexcept
     return bswap(x);
 }
 
-template<typename Int>
+template <typename Int>
 inline void store(uint8_t* dst, const Int& x) noexcept
 {
     auto d = bswap(x);
