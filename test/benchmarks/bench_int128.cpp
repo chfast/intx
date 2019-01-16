@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include <intx/int128.hpp>
 
@@ -15,17 +15,6 @@ inline uint128 div_uint128(uint128 x, uint128 y) noexcept
 {
     return x / y;
 }
-
-inline uint128 div_uint128_udiv(uint128 x, uint128 y) noexcept
-{
-    return udivrem(x, y).quot;
-}
-
-inline uint128 div_uint128_reciprocal(uint128 x, uint128 y) noexcept
-{
-    return udivrem_by_reciprocal(x, y).quot;
-}
-
 
 inline uint128 div_gmp(uint128 x, uint128 y) noexcept
 {
@@ -47,8 +36,6 @@ static void udiv128(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128, div_gcc);
 BENCHMARK_TEMPLATE(udiv128, div_uint128);
-BENCHMARK_TEMPLATE(udiv128, div_uint128_udiv);
-BENCHMARK_TEMPLATE(udiv128, div_uint128_reciprocal);
 BENCHMARK_TEMPLATE(udiv128, div_gmp);
 
 
@@ -67,8 +54,6 @@ static void udiv128_worst_shift(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gcc);
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128);
-BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128_udiv);
-BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128_reciprocal);
 // Disabled, sometimes hangs the release build.
 //BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);
 
@@ -88,6 +73,4 @@ static void udiv128_single_long(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128_single_long, div_gcc);
 BENCHMARK_TEMPLATE(udiv128_single_long, div_uint128);
-BENCHMARK_TEMPLATE(udiv128_single_long, div_uint128_udiv);
-BENCHMARK_TEMPLATE(udiv128_single_long, div_uint128_reciprocal);
 BENCHMARK_TEMPLATE(udiv128_single_long, div_gmp);

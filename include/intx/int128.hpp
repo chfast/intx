@@ -190,6 +190,31 @@ inline uint128& operator--(uint128& x) noexcept
     return x -= 1;
 }
 
+template <typename T>
+struct div_result
+{
+    T quot;
+    T rem;
+};
+
+div_result<uint128> udivrem(uint128 x, uint128 y) noexcept;
+
+inline uint128 operator/(uint128 x, uint128 y) noexcept
+{
+    return udivrem(x, y).quot;
+}
+
+inline uint128 operator%(uint128 x, uint128 y) noexcept
+{
+    return udivrem(x, y).rem;
+}
+
+inline int clz(const uint128& x)
+{
+    // In this order `h == 0` we get less instructions than in case of `h != 0`.
+    return x.hi == 0 ? builtins::clz(x.lo) | 64 : builtins::clz(x.hi);
+}
+
 namespace internal
 {
 /// Optimized addition.
@@ -206,27 +231,4 @@ constexpr uint128 optimized_add(uint128 x, uint128 y) noexcept
 #endif
 }
 }  // namespace internal
-
-
-uint128 operator/(uint128 x, uint128 y) noexcept;
-uint128 operator%(uint128 x, uint128 y) noexcept;
-
-// Experimental:
-template <typename T>
-struct div_result
-{
-    T quot;
-    T rem;
-};
-
-div_result<uint128> udivrem(uint128 x, uint128 y) noexcept;
-div_result<uint128> udivrem_by_reciprocal(uint128 x, uint128 y) noexcept;
-
-
-inline int clz(const uint128& x)
-{
-    // In this order `h == 0` we get less instructions than in case of `h != 0`.
-    return x.hi == 0 ? builtins::clz(x.lo) | 64 : builtins::clz(x.hi);
-}
-
 }  // namespace intx
