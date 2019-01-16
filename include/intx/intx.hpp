@@ -1,8 +1,10 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
+// Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 #pragma once
+
+#include <intx/int128.hpp>
 
 #include <algorithm>
 #include <array>
@@ -24,8 +26,6 @@ struct uint128
 
 namespace gcc
 {
-using uint128 = unsigned __int128;
-
 inline unsigned clz(uint64_t a)
 {
     return static_cast<unsigned>(__builtin_clzl(a));
@@ -40,8 +40,8 @@ inline std::tuple<uint64_t, uint64_t> udivrem_long(uint128 u, uint64_t v)
 {
     // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
     uint64_t q, r;
-    uint64_t uh = static_cast<uint64_t>(u >> 64);
-    uint64_t ul = static_cast<uint64_t>(u);
+    uint64_t uh = u.hi;
+    uint64_t ul = u.lo;
     asm("divq %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
     return std::make_tuple(q, r);
 }
@@ -69,7 +69,9 @@ using namespace gcc;
 
 struct uint256
 {
-    constexpr uint256(uint128 lo = 0, uint128 hi = 0) : lo(lo), hi(hi) {}
+    constexpr uint256(uint64_t x = 0) noexcept : lo(x) {}
+    constexpr uint256(uint128 lo) noexcept : lo(lo) {}
+    constexpr uint256(uint128 lo, uint128 hi) noexcept : lo(lo), hi(hi) {}
 
     uint128 lo = 0;
     uint128 hi = 0;
@@ -78,17 +80,18 @@ struct uint256
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
     explicit operator Int() const noexcept
     {
-        return static_cast<Int>(lo);
+        return static_cast<Int>(lo.lo);
     }
 };
 
 struct uint512
 {
-    constexpr uint512(uint128 lo) : lo(lo) {}
-    constexpr uint512(uint256 lo = 0, uint256 hi = 0) : lo(lo), hi(hi) {}
+    constexpr uint512(uint64_t x = 0) noexcept : lo(x) {}
+    constexpr uint512(uint256 lo) noexcept : lo(lo) {}
+    constexpr uint512(uint256 lo, uint256 hi) noexcept : lo(lo), hi(hi) {}
 
-    uint256 lo = 0;
-    uint256 hi = 0;
+    uint256 lo = {};
+    uint256 hi = {};
 };
 
 
@@ -174,12 +177,12 @@ constexpr uint32_t hi_half(uint64_t x)
 
 constexpr uint64_t lo_half(uint128 x)
 {
-    return static_cast<uint64_t>(x);
+    return x.lo;
 }
 
 constexpr uint64_t hi_half(uint128 x)
 {
-    return static_cast<uint64_t>(x >> 64);
+    return x.hi;
 }
 
 constexpr uint128 lo_half(uint256 x)
@@ -391,7 +394,7 @@ inline Int operator>>(const Int& x, const Int& shift) noexcept
     return 0;
 }
 
-template<typename Int>
+template <typename Int>
 inline Int& operator>>=(Int& x, unsigned shift) noexcept
 {
     return x = lsr(x, shift);
@@ -582,24 +585,23 @@ inline uint256 operator>>(uint256 x, unsigned y)
     return lsr(x, y);
 }
 
-template<typename Int1, typename Int2>
+template <typename Int1, typename Int2>
 inline Int1& operator+=(Int1& x, const Int2& y)
 {
     return x = x + y;
 }
 
-template<typename Int1, typename Int2>
+template <typename Int1, typename Int2>
 inline Int1& operator-=(Int1& x, const Int2& y)
 {
     return x = x - y;
 }
 
-template<typename Int1, typename Int2>
+template <typename Int1, typename Int2>
 inline Int1& operator*=(Int1& x, const Int2& y)
 {
     return x = x * y;
 }
-
 
 
 template <typename Int>
@@ -737,7 +739,7 @@ inline uint512& operator*=(uint512& x, uint512 y)
     return x = x * y;
 }
 
-template<typename Int>
+template <typename Int>
 Int exp(Int base, Int exponent) noexcept
 {
     Int result{1};
@@ -918,47 +920,6 @@ again2:
     return std::make_tuple(q, r);
 }
 
-template <typename Int>
-inline std::tuple<Int, Int> udivrem_dc(const Int& u, const Int& v)
-{
-    using tr = traits<Int>;
-
-    auto v1 = hi_half(v);
-    auto v0 = lo_half(v);
-
-    if (v1 == 0)
-    {
-        Int u1 = hi_half(u);
-        if (u1 < v)
-        {
-            auto t = udiv_long(u, v0);
-            return std::make_tuple(std::get<0>(t), std::get<1>(t));
-        }
-        else
-        {
-            auto u0 = lo_half(u);
-            typename tr::half_type q1, k;
-            std::tie(q1, k) = udiv_long(u1, v0);
-            auto q0 = std::get<0>(udiv_long(join(k, u0), v0));
-            Int q = join(q1, q0);
-            Int r = u - v * q;
-            return std::make_tuple(q, r);
-        }
-    }
-    unsigned n = clz(v);
-    auto vn = v << n;
-    auto vn1 = hi_half(vn);
-    Int u1 = u >> 1;
-    Int q1 = std::get<0>(udiv_long(u1, vn1));
-    Int q0 = (q1 << n) >> 63;
-    if (q0 != 0)
-        q0 = q0 - 1;
-    if ((u - q0 * v) >= v)
-        q0 = q0 + 1;
-    Int r = u - v * q0;
-    return std::make_tuple(q0, r);
-}
-
 std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v) noexcept;
 std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y) noexcept;
 
@@ -977,7 +938,7 @@ std::tuple<Int, Int> sdivrem(const Int& u, const Int& v) noexcept
     Int q, r;
     std::tie(q, r) = udivrem(u_abs, v_abs);
 
-    return {q_is_neg ? -q : q, u_is_neg ? -r: r};
+    return {q_is_neg ? -q : q, u_is_neg ? -r : r};
 }
 
 template <typename Int>
@@ -1031,7 +992,7 @@ inline std::string to_string(uint512 x)
     return s;
 }
 
-template<typename Int>
+template <typename Int>
 inline Int from_string(const std::string& s)
 {
     Int x{};
@@ -1045,14 +1006,14 @@ inline Int from_string(const std::string& s)
     return x;
 }
 
-inline uint64_t bswap(uint64_t x) noexcept
+constexpr uint64_t bswap(uint64_t x) noexcept
 {
     return __builtin_bswap64(x);
 }
 
-inline unsigned __int128 bswap(unsigned __int128 x) noexcept
+constexpr uint128 bswap(uint128 x) noexcept
 {
-    return join(bswap(uint64_t(x)), bswap(uint64_t(x >> 64)));
+    return {bswap(x.lo), bswap(x.hi)};
 }
 
 template <typename Int>
@@ -1062,7 +1023,7 @@ inline Int bswap(const Int& x) noexcept
 }
 
 
-//constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
+// constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
 //{
 //    return uint256{x};
 //}
@@ -1115,7 +1076,7 @@ inline intx::uint256 uint256(const uint8_t bytes[32]) noexcept
     return bswap(x);
 }
 
-template<typename Int>
+template <typename Int>
 inline void store(uint8_t* dst, const Int& x) noexcept
 {
     auto d = bswap(x);

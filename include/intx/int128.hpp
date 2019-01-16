@@ -32,6 +32,13 @@ struct uint128
 #ifdef __SIZEOF_INT128__
     constexpr uint128(unsigned __int128 x) noexcept : lo{uint64_t(x)}, hi{uint64_t(x >> 64)} {}
 #endif
+
+    /// Explicit converting operator for all builtin integral types.
+    template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    explicit operator Int() const noexcept
+    {
+        return static_cast<Int>(lo);
+    }
 };
 
 
@@ -171,6 +178,16 @@ inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
 inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
 {
     return x = x >> shift;
+}
+
+inline uint128& operator++(uint128& x) noexcept
+{
+    return x += 1;
+}
+
+inline uint128& operator--(uint128& x) noexcept
+{
+    return x -= 1;
 }
 
 namespace internal
