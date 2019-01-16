@@ -33,8 +33,13 @@ endif()
 # FIXME: Add back -Wconversion, test with clang.
 add_compile_options(-Werror -Wall -Wextra)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
-#add_compile_options(-mtune=native -march=native)
-add_compile_options(-mtune=generic)
+
+option(NATIVE OFF)
+if(NATIVE)
+    add_compile_options(-mtune=native -march=native)
+else()
+    add_compile_options(-mtune=generic)
+endif()
 
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
 #set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Og")
