@@ -183,38 +183,40 @@ TEST_F(Uint256Test, count_significant_words_64)
         EXPECT_EQ(csw(x << s), s / 64 + 1);
 }
 
-TEST_F(Uint256Test, udiv_against_gmp)
+TEST_F(Uint256Test, udiv)
 {
     for (auto a : numbers)
     {
+        int i = 0;
         for (auto d : numbers)
         {
             if (d == 0)
                 continue;
 
-            uint256 q, r, q_gmp, r_gmp;
-            uint256 n_gmp = a;
-            uint256 d_gmp = d;
-            std::tie(q, r) = udivrem_unr(a, d);
-            std::tie(q_gmp, r_gmp) = gmp::udivrem(n_gmp, d_gmp);
-            EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
-            EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+            if (a < d)
+                continue;
+
+            if (i++ > 15)  // Limit number of tests.
+                break;
+
+            uint256 q, r, eq, er;
+            std::tie(eq, er) = udivrem_unr(a, d);
 
             std::tie(q, r) = udiv_qr_knuth_opt_base(a, d);
-            EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
-            EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+            EXPECT_EQ(q, eq) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
+            EXPECT_EQ(r, er) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
 
             std::tie(q, r) = udiv_qr_knuth_opt(a, d);
-            EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
-            EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+            EXPECT_EQ(q, eq) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
+            EXPECT_EQ(r, er) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
 
             std::tie(q, r) = udiv_qr_knuth_hd_base(a, d);
-            EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
-            EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+            EXPECT_EQ(q, eq) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
+            EXPECT_EQ(r, er) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
 
             std::tie(q, r) = udiv_qr_knuth_llvm_base(a, d);
-            EXPECT_EQ(q, q_gmp) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
-            EXPECT_EQ(r, r_gmp) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+            EXPECT_EQ(q, eq) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
+            EXPECT_EQ(r, er) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
         }
     }
 }
