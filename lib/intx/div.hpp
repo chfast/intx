@@ -10,9 +10,10 @@
 namespace intx
 {
 uint64_t reciprocal(uint64_t d) noexcept;
-
+uint64_t reciprocal_3by2(uint128 d) noexcept;
 div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept;
-div_result<uint128> udivrem_3by2(uint64_t u2, uint64_t u1, uint64_t u0, uint128 d) noexcept;
+div_result<uint128> udivrem_3by2(
+    uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept;
 
 struct normalized_args
 {

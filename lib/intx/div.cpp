@@ -112,9 +112,9 @@ div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
     return {q.hi, r};
 }
 
-div_result<uint128> udivrem_3by2(uint64_t u2, uint64_t u1, uint64_t u0, uint128 d) noexcept
+div_result<uint128> udivrem_3by2(
+    uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
-    auto v = reciprocal_3by2(d);
     auto q = uint128{v} * u2;
     q = internal::optimized_add(q, {u2, u1});
 
@@ -195,7 +195,6 @@ inline normalized_args64 normalize64(const uint512& numerator, const uint512& de
 
 namespace
 {
-
 union uint512_words
 {
     static constexpr int num_words = sizeof(uint512) / sizeof(uint32_t);
