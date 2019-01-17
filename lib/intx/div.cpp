@@ -240,6 +240,28 @@ inline div_result<uint512> udivrem_by1(const normalized_args64& na) noexcept
     return {q.number, x.rem >> na.shift};
 }
 
+inline div_result<uint512> udivrem_by2(const normalized_args64& na) noexcept
+{
+    auto d = uint128{na.denominator[1], na.denominator[0]};
+    auto v = reciprocal_3by2(d);
+
+    auto q = uint512_words64{};
+    constexpr auto num_words = decltype(q)::num_words;
+
+    auto r = uint128{na.numerator[num_words], na.numerator[num_words - 1]};
+
+    // OPT: Skip leading zero words.
+    for (int j = num_words - 2; j >= 0; --j)
+    {
+        auto res = udivrem_3by2(r.hi, r.lo, na.numerator[j], d, v);
+        q[j] = res.quot.lo;
+        r = res.rem;
+    }
+
+    // TODO: Add conversion uint128 -> uint512.
+    return {q.number, uint256{r >> na.shift}};
+}
+
 div_result<uint512> udivrem_knuth(normalized_args& na) noexcept
 {
     // b denotes the base of the number system. In our case b is 2^32.
@@ -349,6 +371,9 @@ div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
 
     if (na.num_denominator_words == 1)
         return udivrem_by1(na);
+
+    if (na.num_denominator_words == 2)
+        return udivrem_by2(na);
 
     // Fallback to udivrem32().
     return udivrem32(u, v);
