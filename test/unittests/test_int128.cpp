@@ -204,10 +204,6 @@ TEST(int128, div)
         EXPECT_EQ(res.quot, q) << index;
         EXPECT_EQ(res.rem, r) << index;
 
-        res = udivrem_by_reciprocal(v[0], v[1]);
-        EXPECT_EQ(res.quot, q) << index;
-        EXPECT_EQ(res.rem, r) << index;
-
         index++;
     }
 }
@@ -222,8 +218,9 @@ TEST(int128, div_random)
     {
         auto x = dist();
         auto y = dist();
-        auto r = udivrem_by_reciprocal(x, y).quot;
+        auto r = udivrem(x, y).quot;
 
+        // TODO: Add cast operator to __int128.
         auto nx = ((unsigned __int128)x.hi << 64) | x.lo;
         auto ny = ((unsigned __int128)y.hi << 64) | y.lo;
         auto s = nx / ny;

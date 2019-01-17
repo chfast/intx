@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
 // Copyright 2019 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Licensed under the Apache License, Version 2.0.
 
 #pragma once
 
@@ -36,14 +36,14 @@ inline unsigned clz(unsigned x)
     return static_cast<unsigned>(__builtin_clz(x));
 }
 
-inline std::tuple<uint64_t, uint64_t> udivrem_long(uint128 u, uint64_t v)
+inline div_result<uint64_t> udivrem_long(uint128 u, uint64_t v)
 {
     // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
     uint64_t q, r;
     uint64_t uh = u.hi;
     uint64_t ul = u.lo;
     asm("divq %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
 inline std::tuple<uint32_t, uint32_t> udivrem_long_asm(uint64_t u, uint32_t v)
@@ -532,11 +532,6 @@ inline uint64_t mul(uint64_t a, uint64_t b)
     return a * b;
 }
 
-inline std::tuple<uint128, uint128> udivrem(const uint128& a, const uint128& b)
-{
-    return std::make_tuple(a / b, a % b);
-}
-
 inline uint128 add(uint128 a, uint128 b)
 {
     return a + b;
@@ -822,7 +817,7 @@ inline unsigned count_significant_words<uint64_t, uint64_t>(const uint64_t& x) n
 }
 
 template <typename Int>
-inline std::tuple<Int, Int> udivrem_unr(const Int& x, const Int& y) noexcept
+inline div_result<Int> udivrem_unr(const Int& x, const Int& y) noexcept
 {
     // decent start
     unsigned c = clz(y);
@@ -854,16 +849,16 @@ inline std::tuple<Int, Int> udivrem_unr(const Int& x, const Int& y) noexcept
             q = add(q, 1);
         }
     }
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint256& y);
-std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v);
-std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(const uint256& x, const uint256& y);
-std::tuple<uint256, uint256> udiv_qr_knuth_opt(const uint256& x, const uint256& y);
-std::tuple<uint256, uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y);
-std::tuple<uint512, uint512> udiv_qr_knuth_512(const uint512& x, const uint512& y);
-std::tuple<uint512, uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y);
+div_result<uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint256& y);
+div_result<uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v);
+div_result<uint256> udiv_qr_knuth_opt_base(const uint256& x, const uint256& y);
+div_result<uint256> udiv_qr_knuth_opt(const uint256& x, const uint256& y);
+div_result<uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y);
+div_result<uint512> udiv_qr_knuth_512(const uint512& x, const uint512& y);
+div_result<uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y);
 
 template <typename Int>
 inline std::tuple<Int, Int> udiv_long(typename traits<Int>::double_type u, Int v)
@@ -920,11 +915,11 @@ again2:
     return std::make_tuple(q, r);
 }
 
-std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v) noexcept;
-std::tuple<uint512, uint512> udivrem(const uint512& x, const uint512& y) noexcept;
+div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept;
+div_result<uint512> udivrem(const uint512& x, const uint512& y) noexcept;
 
 template <typename Int>
-std::tuple<Int, Int> sdivrem(const Int& u, const Int& v) noexcept
+div_result<Int> sdivrem(const Int& u, const Int& v) noexcept
 {
     const auto sign_mask = Int(1) << (sizeof(Int) * 8 - 1);
     auto u_is_neg = (u & sign_mask) != 0;
@@ -935,10 +930,9 @@ std::tuple<Int, Int> sdivrem(const Int& u, const Int& v) noexcept
 
     auto q_is_neg = u_is_neg ^ v_is_neg;
 
-    Int q, r;
-    std::tie(q, r) = udivrem(u_abs, v_abs);
+    auto res = udivrem(u_abs, v_abs);
 
-    return {q_is_neg ? -q : q, u_is_neg ? -r : r};
+    return {q_is_neg ? -res.quot : res.quot, u_is_neg ? -res.rem : res.rem};
 }
 
 template <typename Int>
@@ -961,9 +955,9 @@ inline std::string to_string(uint256 x)
     std::string s;
     while (x != 0)
     {
-        uint256 r;
-        std::tie(x, r) = udivrem_unr(x, uint256(10));
-        auto c = static_cast<size_t>(r);
+        const auto res = udivrem_unr(x, uint256(10));
+        x = res.quot;
+        auto c = static_cast<size_t>(res.rem);
         s.push_back(static_cast<char>('0' + c));
     }
     std::reverse(s.begin(), s.end());
@@ -983,9 +977,9 @@ inline std::string to_string(uint512 x)
     std::string s;
     while (x != 0)
     {
-        uint512 r;
-        std::tie(x, r) = udiv_qr_knuth_512(x, uint512(10));
-        auto c = static_cast<size_t>(r.lo);
+        const auto res = udiv_qr_knuth_512(x, uint512(10));
+        x = res.quot;
+        auto c = static_cast<size_t>(res.rem.lo);
         s.push_back(static_cast<char>('0' + c));
     }
     std::reverse(s.begin(), s.end());

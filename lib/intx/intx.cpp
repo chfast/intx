@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include "div.hpp"
 #include <intx/intx.hpp>
@@ -61,7 +61,7 @@ static void udivrem_1_3(uint32_t q[], uint32_t* r, const uint32_t u[], uint32_t 
     *r = remainder;
 }
 
-std::tuple<uint256, uint64_t> udivrem_1(uint256 x, uint64_t y)
+div_result<uint256> udivrem_1(uint256 x, uint64_t y)
 {
     uint64_t r = 0;
     uint256 q = 0;
@@ -79,13 +79,13 @@ std::tuple<uint256, uint64_t> udivrem_1(uint256 x, uint64_t y)
         // here to compute both quotient and remainder. This is better than
         // classic multiplication `reminder = dividend - q[j] * divisor`.
         auto res = udivrem_unr(dividend, uint128(y));
-        qt[j] = std::get<0>(res).lo;
-        r = std::get<1>(res).lo;
+        qt[j] = res.quot.lo;
+        r = res.rem.lo;
     }
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
-std::tuple<uint512, uint64_t> udivrem_1(uint512 x, uint64_t y)
+div_result<uint512> udivrem_1(uint512 x, uint64_t y)
 {
     uint64_t r = 0;
     uint512 q = 0;
@@ -103,10 +103,10 @@ std::tuple<uint512, uint64_t> udivrem_1(uint512 x, uint64_t y)
         // here to compute both quotient and remainder. This is better than
         // classic multiplication `reminder = dividend - q[j] * divisor`.
         auto res = udivrem_unr(dividend, uint128(y));
-        qt[j] = std::get<0>(res).lo;
-        r = std::get<1>(res).lo;
+        qt[j] = res.quot.lo;
+        r = res.rem.lo;
     }
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
 
@@ -684,7 +684,9 @@ static void udiv_knuth_internal_64(
         }
         else
         {
-            std::tie(qhat, rhat) = udivrem_long(dividend, divisor);
+            auto res = udivrem_long(dividend, divisor);
+            qhat = res.quot;
+            rhat = res.rem;
         }
 
         uint64_t next_divisor = vn[n - 2];
@@ -734,10 +736,10 @@ static void udiv_knuth_internal_64(
         r[i] = shift ? (un[i] >> shift) | (un[i + 1] << lshift) : un[i];
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y)
+div_result<uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y)
 {
     if (x < y)
-        return std::make_tuple(0, x);
+        return {0, x};
 
     const unsigned n = count_significant_words<uint64_t>(y);
 
@@ -748,7 +750,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y
     const unsigned m = count_significant_words<uint64_t>(x);
 
     if (n > m)
-        return std::make_tuple(0, x);
+        return {0, x};
 
     uint256 q, r;
     auto p_x = (uint64_t*)&x;
@@ -757,13 +759,13 @@ std::tuple<uint256, uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y
     auto p_r = (uint64_t*)&r;
     udiv_knuth_internal_64(p_q, p_r, p_x, p_y, m, n);
 
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_opt(const uint256& x, const uint256& y)
+div_result<uint256> udiv_qr_knuth_opt(const uint256& x, const uint256& y)
 {
     if (x < y)
-        return std::make_tuple(0, x);
+        return {0, x};
 
     const unsigned n = count_significant_words<uint32_t>(y);
 
@@ -774,7 +776,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt(const uint256& x, const uint256& 
     const unsigned m = 8 - (clz(x) / (4 * 8));
 
     if (n > m)
-        return std::make_tuple(uint256(0), x);
+        return {0, x};
 
     uint256 q, r;
     auto p_x = (uint32_t*)&x;
@@ -783,13 +785,13 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt(const uint256& x, const uint256& 
     auto p_r = (uint32_t*)&r;
     udiv_knuth_internal(p_q, p_r, p_x, p_y, m, n);
 
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
-std::tuple<uint512, uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y)
+div_result<uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y)
 {
     if (x < y)
-        return std::make_tuple(0, x.lo);
+        return {0, x};
 
     const unsigned n = count_significant_words<uint64_t>(y);
 
@@ -800,7 +802,7 @@ std::tuple<uint512, uint512> udiv_qr_knuth_512_64(const uint512& x, const uint51
     const unsigned m = count_significant_words<uint64_t>(x);
 
     if (n > m)
-        return std::make_tuple(0, x);
+        return {0, x};
 
     uint512 q;
     uint256 r;
@@ -810,13 +812,13 @@ std::tuple<uint512, uint512> udiv_qr_knuth_512_64(const uint512& x, const uint51
     auto p_r = (uint64_t*)&r;
     udiv_knuth_internal_64(p_q, p_r, p_x, p_y, m, n);
 
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
-std::tuple<uint512, uint512> udiv_qr_knuth_512(const uint512& x, const uint512& y)
+div_result<uint512> udiv_qr_knuth_512(const uint512& x, const uint512& y)
 {
     if (x < uint512(y))
-        return std::make_tuple(0, x.lo);
+        return {0, x};
 
     const unsigned n = count_significant_words<uint32_t>(y);
 
@@ -834,17 +836,17 @@ std::tuple<uint512, uint512> udiv_qr_knuth_512(const uint512& x, const uint512& 
     auto p_r = (uint32_t*)&r;
     udiv_knuth_internal(p_q, p_r, p_x, p_y, m, n);
 
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(const uint256& x, const uint256& y)
+div_result<uint256> udiv_qr_knuth_opt_base(const uint256& x, const uint256& y)
 {
     // Skip dividend's leading zero limbs.
     const unsigned m = 8 - (clz(x) / (4 * 8));
     const unsigned n = 8 - (clz(y) / (4 * 8));
 
     if (n > m)
-        return std::make_tuple(uint256(0), x);
+        return {0, x};
 
     uint256 q, r;
     auto p_x = (uint32_t*)&x;
@@ -853,17 +855,17 @@ std::tuple<uint256, uint256> udiv_qr_knuth_opt_base(const uint256& x, const uint
     auto p_r = (uint32_t*)&r;
     udiv_knuth_internal_base(p_q, p_r, p_x, p_y, m, n);
 
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint256& y)
+div_result<uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint256& y)
 {
     // Skip dividend's leading zero limbs.
     const unsigned m = 8 - (clz(x) / (4 * 8));
     const unsigned n = 8 - (clz(y) / (4 * 8));
 
     if (n > m)
-        return std::make_tuple(uint256(0), x);
+        return {0, x};
 
     uint256 q, r;
     auto p_x = (uint32_t*)&x;
@@ -872,17 +874,17 @@ std::tuple<uint256, uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint2
     auto p_r = (uint32_t*)&r;
     divmnu(p_q, p_r, p_x, p_y, m, n);
 
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
-std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v)
+div_result<uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v)
 {
     // Skip dividend's leading zero limbs.
     const unsigned u_limbs = 8 - (clz(u) / (4 * 8));
     const unsigned n = 8 - (clz(v) / (4 * 8));
 
     if (n > u_limbs)
-        return std::make_tuple(uint256(0), u);
+        return {0, u};
 
     unsigned m = u_limbs - n;
 
@@ -912,7 +914,7 @@ std::tuple<uint256, uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uin
         KnuthDiv(u_data, v_data, p_q, p_r, m, n);
     }
 
-    return std::make_tuple(q, r);
+    return {q, r};
 }
 
 }  // namespace intx

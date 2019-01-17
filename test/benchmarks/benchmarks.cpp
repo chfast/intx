@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include "../utils/gmp.hpp"
 #include "../utils/random.hpp"
@@ -11,7 +11,12 @@
 
 using namespace intx;
 
-template<typename N, typename D, std::tuple<N, N> DivFn(const N&, const N&)>
+div_result<uint128> udivrem_by_ref(const uint128& x, const uint128& y) noexcept
+{
+    return udivrem(x, y);
+}
+
+template <typename N, typename D, div_result<N> DivFn(const N&, const N&)>
 static void udiv(benchmark::State& state)
 {
     // Pick random operands using global seed to perform exactly the same sequence of divisions
@@ -23,8 +28,7 @@ static void udiv(benchmark::State& state)
     constexpr size_t size = 1000;
     std::vector<N> input_x(size);
     std::vector<N> input_y(size);
-    std::vector<N> output_q(size);
-    std::vector<N> output_r(size);
+    std::vector<div_result<N>> output(size);
     for (size_t i = 0; i < size; ++i)
     {
         // Generate non-zero divisor.
@@ -41,27 +45,26 @@ static void udiv(benchmark::State& state)
     for (auto _ : state)
     {
         for (size_t i = 0; i < size; ++i)
-            std::tie(output_q[i], output_r[i]) = DivFn(input_x[i], input_y[i]);
-        benchmark::DoNotOptimize(output_q.data());
-        benchmark::DoNotOptimize(output_r.data());
+            output[i] = DivFn(input_x[i], input_y[i]);
+        benchmark::DoNotOptimize(output.data());
     }
 
     for (size_t i = 0; i < size; ++i)
     {
-        auto x = output_q[i] * input_y[i] + output_r[i];
+        auto x = output[i].quot * input_y[i] + output[i].rem;
         if (input_x[i] != x)
         {
             std::string error = to_string(input_x[i]) + " / " + to_string(input_y[i]) + " = " +
-                                to_string(output_q[i]) + " % " + to_string(output_r[i]);
+                                to_string(output[i].quot) + " % " + to_string(output[i].rem);
             state.SkipWithError(error.data());
             break;
         }
     }
 }
 
-BENCHMARK_TEMPLATE(udiv, uint128, uint64_t, udivrem);
+BENCHMARK_TEMPLATE(udiv, uint128, uint64_t, udivrem_by_ref);
 BENCHMARK_TEMPLATE(udiv, uint128, uint64_t, udivrem_unr);
-BENCHMARK_TEMPLATE(udiv, uint128, uint128, udivrem);
+BENCHMARK_TEMPLATE(udiv, uint128, uint128, udivrem_by_ref);
 BENCHMARK_TEMPLATE(udiv, uint128, uint128, udivrem_unr);
 
 BENCHMARK_TEMPLATE(udiv, uint256, uint32_t, udivrem_unr);
@@ -114,7 +117,7 @@ BENCHMARK_TEMPLATE(udiv, uint512, uint256, udivrem);
 BENCHMARK_TEMPLATE(udiv, uint512, uint256, gmp::udivrem);
 
 using binary_fn256 = uint256 (*)(const uint256&, const uint256&);
-template<binary_fn256 BinFn>
+template <binary_fn256 BinFn>
 static void binary_op256(benchmark::State& state)
 {
     // Pick random operands. Keep the divisor small, because this is the worst
@@ -144,7 +147,7 @@ BENCHMARK_TEMPLATE(binary_op256, mul_loop_opt);
 BENCHMARK_TEMPLATE(binary_op256, gmp::mul);
 
 using binary_fn256_full = uint512 (*)(const uint256&, const uint256&);
-template<binary_fn256_full BinFn>
+template <binary_fn256_full BinFn>
 static void binary_op256_full(benchmark::State& state)
 {
     // Pick random operands. Keep the divisor small, because this is the worst
@@ -173,7 +176,7 @@ BENCHMARK_TEMPLATE(binary_op256_full, umul_full_loop);
 BENCHMARK_TEMPLATE(binary_op256_full, gmp::mul_full);
 
 using binary_fn512 = uint512 (*)(const uint512&, const uint512&);
-template<binary_fn512 BinFn>
+template <binary_fn512 BinFn>
 static void binary_op512(benchmark::State& state)
 {
     // Pick random operands. Keep the divisor small, because this is the worst
@@ -200,7 +203,7 @@ static void binary_op512(benchmark::State& state)
 BENCHMARK_TEMPLATE(binary_op512, mul<uint512>);
 BENCHMARK_TEMPLATE(binary_op512, gmp::mul);
 
-template<typename Int, Int ShiftFn(Int, unsigned)>
+template <typename Int, Int ShiftFn(Int, unsigned)>
 static void shift(benchmark::State& state)
 {
     lcg<Int> rng_x(get_seed());
@@ -228,7 +231,7 @@ BENCHMARK_TEMPLATE(shift, uint256, shl);
 BENCHMARK_TEMPLATE(shift, uint256, shl_loop);
 BENCHMARK_TEMPLATE(shift, uint512, shl);
 BENCHMARK_TEMPLATE(shift, uint512, shl_loop);
-//BENCHMARK_TEMPLATE(shift_512, lsr);
+// BENCHMARK_TEMPLATE(shift_512, lsr);
 
 static void count_sigificant_words32_256_loop(benchmark::State& state)
 {

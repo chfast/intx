@@ -1,9 +1,8 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include <div.hpp>
-#include <experiments.hpp>
 #include <intx/intx.hpp>
 
 #include "../utils/random.hpp"
@@ -33,7 +32,7 @@ TEST(div, normalize)
 {
     uint512 u;
     uint512 v = 1;
-    auto na = div::normalize(u, v);
+    auto na = normalize(u, v);
     EXPECT_EQ(na.shift, 31);
     EXPECT_EQ(na.num_denominator_words, 1);
     EXPECT_EQ(na.num_numerator_words, 0);
@@ -45,7 +44,7 @@ TEST(div, normalize)
 
     u = uint512{1313, 1414};
     v = uint512{1212, 12};
-    na = div::normalize(u, v);
+    na = normalize(u, v);
     EXPECT_EQ(na.shift, 28);
     EXPECT_EQ(na.num_denominator_words, 9);
     EXPECT_EQ(na.num_numerator_words, 9);
@@ -62,7 +61,7 @@ TEST(div, normalize)
 
     u = shl(uint512{3}, 510);
     v = uint512{uint256{1, 0xffffffff}, 0};
-    na = div::normalize(u, v);
+    na = normalize(u, v);
     EXPECT_EQ(na.shift, 0);
     EXPECT_EQ(na.num_denominator_words, 5);
     EXPECT_EQ(na.num_numerator_words, 16);
@@ -81,7 +80,7 @@ TEST(div, normalize)
 
     u = shl(uint512{7}, 509);
     v = uint512{uint256{1, 0x3fffffff}, 0};
-    na = div::normalize(u, v);
+    na = normalize(u, v);
     EXPECT_EQ(na.shift, 2);
     EXPECT_EQ(na.num_denominator_words, 5);
     EXPECT_EQ(na.num_numerator_words, 16);
@@ -124,10 +123,9 @@ TEST(div, udivrem_512)
 {
     for (auto& t : div_test_cases)
     {
-        uint512 q, r;
-        std::tie(q, r) = udivrem(t.numerator, t.denominator);
-        EXPECT_EQ(q, t.quotient);
-        EXPECT_EQ(r, t.reminder);
+        auto res = udivrem(t.numerator, t.denominator);
+        EXPECT_EQ(res.quot, t.quotient);
+        EXPECT_EQ(res.rem, t.reminder);
     }
 }
 
@@ -146,15 +144,13 @@ TEST(div, sdivrem_256)
     {
         EXPECT_EQ(t.denominator * t.quotient + t.reminder, t.numerator);
 
-        uint256 q, r;
-        std::tie(q, r) = sdivrem(t.numerator, t.denominator);
-        EXPECT_EQ(q, t.quotient);
-        EXPECT_EQ(r, t.reminder);
+        auto res = sdivrem(t.numerator, t.denominator);
+        EXPECT_EQ(res.quot, t.quotient);
+        EXPECT_EQ(res.rem, t.reminder);
 
-        uint256 k, l;
-        std::tie(k, l) = gmp::sdivrem(t.numerator, t.denominator);
-        EXPECT_EQ(k, q);
-        EXPECT_EQ(l, r);
+        auto res2 = gmp::sdivrem(t.numerator, t.denominator);
+        EXPECT_EQ(res2.quot, res.quot);
+        EXPECT_EQ(res2.rem, res.rem);
     }
 }
 
@@ -163,16 +159,13 @@ TEST(div, sdivrem_512)
     auto n = -13_u512;
     auto d = -3_u512;
 
-    uint512 q, r;
-    std::tie(q, r) = sdivrem(n, d);
+    auto res = sdivrem(n, d);
+    EXPECT_EQ(res.quot, 4_u512);
+    EXPECT_EQ(res.rem, -1_u512);
 
-    EXPECT_EQ(q, 4_u512);
-    EXPECT_EQ(r, -1_u512);
-
-    uint512 k, l;
-    std::tie(k, l) = gmp::sdivrem(n, d);
-    EXPECT_EQ(k, q);
-    EXPECT_EQ(l, r);
+    auto res2 = gmp::sdivrem(n, d);
+    EXPECT_EQ(res2.quot, res.quot);
+    EXPECT_EQ(res2.rem, res.rem);
 }
 
 TEST(div, reciprocal)
@@ -182,14 +175,14 @@ TEST(div, reciprocal)
     constexpr auto d_start = uint64_t{1} << 63;
     for (uint64_t d = d_start; d < d_start + n; ++d)
     {
-        auto v = experiments::reciprocal(d);
+        auto v = reciprocal(d);
         EXPECT_EQ(v, reciprocal_naive(d)) << d;
     }
 
     constexpr auto d_end = ~uint64_t{0};
     for (uint64_t d = d_end; d > d_end - n; --d)
     {
-        auto v = experiments::reciprocal(d);
+        auto v = reciprocal(d);
         EXPECT_EQ(v, reciprocal_naive(d)) << d;
     }
 }
