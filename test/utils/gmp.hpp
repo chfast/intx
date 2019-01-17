@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 /// @file
 /// Wrappers for GMP functions.
@@ -47,7 +47,7 @@ inline uint512 mul(const uint512& x, const uint512& y) noexcept
 }
 
 template <typename Int>
-inline std::tuple<Int, Int> udivrem(const Int& x, const Int& y) noexcept
+inline div_result<Int> udivrem(const Int& x, const Int& y) noexcept
 {
     // Skip dividend's leading zero limbs.
     constexpr size_t x_limbs = sizeof(Int) / sizeof(mp_limb_t);
@@ -59,11 +59,11 @@ inline std::tuple<Int, Int> udivrem(const Int& x, const Int& y) noexcept
     auto p_x = (mp_srcptr)&x;
     auto p_y = (mp_srcptr)&y;
     mpn_tdiv_qr(p_q, p_r, 0, p_x, x_limbs, p_y, y_limbs);
-    return std::make_tuple(q, r);
+    return {q, r};
 };
 
 template <typename Int>
-inline std::tuple<Int, Int> sdivrem(const Int& x, const Int& y) noexcept
+inline div_result<Int> sdivrem(const Int& x, const Int& y) noexcept
 {
     const auto sign_bit_mask = Int(1) << (sizeof(Int) * 8 - 1);
     auto x_is_neg = (x & sign_bit_mask) != 0;

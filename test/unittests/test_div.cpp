@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include <div.hpp>
 #include <intx/intx.hpp>
@@ -123,10 +123,9 @@ TEST(div, udivrem_512)
 {
     for (auto& t : div_test_cases)
     {
-        uint512 q, r;
-        std::tie(q, r) = udivrem(t.numerator, t.denominator);
-        EXPECT_EQ(q, t.quotient);
-        EXPECT_EQ(r, t.reminder);
+        auto res = udivrem(t.numerator, t.denominator);
+        EXPECT_EQ(res.quot, t.quotient);
+        EXPECT_EQ(res.rem, t.reminder);
     }
 }
 
@@ -145,15 +144,13 @@ TEST(div, sdivrem_256)
     {
         EXPECT_EQ(t.denominator * t.quotient + t.reminder, t.numerator);
 
-        uint256 q, r;
-        std::tie(q, r) = sdivrem(t.numerator, t.denominator);
-        EXPECT_EQ(q, t.quotient);
-        EXPECT_EQ(r, t.reminder);
+        auto res = sdivrem(t.numerator, t.denominator);
+        EXPECT_EQ(res.quot, t.quotient);
+        EXPECT_EQ(res.rem, t.reminder);
 
-        uint256 k, l;
-        std::tie(k, l) = gmp::sdivrem(t.numerator, t.denominator);
-        EXPECT_EQ(k, q);
-        EXPECT_EQ(l, r);
+        auto res2 = gmp::sdivrem(t.numerator, t.denominator);
+        EXPECT_EQ(res2.quot, res.quot);
+        EXPECT_EQ(res2.rem, res.rem);
     }
 }
 
@@ -162,16 +159,13 @@ TEST(div, sdivrem_512)
     auto n = -13_u512;
     auto d = -3_u512;
 
-    uint512 q, r;
-    std::tie(q, r) = sdivrem(n, d);
+    auto res = sdivrem(n, d);
+    EXPECT_EQ(res.quot, 4_u512);
+    EXPECT_EQ(res.rem, -1_u512);
 
-    EXPECT_EQ(q, 4_u512);
-    EXPECT_EQ(r, -1_u512);
-
-    uint512 k, l;
-    std::tie(k, l) = gmp::sdivrem(n, d);
-    EXPECT_EQ(k, q);
-    EXPECT_EQ(l, r);
+    auto res2 = gmp::sdivrem(n, d);
+    EXPECT_EQ(res2.quot, res.quot);
+    EXPECT_EQ(res2.rem, res.rem);
 }
 
 TEST(div, reciprocal)

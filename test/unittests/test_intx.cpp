@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include "../utils/gmp.hpp"
 #include "test_cases.hpp"
@@ -199,24 +199,31 @@ TEST_F(Uint256Test, udiv)
             if (i++ > 15)  // Limit number of tests.
                 break;
 
-            uint256 q, r, eq, er;
-            std::tie(eq, er) = udivrem_unr(a, d);
+            auto e = udivrem_unr(a, d);
 
-            std::tie(q, r) = udiv_qr_knuth_opt_base(a, d);
-            EXPECT_EQ(q, eq) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
-            EXPECT_EQ(r, er) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+            auto res = udiv_qr_knuth_opt_base(a, d);
+            EXPECT_EQ(res.quot, e.quot)
+                << to_string(a) << " / " << to_string(d) << " = " << to_string(res.quot);
+            EXPECT_EQ(res.rem, e.rem)
+                << to_string(a) << " % " << to_string(d) << " = " << to_string(e.rem);
 
-            std::tie(q, r) = udiv_qr_knuth_opt(a, d);
-            EXPECT_EQ(q, eq) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
-            EXPECT_EQ(r, er) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+            res = udiv_qr_knuth_opt(a, d);
+            EXPECT_EQ(res.quot, e.quot)
+                << to_string(a) << " / " << to_string(d) << " = " << to_string(res.quot);
+            EXPECT_EQ(res.rem, e.rem)
+                << to_string(a) << " % " << to_string(d) << " = " << to_string(res.rem);
 
-            std::tie(q, r) = udiv_qr_knuth_hd_base(a, d);
-            EXPECT_EQ(q, eq) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
-            EXPECT_EQ(r, er) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+            res = udiv_qr_knuth_hd_base(a, d);
+            EXPECT_EQ(res.quot, e.quot)
+                << to_string(a) << " / " << to_string(d) << " = " << to_string(res.quot);
+            EXPECT_EQ(res.rem, e.rem)
+                << to_string(a) << " % " << to_string(d) << " = " << to_string(res.rem);
 
-            std::tie(q, r) = udiv_qr_knuth_llvm_base(a, d);
-            EXPECT_EQ(q, eq) << to_string(a) << " / " << to_string(d) << " = " << to_string(q);
-            EXPECT_EQ(r, er) << to_string(a) << " % " << to_string(d) << " = " << to_string(r);
+            res = udiv_qr_knuth_llvm_base(a, d);
+            EXPECT_EQ(res.quot, e.quot)
+                << to_string(a) << " / " << to_string(d) << " = " << to_string(res.quot);
+            EXPECT_EQ(res.rem, e.rem)
+                << to_string(a) << " % " << to_string(d) << " = " << to_string(res.rem);
         }
     }
 }
@@ -228,11 +235,12 @@ TEST_F(Uint256Test, udiv_against_gmp_single_case)
     uint256 d = 17;
     d = d << 135;
 
-    uint256 q, r, q_gmp, r_gmp;
-    std::tie(q, r) = udivrem_unr(n, d);
-    std::tie(q_gmp, r_gmp) = gmp::udivrem(n, d);
-    EXPECT_EQ(q, q_gmp) << to_string(n) << " / " << to_string(d) << " = " << to_string(q);
-    EXPECT_EQ(r, r_gmp) << to_string(n) << " % " << to_string(d) << " = " << to_string(r);
+    auto res = udivrem_unr(n, d);
+    auto e = gmp::udivrem(n, d);
+    EXPECT_EQ(res.quot, e.quot) << to_string(n) << " / " << to_string(d) << " = "
+                                << to_string(res.quot);
+    EXPECT_EQ(res.rem, e.rem) << to_string(n) << " % " << to_string(d) << " = "
+                              << to_string(res.rem);
 }
 
 TEST_F(Uint256Test, add_against_sub)
@@ -284,30 +292,29 @@ TEST_F(Uint256Test, simple_udiv)
         uint256 expected_q = from_string<uint256>(data[2]);
         uint256 expected_r = from_string<uint256>(data[3]);
 
-        uint256 q, r;
-        std::tie(q, r) = udivrem_unr(n, d);
-        EXPECT_EQ(q, expected_q);
-        EXPECT_EQ(r, expected_r);
+        auto res = udivrem_unr(n, d);
+        EXPECT_EQ(res.quot, expected_q);
+        EXPECT_EQ(res.rem, expected_r);
 
-        std::tie(q, r) = udiv_qr_knuth_opt_base(n, d);
-        EXPECT_EQ(q, expected_q) << "data index: " << i;
-        EXPECT_EQ(r, expected_r) << "data index: " << i;
+        res = udiv_qr_knuth_opt_base(n, d);
+        EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
+        EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
 
-        std::tie(q, r) = udiv_qr_knuth_opt(n, d);
-        EXPECT_EQ(q, expected_q) << "data index: " << i;
-        EXPECT_EQ(r, expected_r) << "data index: " << i;
+        res = udiv_qr_knuth_opt(n, d);
+        EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
+        EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
 
-        std::tie(q, r) = udiv_qr_knuth_64(n, d);
-        EXPECT_EQ(q, expected_q) << "data index: " << i;
-        EXPECT_EQ(r, expected_r) << "data index: " << i;
+        res = udiv_qr_knuth_64(n, d);
+        EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
+        EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
 
-        std::tie(q, r) = udiv_qr_knuth_hd_base(n, d);
-        EXPECT_EQ(q, expected_q) << "data index: " << i;
-        EXPECT_EQ(r, expected_r) << "data index: " << i;
+        res = udiv_qr_knuth_hd_base(n, d);
+        EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
+        EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
 
-        std::tie(q, r) = udiv_qr_knuth_llvm_base(n, d);
-        EXPECT_EQ(q, expected_q) << "data index: " << i;
-        EXPECT_EQ(r, expected_r) << "data index: " << i;
+        res = udiv_qr_knuth_llvm_base(n, d);
+        EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
+        EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
     }
 }
 
@@ -323,10 +330,9 @@ TEST_F(Uint256Test, mul_against_div)
             if (h != 0)  // Overflow.
                 continue;
             uint256 prod = mul(a, b);
-            uint256 q, r;
-            std::tie(q, r) = udivrem_unr(prod, b);
-            EXPECT_EQ(a, q);
-            EXPECT_EQ(r, 0);
+            auto res = udivrem_unr(prod, b);
+            EXPECT_EQ(a, res.quot);
+            EXPECT_EQ(res.rem, 0);
         }
     }
 }

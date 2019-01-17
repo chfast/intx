@@ -18,7 +18,7 @@ inline uint128 div_uint128(uint128 x, uint128 y) noexcept
 
 inline uint128 div_gmp(uint128 x, uint128 y) noexcept
 {
-    return std::get<0>(udivrem_gmp(x, y));
+    return udivrem_gmp(x, y).quot;
 }
 
 template <decltype(div_gcc) DivFn>

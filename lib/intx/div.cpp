@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include "div.hpp"
 
@@ -161,7 +161,7 @@ union uint512_words
     uint32_t& operator[](size_t index) { return words[index]; }
 };
 
-inline std::tuple<uint512, uint32_t> udivrem_1(const uint512& x, uint32_t v)
+inline div_result<uint512> udivrem_1(const uint512& x, uint32_t v)
 {
     uint32_t r = 0;
     uint512_words q;
@@ -172,7 +172,7 @@ inline std::tuple<uint512, uint32_t> udivrem_1(const uint512& x, uint32_t v)
     return {q.number, r};
 }
 
-std::tuple<uint512, uint512> udivrem_knuth(normalized_args& na) noexcept
+div_result<uint512> udivrem_knuth(normalized_args& na) noexcept
 {
     // b denotes the base of the number system. In our case b is 2^32.
     constexpr uint64_t b = uint64_t(1) << 32;
@@ -257,7 +257,7 @@ std::tuple<uint512, uint512> udivrem_knuth(normalized_args& na) noexcept
 }
 }  // namespace
 
-std::tuple<uint512, uint512> udivrem(const uint512& u, const uint512& v) noexcept
+div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
 {
     auto na = normalize(u, v);
 
@@ -270,10 +270,10 @@ std::tuple<uint512, uint512> udivrem(const uint512& u, const uint512& v) noexcep
     return udivrem_knuth(na);
 }
 
-std::tuple<uint256, uint256> udivrem(const uint256& u, const uint256& v) noexcept
+div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept
 {
     auto x = udivrem(uint512{u}, uint512{v});
-    return {std::get<0>(x).lo, std::get<1>(x).lo};
+    return {x.quot.lo, x.rem.lo};
 }
 
 }  // namespace intx
