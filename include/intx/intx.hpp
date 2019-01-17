@@ -367,7 +367,7 @@ inline Int operator<<(const Int& x, unsigned shift) noexcept
 }
 
 template <typename Target>
-inline Target narrow_cast(unsigned __int128 x) noexcept
+inline Target narrow_cast(uint64_t x) noexcept
 {
     return static_cast<Target>(x);
 }
@@ -938,13 +938,13 @@ div_result<Int> sdivrem(const Int& u, const Int& v) noexcept
 template <typename Int>
 inline Int operator/(const Int& x, const Int& y) noexcept
 {
-    return std::get<0>(udivrem(x, y));
+    return udivrem(x, y).quot;
 }
 
 template <typename Int>
 inline Int operator%(const Int& x, const Int& y) noexcept
 {
-    return std::get<1>(udivrem(x, y));
+    return udivrem(x, y).rem;
 }
 
 inline std::string to_string(uint256 x)

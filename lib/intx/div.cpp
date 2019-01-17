@@ -142,12 +142,59 @@ div_result<uint128> udivrem_3by2(uint64_t u2, uint64_t u1, uint64_t u0, uint128 
     return {q.hi, r};
 }
 
+struct normalized_args64
+{
+    using word_type = uint64_t;
+    std::array<word_type, sizeof(uint512) / sizeof(word_type) + 1> numerator;
+    std::array<word_type, sizeof(uint512) / sizeof(word_type)> denominator;
+    int num_numerator_words;
+    int num_denominator_words;
+    int shift;
+};
+
+inline normalized_args64 normalize64(const uint512& numerator, const uint512& denominator) noexcept
+{
+    static constexpr auto num_words = int{sizeof(uint512) / sizeof(normalized_args64::word_type)};
+
+    auto* u = reinterpret_cast<const normalized_args64::word_type*>(&numerator);
+    auto* v = reinterpret_cast<const normalized_args64::word_type*>(&denominator);
+
+    normalized_args64 na;
+    auto* un = &na.numerator[0];
+    auto* vn = &na.denominator[0];
+
+    auto& m = na.num_numerator_words;
+    for (m = num_words; m > 0 && u[m - 1] == 0; --m)
+        ;
+
+    auto& n = na.num_denominator_words;
+    for (n = num_words; n > 0 && v[n - 1] == 0; --n)
+        ;
+
+    na.shift = builtins::clz(v[n - 1]);
+    if (na.shift)
+    {
+        for (int i = num_words - 1; i > 0; --i)
+            vn[i] = (v[i] << na.shift) | (v[i - 1] >> (64 - na.shift));
+        vn[0] = v[0] << na.shift;
+
+        un[num_words] = u[num_words - 1] >> (64 - na.shift);
+        for (int i = num_words - 1; i > 0; --i)
+            un[i] = (u[i] << na.shift) | (u[i - 1] >> (64 - na.shift));
+        un[0] = u[0] << na.shift;
+    }
+    else
+    {
+        un[num_words] = 0;
+        std::memcpy(un, u, sizeof(numerator));
+        std::memcpy(vn, v, sizeof(denominator));
+    }
+
+    return na;
+}
+
 namespace
 {
-inline std::tuple<uint64_t, uint64_t> udivrem(uint64_t u, uint64_t v) noexcept
-{
-    return {u / v, u % v};
-}
 
 union uint512_words
 {
@@ -161,15 +208,37 @@ union uint512_words
     uint32_t& operator[](size_t index) { return words[index]; }
 };
 
-inline div_result<uint512> udivrem_1(const uint512& x, uint32_t v)
+union uint512_words64
 {
-    uint32_t r = 0;
-    uint512_words q;
-    uint512_words u{x};
+    using word_type = uint64_t;
+    static constexpr int num_words = sizeof(uint512) / sizeof(word_type);
 
-    for (int j = decltype(q)::num_words - 1; j >= 0; --j)
-        std::tie(q[j], r) = udivrem(join(r, u[j]), v);
-    return {q.number, r};
+    const uint512 number;
+    word_type words[num_words];
+
+    constexpr explicit uint512_words64(uint512 number = {}) noexcept : number{number} {}
+
+    word_type& operator[](size_t index) { return words[index]; }
+};
+
+inline div_result<uint512> udivrem_by1(const normalized_args64& na) noexcept
+{
+    auto d = na.denominator[0];
+    auto v = reciprocal(d);
+
+    auto q = uint512_words64{};
+    constexpr auto num_words = decltype(q)::num_words;
+
+    auto x = div_result<decltype(q)::word_type>{0, na.numerator[num_words]};
+
+    // OPT: Skip leading zero words.
+    for (int j = num_words - 1; j >= 0; --j)
+    {
+        x = udivrem_2by1({x.rem, na.numerator[j]}, d, v);
+        q[j] = x.quot;
+    }
+
+    return {q.number, x.rem >> na.shift};
 }
 
 div_result<uint512> udivrem_knuth(normalized_args& na) noexcept
@@ -257,15 +326,11 @@ div_result<uint512> udivrem_knuth(normalized_args& na) noexcept
 }
 }  // namespace
 
-div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
+div_result<uint512> udivrem32(const uint512& u, const uint512& v) noexcept
 {
     auto na = normalize(u, v);
-
     if (na.num_denominator_words > na.num_numerator_words)
         return {0, u};
-
-    if (na.num_denominator_words == 1)
-        return udivrem_1(u, static_cast<uint32_t>(v.lo.lo.lo));
 
     return udivrem_knuth(na);
 }
@@ -274,6 +339,20 @@ div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept
 {
     auto x = udivrem(uint512{u}, uint512{v});
     return {x.quot.lo, x.rem.lo};
+}
+
+div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
+{
+    const auto na = normalize64(u, v);
+
+    if (na.num_denominator_words > na.num_numerator_words)
+        return {0, u};
+
+    if (na.num_denominator_words == 1)
+        return udivrem_by1(na);
+
+    // Fallback to udivrem32().
+    return udivrem32(u, v);
 }
 
 }  // namespace intx
