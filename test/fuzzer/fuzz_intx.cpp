@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include <intx/intx.hpp>
 
@@ -47,8 +47,8 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         {
             auto x = udivrem(a, b);
             auto y = gmp::udivrem(a, b);
-            expect_eq(std::get<0>(x), std::get<0>(y));
-            expect_eq(std::get<1>(x), std::get<1>(y));
+            expect_eq(x.quot, y.quot);
+            expect_eq(x.rem, y.rem);
         }
         break;
     case op::sdivrem:
@@ -56,8 +56,8 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         {
             auto x = sdivrem(a, b);
             auto y = gmp::sdivrem(a, b);
-            expect_eq(std::get<0>(x), std::get<0>(y));
-            expect_eq(std::get<1>(x), std::get<1>(y));
+            expect_eq(x.quot, y.quot);
+            expect_eq(x.rem, y.rem);
         }
         break;
     case op::mul:
