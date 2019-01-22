@@ -142,6 +142,24 @@ static div_test_case<uint512> div_test_cases[] = {
         0x621ed21ed21ed21ed21ed21ed224f40bf40bf40bf40bf40bf40bf46e12de12de12de12de12de12de1900000000000000000_u512,
         0xabc0abc0abc0abc0,
     },
+    {
+        0xfffff716b61616160b0b0b2b0b0b0becf4bef50a0df4f48b090b2b0bc60a0a00_u512,
+        0xfffff716b61616160b0b0b2b0b230b000008010d0a2b00_u512,
+        0xffffffffffffffffff_u512,
+        0xfffff7169e17030ac1ff082ed51796090b330cd3143500_u512,
+    },
+    {
+        0x50beb1c60141a0000dc2b0b0b0b0b0b410a0a0df4f40b090b2b0bc60a0a00_u512,
+        0x2000110000000d0a300e750a000000090a0a_u512,
+        0x285f437064cd09ff8bc5b7857d_u512,
+        0x1fda1c384d86199e14bb4edfc6693042f11e_u512,
+    },
+    {
+        0x4b00000b41000b0b0b2b0b0b0b0b0b410a0aeff4f40b090b2b0bc60a0a1000_u512,
+        0x4b00000b41000b0b0b2b0b0b0b0b0b410a0aeff4f40b0a0a_u512,
+        0xffffffffffffff_u512,
+        0x4b00000b41000b0b0b2b0b0b0b0b0b400b35fbbafe151a0a_u512,
+    },
 };
 
 TEST(div, udivrem_512)
