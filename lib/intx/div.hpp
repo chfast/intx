@@ -141,6 +141,16 @@ inline div_result<uint128> udivrem_3by2(
     return {q.hi, r};
 }
 
+inline div_result<uint64_t> udivrem_long(uint128 x, uint64_t y) noexcept
+{
+    auto shift = clz(y);
+    auto yn = y << shift;
+    auto xn = x << shift;
+    auto v = reciprocal(yn);
+    auto res = udivrem_2by1(xn, yn, v);
+    return {res.quot, res.rem >> shift};
+}
+
 struct normalized_args
 {
     std::array<uint32_t, sizeof(uint512) / sizeof(uint32_t) + 1> numerator;
