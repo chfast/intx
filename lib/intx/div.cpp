@@ -138,7 +138,7 @@ div_result<uint512> udivrem_knuth64(const normalized_args64& na) noexcept
         }
         else
         {
-            auto res = udivrem_long(dividend, divisor);
+            auto res = udivrem_long_asm(dividend, divisor);
             qhat = res.quot;
             rhat = res.rem;
         }

@@ -36,7 +36,7 @@ inline unsigned clz(unsigned x)
     return static_cast<unsigned>(__builtin_clz(x));
 }
 
-inline div_result<uint64_t> udivrem_long(uint128 u, uint64_t v)
+inline div_result<uint64_t> udivrem_long_asm(uint128 u, uint64_t v) noexcept
 {
     // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
     uint64_t q, r;
