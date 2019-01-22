@@ -684,7 +684,7 @@ static void udiv_knuth_internal_64(
         }
         else
         {
-            auto res = udivrem_long_asm(dividend, divisor);
+            auto res = udivrem_long(dividend, divisor);
             qhat = res.quot;
             rhat = res.rem;
         }
