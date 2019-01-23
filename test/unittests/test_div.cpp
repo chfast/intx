@@ -32,67 +32,63 @@ TEST(div, normalize)
 {
     uint512 u;
     uint512 v = 1;
-    auto na = normalize(u, v);
-    EXPECT_EQ(na.shift, 31);
+    auto na = normalize64(u, v);
+    EXPECT_EQ(na.shift, 63);
     EXPECT_EQ(na.num_denominator_words, 1);
     EXPECT_EQ(na.num_numerator_words, 0);
     EXPECT_EQ(na.numerator[0], 0);
     EXPECT_EQ(na.numerator[1], 0);
     EXPECT_EQ(na.numerator[16], 0);
-    EXPECT_EQ(na.denominator[0], 1u << 31);
+    EXPECT_EQ(na.denominator[0], uint64_t{1} << 63);
     EXPECT_EQ(na.denominator[1], 0);
 
     u = uint512{1313, 1414};
     v = uint512{1212, 12};
-    na = normalize(u, v);
-    EXPECT_EQ(na.shift, 28);
-    EXPECT_EQ(na.num_denominator_words, 9);
-    EXPECT_EQ(na.num_numerator_words, 9);
-    EXPECT_EQ(na.numerator[0], 1313u << 28);
-    EXPECT_EQ(na.numerator[1], 1313u >> (32 - 28));
+    na = normalize64(u, v);
+    EXPECT_EQ(na.shift, 60);
+    EXPECT_EQ(na.num_denominator_words, 5);
+    EXPECT_EQ(na.num_numerator_words, 5);
+    EXPECT_EQ(na.numerator[0], uint64_t{1313} << 60);
+    EXPECT_EQ(na.numerator[1], uint64_t{1313} >> (64 - 60));
     EXPECT_EQ(na.numerator[2], 0);
-    EXPECT_EQ(na.numerator[8], 1414u << 28);
-    EXPECT_EQ(na.numerator[na.num_numerator_words], 1414u >> (32 - 28));
-    EXPECT_EQ(na.denominator[0], 1212u << 28);
-    EXPECT_EQ(na.denominator[1], 1212u >> (32 - 28));
+    EXPECT_EQ(na.numerator[4], uint64_t{1414} << 60);
+    EXPECT_EQ(na.numerator[na.num_numerator_words], uint64_t{1414} >> (64 - 60));
+    EXPECT_EQ(na.denominator[0], uint64_t{1212} << 60);
+    EXPECT_EQ(na.denominator[1], uint64_t{1212} >> (64 - 60));
     EXPECT_EQ(na.denominator[2], 0);
-    EXPECT_EQ(na.denominator[8], 12u << 28);
-    EXPECT_EQ(na.denominator[9], 0);
+    EXPECT_EQ(na.denominator[4], uint64_t{12} << 60);
+    EXPECT_EQ(na.denominator[5], 0);
 
     u = shl(uint512{3}, 510);
-    v = uint512{uint256{1, 0xffffffff}, 0};
-    na = normalize(u, v);
+    v = uint512{uint256{1, 0xffffffffffffffff}, 0};
+    na = normalize64(u, v);
     EXPECT_EQ(na.shift, 0);
-    EXPECT_EQ(na.num_denominator_words, 5);
-    EXPECT_EQ(na.num_numerator_words, 16);
+    EXPECT_EQ(na.num_denominator_words, 3);
+    EXPECT_EQ(na.num_numerator_words, 8);
     EXPECT_EQ(na.numerator[0], 0);
     EXPECT_EQ(na.numerator[1], 0);
     EXPECT_EQ(na.numerator[2], 0);
+    EXPECT_EQ(na.numerator[4], 0);
+    EXPECT_EQ(na.numerator[7], uint64_t{3} << 62);
     EXPECT_EQ(na.numerator[8], 0);
-    EXPECT_EQ(na.numerator[15], 3 << 30);
-    EXPECT_EQ(na.numerator[16], 0);
     EXPECT_EQ(na.denominator[0], 1);
     EXPECT_EQ(na.denominator[1], 0);
-    EXPECT_EQ(na.denominator[2], 0);
+    EXPECT_EQ(na.denominator[2], 0xffffffffffffffff);
     EXPECT_EQ(na.denominator[3], 0);
-    EXPECT_EQ(na.denominator[4], 0xffffffff);
-    EXPECT_EQ(na.denominator[5], 0);
 
     u = shl(uint512{7}, 509);
-    v = uint512{uint256{1, 0x3fffffff}, 0};
-    na = normalize(u, v);
+    v = uint512{uint256{1, 0x3fffffffffffffff}, 0};
+    na = normalize64(u, v);
     EXPECT_EQ(na.shift, 2);
-    EXPECT_EQ(na.num_denominator_words, 5);
-    EXPECT_EQ(na.num_numerator_words, 16);
-    EXPECT_EQ(na.numerator[14], 0);
-    EXPECT_EQ(na.numerator[15], 1 << 31);
-    EXPECT_EQ(na.numerator[16], 3);
+    EXPECT_EQ(na.num_denominator_words, 3);
+    EXPECT_EQ(na.num_numerator_words, 8);
+    EXPECT_EQ(na.numerator[6], 0);
+    EXPECT_EQ(na.numerator[7], uint64_t{1} << 63);
+    EXPECT_EQ(na.numerator[8], 3);
     EXPECT_EQ(na.denominator[0], 4);
     EXPECT_EQ(na.denominator[1], 0);
-    EXPECT_EQ(na.denominator[2], 0);
+    EXPECT_EQ(na.denominator[2], 0xfffffffffffffffc);
     EXPECT_EQ(na.denominator[3], 0);
-    EXPECT_EQ(na.denominator[4], 0xfffffffc);
-    EXPECT_EQ(na.denominator[5], 0);
 }
 
 template <typename Int>
@@ -141,6 +137,24 @@ static div_test_case<uint512> div_test_cases[] = {
         0x1c01c01c01c01c01c01c01c01c_u512,
         0x621ed21ed21ed21ed21ed21ed224f40bf40bf40bf40bf40bf40bf46e12de12de12de12de12de12de1900000000000000000_u512,
         0xabc0abc0abc0abc0,
+    },
+    {
+        0xfffff716b61616160b0b0b2b0b0b0becf4bef50a0df4f48b090b2b0bc60a0a00_u512,
+        0xfffff716b61616160b0b0b2b0b230b000008010d0a2b00_u512,
+        0xffffffffffffffffff_u512,
+        0xfffff7169e17030ac1ff082ed51796090b330cd3143500_u512,
+    },
+    {
+        0x50beb1c60141a0000dc2b0b0b0b0b0b410a0a0df4f40b090b2b0bc60a0a00_u512,
+        0x2000110000000d0a300e750a000000090a0a_u512,
+        0x285f437064cd09ff8bc5b7857d_u512,
+        0x1fda1c384d86199e14bb4edfc6693042f11e_u512,
+    },
+    {
+        0x4b00000b41000b0b0b2b0b0b0b0b0b410a0aeff4f40b090b2b0bc60a0a1000_u512,
+        0x4b00000b41000b0b0b2b0b0b0b0b0b410a0aeff4f40b0a0a_u512,
+        0xffffffffffffff_u512,
+        0x4b00000b41000b0b0b2b0b0b0b0b0b400b35fbbafe151a0a_u512,
     },
 };
 

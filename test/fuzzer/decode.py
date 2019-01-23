@@ -39,6 +39,15 @@ def decode_data(data):
     print(x, op, y)
     print(hex(x), op, hex(y))
 
+    if op == '/':
+        print("Test:")
+        print("{")
+        print("    {}_u512,".format(hex(x)))
+        print("    {}_u512,".format(hex(y)))
+        print("    {}_u512,".format(hex(x // y)))
+        print("    {}_u512,".format(hex(x % y)))
+        print("},")
+
 
 assert len(sys.argv) > 1
 

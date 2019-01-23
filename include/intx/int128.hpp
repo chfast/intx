@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #pragma once
 
@@ -31,11 +31,16 @@ struct uint128
 
 #ifdef __SIZEOF_INT128__
     constexpr uint128(unsigned __int128 x) noexcept : lo{uint64_t(x)}, hi{uint64_t(x >> 64)} {}
+
+    constexpr explicit operator unsigned __int128() const noexcept
+    {
+        return (static_cast<unsigned __int128>(hi) << 64) | lo;
+    }
 #endif
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
-    explicit operator Int() const noexcept
+    constexpr explicit operator Int() const noexcept
     {
         return static_cast<Int>(lo);
     }
