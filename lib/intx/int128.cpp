@@ -63,7 +63,9 @@ div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     auto xn_hi = (x.lo >> rsh) | (x.hi << lsh);
     auto xn_lo = x.lo << lsh;
 
-    auto res = udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_hi, yn_lo});
+    // OPT: Inline!!! udivrem_3by2() uses some intermediates of reciprocal_3by2().
+    auto v = reciprocal_3by2({yn_hi, yn_lo});
+    auto res = udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_hi, yn_lo}, v);
 
     return {res.quot, res.rem >> lsh};
 }
