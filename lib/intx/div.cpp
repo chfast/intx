@@ -75,61 +75,65 @@ div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
     uint512_words64 r;
 
     constexpr auto base = uint128{1, 0};
+    const auto divisor = uint128{vn[n - 1], vn[n - 2]};
     for (int j = m - n; j >= 0; --j)
     {
-        uint128 qhat, rhat;
-        const auto divisor = vn[n - 1];
+        div_result<uint128> h;
         const auto dividend = uint128{un[j + n], un[j + n - 1]};
-        if (dividend.hi >= divisor)  // Will overflow:
+        if (dividend.hi >= divisor.hi)  // Will overflow:
         {
-            qhat = base;
-            rhat = dividend - qhat * divisor;
+            h = {base, dividend - uint128{divisor.hi, 0}};
         }
         else
         {
-            auto res = udivrem_long(dividend, divisor);
-            qhat = res.quot;
-            rhat = res.rem;
+            auto res = udivrem_long(dividend, divisor.hi);
+            h = {res.quot, res.rem};
         }
 
-        const auto next_divisor = vn[n - 2];
-        auto pd = uint128{rhat.lo, un[j + n - 2]};
-        if (qhat == base || qhat * next_divisor > pd)
+        auto pd = uint128{h.rem.lo, un[j + n - 2]};
+        if (h.quot == base || h.quot * divisor.lo > pd)
         {
-            --qhat;
-            rhat += divisor;
-            pd = uint128{rhat.lo, un[j + n - 2]};
-            if (rhat < base && (qhat == base || qhat * next_divisor > pd))
-                --qhat;
+            --h.quot;
+            h.rem += divisor.hi;
+            pd = uint128{h.rem.lo, un[j + n - 2]};
+            if (h.rem < base && h.quot * divisor.lo > pd)
+                --h.quot;
         }
 
         // Multiply and subtract.
-        __int128 borrow = 0;
-        for (int i = 0; i < n; i++)
+        uint64_t borrow = 0;
+        for (int i = 0; i < n; ++i)
         {
-            uint128 p = qhat * vn[i];
-            __int128 t = __int128(un[i + j]) - borrow - p.lo;
-            uint128 s = static_cast<uint128>(t);
+            const auto p = h.quot.lo * uint128{vn[i]};  // Full mul.
+            const auto s = uint128{un[i + j]} - borrow - p.lo;
             un[i + j] = s.lo;
             borrow = p.hi - s.hi;
         }
-        __int128 t = un[j + n] - borrow;
-        un[j + n] = static_cast<uint64_t>(t);
+        q[j] = h.quot.lo;  // Store quotient digit.
 
-        q[j] = qhat.lo;  // Store quotient digit.
+        const bool neg = un[j + n] < borrow;
+        un[j + n] -= borrow;
+        if (neg)  // Too much subtracted, add back.
+        {
+            --q[j];
 
-        if (t < 0)
-        {            // If we subtracted too
-            --q[j];  // much, add back.
-            uint128 carry = 0;
+            uint64_t carry = 0;
             for (int i = 0; i < n; ++i)
             {
-                // TODO: Consider using bool carry. See LLVM version.
-                uint128 u_tmp = uint128(un[i + j]) + uint128(vn[i]) + carry;
-                un[i + j] = u_tmp.lo;
-                carry = u_tmp.hi;
+                auto s = uint128(un[i + j]) + vn[i] + carry;
+                un[i + j] = s.lo;
+                carry = s.hi;
             }
-            un[j + n] = (uint128(un[j + n]) + carry).lo;
+            un[j + n] += carry;
+
+            // TODO: Consider this alternative implementation:
+            // bool k = false;
+            // for (int i = 0; i < n; ++i) {
+            //     auto limit = std::min(un[j+i],vn[i]);
+            //     un[i + j] += vn[i] + k;
+            //     k = un[i + j] < limit || (k && un[i + j] == limit);
+            // }
+            // un[j+n] += k;
         }
     }
 
