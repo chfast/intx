@@ -151,23 +151,24 @@ inline div_result<uint64_t> udivrem_long(uint128 x, uint64_t y) noexcept
     return {res.quot, res.rem >> shift};
 }
 
-struct normalized_args
+struct normalized_args64
 {
-    std::array<uint32_t, sizeof(uint512) / sizeof(uint32_t) + 1> numerator;
-    std::array<uint32_t, sizeof(uint512) / sizeof(uint32_t)> denominator;
+    using word_type = uint64_t;
+    std::array<word_type, sizeof(uint512) / sizeof(word_type) + 1> numerator;
+    std::array<word_type, sizeof(uint512) / sizeof(word_type)> denominator;
     int num_numerator_words;
     int num_denominator_words;
     int shift;
 };
 
-inline normalized_args normalize(const uint512& numerator, const uint512& denominator) noexcept
+inline normalized_args64 normalize64(const uint512& numerator, const uint512& denominator) noexcept
 {
-    static constexpr int num_words = sizeof(uint512) / sizeof(uint32_t);
+    static constexpr auto num_words = int{sizeof(uint512) / sizeof(normalized_args64::word_type)};
 
-    auto* u = reinterpret_cast<const uint32_t*>(&numerator);
-    auto* v = reinterpret_cast<const uint32_t*>(&denominator);
+    auto* u = reinterpret_cast<const normalized_args64::word_type*>(&numerator);
+    auto* v = reinterpret_cast<const normalized_args64::word_type*>(&denominator);
 
-    normalized_args na;
+    normalized_args64 na;
     auto* un = &na.numerator[0];
     auto* vn = &na.denominator[0];
 
@@ -183,12 +184,12 @@ inline normalized_args normalize(const uint512& numerator, const uint512& denomi
     if (na.shift)
     {
         for (int i = num_words - 1; i > 0; --i)
-            vn[i] = (v[i] << na.shift) | (v[i - 1] >> (32 - na.shift));
+            vn[i] = (v[i] << na.shift) | (v[i - 1] >> (64 - na.shift));
         vn[0] = v[0] << na.shift;
 
-        un[num_words] = u[num_words - 1] >> (32 - na.shift);
+        un[num_words] = u[num_words - 1] >> (64 - na.shift);
         for (int i = num_words - 1; i > 0; --i)
-            un[i] = (u[i] << na.shift) | (u[i - 1] >> (32 - na.shift));
+            un[i] = (u[i] << na.shift) | (u[i - 1] >> (64 - na.shift));
         un[0] = u[0] << na.shift;
     }
     else
