@@ -501,12 +501,6 @@ inline uint128 sub(uint128 a, uint128 b)
 }
 
 template <typename Int>
-inline Int sub(Int a, uint64_t b)
-{
-    return add(a, -b);
-}
-
-template <typename Int>
 inline Int sub(Int a, Int b)
 {
     return add(a, -b);
