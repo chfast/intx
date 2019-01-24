@@ -74,48 +74,60 @@ div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
     uint512_words64 q;
     uint512_words64 r;
 
-    constexpr auto base = uint128{1, 0};
     const auto divisor = uint128{vn[n - 1], vn[n - 2]};
+    const auto inv = reciprocal(divisor.hi);
     for (int j = m - n; j >= 0; --j)
     {
-        div_result<uint128> h;
-        const auto dividend = uint128{un[j + n], un[j + n - 1]};
+        const auto u2 = un[j + n];
+        const auto u1 = un[j + n - 1];
+        const auto u0 = un[j + n - 2];
+
+        uint64_t qhat;
+        uint128 rhat;
+        const auto dividend = uint128{u2, u1};
         if (dividend.hi >= divisor.hi)  // Will overflow:
         {
-            h = {base, dividend - uint128{divisor.hi, 0}};
+            qhat = ~uint64_t{0};
+            rhat = dividend - uint128{divisor.hi, 0};
+            rhat += divisor.hi;
+
+            // Adjustment.
+            // OPT: This is not needed but helps avoiding negative case.
+            if (rhat.hi == 0 && umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
+                --qhat;
         }
         else
         {
-            auto res = udivrem_long(dividend, divisor.hi);
-            h = {res.quot, res.rem};
-        }
+            auto res = udivrem_2by1(dividend, divisor.hi, inv);
+            qhat = res.quot;
+            rhat = res.rem;
 
-        auto pd = uint128{h.rem.lo, un[j + n - 2]};
-        if (h.quot == base || h.quot * divisor.lo > pd)
-        {
-            --h.quot;
-            h.rem += divisor.hi;
-            pd = uint128{h.rem.lo, un[j + n - 2]};
-            if (h.rem < base && h.quot * divisor.lo > pd)
-                --h.quot;
+            if (umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
+            {
+                --qhat;
+                rhat += divisor.hi;
+
+                // Adjustment.
+                // OPT: This is not needed but helps avoiding negative case.
+                if (rhat.hi == 0 && umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
+                    --qhat;
+            }
         }
 
         // Multiply and subtract.
         uint64_t borrow = 0;
         for (int i = 0; i < n; ++i)
         {
-            const auto p = h.quot.lo * uint128{vn[i]};  // Full mul.
+            const auto p = umul(qhat, vn[i]);
             const auto s = uint128{un[i + j]} - borrow - p.lo;
             un[i + j] = s.lo;
             borrow = p.hi - s.hi;
         }
-        q[j] = h.quot.lo;  // Store quotient digit.
 
-        const bool neg = un[j + n] < borrow;
-        un[j + n] -= borrow;
-        if (neg)  // Too much subtracted, add back.
+        un[j + n] = u2 - borrow;
+        if (u2 < borrow)  // Too much subtracted, add back.
         {
-            --q[j];
+            --qhat;
 
             uint64_t carry = 0;
             for (int i = 0; i < n; ++i)
@@ -135,6 +147,8 @@ div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
             // }
             // un[j+n] += k;
         }
+
+        q[j] = qhat;  // Store quotient digit.
     }
 
     for (int i = 0; i < n; ++i)
