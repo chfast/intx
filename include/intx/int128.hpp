@@ -220,6 +220,12 @@ inline int clz(const uint128& x)
     return x.hi == 0 ? builtins::clz(x.lo) | 64 : builtins::clz(x.hi);
 }
 
+/// Full unsigned multiplication 64 x 64 -> 128.
+inline uint128 umul(uint64_t x, uint64_t y) noexcept
+{
+    return uint128{x} * uint128{y};
+}
+
 namespace internal
 {
 /// Optimized addition.

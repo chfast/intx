@@ -63,74 +63,92 @@ inline div_result<uint512> udivrem_by2(const normalized_args64& na) noexcept
     return {q.number, uint256{r >> na.shift}};
 }
 
-div_result<uint512> udivrem_knuth64(const normalized_args64& na) noexcept
+div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
 {
     auto n = na.num_denominator_words;
     auto m = na.num_numerator_words;
 
-    auto vn = na.denominator;
-    auto un = na.numerator;
+    const auto& vn = na.denominator;
+    auto& un = na.numerator;  // Will be modified.
 
     uint512_words64 q;
     uint512_words64 r;
 
-    constexpr auto base = uint128{1} << 64;
-    for (int j = m - n; j >= 0; j--)
+    const auto divisor = uint128{vn[n - 1], vn[n - 2]};
+    const auto inv = reciprocal(divisor.hi);
+    for (int j = m - n; j >= 0; --j)
     {
-        uint128 qhat, rhat;
-        uint64_t divisor = vn[n - 1];
-        uint128 dividend = join(un[j + n], un[j + n - 1]);
-        if (hi_half(dividend) >= divisor)  // Will overflow:
+        const auto u2 = un[j + n];
+        const auto u1 = un[j + n - 1];
+        const auto u0 = un[j + n - 2];
+
+        uint64_t qhat;
+        uint128 rhat;
+        const auto dividend = uint128{u2, u1};
+        if (dividend.hi >= divisor.hi)  // Will overflow:
         {
-            qhat = base;
-            rhat = dividend - qhat * divisor;
+            qhat = ~uint64_t{0};
+            rhat = dividend - uint128{divisor.hi, 0};
+            rhat += divisor.hi;
+
+            // Adjustment.
+            // OPT: This is not needed but helps avoiding negative case.
+            if (rhat.hi == 0 && umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
+                --qhat;
         }
         else
         {
-            auto res = udivrem_long(dividend, divisor);
+            auto res = udivrem_2by1(dividend, divisor.hi, inv);
             qhat = res.quot;
             rhat = res.rem;
-        }
 
-        uint64_t next_divisor = vn[n - 2];
-        uint128 pd = join(lo_half(rhat), un[j + n - 2]);
-        if (qhat == base || qhat * next_divisor > pd)
-        {
-            --qhat;
-            rhat += divisor;
-            pd = join(lo_half(rhat), un[j + n - 2]);
-            if (rhat < base && (qhat == base || qhat * next_divisor > pd))
+            if (umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
+            {
                 --qhat;
+                rhat += divisor.hi;
+
+                // Adjustment.
+                // OPT: This is not needed but helps avoiding negative case.
+                if (rhat.hi == 0 && umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
+                    --qhat;
+            }
         }
 
         // Multiply and subtract.
-        __int128 borrow = 0;
-        for (int i = 0; i < n; i++)
+        uint64_t borrow = 0;
+        for (int i = 0; i < n; ++i)
         {
-            uint128 p = qhat * vn[i];
-            __int128 t = __int128(un[i + j]) - borrow - lo_half(p);
-            uint128 s = static_cast<uint128>(t);
-            un[i + j] = lo_half(s);
-            borrow = hi_half(p) - hi_half(s);
+            const auto p = umul(qhat, vn[i]);
+            const auto s = uint128{un[i + j]} - borrow - p.lo;
+            un[i + j] = s.lo;
+            borrow = p.hi - s.hi;
         }
-        __int128 t = un[j + n] - borrow;
-        un[j + n] = static_cast<uint64_t>(t);
 
-        q[j] = lo_half(qhat);  // Store quotient digit.
+        un[j + n] = u2 - borrow;
+        if (u2 < borrow)  // Too much subtracted, add back.
+        {
+            --qhat;
 
-        if (t < 0)
-        {            // If we subtracted too
-            --q[j];  // much, add back.
-            uint128 carry = 0;
+            uint64_t carry = 0;
             for (int i = 0; i < n; ++i)
             {
-                // TODO: Consider using bool carry. See LLVM version.
-                uint128 u_tmp = uint128(un[i + j]) + uint128(vn[i]) + carry;
-                un[i + j] = lo_half(u_tmp);
-                carry = hi_half(u_tmp);
+                auto s = uint128(un[i + j]) + vn[i] + carry;
+                un[i + j] = s.lo;
+                carry = s.hi;
             }
-            un[j + n] = lo_half(uint128(un[j + n]) + carry);
+            un[j + n] += carry;
+
+            // TODO: Consider this alternative implementation:
+            // bool k = false;
+            // for (int i = 0; i < n; ++i) {
+            //     auto limit = std::min(un[j+i],vn[i]);
+            //     un[i + j] += vn[i] + k;
+            //     k = un[i + j] < limit || (k && un[i + j] == limit);
+            // }
+            // un[j+n] += k;
         }
+
+        q[j] = qhat;  // Store quotient digit.
     }
 
     for (int i = 0; i < n; ++i)
@@ -138,8 +156,6 @@ div_result<uint512> udivrem_knuth64(const normalized_args64& na) noexcept
 
     return {q.number, r.number};
 }
-
-
 }  // namespace
 
 div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept
@@ -150,7 +166,7 @@ div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept
 
 div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
 {
-    const auto na = normalize64(u, v);
+    auto na = normalize64(u, v);
 
     if (na.num_denominator_words > na.num_numerator_words)
         return {0, u};
@@ -161,7 +177,7 @@ div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
     if (na.num_denominator_words == 2)
         return udivrem_by2(na);
 
-    return udivrem_knuth64(na);
+    return udivrem_knuth(na);
 }
 
 }  // namespace intx

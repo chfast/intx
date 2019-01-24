@@ -180,6 +180,36 @@ static div_test_case<uint512> div_test_cases[] = {
         0x7769450c7b994e65025_u512,
         0x241cb1aa4f67c22ae65c9920bf3bb7ad8280311a887aee8be4054a3e242a5ea9ab35d800f2000000000000000000f7000000000000_u512,
     },
+    {
+        0xdffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000001000000000000000000000000008100000000001001_u512,
+        0xdffffffffffffffffffffffffffffffffffffffffffff3fffffffffffffffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffffffedb6db6db6e9_u512,
+        0x200000000000000000000000000010000f2492492492ec000000000000080ffedb6db6dc6ea_u512,
+    },
+    {
+        0xff000000000000000000000000000000000000000400000092767600000000000000000000000081000000000000000000000001020000000000eeffffffffff_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000005000000000000000000ffffffffff100000000000000000_u512,
+        0x0_u512,
+        0xff000000000000000000000000000000000000000400000092767600000000000000000000000081000000000000000000000001020000000000eeffffffffff_u512,
+    },
+    {
+        0xfffffffffffffffffffffffffffffffffffffffbffffff6d8989ffffffffffffffffffffffff7efffffffffffffffffffffffefdffffffffff110000000001_u512,
+        0xfffffffffffffffffffffffaffffffffffffffffff0000000000f00000000000000000_u512,
+        0x1000000000000000000000004fffffffffffffffc00ffff8689890fff_u512,
+        0xffffffec09fffda0afa81efafc00ffff868d481fff71de0d8100efffff110000000001_u512,
+    },
+    {
+        0x767676767676000000000076000000000000005600000000000000000000_u512,
+        0x767676767676000000000076000000760000_u512,
+        0xffffffffffffffffffffffff_u512,
+        0x767676007676005600000076000000760000_u512,
+    },
+    {
+        0x8200000000000000000000000000000000000000000000000000000000000000_u512,
+        0x8200000000000000fe000004000000ffff000000fffff700_u512,
+        0xfffffffffffffffe_u512,
+        0x5fffffbffffff01fd00000700000afffe000001ffffee00_u512,
+    },
 };
 
 TEST(div, udivrem_512)
@@ -222,13 +252,21 @@ TEST(div, sdivrem_512)
     auto n = -13_u512;
     auto d = -3_u512;
 
-    auto res = sdivrem(n, d);
-    EXPECT_EQ(res.quot, 4_u512);
-    EXPECT_EQ(res.rem, -1_u512);
+    auto res1 = sdivrem(n, d);
+    EXPECT_EQ(res1.quot, 4_u512);
+    EXPECT_EQ(res1.rem, -1_u512);
 
     auto res2 = gmp::sdivrem(n, d);
-    EXPECT_EQ(res2.quot, res.quot);
-    EXPECT_EQ(res2.rem, res.rem);
+    EXPECT_EQ(res2.quot, res1.quot);
+    EXPECT_EQ(res2.rem, res1.rem);
+
+    for (auto& t : div_test_cases)
+    {
+        res1 = sdivrem(t.numerator, t.denominator);
+        res2 = gmp::sdivrem(t.numerator, t.denominator);
+        EXPECT_EQ(res2.quot, res1.quot);
+        EXPECT_EQ(res2.rem, res1.rem);
+    }
 }
 
 TEST(div, reciprocal)
