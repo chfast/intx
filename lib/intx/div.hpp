@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <intx/builtins.h>
 #include <intx/intx.hpp>
 
 namespace intx
@@ -180,7 +179,7 @@ inline normalized_args64 normalize64(const uint512& numerator, const uint512& de
     for (n = num_words; n > 0 && v[n - 1] == 0; --n)
         ;
 
-    na.shift = builtins::clz(v[n - 1]);
+    na.shift = clz(v[n - 1]);
     if (na.shift)
     {
         for (int i = num_words - 1; i > 0; --i)
