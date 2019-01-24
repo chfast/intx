@@ -5,7 +5,7 @@ import sys
 
 ops_filter = ()
 
-ops = ('/', '*', '<<', '>>')
+ops = ('/', '*', '<<', '>>', '+', '-', 's/')
 
 
 def err(*args, **kwargs):
@@ -16,7 +16,6 @@ def decode_file(file):
     with open(file, 'rb') as f:
         print("Decoding {}".format(file))
         decode_data(f.read())
-
 
 def decode_data(data):
     arg_size = (len(data) - 1) // 2
@@ -39,13 +38,24 @@ def decode_data(data):
     print(x, op, y)
     print(hex(x), op, hex(y))
 
-    if op == '/':
+    if op in ('/', 's/'):
         print("Test:")
         print("{")
         print("    {}_u512,".format(hex(x)))
         print("    {}_u512,".format(hex(y)))
         print("    {}_u512,".format(hex(x // y)))
         print("    {}_u512,".format(hex(x % y)))
+        print("},")
+
+    if op == 's/':
+        ax = (-x) % 2**512
+        ay = (-y) % 2**512
+        print("Test:")
+        print("{")
+        print("    {}_u512,".format(hex(ax)))
+        print("    {}_u512,".format(hex(ay)))
+        print("    {}_u512,".format(hex(ax // ay)))
+        print("    {}_u512,".format(hex(ax % ay)))
         print("},")
 
 
