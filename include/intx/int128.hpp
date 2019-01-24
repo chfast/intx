@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <intx/mul_full.h>
 #include <cstdint>
 #include <type_traits>
 
@@ -145,10 +144,44 @@ inline uint128& operator^=(uint128& x, const uint128& y) noexcept
     return x = x ^ y;
 }
 
+inline uint128 umul_generic(uint64_t x, uint64_t y) noexcept
+{
+    uint64_t xl = x & 0xffffffff;
+    uint64_t xh = x >> 32;
+    uint64_t yl = y & 0xffffffff;
+    uint64_t yh = y >> 32;
+
+    uint64_t t0 = xl * yl;
+    uint64_t t1 = xh * yl;
+    uint64_t t2 = xl * yh;
+    uint64_t t3 = xh * yh;
+
+    uint64_t u1 = t1 + (t0 >> 32);
+    uint64_t u2 = t2 + (u1 & 0xffffffff);
+
+    uint64_t lo = (u2 << 32) | (t0 & 0xffffffff);
+    uint64_t hi = t3 + (u2 >> 32) + (u1 >> 32);
+    return {hi, lo};
+}
+
+/// Full unsigned multiplication 64 x 64 -> 128.
+inline uint128 umul(uint64_t x, uint64_t y) noexcept
+{
+#if defined(__SIZEOF_INT128__)
+    auto p = (unsigned __int128){x} * y;
+    return {uint64_t(p >> 64), uint64_t(p)};
+#elif defined(_MSC_VER)
+    uint64_t hi;
+    auto lo = _mul128(x, y, &hi);
+    return {hi, lo};
+#else
+    return umul_genetic(x, y);
+#endif
+}
 
 inline uint128 operator*(const uint128& x, const uint128& y) noexcept
 {
-    auto p = mul_full_64(x.lo, y.lo);
+    auto p = umul(x.lo, y.lo);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
     return {p.hi, p.lo};
 }
@@ -243,12 +276,6 @@ inline int clz(const uint128& x)
 {
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
     return x.hi == 0 ? clz(x.lo) | 64 : clz(x.hi);
-}
-
-/// Full unsigned multiplication 64 x 64 -> 128.
-inline uint128 umul(uint64_t x, uint64_t y) noexcept
-{
-    return uint128{x} * uint128{y};
 }
 
 namespace internal
