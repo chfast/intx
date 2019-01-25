@@ -106,6 +106,11 @@ inline uint128 operator--(uint128& x, int) noexcept
 /// Bitwise operators.
 /// @{
 
+constexpr uint128 operator~(uint128 x) noexcept
+{
+    return {~x.hi, ~x.lo};
+}
+
 constexpr uint128 operator|(uint128 x, uint128 y) noexcept
 {
     // Clang7: perfect.
@@ -123,9 +128,28 @@ constexpr uint128 operator^(uint128 x, uint128 y) noexcept
     return {x.hi ^ y.hi, x.lo ^ y.lo};
 }
 
-constexpr uint128 operator~(uint128 x) noexcept
+constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
 {
-    return {~x.hi, ~x.lo};
+    return (shift < 64) ?
+               // Find the part moved from lo to hi.
+               // For shift == 0 right shift by (64 - shift) is invalid so
+               // split it into 2 shifts by 1 and (63 - shift).
+               uint128{(x.hi << shift) | ((x.lo >> 1) >> (63 - shift)), x.lo << shift} :
+
+               // Guarantee "defined" behavior for shifts larger than 128.
+               (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
+}
+
+constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
+{
+    return (shift < 64) ?
+               // Find the part moved from lo to hi.
+               // For shift == 0 left shift by (64 - shift) is invalid so
+               // split it into 2 shifts by 1 and (63 - shift).
+               uint128{x.hi >> shift, (x.lo >> shift) | ((x.hi << 1) << (63 - shift))} :
+
+               // Guarantee "defined" behavior for shifts larger than 128.
+               (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
 }
 
 /// @}
@@ -238,7 +262,7 @@ inline uint128 umul(uint64_t x, uint64_t y) noexcept
     auto lo = _mul128(x, y, &hi);
     return {hi, lo};
 #else
-    return umul_genetic(x, y);
+    return umul_generic(x, y);
 #endif
 }
 
@@ -249,30 +273,6 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
     return {p.hi, p.lo};
 }
 
-
-constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
-{
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 right shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{(x.hi << shift) | ((x.lo >> 1) >> (63 - shift)), x.lo << shift} :
-
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
-}
-
-constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
-{
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 left shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{x.hi >> shift, (x.lo >> shift) | ((x.hi << 1) << (63 - shift))} :
-
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
-}
 
 inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
 {
