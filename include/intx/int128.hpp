@@ -50,6 +50,59 @@ struct uint128
 };
 
 
+/// Linear arithmetic operators.
+/// @{
+
+constexpr uint128 operator+(uint128 x, uint128 y) noexcept
+{
+    return {x.hi + y.hi + (x.lo > (x.lo + y.lo)), x.lo + y.lo};
+}
+
+constexpr uint128 operator+(uint128 x) noexcept
+{
+    return x;
+}
+
+constexpr uint128 operator-(uint128 x, uint128 y) noexcept
+{
+    return {x.hi - y.hi - (x.lo < (x.lo - y.lo)), x.lo - y.lo};
+}
+
+constexpr uint128 operator-(uint128 x) noexcept
+{
+    // Implementing as subtraction is better than ~x + 1.
+    // Clang7: Almost perfect.
+    // GCC8: Does something weird.
+    return 0 - x;
+}
+
+inline uint128& operator++(uint128& x) noexcept
+{
+    return x = x + 1;
+}
+
+inline uint128& operator--(uint128& x) noexcept
+{
+    return x = x - 1;
+}
+
+inline uint128 operator++(uint128& x, int) noexcept
+{
+    auto ret = x;
+    ++x;
+    return ret;
+}
+
+inline uint128 operator--(uint128& x, int) noexcept
+{
+    auto ret = x;
+    --x;
+    return ret;
+}
+
+/// @}
+
+
 /// Bitwise operators.
 /// @{
 
@@ -128,21 +181,6 @@ constexpr bool operator>=(uint128 x, uint128 y) noexcept
 
 /// @}
 
-
-constexpr uint128 operator+(uint128 x, uint128 y) noexcept
-{
-    return {x.hi + y.hi + (x.lo > (x.lo + y.lo)), x.lo + y.lo};
-}
-
-constexpr uint128 operator-(uint128 x) noexcept
-{
-    return ~x + 1;
-}
-
-constexpr uint128 operator-(uint128 x, uint128 y) noexcept
-{
-    return {x.hi - y.hi - (x.lo < (x.lo - y.lo)), x.lo - y.lo};
-}
 
 inline uint128& operator+=(uint128& x, uint128 y) noexcept
 {
@@ -244,16 +282,6 @@ inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
 inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
 {
     return x = x >> shift;
-}
-
-inline uint128& operator++(uint128& x) noexcept
-{
-    return x += 1;
-}
-
-inline uint128& operator--(uint128& x) noexcept
-{
-    return x -= 1;
 }
 
 template <typename T>

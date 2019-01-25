@@ -74,6 +74,32 @@ void static_test_arith()
     static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff}, "");
     static_assert(0 - uint128(2) == uint128{0xffffffffffffffff, 0xfffffffffffffffe}, "");
     static_assert(uint128(13) - 17 == uint128{0xffffffffffffffff, 0xfffffffffffffffc}, "");
+
+    static_assert(-a == (~a + 1), "");
+    static_assert(+a == a, "");
+}
+
+TEST(int128, increment)
+{
+    constexpr auto IO = uint128{1, 0};
+    constexpr auto Of = uint128{~uint64_t{0}};
+
+    auto a = Of;
+    EXPECT_EQ(++a, IO);
+    EXPECT_EQ(a, IO);
+
+    auto b = Of;
+    EXPECT_EQ(b++, Of);
+    EXPECT_EQ(b, IO);
+
+    auto c = IO;
+    EXPECT_EQ(--c, Of);
+    EXPECT_EQ(c, Of);
+
+    auto d = IO;
+    EXPECT_EQ(d--, IO);
+    EXPECT_EQ(d, Of);
+
 }
 
 TEST(int128, mul)
