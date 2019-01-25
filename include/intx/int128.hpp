@@ -279,6 +279,10 @@ inline uint128 operator%(uint128 x, uint128 y) noexcept
 
 /// @}
 
+
+/// Assignment operators.
+/// @{
+
 inline uint128& operator+=(uint128& x, uint128 y) noexcept
 {
     return x = x + y;
@@ -287,6 +291,21 @@ inline uint128& operator+=(uint128& x, uint128 y) noexcept
 inline uint128& operator-=(uint128& x, uint128 y) noexcept
 {
     return x = x - y;
+}
+
+inline uint128& operator*=(uint128& x, uint128 y) noexcept
+{
+    return x = x * y;
+}
+
+inline uint128& operator/=(uint128& x, uint128 y) noexcept
+{
+    return x = x / y;
+}
+
+inline uint128& operator%=(uint128& x, uint128 y) noexcept
+{
+    return x = x % y;
 }
 
 inline uint128& operator|=(uint128& x, uint128 y) noexcept
@@ -313,6 +332,8 @@ inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
 {
     return x = x >> shift;
 }
+
+/// @}
 
 
 inline int clz(uint32_t x) noexcept
