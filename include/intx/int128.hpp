@@ -206,31 +206,10 @@ constexpr bool operator>=(uint128 x, uint128 y) noexcept
 /// @}
 
 
-inline uint128& operator+=(uint128& x, uint128 y) noexcept
-{
-    return x = x + y;
-}
+/// Multiplication
+/// @{
 
-inline uint128& operator-=(uint128& x, uint128 y) noexcept
-{
-    return x = x - y;
-}
-
-inline uint128& operator|=(uint128& x, uint128 y) noexcept
-{
-    return x = x | y;
-}
-
-inline uint128& operator&=(uint128& x, uint128 y) noexcept
-{
-    return x = x & y;
-}
-
-inline uint128& operator^=(uint128& x, uint128 y) noexcept
-{
-    return x = x ^ y;
-}
-
+/// Portable full unsigned multiplication 64 x 64 -> 128.
 inline uint128 umul_generic(uint64_t x, uint64_t y) noexcept
 {
     uint64_t xl = x & 0xffffffff;
@@ -273,6 +252,33 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
     return {p.hi, p.lo};
 }
 
+/// @}
+
+
+inline uint128& operator+=(uint128& x, uint128 y) noexcept
+{
+    return x = x + y;
+}
+
+inline uint128& operator-=(uint128& x, uint128 y) noexcept
+{
+    return x = x - y;
+}
+
+inline uint128& operator|=(uint128& x, uint128 y) noexcept
+{
+    return x = x | y;
+}
+
+inline uint128& operator&=(uint128& x, uint128 y) noexcept
+{
+    return x = x & y;
+}
+
+inline uint128& operator^=(uint128& x, uint128 y) noexcept
+{
+    return x = x ^ y;
+}
 
 inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
 {
