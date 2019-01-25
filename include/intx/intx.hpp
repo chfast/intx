@@ -15,27 +15,6 @@
 
 namespace intx
 {
-namespace generic
-{
-struct uint128
-{
-    uint64_t lo = 0;
-    uint64_t hi = 0;
-};
-}  // namespace generic
-
-namespace gcc
-{
-inline unsigned clz(uint64_t a)
-{
-    return static_cast<unsigned>(__builtin_clzl(a));
-}
-
-inline unsigned clz(unsigned x)
-{
-    return static_cast<unsigned>(__builtin_clz(x));
-}
-
 inline std::tuple<uint32_t, uint32_t> udivrem_long_asm(uint64_t u, uint32_t v)
 {
     // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
@@ -52,10 +31,6 @@ inline std::tuple<uint32_t, uint32_t> udivrem_long(uint64_t u, uint32_t v)
     auto r = static_cast<uint32_t>(u % v);
     return std::make_tuple(q, r);
 }
-}  // namespace gcc
-
-using namespace gcc;
-
 
 struct uint256
 {
@@ -731,8 +706,6 @@ Int exp(Int base, Int exponent) noexcept
     }
     return result;
 }
-
-using gcc::clz;
 
 template <typename Int>
 inline unsigned clz(Int x)

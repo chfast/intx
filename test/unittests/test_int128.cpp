@@ -109,7 +109,7 @@ TEST(int128, mul_random)
 
 TEST(int128, shl)
 {
-    uint128 x = 1;
+    constexpr uint128 x = 1;
     for (unsigned s = 0; s < 127; ++s)
         EXPECT_EQ(clz(x << s), 127 - s);
 
@@ -119,7 +119,7 @@ TEST(int128, shl)
 
 TEST(int128, shr)
 {
-    uint128 x = uint128(1) << 127;
+    constexpr uint128 x = uint128(1) << 127;
     for (unsigned s = 0; s < 127; ++s)
         EXPECT_EQ(clz(x >> s), s);
 

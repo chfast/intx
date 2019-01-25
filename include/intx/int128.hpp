@@ -4,10 +4,12 @@
 
 #pragma once
 
-#include <intx/builtins.h>
-#include <intx/mul_full.h>
 #include <cstdint>
 #include <type_traits>
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 namespace intx
 {
@@ -18,6 +20,7 @@ struct uint128
 
     constexpr uint128() noexcept = default;
 
+    // TODO: Would it be enough to have a constructor for uint64_t?
     template <typename T>
     constexpr uint128(typename std::enable_if<std::is_unsigned<T>::value>::type x) noexcept : lo{x}
     {}
@@ -47,111 +50,145 @@ struct uint128
 };
 
 
-constexpr bool operator==(const uint128& x, const uint128& y) noexcept
+constexpr bool operator==(uint128 x, uint128 y) noexcept
 {
     // Bitwise & used to avoid branching.
     return (x.lo == y.lo) & (x.hi == y.hi);
 }
 
-constexpr bool operator!=(const uint128& x, const uint128& y) noexcept
+constexpr bool operator!=(uint128 x, uint128 y) noexcept
 {
     return !(x == y);
 }
 
-constexpr bool operator<(const uint128& x, const uint128& y) noexcept
+constexpr bool operator<(uint128 x, uint128 y) noexcept
 {
     // Bitwise operators are used to avoid branching.
     return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo < y.lo));
 }
 
-constexpr bool operator<=(const uint128& x, const uint128& y) noexcept
+constexpr bool operator<=(uint128 x, uint128 y) noexcept
 {
     // Bitwise | used to avoid branching.
     return (x < y) | (x == y);
 }
 
-constexpr bool operator>(const uint128& x, const uint128& y) noexcept
+constexpr bool operator>(uint128 x, uint128 y) noexcept
 {
     return !(x <= y);
 }
 
-constexpr bool operator>=(const uint128& x, const uint128& y) noexcept
+constexpr bool operator>=(uint128 x, uint128 y) noexcept
 {
     return !(x < y);
 }
 
 
-constexpr uint128 operator|(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator|(uint128 x, uint128 y) noexcept
 {
     return {x.hi | y.hi, x.lo | y.lo};
 }
 
-constexpr uint128 operator&(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator&(uint128 x, uint128 y) noexcept
 {
     return {x.hi & y.hi, x.lo & y.lo};
 }
 
-constexpr uint128 operator^(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator^(uint128 x, uint128 y) noexcept
 {
     return {x.hi ^ y.hi, x.lo ^ y.lo};
 }
 
-constexpr uint128 operator~(const uint128& x) noexcept
+constexpr uint128 operator~(uint128 x) noexcept
 {
     return {~x.hi, ~x.lo};
 }
 
 
-constexpr uint128 operator+(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator+(uint128 x, uint128 y) noexcept
 {
     return {x.hi + y.hi + (x.lo > (x.lo + y.lo)), x.lo + y.lo};
 }
 
-constexpr uint128 operator-(const uint128& x) noexcept
+constexpr uint128 operator-(uint128 x) noexcept
 {
     return ~x + 1;
 }
 
-constexpr uint128 operator-(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator-(uint128 x, uint128 y) noexcept
 {
     return {x.hi - y.hi - (x.lo < (x.lo - y.lo)), x.lo - y.lo};
 }
 
-inline uint128& operator+=(uint128& x, const uint128& y) noexcept
+inline uint128& operator+=(uint128& x, uint128 y) noexcept
 {
     return x = x + y;
 }
 
-inline uint128& operator-=(uint128& x, const uint128& y) noexcept
+inline uint128& operator-=(uint128& x, uint128 y) noexcept
 {
     return x = x - y;
 }
 
-inline uint128& operator|=(uint128& x, const uint128& y) noexcept
+inline uint128& operator|=(uint128& x, uint128 y) noexcept
 {
     return x = x | y;
 }
 
-inline uint128& operator&=(uint128& x, const uint128& y) noexcept
+inline uint128& operator&=(uint128& x, uint128 y) noexcept
 {
     return x = x & y;
 }
 
-inline uint128& operator^=(uint128& x, const uint128& y) noexcept
+inline uint128& operator^=(uint128& x, uint128 y) noexcept
 {
     return x = x ^ y;
 }
 
-
-inline uint128 operator*(const uint128& x, const uint128& y) noexcept
+inline uint128 umul_generic(uint64_t x, uint64_t y) noexcept
 {
-    auto p = mul_full_64(x.lo, y.lo);
+    uint64_t xl = x & 0xffffffff;
+    uint64_t xh = x >> 32;
+    uint64_t yl = y & 0xffffffff;
+    uint64_t yh = y >> 32;
+
+    uint64_t t0 = xl * yl;
+    uint64_t t1 = xh * yl;
+    uint64_t t2 = xl * yh;
+    uint64_t t3 = xh * yh;
+
+    uint64_t u1 = t1 + (t0 >> 32);
+    uint64_t u2 = t2 + (u1 & 0xffffffff);
+
+    uint64_t lo = (u2 << 32) | (t0 & 0xffffffff);
+    uint64_t hi = t3 + (u2 >> 32) + (u1 >> 32);
+    return {hi, lo};
+}
+
+/// Full unsigned multiplication 64 x 64 -> 128.
+inline uint128 umul(uint64_t x, uint64_t y) noexcept
+{
+#if defined(__SIZEOF_INT128__)
+    auto p = (unsigned __int128){x} * y;
+    return {uint64_t(p >> 64), uint64_t(p)};
+#elif defined(_MSC_VER)
+    uint64_t hi;
+    auto lo = _mul128(x, y, &hi);
+    return {hi, lo};
+#else
+    return umul_genetic(x, y);
+#endif
+}
+
+inline uint128 operator*(uint128 x, uint128 y) noexcept
+{
+    auto p = umul(x.lo, y.lo);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
     return {p.hi, p.lo};
 }
 
 
-constexpr uint128 operator<<(const uint128& x, unsigned shift) noexcept
+constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
 {
     return (shift < 64) ?
                // Find the part moved from lo to hi.
@@ -163,7 +200,7 @@ constexpr uint128 operator<<(const uint128& x, unsigned shift) noexcept
                (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
 }
 
-constexpr uint128 operator>>(const uint128& x, unsigned shift) noexcept
+constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
 {
     return (shift < 64) ?
                // Find the part moved from lo to hi.
@@ -214,16 +251,32 @@ inline uint128 operator%(uint128 x, uint128 y) noexcept
     return udivrem(x, y).rem;
 }
 
-inline int clz(const uint128& x)
+inline int clz(uint32_t x) noexcept
 {
-    // In this order `h == 0` we get less instructions than in case of `h != 0`.
-    return x.hi == 0 ? builtins::clz(x.lo) | 64 : builtins::clz(x.hi);
+#ifdef _MSC_VER
+    unsigned long most_significant_bit;
+    _BitScanReverse(&most_significant_bit, x);
+    return 31 ^ (int)most_significant_bit;
+#else
+    return __builtin_clz(x);
+#endif
 }
 
-/// Full unsigned multiplication 64 x 64 -> 128.
-inline uint128 umul(uint64_t x, uint64_t y) noexcept
+inline int clz(uint64_t x) noexcept
 {
-    return uint128{x} * uint128{y};
+#ifdef _MSC_VER
+    unsigned long most_significant_bit;
+    _BitScanReverse64(&most_significant_bit, x);
+    return 63 ^ (int)most_significant_bit;
+#else
+    return __builtin_clzl(x);
+#endif
+}
+
+inline int clz(uint128 x)
+{
+    // In this order `h == 0` we get less instructions than in case of `h != 0`.
+    return x.hi == 0 ? clz(x.lo) | 64 : clz(x.hi);
 }
 
 namespace internal

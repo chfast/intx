@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include <intx/int128.hpp>
 
@@ -27,12 +27,6 @@ intx::uint128 div_gcc(intx::uint128 x, intx::uint128 y) noexcept
     return {uint64_t(q >> 64), uint64_t(q)};
 }
 
-
-inline int clz(uint64_t x)
-{
-    return __builtin_clzl(x);
-}
-
 inline uint64_t umulh(uint64_t x, uint64_t y)
 {
     unsigned __int128 p = static_cast<unsigned __int128>(x) * y;
@@ -42,7 +36,7 @@ inline uint64_t umulh(uint64_t x, uint64_t y)
 uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept
 {
     // decent start
-    uint64_t z = uint64_t(1) << clz(y);
+    uint64_t z = uint64_t(1) << intx::clz(y);
 
     // z recurrence, 6 iterations (TODO: make sure 6 is enough)
     uint64_t my = 0 - y;
@@ -71,7 +65,7 @@ uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept
 uint64_t soft_div_unr(uint64_t x, uint64_t y) noexcept
 {
     // decent start
-    uint64_t z = uint64_t(1) << clz(y);
+    uint64_t z = uint64_t(1) << intx::clz(y);
 
     // z recurrence
     uint64_t my = 0 - y;

@@ -11,7 +11,7 @@ div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 {
     if (y.hi == 0)
     {
-        auto lsh = __builtin_clzl(y.lo);
+        auto lsh = clz(y.lo);
 
         uint64_t xn_ex, xn_hi, xn_lo, yn;
 
@@ -47,7 +47,7 @@ div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     if (y.hi > x.hi)
         return {0, x};
 
-    auto lsh = __builtin_clzl(y.hi);
+    auto lsh = clz(y.hi);
 
     if (lsh == 0)
     {
