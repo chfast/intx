@@ -50,27 +50,42 @@ struct uint128
 };
 
 
+/// Comparison operators.
+///
+/// In all implementations bitwise operators are used instead of logical ones
+/// to avoid branching.
+///
+/// @{
+
 constexpr bool operator==(uint128 x, uint128 y) noexcept
 {
-    // Bitwise & used to avoid branching.
+    // Clang7: generates perfect xor based code,
+    //         much better than __int128 where it uses vector instructions.
+    // GCC8: generates a bit worse cmp based code
+    //       although it generates the xor based one for __int128.
     return (x.lo == y.lo) & (x.hi == y.hi);
 }
 
 constexpr bool operator!=(uint128 x, uint128 y) noexcept
 {
-    return !(x == y);
+    // Analogous to ==, but == not used directly, because that confuses GCC8.
+    return (x.lo != y.lo) | (x.hi != y.hi);
 }
 
 constexpr bool operator<(uint128 x, uint128 y) noexcept
 {
-    // Bitwise operators are used to avoid branching.
+    // OPT: This should be implemented by checking the borrow of x - y,
+    //      but compilers (GCC8, Clang7)
+    //      have problem with properly optimizing subtraction.
     return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo < y.lo));
 }
 
 constexpr bool operator<=(uint128 x, uint128 y) noexcept
 {
-    // Bitwise | used to avoid branching.
-    return (x < y) | (x == y);
+    // OPT: This also should be implemented by subtraction + flag check.
+    // TODO: Clang7 is not able to fully optimize
+    //       the naive implementation as (x < y) | (x == y).
+    return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo <= y.lo));
 }
 
 constexpr bool operator>(uint128 x, uint128 y) noexcept
@@ -82,6 +97,8 @@ constexpr bool operator>=(uint128 x, uint128 y) noexcept
 {
     return !(x < y);
 }
+
+/// @}
 
 
 constexpr uint128 operator|(uint128 x, uint128 y) noexcept

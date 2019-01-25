@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include <intx/int128.hpp>
 
@@ -32,6 +32,16 @@ void static_test_comparison()
     static_assert(zero < one, "");
     static_assert(zero <= one, "");
     static_assert(zero <= zer0, "");
+
+    constexpr auto zero_one = uint128{0, 1};
+    constexpr auto one_zero = uint128{1, 0};
+
+    static_assert(!(zero_one == one_zero), "");
+    static_assert(zero_one != one_zero, "");
+    static_assert(zero_one < one_zero, "");
+    static_assert(zero_one <= one_zero, "");
+    static_assert(!(zero_one > one_zero), "");
+    static_assert(!(zero_one >= one_zero), "");
 }
 
 void static_test_bitwise_operators()
