@@ -1,13 +1,14 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include <intx/mul_full.h>
+#include <intx/int128.hpp>
 
 #include "../utils/random.hpp"
 #include <benchmark/benchmark.h>
 
-template<decltype(mul_full_64) MulFn>
+template <typename RetT, RetT (*MulFn)(uint64_t, uint64_t)>
 static void mul_full(benchmark::State& state)
 {
     auto inputs = gen_uniform_seq(1000);
@@ -27,5 +28,7 @@ static void mul_full(benchmark::State& state)
         benchmark::DoNotOptimize(ahi);
     }
 }
-BENCHMARK_TEMPLATE(mul_full, mul_full_64_generic);
-BENCHMARK_TEMPLATE(mul_full, mul_full_64_native);
+BENCHMARK_TEMPLATE(mul_full, mul_full_64_result, mul_full_64_generic);
+BENCHMARK_TEMPLATE(mul_full, mul_full_64_result, mul_full_64_native);
+BENCHMARK_TEMPLATE(mul_full, intx::uint128, intx::umul_generic);
+BENCHMARK_TEMPLATE(mul_full, intx::uint128, intx::umul);
