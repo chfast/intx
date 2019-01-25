@@ -255,6 +255,30 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
 /// @}
 
 
+/// Division.
+/// @{
+
+template <typename T>
+struct div_result
+{
+    T quot;
+    T rem;
+};
+
+div_result<uint128> udivrem(uint128 x, uint128 y) noexcept;
+
+inline uint128 operator/(uint128 x, uint128 y) noexcept
+{
+    return udivrem(x, y).quot;
+}
+
+inline uint128 operator%(uint128 x, uint128 y) noexcept
+{
+    return udivrem(x, y).rem;
+}
+
+/// @}
+
 inline uint128& operator+=(uint128& x, uint128 y) noexcept
 {
     return x = x + y;
@@ -290,24 +314,6 @@ inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
     return x = x >> shift;
 }
 
-template <typename T>
-struct div_result
-{
-    T quot;
-    T rem;
-};
-
-div_result<uint128> udivrem(uint128 x, uint128 y) noexcept;
-
-inline uint128 operator/(uint128 x, uint128 y) noexcept
-{
-    return udivrem(x, y).quot;
-}
-
-inline uint128 operator%(uint128 x, uint128 y) noexcept
-{
-    return udivrem(x, y).rem;
-}
 
 inline int clz(uint32_t x) noexcept
 {
