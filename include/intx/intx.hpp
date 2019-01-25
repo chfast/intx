@@ -175,14 +175,15 @@ constexpr uint64_t join(uint32_t hi, uint32_t lo)
     return (uint64_t(hi) << 32) | lo;
 }
 
-constexpr uint128 join(uint64_t hi, uint64_t lo)
+constexpr uint128 join(uint64_t hi, uint64_t lo) noexcept
 {
-    return (uint128(hi) << 64) | lo;
+    return {hi, lo};
 }
 
-constexpr uint256 join(uint128 hi, uint128 lo)
+constexpr uint256 join(uint128 hi, uint128 lo) noexcept
 {
-    return uint256{lo, hi};
+    // FIXME: Change order of hi - lo.
+    return {lo, hi};
 }
 
 template <typename T>
