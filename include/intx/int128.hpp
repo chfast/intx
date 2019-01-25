@@ -20,6 +20,7 @@ struct uint128
 
     constexpr uint128() noexcept = default;
 
+    // TODO: Would it be enough to have a constructor for uint64_t?
     template <typename T>
     constexpr uint128(typename std::enable_if<std::is_unsigned<T>::value>::type x) noexcept : lo{x}
     {}
@@ -49,97 +50,97 @@ struct uint128
 };
 
 
-constexpr bool operator==(const uint128& x, const uint128& y) noexcept
+constexpr bool operator==(uint128 x, uint128 y) noexcept
 {
     // Bitwise & used to avoid branching.
     return (x.lo == y.lo) & (x.hi == y.hi);
 }
 
-constexpr bool operator!=(const uint128& x, const uint128& y) noexcept
+constexpr bool operator!=(uint128 x, uint128 y) noexcept
 {
     return !(x == y);
 }
 
-constexpr bool operator<(const uint128& x, const uint128& y) noexcept
+constexpr bool operator<(uint128 x, uint128 y) noexcept
 {
     // Bitwise operators are used to avoid branching.
     return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo < y.lo));
 }
 
-constexpr bool operator<=(const uint128& x, const uint128& y) noexcept
+constexpr bool operator<=(uint128 x, uint128 y) noexcept
 {
     // Bitwise | used to avoid branching.
     return (x < y) | (x == y);
 }
 
-constexpr bool operator>(const uint128& x, const uint128& y) noexcept
+constexpr bool operator>(uint128 x, uint128 y) noexcept
 {
     return !(x <= y);
 }
 
-constexpr bool operator>=(const uint128& x, const uint128& y) noexcept
+constexpr bool operator>=(uint128 x, uint128 y) noexcept
 {
     return !(x < y);
 }
 
 
-constexpr uint128 operator|(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator|(uint128 x, uint128 y) noexcept
 {
     return {x.hi | y.hi, x.lo | y.lo};
 }
 
-constexpr uint128 operator&(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator&(uint128 x, uint128 y) noexcept
 {
     return {x.hi & y.hi, x.lo & y.lo};
 }
 
-constexpr uint128 operator^(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator^(uint128 x, uint128 y) noexcept
 {
     return {x.hi ^ y.hi, x.lo ^ y.lo};
 }
 
-constexpr uint128 operator~(const uint128& x) noexcept
+constexpr uint128 operator~(uint128 x) noexcept
 {
     return {~x.hi, ~x.lo};
 }
 
 
-constexpr uint128 operator+(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator+(uint128 x, uint128 y) noexcept
 {
     return {x.hi + y.hi + (x.lo > (x.lo + y.lo)), x.lo + y.lo};
 }
 
-constexpr uint128 operator-(const uint128& x) noexcept
+constexpr uint128 operator-(uint128 x) noexcept
 {
     return ~x + 1;
 }
 
-constexpr uint128 operator-(const uint128& x, const uint128& y) noexcept
+constexpr uint128 operator-(uint128 x, uint128 y) noexcept
 {
     return {x.hi - y.hi - (x.lo < (x.lo - y.lo)), x.lo - y.lo};
 }
 
-inline uint128& operator+=(uint128& x, const uint128& y) noexcept
+inline uint128& operator+=(uint128& x, uint128 y) noexcept
 {
     return x = x + y;
 }
 
-inline uint128& operator-=(uint128& x, const uint128& y) noexcept
+inline uint128& operator-=(uint128& x, uint128 y) noexcept
 {
     return x = x - y;
 }
 
-inline uint128& operator|=(uint128& x, const uint128& y) noexcept
+inline uint128& operator|=(uint128& x, uint128 y) noexcept
 {
     return x = x | y;
 }
 
-inline uint128& operator&=(uint128& x, const uint128& y) noexcept
+inline uint128& operator&=(uint128& x, uint128 y) noexcept
 {
     return x = x & y;
 }
 
-inline uint128& operator^=(uint128& x, const uint128& y) noexcept
+inline uint128& operator^=(uint128& x, uint128 y) noexcept
 {
     return x = x ^ y;
 }
@@ -179,7 +180,7 @@ inline uint128 umul(uint64_t x, uint64_t y) noexcept
 #endif
 }
 
-inline uint128 operator*(const uint128& x, const uint128& y) noexcept
+inline uint128 operator*(uint128 x, uint128 y) noexcept
 {
     auto p = umul(x.lo, y.lo);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
@@ -187,7 +188,7 @@ inline uint128 operator*(const uint128& x, const uint128& y) noexcept
 }
 
 
-constexpr uint128 operator<<(const uint128& x, unsigned shift) noexcept
+constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
 {
     return (shift < 64) ?
                // Find the part moved from lo to hi.
@@ -199,7 +200,7 @@ constexpr uint128 operator<<(const uint128& x, unsigned shift) noexcept
                (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
 }
 
-constexpr uint128 operator>>(const uint128& x, unsigned shift) noexcept
+constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
 {
     return (shift < 64) ?
                // Find the part moved from lo to hi.
@@ -272,7 +273,7 @@ inline int clz(uint64_t x) noexcept
 #endif
 }
 
-inline int clz(const uint128& x)
+inline int clz(uint128 x)
 {
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
     return x.hi == 0 ? clz(x.lo) | 64 : clz(x.hi);
