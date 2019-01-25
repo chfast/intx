@@ -50,6 +50,34 @@ struct uint128
 };
 
 
+/// Bitwise operators.
+/// @{
+
+constexpr uint128 operator|(uint128 x, uint128 y) noexcept
+{
+    // Clang7: perfect.
+    // GCC8: stupidly uses a vector instruction in all bitwise operators.
+    return {x.hi | y.hi, x.lo | y.lo};
+}
+
+constexpr uint128 operator&(uint128 x, uint128 y) noexcept
+{
+    return {x.hi & y.hi, x.lo & y.lo};
+}
+
+constexpr uint128 operator^(uint128 x, uint128 y) noexcept
+{
+    return {x.hi ^ y.hi, x.lo ^ y.lo};
+}
+
+constexpr uint128 operator~(uint128 x) noexcept
+{
+    return {~x.hi, ~x.lo};
+}
+
+/// @}
+
+
 /// Comparison operators.
 ///
 /// In all implementations bitwise operators are used instead of logical ones
@@ -99,27 +127,6 @@ constexpr bool operator>=(uint128 x, uint128 y) noexcept
 }
 
 /// @}
-
-
-constexpr uint128 operator|(uint128 x, uint128 y) noexcept
-{
-    return {x.hi | y.hi, x.lo | y.lo};
-}
-
-constexpr uint128 operator&(uint128 x, uint128 y) noexcept
-{
-    return {x.hi & y.hi, x.lo & y.lo};
-}
-
-constexpr uint128 operator^(uint128 x, uint128 y) noexcept
-{
-    return {x.hi ^ y.hi, x.lo ^ y.lo};
-}
-
-constexpr uint128 operator~(uint128 x) noexcept
-{
-    return {~x.hi, ~x.lo};
-}
 
 
 constexpr uint128 operator+(uint128 x, uint128 y) noexcept
