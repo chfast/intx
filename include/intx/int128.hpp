@@ -269,6 +269,81 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
 /// @}
 
 
+/// Assignment operators.
+/// @{
+
+inline uint128& operator+=(uint128& x, uint128 y) noexcept
+{
+    return x = x + y;
+}
+
+inline uint128& operator-=(uint128& x, uint128 y) noexcept
+{
+    return x = x - y;
+}
+
+inline uint128& operator*=(uint128& x, uint128 y) noexcept
+{
+    return x = x * y;
+}
+
+inline uint128& operator|=(uint128& x, uint128 y) noexcept
+{
+    return x = x | y;
+}
+
+inline uint128& operator&=(uint128& x, uint128 y) noexcept
+{
+    return x = x & y;
+}
+
+inline uint128& operator^=(uint128& x, uint128 y) noexcept
+{
+    return x = x ^ y;
+}
+
+inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
+{
+    return x = x << shift;
+}
+
+inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
+{
+    return x = x >> shift;
+}
+
+/// @}
+
+
+inline int clz(uint32_t x) noexcept
+{
+#ifdef _MSC_VER
+    unsigned long most_significant_bit;
+    _BitScanReverse(&most_significant_bit, x);
+    return 31 ^ (int)most_significant_bit;
+#else
+    return __builtin_clz(x);
+#endif
+}
+
+inline int clz(uint64_t x) noexcept
+{
+#ifdef _MSC_VER
+    unsigned long most_significant_bit;
+    _BitScanReverse64(&most_significant_bit, x);
+    return 63 ^ (int)most_significant_bit;
+#else
+    return __builtin_clzl(x);
+#endif
+}
+
+inline int clz(uint128 x)
+{
+    // In this order `h == 0` we get less instructions than in case of `h != 0`.
+    return x.hi == 0 ? clz(x.lo) | 64 : clz(x.hi);
+}
+
+
 /// Division.
 /// @{
 
@@ -376,27 +451,6 @@ inline uint128 operator%(uint128 x, uint128 y) noexcept
     return udivrem(x, y).rem;
 }
 
-/// @}
-
-
-/// Assignment operators.
-/// @{
-
-inline uint128& operator+=(uint128& x, uint128 y) noexcept
-{
-    return x = x + y;
-}
-
-inline uint128& operator-=(uint128& x, uint128 y) noexcept
-{
-    return x = x - y;
-}
-
-inline uint128& operator*=(uint128& x, uint128 y) noexcept
-{
-    return x = x * y;
-}
-
 inline uint128& operator/=(uint128& x, uint128 y) noexcept
 {
     return x = x / y;
@@ -407,60 +461,6 @@ inline uint128& operator%=(uint128& x, uint128 y) noexcept
     return x = x % y;
 }
 
-inline uint128& operator|=(uint128& x, uint128 y) noexcept
-{
-    return x = x | y;
-}
-
-inline uint128& operator&=(uint128& x, uint128 y) noexcept
-{
-    return x = x & y;
-}
-
-inline uint128& operator^=(uint128& x, uint128 y) noexcept
-{
-    return x = x ^ y;
-}
-
-inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
-{
-    return x = x << shift;
-}
-
-inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
-{
-    return x = x >> shift;
-}
-
 /// @}
-
-
-inline int clz(uint32_t x) noexcept
-{
-#ifdef _MSC_VER
-    unsigned long most_significant_bit;
-    _BitScanReverse(&most_significant_bit, x);
-    return 31 ^ (int)most_significant_bit;
-#else
-    return __builtin_clz(x);
-#endif
-}
-
-inline int clz(uint64_t x) noexcept
-{
-#ifdef _MSC_VER
-    unsigned long most_significant_bit;
-    _BitScanReverse64(&most_significant_bit, x);
-    return 63 ^ (int)most_significant_bit;
-#else
-    return __builtin_clzl(x);
-#endif
-}
-
-inline int clz(uint128 x)
-{
-    // In this order `h == 0` we get less instructions than in case of `h != 0`.
-    return x.hi == 0 ? clz(x.lo) | 64 : clz(x.hi);
-}
 
 }  // namespace intx
