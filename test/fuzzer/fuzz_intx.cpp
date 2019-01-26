@@ -100,5 +100,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t data_size) noe
 {
     test_op<uint512>(data, data_size);
     test_op<uint256>(data, data_size);
+    test_op<uint128>(data, data_size);
     return 0;
 }
