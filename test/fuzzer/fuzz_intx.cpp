@@ -88,8 +88,13 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         break;
 
     case op::sub:
-        expect_eq(a - b, gmp::sub(a, b));
+    {
+        const auto s = a - b;
+        expect_eq(s, gmp::sub(a, b));
+        expect_eq(s, a + -b);
+        expect_eq(s, a + (~b + 1));
         break;
+    }
 
     default:
         break;
@@ -100,5 +105,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t data_size) noe
 {
     test_op<uint512>(data, data_size);
     test_op<uint256>(data, data_size);
+    test_op<uint128>(data, data_size);
     return 0;
 }
