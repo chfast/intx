@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint>
+#include <stdexcept>
 #include <type_traits>
 
 #ifdef _MSC_VER
@@ -576,5 +577,50 @@ inline uint128& operator%=(uint128& x, uint128 y) noexcept
 }
 
 /// @}
+
+
+inline uint128 operator""_u128(const char* s)
+{
+    uint128 x;
+    int num_digits = 0;
+
+    if (s[0] == '0' && s[1] == 'x')
+    {
+        s += 2;
+        while (auto d = *s++)
+        {
+            if (++num_digits > 32)
+                throw std::overflow_error{"Literal overflow"};
+
+            x <<= 4;
+            if (d >= '0' && d <= '9')
+                d -= '0';
+            else if (d >= 'a' && d <= 'f')
+                d -= 'a' - 10;
+            else if (d >= 'A' && d <= 'F')
+                d -= 'A' - 10;
+            else
+                throw std::invalid_argument{std::string{"Invalid literal character: "} + d};
+            x += d;
+        }
+        return x;
+    }
+
+    while (auto c = *s++)
+    {
+        if (++num_digits > 39)
+            throw std::overflow_error{"Literal overflow"};
+
+        x *= 10;
+        if (c >= '0' && c <= '9')
+            c -= '0';
+        else
+            throw std::invalid_argument{std::string{"Invalid literal character: "} + c};
+        x += c;
+        if (x < c)
+            throw std::overflow_error{"Literal overflow"};
+    }
+    return x;
+}
 
 }  // namespace intx
