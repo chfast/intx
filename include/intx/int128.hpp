@@ -100,6 +100,20 @@ inline uint128 operator--(uint128& x, int) noexcept
     return ret;
 }
 
+/// Optimized addition.
+///
+/// This keeps the multiprecision addition until CodeGen so the pattern is not
+/// broken during other optimizations.
+constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
+{
+#ifdef __SIZEOF_INT128__
+    return (unsigned __int128){x} + (unsigned __int128){y};
+#else
+    // Fallback to regular addition.
+    return x + y;
+#endif
+}
+
 /// @}
 
 
@@ -255,31 +269,6 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
 /// @}
 
 
-/// Division.
-/// @{
-
-template <typename T>
-struct div_result
-{
-    T quot;
-    T rem;
-};
-
-div_result<uint128> udivrem(uint128 x, uint128 y) noexcept;
-
-inline uint128 operator/(uint128 x, uint128 y) noexcept
-{
-    return udivrem(x, y).quot;
-}
-
-inline uint128 operator%(uint128 x, uint128 y) noexcept
-{
-    return udivrem(x, y).rem;
-}
-
-/// @}
-
-
 /// Assignment operators.
 /// @{
 
@@ -296,16 +285,6 @@ inline uint128& operator-=(uint128& x, uint128 y) noexcept
 inline uint128& operator*=(uint128& x, uint128 y) noexcept
 {
     return x = x * y;
-}
-
-inline uint128& operator/=(uint128& x, uint128 y) noexcept
-{
-    return x = x / y;
-}
-
-inline uint128& operator%=(uint128& x, uint128 y) noexcept
-{
-    return x = x % y;
 }
 
 inline uint128& operator|=(uint128& x, uint128 y) noexcept
@@ -364,20 +343,238 @@ inline int clz(uint128 x)
     return x.hi == 0 ? clz(x.lo) | 64 : clz(x.hi);
 }
 
+
+/// Division.
+/// @{
+
+template <typename T>
+struct div_result
+{
+    T quot;
+    T rem;
+};
+
 namespace internal
 {
-/// Optimized addition.
-///
-/// This keeps the multiprecision addition until CodeGen so the pattern is not
-/// broken during other optimizations.
-constexpr uint128 optimized_add(uint128 x, uint128 y) noexcept
+constexpr uint16_t reciprocal_table_item(uint8_t d9) noexcept
 {
-#ifdef __SIZEOF_INT128__
-    using u128 = unsigned __int128;
-    return ((u128(x.hi) << 64) | x.lo) + ((u128(y.hi) << 64) | y.lo);
-#else
-    return x + y;
-#endif
+    return uint16_t(0x7fd00 / (0x100 | d9));
 }
+
+#define REPEAT4(x)                                                  \
+    reciprocal_table_item((x) + 0), reciprocal_table_item((x) + 1), \
+        reciprocal_table_item((x) + 2), reciprocal_table_item((x) + 3)
+
+#define REPEAT32(x)                                                                         \
+    REPEAT4((x) + 4 * 0), REPEAT4((x) + 4 * 1), REPEAT4((x) + 4 * 2), REPEAT4((x) + 4 * 3), \
+        REPEAT4((x) + 4 * 4), REPEAT4((x) + 4 * 5), REPEAT4((x) + 4 * 6), REPEAT4((x) + 4 * 7)
+
+#define REPEAT256()                                                                           \
+    REPEAT32(32 * 0), REPEAT32(32 * 1), REPEAT32(32 * 2), REPEAT32(32 * 3), REPEAT32(32 * 4), \
+        REPEAT32(32 * 5), REPEAT32(32 * 6), REPEAT32(32 * 7)
+
+/// Reciprocal lookup table.
+constexpr uint16_t reciprocal_table[] = {REPEAT256()};
+
+#undef REPEAT4
+#undef REPEAT32
+#undef REPEAT256
 }  // namespace internal
+
+/// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
+///
+/// Based on Algorithm 2 from "Improved division by invariant integers".
+inline uint64_t reciprocal_2by1(uint64_t d) noexcept
+{
+    auto d9 = uint8_t(d >> 55);
+    auto v0 = uint64_t{internal::reciprocal_table[d9]};
+
+    auto d40 = (d >> 24) + 1;
+    auto v1 = (v0 << 11) - (v0 * v0 * d40 >> 40) - 1;
+
+    auto v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
+
+    auto d0 = d % 2;
+    auto d63 = d / 2 + d0;  // ceil(d/2)
+    auto e = ((v2 / 2) & -d0) - v2 * d63;
+    auto mh = umul(v2, e).hi;
+    auto v3 = (v2 << 31) + (mh >> 1);
+
+    // OPT: The compiler tries a bit too much with 128 + 64 addition and ends up using subtraction.
+    //      Compare with __int128.
+    auto mf = umul(v3, d);
+    auto m = fast_add(mf, d);
+    auto v3a = m.hi + d;
+
+    auto v4 = v3 - v3a;
+
+    return v4;
+}
+
+inline uint64_t reciprocal_3by2(uint128 d) noexcept
+{
+    auto v = reciprocal_2by1(d.hi);
+    auto p = d.hi * v;
+    p += d.lo;
+    if (p < d.lo)
+    {
+        --v;
+        if (p >= d.hi)
+        {
+            --v;
+            p -= d.hi;
+        }
+        p -= d.hi;
+    }
+
+    auto t = umul(v, d.lo);
+
+    p += t.hi;
+    if (p < t.hi)
+    {
+        --v;
+        if (uint128{p, t.lo} >= d)
+            --v;
+    }
+    return v;
+}
+
+inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
+{
+    auto q = umul(v, u.hi);
+    q = fast_add(q, u);
+
+    ++q.hi;
+
+    auto r = u.lo - q.hi * d;
+
+    if (r > q.lo)
+    {
+        --q.hi;
+        r += d;
+    }
+
+    if (r >= d)
+    {
+        ++q.hi;
+        r -= d;
+    }
+
+    return {q.hi, r};
+}
+
+inline div_result<uint128> udivrem_3by2(
+    uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
+{
+    auto q = umul(v, u2);
+    q = fast_add(q, {u2, u1});
+
+    auto r1 = u1 - q.hi * d.hi;
+
+    auto t = umul(d.lo, q.hi);
+
+    auto r = uint128{r1, u0} - t - d;
+    r1 = r.hi;
+
+    ++q.hi;
+
+    if (r1 >= q.lo)
+    {
+        --q.hi;
+        r += d;
+    }
+
+    if (r >= d)
+    {
+        ++q.hi;
+        r -= d;
+    }
+
+    return {q.hi, r};
+}
+
+inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
+{
+    if (y.hi == 0)
+    {
+        auto lsh = clz(y.lo);
+
+        uint64_t xn_ex, xn_hi, xn_lo, yn;
+
+        if (lsh != 0)
+        {
+            auto rsh = 64 - lsh;
+            xn_ex = x.hi >> rsh;
+            xn_hi = (x.lo >> rsh) | (x.hi << lsh);
+            xn_lo = x.lo << lsh;
+            yn = y.lo << lsh;
+        }
+        else
+        {
+            xn_ex = 0;
+            xn_hi = x.hi;
+            xn_lo = x.lo;
+            yn = y.lo;
+        }
+
+        auto v = reciprocal_2by1(yn);
+
+        // OPT: If xn_ex is 0, the result q can be only 0 or 1.
+        auto res = udivrem_2by1({xn_ex, xn_hi}, yn, v);
+        auto q1 = res.quot;
+
+        res = udivrem_2by1({res.rem, xn_lo}, yn, v);
+        auto q0 = res.quot;
+
+        auto q = uint128{q1, q0};
+        return {q, res.rem >> lsh};
+    }
+
+    if (y.hi > x.hi)
+        return {0, x};
+
+    auto lsh = clz(y.hi);
+
+    if (lsh == 0)
+    {
+        bool q = (y.hi < x.hi) | (y.lo <= x.lo);
+        return {q, x - (q ? y : 0)};
+    }
+
+    auto rsh = 64 - lsh;
+
+    auto yn_lo = y.lo << lsh;
+    auto yn_hi = (y.lo >> rsh) | (y.hi << lsh);
+    auto xn_ex = x.hi >> rsh;
+    auto xn_hi = (x.lo >> rsh) | (x.hi << lsh);
+    auto xn_lo = x.lo << lsh;
+
+    auto v = reciprocal_3by2({yn_hi, yn_lo});
+    auto res = udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_hi, yn_lo}, v);
+
+    return {res.quot, res.rem >> lsh};
+}
+
+inline uint128 operator/(uint128 x, uint128 y) noexcept
+{
+    return udivrem(x, y).quot;
+}
+
+inline uint128 operator%(uint128 x, uint128 y) noexcept
+{
+    return udivrem(x, y).rem;
+}
+
+inline uint128& operator/=(uint128& x, uint128 y) noexcept
+{
+    return x = x / y;
+}
+
+inline uint128& operator%=(uint128& x, uint128 y) noexcept
+{
+    return x = x % y;
+}
+
+/// @}
+
 }  // namespace intx

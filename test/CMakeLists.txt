@@ -1,6 +1,6 @@
 # intx: extended precision integer library.
-# Copyright 2017 Pawel Bylica.
-# Licensed under the Apache License, Version 2.0. See the LICENSE file.
+# Copyright 2019 Pawel Bylica.
+# Licensed under the Apache License, Version 2.0.
 
 hunter_add_package(GTest)
 find_package(GTest CONFIG REQUIRED)
@@ -18,6 +18,7 @@ set_property(TARGET GMP::gmp PROPERTY IMPORTED_LOCATION_RELEASE ${GMP_LIBRARY})
 set_property(TARGET GMP::gmp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GMP_INCLUDE_DIR})
 
 add_subdirectory(benchmarks)
+add_subdirectory(integration)
 add_subdirectory(unittests)
 
 if(INTX_FUZZING)
