@@ -88,8 +88,13 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         break;
 
     case op::sub:
-        expect_eq(a - b, gmp::sub(a, b));
+    {
+        const auto s = a - b;
+        expect_eq(s, gmp::sub(a, b));
+        expect_eq(s, a + -b);
+        expect_eq(s, a + (~b + 1));
         break;
+    }
 
     default:
         break;
