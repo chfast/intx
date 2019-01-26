@@ -16,13 +16,15 @@ namespace gmp
 {
 static constexpr size_t uint256_limbs = sizeof(uint256) / sizeof(mp_limb_t);
 
-inline uint256 mul(const uint256& x, const uint256& y) noexcept
+template <typename Int>
+inline Int mul(const Int& x, const Int& y) noexcept
 {
-    uint256 p[2];
+    constexpr size_t num_limbs = sizeof(Int) / sizeof(mp_limb_t);
+    Int p[2];
     auto p_p = (mp_ptr)&p;
     auto p_x = (mp_srcptr)&x;
     auto p_y = (mp_srcptr)&y;
-    mpn_mul_n(p_p, p_x, p_y, uint256_limbs);
+    mpn_mul_n(p_p, p_x, p_y, num_limbs);
     return p[0];
 }
 
@@ -34,16 +36,6 @@ inline uint512 mul_full(const uint256& x, const uint256& y) noexcept
     auto p_y = (mp_srcptr)&y;
     mpn_mul_n(p_p, p_x, p_y, uint256_limbs);
     return p;
-}
-
-inline uint512 mul(const uint512& x, const uint512& y) noexcept
-{
-    uint512 p[2];
-    auto p_p = (mp_ptr)&p;
-    auto p_x = (mp_srcptr)&x;
-    auto p_y = (mp_srcptr)&y;
-    mpn_mul_n(p_p, p_x, p_y, uint256_limbs * 2);
-    return p[0];
 }
 
 template <typename Int>
