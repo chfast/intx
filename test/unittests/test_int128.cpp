@@ -256,10 +256,7 @@ TEST(int128, div_random)
         auto y = dist();
         auto r = udivrem(x, y).quot;
 
-        // TODO: Add cast operator to __int128.
-        auto nx = ((unsigned __int128)x.hi << 64) | x.lo;
-        auto ny = ((unsigned __int128)y.hi << 64) | y.lo;
-        auto s = nx / ny;
+        auto s = (unsigned __int128){x} / (unsigned __int128){y};
         EXPECT_EQ(r.hi, uint64_t(s >> 64)) << c;
         EXPECT_EQ(r.lo, uint64_t(s)) << c;
     }
