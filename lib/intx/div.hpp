@@ -8,60 +8,6 @@
 
 namespace intx
 {
-inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
-{
-    auto q = umul(v, u.hi);
-    q = fast_add(q, u);
-
-    ++q.hi;
-
-    auto r = u.lo - q.hi * d;
-
-    if (r > q.lo)
-    {
-        --q.hi;
-        r += d;
-    }
-
-    if (r >= d)
-    {
-        ++q.hi;
-        r -= d;
-    }
-
-    return {q.hi, r};
-}
-
-inline div_result<uint128> udivrem_3by2(
-    uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
-{
-    auto q = umul(v, u2);
-    q = fast_add(q, {u2, u1});
-
-    auto r1 = u1 - q.hi * d.hi;
-
-    auto t = umul(d.lo, q.hi);
-
-    auto r = uint128{r1, u0} - t - d;
-    r1 = r.hi;
-
-    ++q.hi;
-
-    if (r1 >= q.lo)
-    {
-        --q.hi;
-        r += d;
-    }
-
-    if (r >= d)
-    {
-        ++q.hi;
-        r -= d;
-    }
-
-    return {q.hi, r};
-}
-
 inline div_result<uint64_t> udivrem_long(uint128 x, uint64_t y) noexcept
 {
     auto shift = clz(y);
