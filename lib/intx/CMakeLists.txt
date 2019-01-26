@@ -13,7 +13,6 @@ add_library(intx STATIC
     ${include_dir}/intx/safe.hpp
     div.cpp
     div.hpp
-    int128.cpp
     intx.cpp
 )
 add_library(intx::intx ALIAS intx)
