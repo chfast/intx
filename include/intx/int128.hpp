@@ -50,42 +50,71 @@ struct uint128
 };
 
 
-constexpr bool operator==(uint128 x, uint128 y) noexcept
+/// Linear arithmetic operators.
+/// @{
+
+constexpr uint128 operator+(uint128 x, uint128 y) noexcept
 {
-    // Bitwise & used to avoid branching.
-    return (x.lo == y.lo) & (x.hi == y.hi);
+    return {x.hi + y.hi + (x.lo > (x.lo + y.lo)), x.lo + y.lo};
 }
 
-constexpr bool operator!=(uint128 x, uint128 y) noexcept
+constexpr uint128 operator+(uint128 x) noexcept
 {
-    return !(x == y);
+    return x;
 }
 
-constexpr bool operator<(uint128 x, uint128 y) noexcept
+constexpr uint128 operator-(uint128 x, uint128 y) noexcept
 {
-    // Bitwise operators are used to avoid branching.
-    return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo < y.lo));
+    return {x.hi - y.hi - (x.lo < (x.lo - y.lo)), x.lo - y.lo};
 }
 
-constexpr bool operator<=(uint128 x, uint128 y) noexcept
+constexpr uint128 operator-(uint128 x) noexcept
 {
-    // Bitwise | used to avoid branching.
-    return (x < y) | (x == y);
+    // Implementing as subtraction is better than ~x + 1.
+    // Clang7: Almost perfect.
+    // GCC8: Does something weird.
+    return 0 - x;
 }
 
-constexpr bool operator>(uint128 x, uint128 y) noexcept
+inline uint128& operator++(uint128& x) noexcept
 {
-    return !(x <= y);
+    return x = x + 1;
 }
 
-constexpr bool operator>=(uint128 x, uint128 y) noexcept
+inline uint128& operator--(uint128& x) noexcept
 {
-    return !(x < y);
+    return x = x - 1;
 }
 
+inline uint128 operator++(uint128& x, int) noexcept
+{
+    auto ret = x;
+    ++x;
+    return ret;
+}
+
+inline uint128 operator--(uint128& x, int) noexcept
+{
+    auto ret = x;
+    --x;
+    return ret;
+}
+
+/// @}
+
+
+/// Bitwise operators.
+/// @{
+
+constexpr uint128 operator~(uint128 x) noexcept
+{
+    return {~x.hi, ~x.lo};
+}
 
 constexpr uint128 operator|(uint128 x, uint128 y) noexcept
 {
+    // Clang7: perfect.
+    // GCC8: stupidly uses a vector instruction in all bitwise operators.
     return {x.hi | y.hi, x.lo | y.lo};
 }
 
@@ -99,52 +128,88 @@ constexpr uint128 operator^(uint128 x, uint128 y) noexcept
     return {x.hi ^ y.hi, x.lo ^ y.lo};
 }
 
-constexpr uint128 operator~(uint128 x) noexcept
+constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
 {
-    return {~x.hi, ~x.lo};
+    return (shift < 64) ?
+               // Find the part moved from lo to hi.
+               // For shift == 0 right shift by (64 - shift) is invalid so
+               // split it into 2 shifts by 1 and (63 - shift).
+               uint128{(x.hi << shift) | ((x.lo >> 1) >> (63 - shift)), x.lo << shift} :
+
+               // Guarantee "defined" behavior for shifts larger than 128.
+               (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
 }
 
-
-constexpr uint128 operator+(uint128 x, uint128 y) noexcept
+constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
 {
-    return {x.hi + y.hi + (x.lo > (x.lo + y.lo)), x.lo + y.lo};
+    return (shift < 64) ?
+               // Find the part moved from lo to hi.
+               // For shift == 0 left shift by (64 - shift) is invalid so
+               // split it into 2 shifts by 1 and (63 - shift).
+               uint128{x.hi >> shift, (x.lo >> shift) | ((x.hi << 1) << (63 - shift))} :
+
+               // Guarantee "defined" behavior for shifts larger than 128.
+               (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
 }
 
-constexpr uint128 operator-(uint128 x) noexcept
+/// @}
+
+
+/// Comparison operators.
+///
+/// In all implementations bitwise operators are used instead of logical ones
+/// to avoid branching.
+///
+/// @{
+
+constexpr bool operator==(uint128 x, uint128 y) noexcept
 {
-    return ~x + 1;
+    // Clang7: generates perfect xor based code,
+    //         much better than __int128 where it uses vector instructions.
+    // GCC8: generates a bit worse cmp based code
+    //       although it generates the xor based one for __int128.
+    return (x.lo == y.lo) & (x.hi == y.hi);
 }
 
-constexpr uint128 operator-(uint128 x, uint128 y) noexcept
+constexpr bool operator!=(uint128 x, uint128 y) noexcept
 {
-    return {x.hi - y.hi - (x.lo < (x.lo - y.lo)), x.lo - y.lo};
+    // Analogous to ==, but == not used directly, because that confuses GCC8.
+    return (x.lo != y.lo) | (x.hi != y.hi);
 }
 
-inline uint128& operator+=(uint128& x, uint128 y) noexcept
+constexpr bool operator<(uint128 x, uint128 y) noexcept
 {
-    return x = x + y;
+    // OPT: This should be implemented by checking the borrow of x - y,
+    //      but compilers (GCC8, Clang7)
+    //      have problem with properly optimizing subtraction.
+    return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo < y.lo));
 }
 
-inline uint128& operator-=(uint128& x, uint128 y) noexcept
+constexpr bool operator<=(uint128 x, uint128 y) noexcept
 {
-    return x = x - y;
+    // OPT: This also should be implemented by subtraction + flag check.
+    // TODO: Clang7 is not able to fully optimize
+    //       the naive implementation as (x < y) | (x == y).
+    return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo <= y.lo));
 }
 
-inline uint128& operator|=(uint128& x, uint128 y) noexcept
+constexpr bool operator>(uint128 x, uint128 y) noexcept
 {
-    return x = x | y;
+    return !(x <= y);
 }
 
-inline uint128& operator&=(uint128& x, uint128 y) noexcept
+constexpr bool operator>=(uint128 x, uint128 y) noexcept
 {
-    return x = x & y;
+    return !(x < y);
 }
 
-inline uint128& operator^=(uint128& x, uint128 y) noexcept
-{
-    return x = x ^ y;
-}
+/// @}
 
+
+/// Multiplication
+/// @{
+
+/// Portable full unsigned multiplication 64 x 64 -> 128.
 inline uint128 umul_generic(uint64_t x, uint64_t y) noexcept
 {
     uint64_t xl = x & 0xffffffff;
@@ -176,7 +241,7 @@ inline uint128 umul(uint64_t x, uint64_t y) noexcept
     auto lo = _mul128(x, y, &hi);
     return {hi, lo};
 #else
-    return umul_genetic(x, y);
+    return umul_generic(x, y);
 #endif
 }
 
@@ -187,50 +252,11 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
     return {p.hi, p.lo};
 }
 
+/// @}
 
-constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
-{
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 right shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{(x.hi << shift) | ((x.lo >> 1) >> (63 - shift)), x.lo << shift} :
 
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
-}
-
-constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
-{
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 left shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{x.hi >> shift, (x.lo >> shift) | ((x.hi << 1) << (63 - shift))} :
-
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
-}
-
-inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
-{
-    return x = x << shift;
-}
-
-inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
-{
-    return x = x >> shift;
-}
-
-inline uint128& operator++(uint128& x) noexcept
-{
-    return x += 1;
-}
-
-inline uint128& operator--(uint128& x) noexcept
-{
-    return x -= 1;
-}
+/// Division.
+/// @{
 
 template <typename T>
 struct div_result
@@ -250,6 +276,65 @@ inline uint128 operator%(uint128 x, uint128 y) noexcept
 {
     return udivrem(x, y).rem;
 }
+
+/// @}
+
+
+/// Assignment operators.
+/// @{
+
+inline uint128& operator+=(uint128& x, uint128 y) noexcept
+{
+    return x = x + y;
+}
+
+inline uint128& operator-=(uint128& x, uint128 y) noexcept
+{
+    return x = x - y;
+}
+
+inline uint128& operator*=(uint128& x, uint128 y) noexcept
+{
+    return x = x * y;
+}
+
+inline uint128& operator/=(uint128& x, uint128 y) noexcept
+{
+    return x = x / y;
+}
+
+inline uint128& operator%=(uint128& x, uint128 y) noexcept
+{
+    return x = x % y;
+}
+
+inline uint128& operator|=(uint128& x, uint128 y) noexcept
+{
+    return x = x | y;
+}
+
+inline uint128& operator&=(uint128& x, uint128 y) noexcept
+{
+    return x = x & y;
+}
+
+inline uint128& operator^=(uint128& x, uint128 y) noexcept
+{
+    return x = x ^ y;
+}
+
+inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
+{
+    return x = x << shift;
+}
+
+inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
+{
+    return x = x >> shift;
+}
+
+/// @}
+
 
 inline int clz(uint32_t x) noexcept
 {

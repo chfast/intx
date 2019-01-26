@@ -1,6 +1,6 @@
 // intx: extended precision integer library.
-// Copyright 2018 Pawel Bylica.
-// Licensed under the Apache License, Version 2.0. See the LICENSE file.
+// Copyright 2019 Pawel Bylica.
+// Licensed under the Apache License, Version 2.0.
 
 #include <intx/int128.hpp>
 
@@ -32,6 +32,16 @@ void static_test_comparison()
     static_assert(zero < one, "");
     static_assert(zero <= one, "");
     static_assert(zero <= zer0, "");
+
+    constexpr auto zero_one = uint128{0, 1};
+    constexpr auto one_zero = uint128{1, 0};
+
+    static_assert(!(zero_one == one_zero), "");
+    static_assert(zero_one != one_zero, "");
+    static_assert(zero_one < one_zero, "");
+    static_assert(zero_one <= one_zero, "");
+    static_assert(!(zero_one > one_zero), "");
+    static_assert(!(zero_one >= one_zero), "");
 }
 
 void static_test_bitwise_operators()
@@ -64,6 +74,32 @@ void static_test_arith()
     static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff}, "");
     static_assert(0 - uint128(2) == uint128{0xffffffffffffffff, 0xfffffffffffffffe}, "");
     static_assert(uint128(13) - 17 == uint128{0xffffffffffffffff, 0xfffffffffffffffc}, "");
+
+    static_assert(-a == (~a + 1), "");
+    static_assert(+a == a, "");
+}
+
+TEST(int128, increment)
+{
+    constexpr auto IO = uint128{1, 0};
+    constexpr auto Of = uint128{~uint64_t{0}};
+
+    auto a = Of;
+    EXPECT_EQ(++a, IO);
+    EXPECT_EQ(a, IO);
+
+    auto b = Of;
+    EXPECT_EQ(b++, Of);
+    EXPECT_EQ(b, IO);
+
+    auto c = IO;
+    EXPECT_EQ(--c, Of);
+    EXPECT_EQ(c, Of);
+
+    auto d = IO;
+    EXPECT_EQ(d--, IO);
+    EXPECT_EQ(d, Of);
+
 }
 
 TEST(int128, mul)
