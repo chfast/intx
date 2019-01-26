@@ -265,6 +265,33 @@ struct div_result
     T rem;
 };
 
+namespace internal
+{
+constexpr uint16_t reciprocal_table_item(uint8_t d9) noexcept
+{
+    return uint16_t(0x7fd00 / (0x100 | d9));
+}
+
+#define REPEAT4(x)                                                  \
+    reciprocal_table_item((x) + 0), reciprocal_table_item((x) + 1), \
+        reciprocal_table_item((x) + 2), reciprocal_table_item((x) + 3)
+
+#define REPEAT32(x)                                                                         \
+    REPEAT4((x) + 4 * 0), REPEAT4((x) + 4 * 1), REPEAT4((x) + 4 * 2), REPEAT4((x) + 4 * 3), \
+        REPEAT4((x) + 4 * 4), REPEAT4((x) + 4 * 5), REPEAT4((x) + 4 * 6), REPEAT4((x) + 4 * 7)
+
+#define REPEAT256()                                                                           \
+    REPEAT32(32 * 0), REPEAT32(32 * 1), REPEAT32(32 * 2), REPEAT32(32 * 3), REPEAT32(32 * 4), \
+        REPEAT32(32 * 5), REPEAT32(32 * 6), REPEAT32(32 * 7)
+
+/// Reciprocal lookup table.
+constexpr uint16_t reciprocal_table[] = {REPEAT256()};
+
+#undef REPEAT4
+#undef REPEAT32
+#undef REPEAT256
+}  // namespace internal
+
 div_result<uint128> udivrem(uint128 x, uint128 y) noexcept;
 
 inline uint128 operator/(uint128 x, uint128 y) noexcept
