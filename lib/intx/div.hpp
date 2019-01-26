@@ -30,7 +30,7 @@ inline uint64_t reciprocal(uint64_t d) noexcept
     // OPT: The compiler tries a bit too much with 128 + 64 addition and ends up using subtraction.
     //      Compare with __int128.
     auto mf = umul(v3, d);
-    auto m = internal::optimized_add(mf, d);
+    auto m = fast_add(mf, d);
     auto v3a = m.hi + d;
 
     auto v4 = v3 - v3a;
@@ -69,7 +69,7 @@ inline uint64_t reciprocal_3by2(uint128 d) noexcept
 inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
     auto q = umul(v, u.hi);
-    q = internal::optimized_add(q, u);
+    q = fast_add(q, u);
 
     ++q.hi;
 
@@ -94,7 +94,7 @@ inline div_result<uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
     auto q = umul(v, u2);
-    q = internal::optimized_add(q, {u2, u1});
+    q = fast_add(q, {u2, u1});
 
     auto r1 = u1 - q.hi * d.hi;
 
