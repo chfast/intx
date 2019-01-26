@@ -44,12 +44,12 @@ inline uint64_t reciprocal(uint64_t d) noexcept
     auto d0 = d % 2;
     auto d63 = d / 2 + d0;  // ceil(d/2)
     auto e = ((v2 / 2) & -d0) - v2 * d63;
-    auto mh = (uint128{v2} * e).hi;  // umulh
+    auto mh = umul(v2, e).hi;
     auto v3 = (v2 << 31) + (mh >> 1);
 
     // OPT: The compiler tries a bit too much with 128 + 64 addition and ends up using subtraction.
     //      Compare with __int128.
-    auto mf = uint128{v3} * d;  // full mul
+    auto mf = umul(v3, d);
     auto m = internal::optimized_add(mf, d);
     auto v3a = m.hi + d;
 
@@ -88,7 +88,7 @@ inline uint64_t reciprocal_3by2(uint128 d) noexcept
 
 inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
-    auto q = uint128{v} * u.hi;
+    auto q = umul(v, u.hi);
     q = internal::optimized_add(q, u);
 
     ++q.hi;
@@ -113,12 +113,12 @@ inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noex
 inline div_result<uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
-    auto q = uint128{v} * u2;
+    auto q = umul(v, u2);
     q = internal::optimized_add(q, {u2, u1});
 
     auto r1 = u1 - q.hi * d.hi;
 
-    auto t = uint128{d.lo} * q.hi;
+    auto t = umul(d.lo, q.hi);
 
     auto r = uint128{r1, u0} - t - d;
     r1 = r.hi;

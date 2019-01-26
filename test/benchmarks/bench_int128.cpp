@@ -4,7 +4,7 @@
 
 #include <intx/int128.hpp>
 
-#include "gmp_wrappers.hpp"
+#include "../utils/gmp.hpp"
 #include <benchmark/benchmark.h>
 
 using namespace intx;
@@ -18,7 +18,7 @@ inline uint128 div_uint128(uint128 x, uint128 y) noexcept
 
 inline uint128 div_gmp(uint128 x, uint128 y) noexcept
 {
-    return udivrem_gmp(x, y).quot;
+    return gmp::udivrem(x, y).quot;
 }
 
 template <decltype(div_gcc) DivFn>
@@ -54,8 +54,7 @@ static void udiv128_worst_shift(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gcc);
 BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128);
-// Disabled, sometimes hangs the release build.
-//BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);
+BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);
 
 
 template <decltype(div_gcc) DivFn>
