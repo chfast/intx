@@ -2,10 +2,10 @@
 // Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include "../utils/random.hpp"
-
 #include <div.hpp>
 
+#include "../utils/random.hpp"
+#include "../utils/utils.hpp"
 #include <benchmark/benchmark.h>
 
 uint64_t udiv_native(uint64_t x, uint64_t y) noexcept;
@@ -63,6 +63,8 @@ static void div_unary(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(div_unary, neg);
 BENCHMARK_TEMPLATE(div_unary, reciprocal_2by1);
+// FIXME: Broken.
+//BENCHMARK_TEMPLATE(div_unary, reciprocal_naive);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
 static void udiv64(benchmark::State& state)
