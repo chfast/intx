@@ -20,7 +20,7 @@ inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
     auto shift = __builtin_clzl(du);
     auto u = uint128{uu} << shift;
     auto d = du << shift;
-    auto v = reciprocal(d);
+    auto v = reciprocal_2by1(d);
 
     return udivrem_2by1(u, d, v).quot;
 }
@@ -46,7 +46,7 @@ constexpr uint64_t neg(uint64_t x) noexcept
     return ~x;
 }
 
-template <decltype(reciprocal) Fn>
+template <decltype(reciprocal_2by1) Fn>
 static void div_unary(benchmark::State& state)
 {
     auto input = gen_uniform_seq(1000);
@@ -62,7 +62,7 @@ static void div_unary(benchmark::State& state)
     benchmark::DoNotOptimize(input.data());
 }
 BENCHMARK_TEMPLATE(div_unary, neg);
-BENCHMARK_TEMPLATE(div_unary, reciprocal);
+BENCHMARK_TEMPLATE(div_unary, reciprocal_2by1);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
 static void udiv64(benchmark::State& state)

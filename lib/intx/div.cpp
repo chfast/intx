@@ -24,7 +24,7 @@ union uint512_words64
 inline div_result<uint512> udivrem_by1(const normalized_args64& na) noexcept
 {
     auto d = na.denominator[0];
-    auto v = reciprocal(d);
+    auto v = reciprocal_2by1(d);
 
     auto q = uint512_words64{};
     constexpr auto num_words = decltype(q)::num_words;
@@ -75,7 +75,7 @@ div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
     uint512_words64 r;
 
     const auto divisor = uint128{vn[n - 1], vn[n - 2]};
-    const auto inv = reciprocal(divisor.hi);
+    const auto reciprocal = reciprocal_2by1(divisor.hi);
     for (int j = m - n; j >= 0; --j)
     {
         const auto u2 = un[j + n];
@@ -98,7 +98,7 @@ div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
         }
         else
         {
-            auto res = udivrem_2by1(dividend, divisor.hi, inv);
+            auto res = udivrem_2by1(dividend, divisor.hi, reciprocal);
             qhat = res.quot;
             rhat = res.rem;
 

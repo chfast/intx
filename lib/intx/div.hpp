@@ -8,64 +8,6 @@
 
 namespace intx
 {
-/// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
-///
-/// Based on Algorithm 2 from "Improved division by invariant integers".
-inline uint64_t reciprocal(uint64_t d) noexcept
-{
-    auto d9 = uint8_t(d >> 55);
-    auto v0 = uint64_t{internal::reciprocal_table[d9]};
-
-    auto d40 = (d >> 24) + 1;
-    auto v1 = (v0 << 11) - (v0 * v0 * d40 >> 40) - 1;
-
-    auto v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
-
-    auto d0 = d % 2;
-    auto d63 = d / 2 + d0;  // ceil(d/2)
-    auto e = ((v2 / 2) & -d0) - v2 * d63;
-    auto mh = umul(v2, e).hi;
-    auto v3 = (v2 << 31) + (mh >> 1);
-
-    // OPT: The compiler tries a bit too much with 128 + 64 addition and ends up using subtraction.
-    //      Compare with __int128.
-    auto mf = umul(v3, d);
-    auto m = fast_add(mf, d);
-    auto v3a = m.hi + d;
-
-    auto v4 = v3 - v3a;
-
-    return v4;
-}
-
-inline uint64_t reciprocal_3by2(uint128 d) noexcept
-{
-    auto v = reciprocal(d.hi);
-    auto p = d.hi * v;
-    p += d.lo;
-    if (p < d.lo)
-    {
-        --v;
-        if (p >= d.hi)
-        {
-            --v;
-            p -= d.hi;
-        }
-        p -= d.hi;
-    }
-
-    auto t = uint128{v} * d.lo;
-
-    p += t.hi;
-    if (p < t.hi)
-    {
-        --v;
-        if (uint128{p, t.lo} >= d)
-            --v;
-    }
-    return v;
-}
-
 inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
     auto q = umul(v, u.hi);
@@ -125,7 +67,7 @@ inline div_result<uint64_t> udivrem_long(uint128 x, uint64_t y) noexcept
     auto shift = clz(y);
     auto yn = y << shift;
     auto xn = x << shift;
-    auto v = reciprocal(yn);
+    auto v = reciprocal_2by1(yn);
     auto res = udivrem_2by1(xn, yn, v);
     return {res.quot, res.rem >> shift};
 }

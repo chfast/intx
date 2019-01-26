@@ -31,7 +31,7 @@ div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
             yn = y.lo;
         }
 
-        auto v = reciprocal(yn);
+        auto v = reciprocal_2by1(yn);
 
         // OPT: If xn_ex is 0, the result q can be only 0 or 1.
         auto res = udivrem_2by1({xn_ex, xn_hi}, yn, v);
