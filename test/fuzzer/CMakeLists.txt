@@ -6,6 +6,3 @@ string(REPLACE fuzzer-no-link fuzzer CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_F
 
 add_executable(intx-fuzzer fuzz_intx.cpp)
 target_link_libraries(intx-fuzzer PRIVATE intx GMP::gmp)
-
-add_executable(intx-fuzz-safe fuzz_safe.cpp)
-target_link_libraries(intx-fuzz-safe PRIVATE intx)
