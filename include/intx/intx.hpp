@@ -965,6 +965,7 @@ constexpr uint64_t bswap(uint64_t x) noexcept
 
 constexpr uint128 bswap(uint128 x) noexcept
 {
+    // FIXME: Move to int128.hpp.
     return {bswap(x.lo), bswap(x.hi)};
 }
 
