@@ -18,6 +18,7 @@ set_property(TARGET GMP::gmp PROPERTY IMPORTED_LOCATION_RELEASE ${GMP_LIBRARY})
 set_property(TARGET GMP::gmp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GMP_INCLUDE_DIR})
 
 add_subdirectory(benchmarks)
+add_subdirectory(integration)
 add_subdirectory(unittests)
 
 if(INTX_FUZZING)
