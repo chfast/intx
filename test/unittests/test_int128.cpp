@@ -256,11 +256,30 @@ TEST(int128, div_random)
         auto y = dist();
         auto r = udivrem(x, y).quot;
 
-        // TODO: Add cast operator to __int128.
-        auto nx = ((unsigned __int128)x.hi << 64) | x.lo;
-        auto ny = ((unsigned __int128)y.hi << 64) | y.lo;
-        auto s = nx / ny;
+        auto s = (unsigned __int128){x} / (unsigned __int128){y};
         EXPECT_EQ(r.hi, uint64_t(s >> 64)) << c;
         EXPECT_EQ(r.lo, uint64_t(s)) << c;
     }
+}
+
+TEST(int128, literals)
+{
+    auto a = 340282366920938463463374607431768211455_u128;
+    EXPECT_EQ(a, (uint128{0xffffffffffffffff, 0xffffffffffffffff}));
+
+    EXPECT_THROW(340282366920938463463374607431768211456_u128, std::overflow_error);
+    EXPECT_THROW(3402823669209384634633746074317682114550_u128, std::overflow_error);
+
+    a = 0xffffffffffffffffffffffffffffffff_u128;
+    EXPECT_EQ(a, (uint128{0xffffffffffffffff, 0xffffffffffffffff}));
+
+    EXPECT_THROW(0x100000000000000000000000000000000_u128, std::overflow_error);
+
+    // Binary literals 0xb... are not supported yet.
+    EXPECT_THROW(operator""_u128("0b1"), std::invalid_argument);
+
+    EXPECT_THROW(operator""_u128("123x456"), std::invalid_argument);
+    EXPECT_THROW(operator""_u128("0xabcxdef"), std::invalid_argument);
+
+    EXPECT_EQ(0xaBc123eFd_u128, 0xAbC123EfD_u128);
 }
