@@ -225,7 +225,7 @@ constexpr bool operator>=(uint128 x, uint128 y) noexcept
 /// @{
 
 /// Portable full unsigned multiplication 64 x 64 -> 128.
-inline uint128 umul_generic(uint64_t x, uint64_t y) noexcept
+constexpr uint128 umul_generic(uint64_t x, uint64_t y) noexcept
 {
     uint64_t xl = x & 0xffffffff;
     uint64_t xh = x >> 32;
@@ -267,18 +267,25 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
     return {p.hi, p.lo};
 }
 
+constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
+{
+    auto p = umul_generic(x.lo, y.lo);
+    p.hi += (x.lo * y.hi) + (x.hi * y.lo);
+    return {p.hi, p.lo};
+}
+
 /// @}
 
 
 /// Assignment operators.
 /// @{
 
-inline uint128& operator+=(uint128& x, uint128 y) noexcept
+constexpr uint128& operator+=(uint128& x, uint128 y) noexcept
 {
     return x = x + y;
 }
 
-inline uint128& operator-=(uint128& x, uint128 y) noexcept
+constexpr uint128& operator-=(uint128& x, uint128 y) noexcept
 {
     return x = x - y;
 }
@@ -288,27 +295,27 @@ inline uint128& operator*=(uint128& x, uint128 y) noexcept
     return x = x * y;
 }
 
-inline uint128& operator|=(uint128& x, uint128 y) noexcept
+constexpr uint128& operator|=(uint128& x, uint128 y) noexcept
 {
     return x = x | y;
 }
 
-inline uint128& operator&=(uint128& x, uint128 y) noexcept
+constexpr uint128& operator&=(uint128& x, uint128 y) noexcept
 {
     return x = x & y;
 }
 
-inline uint128& operator^=(uint128& x, uint128 y) noexcept
+constexpr uint128& operator^=(uint128& x, uint128 y) noexcept
 {
     return x = x ^ y;
 }
 
-inline uint128& operator<<=(uint128& x, unsigned shift) noexcept
+constexpr uint128& operator<<=(uint128& x, unsigned shift) noexcept
 {
     return x = x << shift;
 }
 
-inline uint128& operator>>=(uint128& x, unsigned shift) noexcept
+constexpr uint128& operator>>=(uint128& x, unsigned shift) noexcept
 {
     return x = x >> shift;
 }
@@ -579,7 +586,7 @@ inline uint128& operator%=(uint128& x, uint128 y) noexcept
 /// @}
 
 
-inline uint128 operator""_u128(const char* s)
+constexpr uint128 operator""_u128(const char* s)
 {
     uint128 x;
     int num_digits = 0;
@@ -611,7 +618,7 @@ inline uint128 operator""_u128(const char* s)
         if (++num_digits > 39)
             throw std::overflow_error{"Literal overflow"};
 
-        x *= 10;
+        x = constexpr_mul(x, 10);
         if (c >= '0' && c <= '9')
             c -= '0';
         else
