@@ -144,19 +144,6 @@ TEST_F(Uint256Test, umul_full_against_gmp)
     }
 }
 
-TEST_F(Uint256Test, DISABLED_mul_against_mul2)
-{
-    for (auto a : numbers)
-    {
-        for (auto b : numbers)
-        {
-            auto p = mul(a, b);
-            auto p2 = mul2(a, b);
-            EXPECT_EQ(p2, p);
-        }
-    }
-}
-
 TEST_F(Uint256Test, count_significant_words_32)
 {
     // FIXME: Test uint512.

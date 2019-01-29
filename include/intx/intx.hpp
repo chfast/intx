@@ -461,16 +461,6 @@ inline Int sub(Int a, Int b)
     return add(a, -b);
 }
 
-inline uint128 mul(const uint128& a, const uint128& b)
-{
-    return a * b;
-}
-
-inline uint64_t mul(uint64_t a, uint64_t b)
-{
-    return a * b;
-}
-
 inline uint128 add(uint128 a, uint128 b)
 {
     return a + b;
@@ -479,16 +469,6 @@ inline uint128 add(uint128 a, uint128 b)
 inline uint64_t add(uint64_t a, uint64_t b)
 {
     return a + b;
-}
-
-inline uint128 bitwise_or(uint128 a, uint128 b)
-{
-    return a | b;
-}
-
-inline uint128 umul_full(uint64_t a, uint64_t b)
-{
-    return uint128(a) * uint128(b);
 }
 
 template <typename Int>
@@ -550,18 +530,18 @@ typename traits<Int>::double_type umul_full(const Int& a, const Int& b) noexcept
 
     Int t, l, h, u;
 
-    t = mul(al, bl);
+    t = al * bl;
     l = lo_half(t);
     h = hi_half(t);
-    t = mul(ah, bl);
+    t = ah * bl;
     t = add(t, h);
     h = hi_half(t);
 
-    u = mul(al, bh);
+    u = al * bh;
     t = add(u, Int(lo_half(t)));
     u = shl(t, traits<Int>::half_bits);
     l = l | u;
-    u = mul(ah, bh);
+    u = ah * bh;
     t = add(u, Int(hi_half(t)));
     h = add(h, t);
 
@@ -581,26 +561,6 @@ inline Int mul(const Int& a, const Int& b) noexcept
     return {lo, hi};
 }
 
-inline uint256 mul2(uint256 u, uint256 v)
-{
-    auto u1 = hi_half(u);
-    auto u0 = lo_half(u);
-    auto v1 = hi_half(v);
-    auto v0 = lo_half(v);
-
-    auto m2 = umul_full(u1, v1);
-    auto m1 = umul_full(u1 - u0, v0 - v1);
-    auto m0 = umul_full(u0, v0);
-
-    auto t4 = m2 << 128;
-    auto t3 = m2 << 64;
-    auto t2 = m1 << 64;
-    auto t1 = m0 << 64;
-    auto t0 = m0;
-
-    return t4 + t3 + t2 + t1 + t0;
-}
-
 inline uint512 umul_full_loop(const uint256& u, const uint256& v) noexcept
 {
     uint512 p;
@@ -613,9 +573,9 @@ inline uint512 umul_full_loop(const uint256& u, const uint256& v) noexcept
         uint64_t k = 0;
         for (int i = 0; i < 4; i++)
         {
-            uint128 t = uint128(uw[i]) * vw[j] + pw[i + j] + k;
-            pw[i + j] = lo_half(t);
-            k = hi_half(t);
+            auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
+            pw[i + j] = t.lo;
+            k = t.hi;
         }
         pw[j + 4] = k;
     }
@@ -645,12 +605,6 @@ inline uint256 mul_loop_opt(const uint256& u, const uint256& v) noexcept
         }
     }
     return p;
-}
-
-template <typename Int>
-inline Int umul_hi(Int a, Int b)
-{
-    return hi_half(umul_full(a, b));
 }
 
 inline uint256 operator*(uint256 x, uint256 y)
