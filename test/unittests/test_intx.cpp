@@ -199,7 +199,7 @@ TEST_F(Uint256Test, udiv)
             if (i++ > 15)  // Limit number of tests.
                 break;
 
-            auto e = udivrem_unr(a, d);
+            auto e = udivrem(a, d);
 
             auto res = udiv_qr_knuth_opt_base(a, d);
             EXPECT_EQ(res.quot, e.quot)
@@ -226,21 +226,6 @@ TEST_F(Uint256Test, udiv)
                 << to_string(a) << " % " << to_string(d) << " = " << to_string(res.rem);
         }
     }
-}
-
-TEST_F(Uint256Test, udiv_against_gmp_single_case)
-{
-    uint256 n = 19;
-    n = n << 200;
-    uint256 d = 17;
-    d = d << 135;
-
-    auto res = udivrem_unr(n, d);
-    auto e = gmp::udivrem(n, d);
-    EXPECT_EQ(res.quot, e.quot) << to_string(n) << " / " << to_string(d) << " = "
-                                << to_string(res.quot);
-    EXPECT_EQ(res.rem, e.rem) << to_string(n) << " % " << to_string(d) << " = "
-                              << to_string(res.rem);
 }
 
 TEST_F(Uint256Test, add_against_sub)
@@ -292,11 +277,7 @@ TEST_F(Uint256Test, simple_udiv)
         uint256 expected_q = from_string<uint256>(data[2]);
         uint256 expected_r = from_string<uint256>(data[3]);
 
-        auto res = udivrem_unr(n, d);
-        EXPECT_EQ(res.quot, expected_q);
-        EXPECT_EQ(res.rem, expected_r);
-
-        res = udiv_qr_knuth_opt_base(n, d);
+        auto res = udiv_qr_knuth_opt_base(n, d);
         EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
         EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
 
@@ -315,25 +296,6 @@ TEST_F(Uint256Test, simple_udiv)
         res = udiv_qr_knuth_llvm_base(n, d);
         EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
         EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
-    }
-}
-
-TEST_F(Uint256Test, mul_against_div)
-{
-    for (auto a : numbers)
-    {
-        for (auto b : numbers)
-        {
-            if (b == 0)
-                continue;
-            uint256 h = umul_hi(a, b);
-            if (h != 0)  // Overflow.
-                continue;
-            uint256 prod = mul(a, b);
-            auto res = udivrem_unr(prod, b);
-            EXPECT_EQ(a, res.quot);
-            EXPECT_EQ(res.rem, 0);
-        }
     }
 }
 

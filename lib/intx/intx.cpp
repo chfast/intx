@@ -73,14 +73,9 @@ div_result<uint256> udivrem_1(uint256 x, uint64_t y)
 
     for (int j = 4 - 1; j >= 0; --j)
     {
-        uint128 dividend = join(r, u[j]);
-
-        // Perform long division. The compiler should use single instruction
-        // here to compute both quotient and remainder. This is better than
-        // classic multiplication `reminder = dividend - q[j] * divisor`.
-        auto res = udivrem_unr(dividend, uint128(y));
-        qt[j] = res.quot.lo;
-        r = res.rem.lo;
+        auto res = udivrem_long({r, u[j]}, y);
+        qt[j] = res.quot;
+        r = res.rem;
     }
     return {q, r};
 }
@@ -97,14 +92,9 @@ div_result<uint512> udivrem_1(uint512 x, uint64_t y)
 
     for (int j = 8 - 1; j >= 0; --j)
     {
-        uint128 dividend = join(r, u[j]);
-
-        // Perform long division. The compiler should use single instruction
-        // here to compute both quotient and remainder. This is better than
-        // classic multiplication `reminder = dividend - q[j] * divisor`.
-        auto res = udivrem_unr(dividend, uint128(y));
-        qt[j] = res.quot.lo;
-        r = res.rem.lo;
+        auto res = udivrem_long({r, u[j]}, y);
+        qt[j] = res.quot;
+        r = res.rem;
     }
     return {q, r};
 }

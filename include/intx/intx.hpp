@@ -774,42 +774,6 @@ inline unsigned count_significant_words<uint64_t, uint64_t>(const uint64_t& x) n
     return x != 0 ? 1 : 0;
 }
 
-template <typename Int>
-inline div_result<Int> udivrem_unr(const Int& x, const Int& y) noexcept
-{
-    // decent start
-    unsigned c = clz(y);
-    auto z = shl(Int(1), c);
-
-    // z recurrence
-    auto my = -y;
-    for (int i = 0; i < traits<Int>::unr_iterations; ++i)
-    {
-        auto m = mul(my, z);
-        auto zd = umul_hi(z, m);
-        //        if (zd == 0)
-        //            break;
-        z = add(z, zd);
-    }
-
-    // q estimate
-    auto q = umul_hi(x, z);
-    auto r = sub(x, mul(y, q));
-
-    // q refinement
-    if (r >= y)
-    {
-        r = sub(r, y);
-        q = add(q, 1);
-        if (r >= y)
-        {
-            r = sub(r, y);
-            q = add(q, 1);
-        }
-    }
-    return {q, r};
-}
-
 div_result<uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint256& y);
 div_result<uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v);
 div_result<uint256> udiv_qr_knuth_opt_base(const uint256& x, const uint256& y);
@@ -913,7 +877,7 @@ inline std::string to_string(uint256 x)
     std::string s;
     while (x != 0)
     {
-        const auto res = udivrem_unr(x, uint256(10));
+        const auto res = udivrem(x, uint256{10});
         x = res.quot;
         auto c = static_cast<size_t>(res.rem);
         s.push_back(static_cast<char>('0' + c));
