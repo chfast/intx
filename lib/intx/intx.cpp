@@ -19,6 +19,15 @@ inline std::ostream& dbgs() { return std::cerr; }
 
 namespace intx
 {
+inline std::tuple<uint32_t, uint32_t> udivrem_long_asm(uint64_t u, uint32_t v)
+{
+    // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
+    uint32_t q, r;
+    uint32_t uh = static_cast<uint32_t>(u >> 32);
+    uint32_t ul = static_cast<uint32_t>(u);
+    asm("divl %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
+    return std::make_tuple(q, r);
+}
 
 // The fastest for 256 / 32.
 static void udivrem_1_stable(uint32_t* q, uint32_t* r, const uint32_t* u, uint32_t v, int m)
@@ -33,30 +42,7 @@ static void udivrem_1_stable(uint32_t* q, uint32_t* r, const uint32_t* u, uint32
         uint64_t dividend = join(remainder, u[j]);
         // This cannot overflow because the high part of the devidend is the
         // remainder of the previous division so smaller than v.
-        std::tie(q[j], remainder) = udivrem_long(dividend, v);
-    }
-    *r = remainder;
-}
-
-static void udivrem_1_3(uint32_t q[], uint32_t* r, const uint32_t u[], uint32_t v, int m)
-{
-    uint32_t divisor = v;
-    uint32_t remainder = 0;
-    for (int i = m; i >= 0; i--) {
-        uint64_t partial_dividend = join(remainder, u[i]);
-        if (partial_dividend == 0) {
-            q[i] = 0;
-            remainder = 0;
-        } else if (partial_dividend < divisor) {
-            q[i] = 0;
-            remainder = lo_half(partial_dividend);
-        } else if (partial_dividend == divisor) {
-            q[i] = 1;
-            remainder = 0;
-        } else {
-            q[i] = lo_half(partial_dividend / divisor);
-            remainder = lo_half(partial_dividend - (q[i] * divisor));
-        }
+        std::tie(q[j], remainder) = udivrem_long_asm(dividend, v);
     }
     *r = remainder;
 }
@@ -895,7 +881,7 @@ div_result<uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v)
     if (n == 1)
     {
         // FIXME: Replace with udivrem_1_stable().
-        udivrem_1_3(p_q, p_r, u_data, v_data[0], m);
+        udivrem_1_stable(p_q, p_r, u_data, v_data[0], u_limbs);
     }
     else
     {

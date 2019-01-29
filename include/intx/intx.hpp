@@ -15,23 +15,6 @@
 
 namespace intx
 {
-inline std::tuple<uint32_t, uint32_t> udivrem_long_asm(uint64_t u, uint32_t v)
-{
-    // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
-    uint32_t q, r;
-    uint32_t uh = static_cast<uint32_t>(u >> 32);
-    uint32_t ul = static_cast<uint32_t>(u);
-    asm("divl %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
-    return std::make_tuple(q, r);
-}
-
-inline std::tuple<uint32_t, uint32_t> udivrem_long(uint64_t u, uint32_t v)
-{
-    auto q = static_cast<uint32_t>(u / v);
-    auto r = static_cast<uint32_t>(u % v);
-    return std::make_tuple(q, r);
-}
-
 struct uint256
 {
     constexpr uint256(uint64_t x = 0) noexcept : lo(x) {}
