@@ -15,23 +15,6 @@
 
 namespace intx
 {
-inline std::tuple<uint32_t, uint32_t> udivrem_long_asm(uint64_t u, uint32_t v)
-{
-    // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
-    uint32_t q, r;
-    uint32_t uh = static_cast<uint32_t>(u >> 32);
-    uint32_t ul = static_cast<uint32_t>(u);
-    asm("divl %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
-    return std::make_tuple(q, r);
-}
-
-inline std::tuple<uint32_t, uint32_t> udivrem_long(uint64_t u, uint32_t v)
-{
-    auto q = static_cast<uint32_t>(u / v);
-    auto r = static_cast<uint32_t>(u % v);
-    return std::make_tuple(q, r);
-}
-
 struct uint256
 {
     constexpr uint256(uint64_t x = 0) noexcept : lo(x) {}
@@ -73,7 +56,6 @@ struct traits<uint64_t>
 
     static constexpr unsigned bits = 64;
     static constexpr unsigned half_bits = 32;
-    static constexpr int unr_iterations = 6;
 };
 
 template <>
@@ -84,7 +66,6 @@ struct traits<uint128>
 
     static constexpr unsigned bits = 128;
     static constexpr unsigned half_bits = 64;
-    static constexpr int unr_iterations = 7;
 };
 
 template <>
@@ -95,7 +76,6 @@ struct traits<uint256>
 
     static constexpr unsigned bits = 256;
     static constexpr unsigned half_bits = 128;
-    static constexpr int unr_iterations = 8;
 };
 
 template <>
@@ -106,7 +86,6 @@ struct traits<uint512>
 
     static constexpr unsigned bits = 512;
     static constexpr unsigned half_bits = 256;
-    //    static constexpr int unr_iterations = 8;
 };
 
 
@@ -482,16 +461,6 @@ inline Int sub(Int a, Int b)
     return add(a, -b);
 }
 
-inline uint128 mul(const uint128& a, const uint128& b)
-{
-    return a * b;
-}
-
-inline uint64_t mul(uint64_t a, uint64_t b)
-{
-    return a * b;
-}
-
 inline uint128 add(uint128 a, uint128 b)
 {
     return a + b;
@@ -500,16 +469,6 @@ inline uint128 add(uint128 a, uint128 b)
 inline uint64_t add(uint64_t a, uint64_t b)
 {
     return a + b;
-}
-
-inline uint128 bitwise_or(uint128 a, uint128 b)
-{
-    return a | b;
-}
-
-inline uint128 umul_full(uint64_t a, uint64_t b)
-{
-    return uint128(a) * uint128(b);
 }
 
 template <typename Int>
@@ -571,18 +530,18 @@ typename traits<Int>::double_type umul_full(const Int& a, const Int& b) noexcept
 
     Int t, l, h, u;
 
-    t = mul(al, bl);
+    t = al * bl;
     l = lo_half(t);
     h = hi_half(t);
-    t = mul(ah, bl);
+    t = ah * bl;
     t = add(t, h);
     h = hi_half(t);
 
-    u = mul(al, bh);
+    u = al * bh;
     t = add(u, Int(lo_half(t)));
     u = shl(t, traits<Int>::half_bits);
     l = l | u;
-    u = mul(ah, bh);
+    u = ah * bh;
     t = add(u, Int(hi_half(t)));
     h = add(h, t);
 
@@ -602,26 +561,6 @@ inline Int mul(const Int& a, const Int& b) noexcept
     return {lo, hi};
 }
 
-inline uint256 mul2(uint256 u, uint256 v)
-{
-    auto u1 = hi_half(u);
-    auto u0 = lo_half(u);
-    auto v1 = hi_half(v);
-    auto v0 = lo_half(v);
-
-    auto m2 = umul_full(u1, v1);
-    auto m1 = umul_full(u1 - u0, v0 - v1);
-    auto m0 = umul_full(u0, v0);
-
-    auto t4 = m2 << 128;
-    auto t3 = m2 << 64;
-    auto t2 = m1 << 64;
-    auto t1 = m0 << 64;
-    auto t0 = m0;
-
-    return t4 + t3 + t2 + t1 + t0;
-}
-
 inline uint512 umul_full_loop(const uint256& u, const uint256& v) noexcept
 {
     uint512 p;
@@ -634,9 +573,9 @@ inline uint512 umul_full_loop(const uint256& u, const uint256& v) noexcept
         uint64_t k = 0;
         for (int i = 0; i < 4; i++)
         {
-            uint128 t = uint128(uw[i]) * vw[j] + pw[i + j] + k;
-            pw[i + j] = lo_half(t);
-            k = hi_half(t);
+            auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
+            pw[i + j] = t.lo;
+            k = t.hi;
         }
         pw[j + 4] = k;
     }
@@ -666,12 +605,6 @@ inline uint256 mul_loop_opt(const uint256& u, const uint256& v) noexcept
         }
     }
     return p;
-}
-
-template <typename Int>
-inline Int umul_hi(Int a, Int b)
-{
-    return hi_half(umul_full(a, b));
 }
 
 inline uint256 operator*(uint256 x, uint256 y)
@@ -772,42 +705,6 @@ template <>
 inline unsigned count_significant_words<uint64_t, uint64_t>(const uint64_t& x) noexcept
 {
     return x != 0 ? 1 : 0;
-}
-
-template <typename Int>
-inline div_result<Int> udivrem_unr(const Int& x, const Int& y) noexcept
-{
-    // decent start
-    unsigned c = clz(y);
-    auto z = shl(Int(1), c);
-
-    // z recurrence
-    auto my = -y;
-    for (int i = 0; i < traits<Int>::unr_iterations; ++i)
-    {
-        auto m = mul(my, z);
-        auto zd = umul_hi(z, m);
-        //        if (zd == 0)
-        //            break;
-        z = add(z, zd);
-    }
-
-    // q estimate
-    auto q = umul_hi(x, z);
-    auto r = sub(x, mul(y, q));
-
-    // q refinement
-    if (r >= y)
-    {
-        r = sub(r, y);
-        q = add(q, 1);
-        if (r >= y)
-        {
-            r = sub(r, y);
-            q = add(q, 1);
-        }
-    }
-    return {q, r};
 }
 
 div_result<uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint256& y);
@@ -913,7 +810,7 @@ inline std::string to_string(uint256 x)
     std::string s;
     while (x != 0)
     {
-        const auto res = udivrem_unr(x, uint256(10));
+        const auto res = udivrem(x, uint256{10});
         x = res.quot;
         auto c = static_cast<size_t>(res.rem);
         s.push_back(static_cast<char>('0' + c));
