@@ -56,7 +56,6 @@ struct traits<uint64_t>
 
     static constexpr unsigned bits = 64;
     static constexpr unsigned half_bits = 32;
-    static constexpr int unr_iterations = 6;
 };
 
 template <>
@@ -67,7 +66,6 @@ struct traits<uint128>
 
     static constexpr unsigned bits = 128;
     static constexpr unsigned half_bits = 64;
-    static constexpr int unr_iterations = 7;
 };
 
 template <>
@@ -78,7 +76,6 @@ struct traits<uint256>
 
     static constexpr unsigned bits = 256;
     static constexpr unsigned half_bits = 128;
-    static constexpr int unr_iterations = 8;
 };
 
 template <>
@@ -89,7 +86,6 @@ struct traits<uint512>
 
     static constexpr unsigned bits = 512;
     static constexpr unsigned half_bits = 256;
-    //    static constexpr int unr_iterations = 8;
 };
 
 
