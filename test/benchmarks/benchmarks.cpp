@@ -135,9 +135,15 @@ static void binary_op256(benchmark::State& state)
     }
 }
 
+inline auto public_mul(const uint256& x, const uint256& y) noexcept
+{
+    return x * y;
+}
+
 BENCHMARK_TEMPLATE(binary_op256, mul);
 BENCHMARK_TEMPLATE(binary_op256, mul_loop);
 BENCHMARK_TEMPLATE(binary_op256, mul_loop_opt);
+BENCHMARK_TEMPLATE(binary_op256, public_mul);
 BENCHMARK_TEMPLATE(binary_op256, gmp::mul);
 
 using binary_fn256_full = uint512 (*)(const uint256&, const uint256&);
@@ -194,7 +200,13 @@ static void binary_op512(benchmark::State& state)
     }
 }
 
+inline auto public_mul(const uint512& x, const uint512& y) noexcept
+{
+    return x * y;
+}
+
 BENCHMARK_TEMPLATE(binary_op512, mul<uint512>);
+BENCHMARK_TEMPLATE(binary_op512, public_mul);
 BENCHMARK_TEMPLATE(binary_op512, gmp::mul);
 
 template <typename Int, Int ShiftFn(Int, unsigned)>
