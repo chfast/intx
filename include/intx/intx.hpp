@@ -720,61 +720,6 @@ div_result<uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y);
 div_result<uint512> udiv_qr_knuth_512(const uint512& x, const uint512& y);
 div_result<uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y);
 
-template <typename Int>
-inline std::tuple<Int, Int> udiv_long(typename traits<Int>::double_type u, Int v)
-{
-    using tr = traits<Int>;
-
-    constexpr Int b = Int(1) << (tr::bits / 2);
-
-    unsigned s = clz(v);
-    v <<= s;
-    Int vn1 = hi_half(v);
-    Int vn0 = lo_half(v);
-
-    // TODO: Check out this way of shifting by 0:
-    // un32 = (u1 << s) | ((u0 >> (64 - s)) & (-s >> 31));
-
-    u = u << s;
-    Int un32 = hi_half(u);
-    Int un10 = lo_half(u);
-
-    auto un1 = hi_half(un10);
-    auto un0 = lo_half(un10);
-    using half_type = decltype(un0);
-
-    Int q1 = un32 / vn1;
-    Int rhat = un32 % vn1;
-
-again1:
-    if (q1 >= b || q1 * vn0 > join(static_cast<half_type>(rhat), un1))
-    {
-        q1 = q1 - 1;
-        rhat = rhat + vn1;
-        if (rhat < b)
-            goto again1;
-    }
-
-    Int un21 = join(static_cast<half_type>(un32), un1) - q1 * v;
-
-    Int q0 = un21 / vn1;
-    rhat = un21 % vn1;
-
-again2:
-    if (q0 >= b || q0 * vn0 > join(static_cast<half_type>(rhat), un0))
-    {
-        q0 = q0 - 1;
-        rhat = rhat + vn1;
-        if (rhat < b)
-            goto again2;
-    }
-
-    Int r = (un21 * b + un0 - q0 * v) >> s;
-    Int q = q1 * b + q0;
-
-    return std::make_tuple(q, r);
-}
-
 div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept;
 div_result<uint512> udivrem(const uint512& x, const uint512& y) noexcept;
 
