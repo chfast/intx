@@ -375,10 +375,40 @@ inline Int lsr(Int x, unsigned shift)
     return 0;
 }
 
-template <typename Int>
-inline std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>& as_words(Int& x)
+constexpr uint64_t& least_significant_word(uint128& x) noexcept
 {
-    return reinterpret_cast<std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>&>(x);
+    return x.lo;
+}
+
+constexpr const uint64_t& least_significant_word(const uint128& x) noexcept
+{
+    return x.lo;
+}
+
+template <typename Int>
+constexpr uint64_t& least_significant_word(Int& x) noexcept
+{
+    return least_significant_word(x.lo);
+}
+
+template <typename Int>
+constexpr const uint64_t& least_significant_word(const Int& x) noexcept
+{
+    return least_significant_word(x.lo);
+}
+
+template <typename Int>
+constexpr std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>& as_words(Int& x) noexcept
+{
+    auto pw = &least_significant_word(x);
+    return *reinterpret_cast<std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>*>(pw);
+}
+
+template <typename Int>
+constexpr const std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>& as_words(const Int& x) noexcept
+{
+    auto pw = &least_significant_word(x);
+    return *reinterpret_cast<const std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>*>(pw);
 }
 
 /// Implementation of shift left as a loop.
