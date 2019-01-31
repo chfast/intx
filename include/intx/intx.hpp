@@ -612,7 +612,7 @@ inline Int mul_loop_opt(const Int& u, const Int& v) noexcept
     return p;
 }
 
-inline uint256 operator*(uint256 x, uint256 y)
+inline uint256 operator*(const uint256& x, const uint256& y) noexcept
 {
     return mul(x, y);
 }
@@ -622,12 +622,12 @@ inline uint512 operator*(const uint512& x, const uint512& y) noexcept
     return mul_loop_opt(x, y);
 }
 
-inline uint256& operator*=(uint256& x, uint256 y)
+inline uint256& operator*=(uint256& x, const uint256& y) noexcept
 {
     return x = x * y;
 }
 
-inline uint512& operator*=(uint512& x, uint512 y)
+inline uint512& operator*=(uint512& x, const uint512& y) noexcept
 {
     return x = x * y;
 }
