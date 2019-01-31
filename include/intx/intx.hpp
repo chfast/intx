@@ -534,35 +534,21 @@ inline Int1& operator*=(Int1& x, const Int2& y)
     return x = x * y;
 }
 
-
 template <typename Int>
-typename traits<Int>::double_type umul_full(const Int& a, const Int& b) noexcept
+inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
 {
-    // Hacker's Delight version.
+    auto t0 = umul(x.lo, y.lo);
+    auto t1 = umul(x.hi, y.lo);
+    auto t2 = umul(x.lo, y.hi);
+    auto t3 = umul(x.hi, y.hi);
 
-    Int al = lo_half(a);
-    Int ah = hi_half(a);
-    Int bl = lo_half(b);
-    Int bh = hi_half(b);
+    auto u1 = t1 + Int{t0.hi};  // TODO: Fix conversion in uint256 + uint128.
+    auto u2 = t2 + Int{u1.lo};
 
-    Int t, l, h, u;
+    auto lo = (u2 << traits<Int>::half_bits) | Int{t0.lo};
+    auto hi = t3 + Int{u2.hi} + Int{u1.hi};
 
-    t = al * bl;
-    l = lo_half(t);
-    h = hi_half(t);
-    t = ah * bl;
-    t = add(t, h);
-    h = hi_half(t);
-
-    u = al * bh;
-    t = add(u, Int(lo_half(t)));
-    u = shl(t, traits<Int>::half_bits);
-    l = l | u;
-    u = ah * bh;
-    t = add(u, Int(hi_half(t)));
-    h = add(h, t);
-
-    return {l, h};
+    return {lo, hi};
 }
 
 template <typename Int>
@@ -571,7 +557,7 @@ inline Int mul(const Int& a, const Int& b) noexcept
     // Requires 1 full mul, 2 muls and 2 adds.
     // Clang & GCC implements 128-bit multiplication this way.
 
-    auto t = umul_full(a.lo, b.lo);
+    auto t = umul(a.lo, b.lo);
     auto hi = (a.lo * b.hi) + (a.hi * b.lo) + hi_half(t);
     auto lo = lo_half(t);
 
@@ -604,7 +590,7 @@ inline uint256 mul_loop(const uint256& u, const uint256& v) noexcept
     return umul_full_loop(u, v).lo;
 }
 
-template<typename Int>
+template <typename Int>
 inline Int mul_loop_opt(const Int& u, const Int& v) noexcept
 {
     constexpr int num_words = sizeof(Int) / sizeof(uint64_t);

@@ -171,7 +171,7 @@ static void binary_op256_full(benchmark::State& state)
     }
 }
 
-BENCHMARK_TEMPLATE(binary_op256_full, umul_full<uint256>);
+BENCHMARK_TEMPLATE(binary_op256_full, umul);
 BENCHMARK_TEMPLATE(binary_op256_full, umul_full_loop);
 BENCHMARK_TEMPLATE(binary_op256_full, gmp::mul_full);
 
@@ -205,7 +205,7 @@ inline auto public_mul(const uint512& x, const uint512& y) noexcept
     return x * y;
 }
 
-BENCHMARK_TEMPLATE(binary_op512, mul<uint512>);
+BENCHMARK_TEMPLATE(binary_op512, mul);
 BENCHMARK_TEMPLATE(binary_op512, public_mul);
 BENCHMARK_TEMPLATE(binary_op512, gmp::mul);
 

@@ -136,7 +136,7 @@ TEST_F(Uint256Test, umul_full_against_gmp)
         {
             uint512 gmp = gmp::mul_full(a, b);
 
-            uint512 p = umul_full(a, b);
+            uint512 p = umul(a, b);
             uint512 q = umul_full_loop(a, b);
             EXPECT_EQ(gmp, p);
             EXPECT_EQ(gmp, q);
