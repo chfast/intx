@@ -633,9 +633,9 @@ inline uint256 operator*(uint256 x, uint256 y)
     return mul(x, y);
 }
 
-inline uint512 operator*(uint512 x, uint512 y)
+inline uint512 operator*(const uint512& x, const uint512& y) noexcept
 {
-    return mul(x, y);
+    return mul_loop_opt(x, y);
 }
 
 inline uint256& operator*=(uint256& x, uint256 y)
