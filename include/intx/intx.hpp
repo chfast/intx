@@ -375,10 +375,26 @@ inline Int lsr(Int x, unsigned shift)
     return 0;
 }
 
-template <typename Int>
-inline std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>& as_words(Int& x)
+constexpr uint64_t* as_words(uint128& x) noexcept
 {
-    return reinterpret_cast<std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>&>(x);
+    return &x.lo;
+}
+
+constexpr const uint64_t* as_words(const uint128& x) noexcept
+{
+    return &x.lo;
+}
+
+template <typename Int>
+constexpr uint64_t* as_words(Int& x) noexcept
+{
+    return as_words(x.lo);
+}
+
+template <typename Int>
+constexpr const uint64_t* as_words(const Int& x) noexcept
+{
+    return as_words(x.lo);
 }
 
 /// Implementation of shift left as a loop.
@@ -388,13 +404,14 @@ inline Int shl_loop(Int x, unsigned shift)
 {
     Int r;
     constexpr unsigned word_bits = sizeof(uint64_t) * 8;
-    auto& rw = as_words(r);
-    const auto& words = as_words(x);
+    constexpr size_t num_words = sizeof(Int) / sizeof(uint64_t);
+    auto rw = as_words(r);
+    auto words = as_words(x);
     unsigned s = shift % word_bits;
     unsigned skip = shift / word_bits;
 
     uint64_t carry = 0;
-    for (size_t i = 0; i < (words.size() - skip); ++i)
+    for (size_t i = 0; i < (num_words - skip); ++i)
     {
         auto w = words[i];
         auto v = (w << s) | carry;
@@ -517,35 +534,21 @@ inline Int1& operator*=(Int1& x, const Int2& y)
     return x = x * y;
 }
 
-
 template <typename Int>
-typename traits<Int>::double_type umul_full(const Int& a, const Int& b) noexcept
+inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
 {
-    // Hacker's Delight version.
+    auto t0 = umul(x.lo, y.lo);
+    auto t1 = umul(x.hi, y.lo);
+    auto t2 = umul(x.lo, y.hi);
+    auto t3 = umul(x.hi, y.hi);
 
-    Int al = lo_half(a);
-    Int ah = hi_half(a);
-    Int bl = lo_half(b);
-    Int bh = hi_half(b);
+    auto u1 = t1 + Int{t0.hi};  // TODO: Fix conversion in uint256 + uint128.
+    auto u2 = t2 + Int{u1.lo};
 
-    Int t, l, h, u;
+    auto lo = (u2 << traits<Int>::half_bits) | Int{t0.lo};
+    auto hi = t3 + Int{u2.hi} + Int{u1.hi};
 
-    t = al * bl;
-    l = lo_half(t);
-    h = hi_half(t);
-    t = ah * bl;
-    t = add(t, h);
-    h = hi_half(t);
-
-    u = al * bh;
-    t = add(u, Int(lo_half(t)));
-    u = shl(t, traits<Int>::half_bits);
-    l = l | u;
-    u = ah * bh;
-    t = add(u, Int(hi_half(t)));
-    h = add(h, t);
-
-    return {l, h};
+    return {lo, hi};
 }
 
 template <typename Int>
@@ -554,75 +557,77 @@ inline Int mul(const Int& a, const Int& b) noexcept
     // Requires 1 full mul, 2 muls and 2 adds.
     // Clang & GCC implements 128-bit multiplication this way.
 
-    auto t = umul_full(a.lo, b.lo);
+    auto t = umul(a.lo, b.lo);
     auto hi = (a.lo * b.hi) + (a.hi * b.lo) + hi_half(t);
     auto lo = lo_half(t);
 
     return {lo, hi};
 }
 
-inline uint512 umul_full_loop(const uint256& u, const uint256& v) noexcept
+template <typename Int>
+inline typename traits<Int>::double_type umul_loop(const Int& x, const Int& y) noexcept
 {
-    uint512 p;
-    auto pw = reinterpret_cast<uint64_t*>(&p);
-    auto uw = reinterpret_cast<const uint64_t*>(&u);
-    auto vw = reinterpret_cast<const uint64_t*>(&v);
+    constexpr int num_words = sizeof(Int) / sizeof(uint64_t);
 
-    for (int j = 0; j < 4; j++)
+    typename traits<Int>::double_type p;
+    auto pw = as_words(p);
+    auto uw = as_words(x);
+    auto vw = as_words(y);
+
+    for (int j = 0; j < num_words; ++j)
     {
         uint64_t k = 0;
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < num_words; ++i)
         {
             auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
             pw[i + j] = t.lo;
             k = t.hi;
         }
-        pw[j + 4] = k;
+        pw[j + num_words] = k;
     }
     return p;
 }
 
-inline uint256 mul_loop(const uint256& u, const uint256& v) noexcept
+template <typename Int>
+inline Int mul_loop_opt(const Int& u, const Int& v) noexcept
 {
-    return umul_full_loop(u, v).lo;
-}
+    constexpr int num_words = sizeof(Int) / sizeof(uint64_t);
 
-inline uint256 mul_loop_opt(const uint256& u, const uint256& v) noexcept
-{
-    uint256 p;
-    auto pw = reinterpret_cast<uint64_t*>(&p);
-    auto uw = reinterpret_cast<const uint64_t*>(&u);
-    auto vw = reinterpret_cast<const uint64_t*>(&v);
+    Int p;
+    auto pw = as_words(p);
+    auto uw = as_words(u);
+    auto vw = as_words(v);
 
-    for (int j = 0; j < 4; j++)
+    for (int j = 0; j < num_words; j++)
     {
         uint64_t k = 0;
-        for (int i = 0; i < (4 - j); i++)
+        for (int i = 0; i < (num_words - j - 1); i++)
         {
-            uint128 t = uint128(uw[i]) * vw[j] + pw[i + j] + k;
-            pw[i + j] = lo_half(t);
-            k = hi_half(t);
+            auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
+            pw[i + j] = t.lo;
+            k = t.hi;
         }
+        pw[num_words - 1] += uw[num_words - j - 1] * vw[j] + k;
     }
     return p;
 }
 
-inline uint256 operator*(uint256 x, uint256 y)
+inline uint256 operator*(const uint256& x, const uint256& y) noexcept
 {
     return mul(x, y);
 }
 
-inline uint512 operator*(uint512 x, uint512 y)
+inline uint512 operator*(const uint512& x, const uint512& y) noexcept
 {
-    return mul(x, y);
+    return mul_loop_opt(x, y);
 }
 
-inline uint256& operator*=(uint256& x, uint256 y)
+inline uint256& operator*=(uint256& x, const uint256& y) noexcept
 {
     return x = x * y;
 }
 
-inline uint512& operator*=(uint512& x, uint512 y)
+inline uint512& operator*=(uint512& x, const uint512& y) noexcept
 {
     return x = x * y;
 }
@@ -714,61 +719,6 @@ div_result<uint256> udiv_qr_knuth_opt(const uint256& x, const uint256& y);
 div_result<uint256> udiv_qr_knuth_64(const uint256& x, const uint256& y);
 div_result<uint512> udiv_qr_knuth_512(const uint512& x, const uint512& y);
 div_result<uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y);
-
-template <typename Int>
-inline std::tuple<Int, Int> udiv_long(typename traits<Int>::double_type u, Int v)
-{
-    using tr = traits<Int>;
-
-    constexpr Int b = Int(1) << (tr::bits / 2);
-
-    unsigned s = clz(v);
-    v <<= s;
-    Int vn1 = hi_half(v);
-    Int vn0 = lo_half(v);
-
-    // TODO: Check out this way of shifting by 0:
-    // un32 = (u1 << s) | ((u0 >> (64 - s)) & (-s >> 31));
-
-    u = u << s;
-    Int un32 = hi_half(u);
-    Int un10 = lo_half(u);
-
-    auto un1 = hi_half(un10);
-    auto un0 = lo_half(un10);
-    using half_type = decltype(un0);
-
-    Int q1 = un32 / vn1;
-    Int rhat = un32 % vn1;
-
-again1:
-    if (q1 >= b || q1 * vn0 > join(static_cast<half_type>(rhat), un1))
-    {
-        q1 = q1 - 1;
-        rhat = rhat + vn1;
-        if (rhat < b)
-            goto again1;
-    }
-
-    Int un21 = join(static_cast<half_type>(un32), un1) - q1 * v;
-
-    Int q0 = un21 / vn1;
-    rhat = un21 % vn1;
-
-again2:
-    if (q0 >= b || q0 * vn0 > join(static_cast<half_type>(rhat), un0))
-    {
-        q0 = q0 - 1;
-        rhat = rhat + vn1;
-        if (rhat < b)
-            goto again2;
-    }
-
-    Int r = (un21 * b + un0 - q0 * v) >> s;
-    Int q = q1 * b + q0;
-
-    return std::make_tuple(q, r);
-}
 
 div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept;
 div_result<uint512> udivrem(const uint512& x, const uint512& y) noexcept;

@@ -118,10 +118,8 @@ TEST_F(Uint256Test, mul_against_gmp)
             uint256 gmp = gmp::mul(a, b);
 
             auto p = mul(a, b);
-            auto q = mul_loop(a, b);
             auto r = mul_loop_opt(a, b);
             EXPECT_EQ(gmp, p);
-            EXPECT_EQ(gmp, q);
             EXPECT_EQ(gmp, r);
         }
     }
@@ -136,8 +134,8 @@ TEST_F(Uint256Test, umul_full_against_gmp)
         {
             uint512 gmp = gmp::mul_full(a, b);
 
-            uint512 p = umul_full(a, b);
-            uint512 q = umul_full_loop(a, b);
+            uint512 p = umul(a, b);
+            uint512 q = umul_loop(a, b);
             EXPECT_EQ(gmp, p);
             EXPECT_EQ(gmp, q);
         }

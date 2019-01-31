@@ -135,9 +135,20 @@ static void binary_op256(benchmark::State& state)
     }
 }
 
+inline auto public_mul(const uint256& x, const uint256& y) noexcept
+{
+    return x * y;
+}
+
+inline uint256 mul_loop(const uint256& u, const uint256& v) noexcept
+{
+    return umul_loop(u, v).lo;
+}
+
 BENCHMARK_TEMPLATE(binary_op256, mul);
 BENCHMARK_TEMPLATE(binary_op256, mul_loop);
 BENCHMARK_TEMPLATE(binary_op256, mul_loop_opt);
+BENCHMARK_TEMPLATE(binary_op256, public_mul);
 BENCHMARK_TEMPLATE(binary_op256, gmp::mul);
 
 using binary_fn256_full = uint512 (*)(const uint256&, const uint256&);
@@ -165,8 +176,8 @@ static void binary_op256_full(benchmark::State& state)
     }
 }
 
-BENCHMARK_TEMPLATE(binary_op256_full, umul_full<uint256>);
-BENCHMARK_TEMPLATE(binary_op256_full, umul_full_loop);
+BENCHMARK_TEMPLATE(binary_op256_full, umul);
+BENCHMARK_TEMPLATE(binary_op256_full, umul_loop);
 BENCHMARK_TEMPLATE(binary_op256_full, gmp::mul_full);
 
 using binary_fn512 = uint512 (*)(const uint512&, const uint512&);
@@ -194,7 +205,13 @@ static void binary_op512(benchmark::State& state)
     }
 }
 
-BENCHMARK_TEMPLATE(binary_op512, mul<uint512>);
+inline auto public_mul(const uint512& x, const uint512& y) noexcept
+{
+    return x * y;
+}
+
+BENCHMARK_TEMPLATE(binary_op512, mul);
+BENCHMARK_TEMPLATE(binary_op512, public_mul);
 BENCHMARK_TEMPLATE(binary_op512, gmp::mul);
 
 template <typename Int, Int ShiftFn(Int, unsigned)>
