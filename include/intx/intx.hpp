@@ -375,40 +375,26 @@ inline Int lsr(Int x, unsigned shift)
     return 0;
 }
 
-constexpr uint64_t& least_significant_word(uint128& x) noexcept
+constexpr uint64_t* as_words(uint128& x) noexcept
 {
-    return x.lo;
+    return &x.lo;
 }
 
-constexpr const uint64_t& least_significant_word(const uint128& x) noexcept
+constexpr const uint64_t* as_words(const uint128& x) noexcept
 {
-    return x.lo;
-}
-
-template <typename Int>
-constexpr uint64_t& least_significant_word(Int& x) noexcept
-{
-    return least_significant_word(x.lo);
+    return &x.lo;
 }
 
 template <typename Int>
-constexpr const uint64_t& least_significant_word(const Int& x) noexcept
+constexpr uint64_t* as_words(Int& x) noexcept
 {
-    return least_significant_word(x.lo);
+    return as_words(x.lo);
 }
 
 template <typename Int>
-constexpr std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>& as_words(Int& x) noexcept
+constexpr const uint64_t* as_words(const Int& x) noexcept
 {
-    auto pw = &least_significant_word(x);
-    return *reinterpret_cast<std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>*>(pw);
-}
-
-template <typename Int>
-constexpr const std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>& as_words(const Int& x) noexcept
-{
-    auto pw = &least_significant_word(x);
-    return *reinterpret_cast<const std::array<uint64_t, sizeof(Int) / sizeof(uint64_t)>*>(pw);
+    return as_words(x.lo);
 }
 
 /// Implementation of shift left as a loop.
@@ -418,13 +404,14 @@ inline Int shl_loop(Int x, unsigned shift)
 {
     Int r;
     constexpr unsigned word_bits = sizeof(uint64_t) * 8;
-    auto& rw = as_words(r);
-    const auto& words = as_words(x);
+    constexpr size_t num_words = sizeof(Int) / sizeof(uint64_t);
+    auto rw = as_words(r);
+    auto words = as_words(x);
     unsigned s = shift % word_bits;
     unsigned skip = shift / word_bits;
 
     uint64_t carry = 0;
-    for (size_t i = 0; i < (words.size() - skip); ++i)
+    for (size_t i = 0; i < (num_words - skip); ++i)
     {
         auto w = words[i];
         auto v = (w << s) | carry;
