@@ -604,22 +604,26 @@ inline uint256 mul_loop(const uint256& u, const uint256& v) noexcept
     return umul_full_loop(u, v).lo;
 }
 
-inline uint256 mul_loop_opt(const uint256& u, const uint256& v) noexcept
+template<typename Int>
+inline Int mul_loop_opt(const Int& u, const Int& v) noexcept
 {
-    uint256 p;
-    auto pw = reinterpret_cast<uint64_t*>(&p);
-    auto uw = reinterpret_cast<const uint64_t*>(&u);
-    auto vw = reinterpret_cast<const uint64_t*>(&v);
+    constexpr int num_words = sizeof(Int) / sizeof(uint64_t);
 
-    for (int j = 0; j < 4; j++)
+    Int p;
+    auto pw = as_words(p);
+    auto uw = as_words(u);
+    auto vw = as_words(v);
+
+    for (int j = 0; j < num_words; j++)
     {
         uint64_t k = 0;
-        for (int i = 0; i < (4 - j); i++)
+        for (int i = 0; i < (num_words - j - 1); i++)
         {
-            uint128 t = uint128(uw[i]) * vw[j] + pw[i + j] + k;
-            pw[i + j] = lo_half(t);
-            k = hi_half(t);
+            auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
+            pw[i + j] = t.lo;
+            k = t.hi;
         }
+        pw[num_words - 1] += uw[num_words - j - 1] * vw[j] + k;
     }
     return p;
 }
