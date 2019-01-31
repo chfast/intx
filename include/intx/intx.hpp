@@ -564,30 +564,28 @@ inline Int mul(const Int& a, const Int& b) noexcept
     return {lo, hi};
 }
 
-inline uint512 umul_full_loop(const uint256& u, const uint256& v) noexcept
+template <typename Int>
+inline typename traits<Int>::double_type umul_loop(const Int& x, const Int& y) noexcept
 {
-    uint512 p;
-    auto pw = reinterpret_cast<uint64_t*>(&p);
-    auto uw = reinterpret_cast<const uint64_t*>(&u);
-    auto vw = reinterpret_cast<const uint64_t*>(&v);
+    constexpr int num_words = sizeof(Int) / sizeof(uint64_t);
 
-    for (int j = 0; j < 4; j++)
+    typename traits<Int>::double_type p;
+    auto pw = as_words(p);
+    auto uw = as_words(x);
+    auto vw = as_words(y);
+
+    for (int j = 0; j < num_words; ++j)
     {
         uint64_t k = 0;
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < num_words; ++i)
         {
             auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
             pw[i + j] = t.lo;
             k = t.hi;
         }
-        pw[j + 4] = k;
+        pw[j + num_words] = k;
     }
     return p;
-}
-
-inline uint256 mul_loop(const uint256& u, const uint256& v) noexcept
-{
-    return umul_full_loop(u, v).lo;
 }
 
 template <typename Int>
