@@ -240,7 +240,7 @@ constexpr uint128 umul_generic(uint64_t x, uint64_t y) noexcept
     uint64_t u1 = t1 + (t0 >> 32);
     uint64_t u2 = t2 + (u1 & 0xffffffff);
 
-    uint64_t lo = (u2 << 32) | (t0 & 0xffffffff);
+    uint64_t lo = x * y;
     uint64_t hi = t3 + (u2 >> 32) + (u1 >> 32);
     return {hi, lo};
 }
