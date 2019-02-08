@@ -505,10 +505,9 @@ inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 {
     if (y.hi == 0)
     {
-        auto lsh = clz(y.lo);
-
         uint64_t xn_ex, xn_hi, xn_lo, yn;
 
+        auto lsh = clz(y.lo);
         if (lsh != 0)
         {
             auto rsh = 64 - lsh;
@@ -527,25 +526,21 @@ inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 
         auto v = reciprocal_2by1(yn);
 
-        // OPT: If xn_ex is 0, the result q can be only 0 or 1.
         auto res = udivrem_2by1({xn_ex, xn_hi}, yn, v);
         auto q1 = res.quot;
 
         res = udivrem_2by1({res.rem, xn_lo}, yn, v);
-        auto q0 = res.quot;
 
-        auto q = uint128{q1, q0};
-        return {q, res.rem >> lsh};
+        return {{q1, res.quot}, res.rem >> lsh};
     }
 
     if (y.hi > x.hi)
         return {0, x};
 
     auto lsh = clz(y.hi);
-
     if (lsh == 0)
     {
-        bool q = (y.hi < x.hi) | (y.lo <= x.lo);
+        auto q = (y.hi < x.hi) | (y.lo <= x.lo);
         return {q, x - (q ? y : 0)};
     }
 
