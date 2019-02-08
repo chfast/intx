@@ -217,6 +217,8 @@ static const uint128 division_test_vectors[][2] = {
     {{0xffffffffffffffff, 0xf000000000000000}, {1, 0x40000000}},
     {{0xffffffffffffffff, 0xf000000000000000}, {1, 0x80000000}},
     {{0x0f0f0f0f0f0f0f0f, 0x0f0f0f0f0f0f8f01}, {0x0f0f0f0f0f0f0f0f, 0x0f0f0f0f0f0f0f0f}},
+    {0xdac7fff9ffd9e1322626262626262600_u128, 0xd021262626262626},
+    {0x100000000000004ff00000000a20000_u128, 0x100000000000000},
 };
 
 TEST(int128, div)
