@@ -73,3 +73,21 @@ static void udiv128_single_long(benchmark::State& state)
 BENCHMARK_TEMPLATE(udiv128_single_long, div_gcc);
 BENCHMARK_TEMPLATE(udiv128_single_long, div_uint128);
 BENCHMARK_TEMPLATE(udiv128_single_long, div_gmp);
+
+
+template <decltype(div_gcc) DivFn>
+static void udiv128_single_long_shift(benchmark::State& state)
+{
+    uint128 x = {0x0e657725ff64cd48, 0xb8fe188a09dc4f78};
+    uint128 y = 0x77e47d96b32ef2d5;
+
+    for (auto _ : state)
+    {
+        benchmark::ClobberMemory();
+        auto q = DivFn(x, y);
+        benchmark::DoNotOptimize(q);
+    }
+}
+BENCHMARK_TEMPLATE(udiv128_single_long_shift, div_gcc);
+BENCHMARK_TEMPLATE(udiv128_single_long_shift, div_uint128);
+BENCHMARK_TEMPLATE(udiv128_single_long_shift, div_gmp);
