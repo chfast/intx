@@ -194,6 +194,12 @@ static div_test_case<uint512> div_test_cases[] = {
         0xfffffffffffffffe_u512,
         0x5fffffbffffff01fd00000700000afffe000001ffffee00_u512,
     },
+    {
+        0xdac7fff9ffd9e1322626262626262600_u512,
+        0xd021262626262626_u512,
+        0x10d1a094108c5da55_u512,
+        0x6f386ccc73c11f62_u512,
+    },
 };
 
 TEST(div, udivrem_512)

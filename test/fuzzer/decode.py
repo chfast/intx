@@ -19,7 +19,7 @@ def decode_file(file):
 
 def decode_data(data):
     arg_size = (len(data) - 1) // 2
-    if arg_size not in (32, 64):
+    if arg_size not in (16, 32, 64):
         err("Incorrect argument size: {}".format(arg_size))
         return
 
