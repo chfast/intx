@@ -132,7 +132,7 @@ div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
             uint64_t carry = 0;
             for (int i = 0; i < n; ++i)
             {
-                auto s = uint128(un[i + j]) + vn[i] + carry;
+                auto s = uint128{un[i + j]} + vn[i] + carry;
                 un[i + j] = s.lo;
                 carry = s.hi;
             }
