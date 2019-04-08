@@ -33,8 +33,8 @@ inline normalized_div_args normalize(const uint512& numerator, const uint512& de
 {
     static constexpr auto num_words = int{sizeof(uint512) / sizeof(normalized_div_args::word_type)};
 
-    auto* u = reinterpret_cast<const normalized_div_args::word_type*>(&numerator);
-    auto* v = reinterpret_cast<const normalized_div_args::word_type*>(&denominator);
+    auto* u = as_words(numerator);
+    auto* v = as_words(denominator);
 
     normalized_div_args na;
     auto* un = &na.numerator[0];
