@@ -56,7 +56,10 @@ struct uint128
 
 constexpr uint128 operator+(uint128 x, uint128 y) noexcept
 {
-    return {x.hi + y.hi + (x.lo > (x.lo + y.lo)), x.lo + y.lo};
+    const auto lo = x.lo + y.lo;
+    const auto carry = x.lo > lo;
+    const auto hi = x.hi + y.hi + carry;
+    return {hi, lo};
 }
 
 constexpr uint128 operator+(uint128 x) noexcept
@@ -66,13 +69,16 @@ constexpr uint128 operator+(uint128 x) noexcept
 
 constexpr uint128 operator-(uint128 x, uint128 y) noexcept
 {
-    return {x.hi - y.hi - (x.lo < (x.lo - y.lo)), x.lo - y.lo};
+    const auto lo = x.lo - y.lo;
+    const auto borrow = x.lo < lo;
+    const auto hi = x.hi - y.hi - borrow;
+    return {hi, lo};
 }
 
 constexpr uint128 operator-(uint128 x) noexcept
 {
     // Implementing as subtraction is better than ~x + 1.
-    // Clang7: Almost perfect.
+    // Clang9: Perfect.
     // GCC8: Does something weird.
     return 0 - x;
 }
