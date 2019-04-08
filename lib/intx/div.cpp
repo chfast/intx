@@ -148,6 +148,7 @@ div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
             // un[j+n] += k;
         }
 
+        // OPT: We can avoid allocating q, un can re used to store quotient.
         q[j] = qhat;  // Store quotient digit.
     }
 
