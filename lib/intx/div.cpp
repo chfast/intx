@@ -21,7 +21,7 @@ union uint512_words64
     word_type& operator[](size_t index) { return words[index]; }
 };
 
-inline div_result<uint512> udivrem_by1(const normalized_args64& na) noexcept
+inline div_result<uint512> udivrem_by1(const normalized_div_args& na) noexcept
 {
     auto d = na.denominator[0];
     auto v = reciprocal_2by1(d);
@@ -41,7 +41,7 @@ inline div_result<uint512> udivrem_by1(const normalized_args64& na) noexcept
     return {q.number, x.rem >> na.shift};
 }
 
-inline div_result<uint512> udivrem_by2(const normalized_args64& na) noexcept
+inline div_result<uint512> udivrem_by2(const normalized_div_args& na) noexcept
 {
     auto d = uint128{na.denominator[1], na.denominator[0]};
     auto v = reciprocal_3by2(d);
@@ -63,7 +63,7 @@ inline div_result<uint512> udivrem_by2(const normalized_args64& na) noexcept
     return {q.number, uint256{r >> na.shift}};
 }
 
-div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
+div_result<uint512> udivrem_knuth(normalized_div_args& na) noexcept
 {
     auto n = na.num_denominator_words;
     auto m = na.num_numerator_words;
@@ -132,7 +132,7 @@ div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
             uint64_t carry = 0;
             for (int i = 0; i < n; ++i)
             {
-                auto s = uint128(un[i + j]) + vn[i] + carry;
+                auto s = uint128{un[i + j]} + vn[i] + carry;
                 un[i + j] = s.lo;
                 carry = s.hi;
             }
@@ -148,6 +148,7 @@ div_result<uint512> udivrem_knuth(normalized_args64& na) noexcept
             // un[j+n] += k;
         }
 
+        // OPT: We can avoid allocating q, un can re used to store quotient.
         q[j] = qhat;  // Store quotient digit.
     }
 
@@ -166,7 +167,7 @@ div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept
 
 div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
 {
-    auto na = normalize64(u, v);
+    auto na = normalize(u, v);
 
     if (na.num_denominator_words > na.num_numerator_words)
         return {0, u};

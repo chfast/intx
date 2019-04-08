@@ -18,9 +18,10 @@ inline div_result<uint64_t> udivrem_long(uint128 x, uint64_t y) noexcept
     return {res.quot, res.rem >> shift};
 }
 
-struct normalized_args64
+struct normalized_div_args
 {
     using word_type = uint64_t;
+
     std::array<word_type, sizeof(uint512) / sizeof(word_type) + 1> numerator;
     std::array<word_type, sizeof(uint512) / sizeof(word_type)> denominator;
     int num_numerator_words;
@@ -28,14 +29,14 @@ struct normalized_args64
     int shift;
 };
 
-inline normalized_args64 normalize64(const uint512& numerator, const uint512& denominator) noexcept
+inline normalized_div_args normalize(const uint512& numerator, const uint512& denominator) noexcept
 {
-    static constexpr auto num_words = int{sizeof(uint512) / sizeof(normalized_args64::word_type)};
+    static constexpr auto num_words = int{sizeof(uint512) / sizeof(normalized_div_args::word_type)};
 
-    auto* u = reinterpret_cast<const normalized_args64::word_type*>(&numerator);
-    auto* v = reinterpret_cast<const normalized_args64::word_type*>(&denominator);
+    auto* u = as_words(numerator);
+    auto* v = as_words(denominator);
 
-    normalized_args64 na;
+    normalized_div_args na;
     auto* un = &na.numerator[0];
     auto* vn = &na.denominator[0];
 
