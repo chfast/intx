@@ -9,6 +9,36 @@
 
 using namespace intx;
 
+namespace
+{
+struct arith_test_case
+{
+    uint128 x;
+    uint128 y;
+    uint128 sum;
+    uint128 difference;
+    uint128 product;
+};
+
+constexpr arith_test_case arith_test_cases[] = {
+    {0, 0, 0, 0, 0},
+    {0, 1, 1, 0xffffffffffffffffffffffffffffffff_u128, 0},
+    {1, 0, 1, 1, 0},
+    {1, 1, 2, 0, 1},
+    {1, 0xffffffffffffffff, {1, 0}, 0xffffffffffffffff0000000000000002_u128, 0xffffffffffffffff},
+    {0xffffffffffffffff, 1, {1, 0}, 0xfffffffffffffffe, 0xffffffffffffffff},
+    {0xffffffffffffffff, 0xffffffffffffffff, 0x1fffffffffffffffe_u128, 0,
+        0xfffffffffffffffe0000000000000001_u128},
+    {0x8000000000000000, 0x8000000000000000, {1, 0}, 0, 0x40000000000000000000000000000000_u128},
+    {0x18000000000000000_u128, 0x8000000000000000, {2, 0}, {1, 0},
+        0xc0000000000000000000000000000000_u128},
+    {0x8000000000000000, 0x18000000000000000_u128, {2, 0}, 0xffffffffffffffff0000000000000000_u128,
+        0xc0000000000000000000000000000000_u128},
+    {{1, 0}, 0xffffffffffffffff, 0x1ffffffffffffffff_u128, 1, {0xffffffffffffffff, 0}},
+    {{1, 0}, {1, 0}, {2, 0}, 0, 0},
+};
+}
+
 void static_test_comparison()
 {
     constexpr uint128 zero;
@@ -79,6 +109,32 @@ void static_test_arith()
     static_assert(+a == a, "");
 }
 
+TEST(int128, add)
+{
+    for (auto& t: arith_test_cases)
+    {
+        EXPECT_EQ(t.x + t.y, t.sum);
+        EXPECT_EQ(t.y + t.x, t.sum);
+    }
+}
+
+TEST(int128, sub)
+{
+    for (auto& t: arith_test_cases)
+    {
+        EXPECT_EQ(t.x - t.y, t.difference);
+    }
+}
+
+TEST(int128, mul)
+{
+    for (auto& t: arith_test_cases)
+    {
+        EXPECT_EQ(t.x * t.y, t.product);
+        EXPECT_EQ(t.y * t.x, t.product);
+    }
+}
+
 TEST(int128, increment)
 {
     constexpr auto IO = uint128{1, 0};
@@ -100,25 +156,6 @@ TEST(int128, increment)
     EXPECT_EQ(d--, IO);
     EXPECT_EQ(d, Of);
 
-}
-
-TEST(int128, mul)
-{
-    uint128 zero;
-    uint128 one = 1;
-    uint128 two = 2;
-
-    EXPECT_EQ(zero * zero, 0);
-    EXPECT_EQ(zero * two, 0);
-    EXPECT_EQ(one * one, 1);
-    EXPECT_EQ(one * two, 2);
-
-    uint128 f = 0xffffffffffffffff;
-    EXPECT_EQ(f * f, uint128(0xfffffffffffffffe, 1));
-
-    uint128 b1{1, 0};
-    EXPECT_EQ(b1 * b1, zero);
-    EXPECT_EQ(b1 * f, uint128(0xffffffffffffffff, 0));
 }
 
 #ifdef __SIZEOF_INT128__
@@ -248,7 +285,7 @@ TEST(int128, div)
 
 TEST(int128, div_random)
 {
-    int c = 10000000;
+    int c = 1000000;
 
     lcg<uint128> dist{get_seed()};
 
