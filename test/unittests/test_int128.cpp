@@ -158,28 +158,6 @@ TEST(int128, increment)
 
 }
 
-#ifdef __SIZEOF_INT128__
-TEST(int128, mul_random)
-{
-    size_t n = 10000;
-
-    lcg<unsigned __int128> rng(get_seed());
-    while (n-- > 0)
-    {
-        auto x = rng();
-        auto y = rng();
-        auto p = x * y;
-
-        uint128 a{uint64_t(x >> 64), uint64_t(x)};
-        uint128 b{uint64_t(y >> 64), uint64_t(y)};
-
-        auto r = a * b;
-        uint128 expected{uint64_t(p >> 64), uint64_t(p)};
-        EXPECT_EQ(r, expected);
-    }
-}
-#endif
-
 TEST(int128, shl)
 {
     constexpr uint128 x = 1;
@@ -198,20 +176,6 @@ TEST(int128, shr)
 
     static_assert((x >> 128) == 0, "");
     static_assert((uint128(3, 0) >> 1) == uint128(1, uint64_t(1) << 63), "");
-}
-
-TEST(int128, div64)
-{
-    lcg<uint64_t> rng(get_seed());
-
-    for (size_t i = 0; i < 1000; ++i)
-    {
-        auto x = rng();
-        auto y = rng();
-
-        auto e = x / y;
-        EXPECT_EQ(uint128(x) / uint128(y), e) << x << " / " << y;
-    }
 }
 
 static const uint128 division_test_vectors[][2] = {
@@ -283,7 +247,8 @@ TEST(int128, div)
     }
 }
 
-TEST(int128, div_random)
+#ifdef __SIZEOF_INT128__
+TEST(int128, arith_random_args)
 {
     int c = 1000000;
 
@@ -293,13 +258,27 @@ TEST(int128, div_random)
     {
         auto x = dist();
         auto y = dist();
-        auto r = udivrem(x, y).quot;
 
-        auto s = (unsigned __int128){x} / (unsigned __int128){y};
-        EXPECT_EQ(r.hi, uint64_t(s >> 64)) << c;
-        EXPECT_EQ(r.lo, uint64_t(s)) << c;
+        auto s = x + y;
+        auto d = x - y;
+        auto p = x * y;
+        auto q = x / y;
+        auto r = x  % y;
+
+        auto expected_s = uint128{(unsigned __int128){x} + (unsigned __int128){y}};
+        auto expected_d = uint128{(unsigned __int128){x} - (unsigned __int128){y}};
+        auto expected_p = uint128{(unsigned __int128){x} * (unsigned __int128){y}};
+        auto expected_q = uint128{(unsigned __int128){x} / (unsigned __int128){y}};
+        auto expected_r = uint128{(unsigned __int128){x} % (unsigned __int128){y}};
+
+        EXPECT_EQ(s, expected_s) << c;
+        EXPECT_EQ(d, expected_d) << c;
+        EXPECT_EQ(p, expected_p) << c;
+        EXPECT_EQ(q, expected_q) << c;
+        EXPECT_EQ(r, expected_r) << c;
     }
 }
+#endif
 
 TEST(int128, literals)
 {
