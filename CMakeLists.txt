@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.5)
 
 include(cmake/cable/bootstrap.cmake)
 
+include(CableCompilerSettings)
 include(CableToolchains)
 
 cable_configure_toolchain(DEFAULT cxx14)
@@ -26,15 +27,13 @@ project(intx)
 option(INTX_TESTING "Build IntX with tests" ON)
 option(INTX_FUZZING "Build intx fuzzers" OFF)
 
+cable_configure_compiler(NO_PEDANTIC NO_CONVERSION_WARNINGS)
+
 if(INTX_FUZZING)
     set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined,address)
     add_compile_options(${fuzzing_flags})
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${fuzzing_flags}")
 endif()
-
-# FIXME: Add back -Wconversion, test with clang.
-add_compile_options(-Werror -Wall -Wextra)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
 
 option(NATIVE OFF)
 if(NATIVE)
@@ -42,9 +41,6 @@ if(NATIVE)
 else()
     add_compile_options(-mtune=generic)
 endif()
-
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
-#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Og")
 
 add_subdirectory(lib/intx)
 
