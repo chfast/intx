@@ -10,38 +10,6 @@
 
 using namespace intx;
 
-// constexpr uint64_t maximal[] = {
-//    0x0000000000000000,
-//    0x0000000000000001,
-//    0x0000000000000002,
-//    0x000000000000000f,
-//    0x0000000000000010,
-//    0x00000000fffffffe,
-//    0x00000000ffffffff,
-//    0x0000000100000000,
-//    0x0000000100000001,
-//    0x00000001fffffffe,
-//    0x00000001ffffffff,
-//    0x0000000200000000,
-//    0x0000000200000001,
-//    0x0fffffffffffffff,
-//    0x1000000000000000,
-//    0x1000000000000001,
-//    0x1010101010101010,
-//    0x1ffffffffffffffe,
-//    0x1fffffffffffffff,
-//    0x2000000000000000,
-//    0x7000000000000000,
-//    0x7ffffffffffffffd,
-//    0x7ffffffffffffffe,
-//    0x7fffffffffffffff,
-//    0x8000000000000000,
-//    0x8000000000000001,
-//    0xfffffffffffffffd,
-//    0xfffffffffffffffe,
-//    0xffffffffffffffff,
-//};
-
 constexpr uint64_t minimal[] = {
     0x0000000000000000,
     0x0000000000000001,
@@ -58,7 +26,6 @@ class Uint256Test : public testing::Test
 protected:
     std::vector<uint256> numbers;
 
-
     Uint256Test()
     {
         auto& parts_set = minimal;
@@ -71,8 +38,8 @@ protected:
                     for (auto d : parts_set)
                     {
                         uint256 n;
-                        n.lo = (static_cast<uint128>(a) << 64) | b;
-                        n.hi = (static_cast<uint128>(c) << 64) | d;
+                        n.lo = uint128{a, b};
+                        n.hi = uint128{c, d};
                         numbers.emplace_back(n);
                     }
                 }
