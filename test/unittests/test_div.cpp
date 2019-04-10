@@ -5,7 +5,6 @@
 #include <div.hpp>
 #include <intx/intx.hpp>
 
-#include "../utils/gmp.hpp"
 #include "../utils/random.hpp"
 #include "../utils/utils.hpp"
 #include <gtest/gtest.h>
@@ -230,10 +229,6 @@ TEST(div, sdivrem_256)
         auto res = sdivrem(t.numerator, t.denominator);
         EXPECT_EQ(res.quot, t.quotient);
         EXPECT_EQ(res.rem, t.reminder);
-
-        auto res2 = gmp::sdivrem(t.numerator, t.denominator);
-        EXPECT_EQ(res2.quot, res.quot);
-        EXPECT_EQ(res2.rem, res.rem);
     }
 }
 
@@ -245,18 +240,6 @@ TEST(div, sdivrem_512)
     auto res1 = sdivrem(n, d);
     EXPECT_EQ(res1.quot, 4_u512);
     EXPECT_EQ(res1.rem, -1_u512);
-
-    auto res2 = gmp::sdivrem(n, d);
-    EXPECT_EQ(res2.quot, res1.quot);
-    EXPECT_EQ(res2.rem, res1.rem);
-
-    for (auto& t : div_test_cases)
-    {
-        res1 = sdivrem(t.numerator, t.denominator);
-        res2 = gmp::sdivrem(t.numerator, t.denominator);
-        EXPECT_EQ(res2.quot, res1.quot);
-        EXPECT_EQ(res2.rem, res1.rem);
-    }
 }
 
 TEST(div, reciprocal)
