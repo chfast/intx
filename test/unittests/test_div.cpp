@@ -5,7 +5,6 @@
 #include <div.hpp>
 #include <intx/intx.hpp>
 
-#include "../utils/utils.hpp"
 #include <gtest/gtest.h>
 
 using namespace intx;
@@ -239,6 +238,21 @@ TEST(div, sdivrem_512)
     auto res1 = sdivrem(n, d);
     EXPECT_EQ(res1.quot, 4_u512);
     EXPECT_EQ(res1.rem, -1_u512);
+}
+
+inline uint64_t reciprocal_naive(uint64_t d) noexcept
+{
+    const auto u = uint128{~d, ~uint64_t{0}};
+    uint64_t v;
+
+#if _MSC_VER
+    v = (u / d).lo;
+#else
+    uint64_t _;
+    asm("divq %4" : "=d"(_), "=a"(v) : "d"(u.hi), "a"(u.lo), "g"(d));
+#endif
+
+    return v;
 }
 
 TEST(div, reciprocal)

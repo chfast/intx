@@ -5,7 +5,6 @@
 #include <div.hpp>
 
 #include "../utils/random.hpp"
-#include "../utils/utils.hpp"
 #include <benchmark/benchmark.h>
 
 uint64_t udiv_native(uint64_t x, uint64_t y) noexcept;
