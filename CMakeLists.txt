@@ -1,11 +1,14 @@
 # intx: extended precision integer library.
-# Copyright 2017 Pawel Bylica.
-# Licensed under the Apache License, Version 2.0. See the LICENSE file.
+# Copyright 2019 Pawel Bylica.
+# Licensed under the Apache License, Version 2.0.
 
 cmake_minimum_required(VERSION 3.5)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/default.cmake CACHE FILEPATH "CMake toolchain file")
+include(cmake/cable/bootstrap.cmake)
+
+include(CableToolchains)
+
+cable_configure_toolchain(DEFAULT cxx14)
 
 set(HUNTER_CONFIGURATION_TYPES Release
     CACHE STRING "Build type of the Hunter packages")
@@ -17,7 +20,6 @@ HunterGate(
     URL "https://github.com/ruslo/hunter/archive/v0.19.167.tar.gz"
     SHA1 "244a13718ea2e6c0c8998d15559c7e459f615708"
 )
-
 
 project(intx)
 
