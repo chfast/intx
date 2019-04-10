@@ -74,6 +74,7 @@ jobs:
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
       - CMAKE_OPTIONS: -DCOVERAGE=ON
+      - GTEST_FILTER: -*random*
     docker:
       - image: ethereum/cpp-build-env:11
     steps:

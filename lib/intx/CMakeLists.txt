@@ -15,7 +15,6 @@ target_include_directories(int128 INTERFACE ${include_dir})
 add_library(intx STATIC
     ${include_dir}/intx/intx.hpp
     ${include_dir}/intx/mul_full.h
-    ${include_dir}/intx/safe.hpp
     div.cpp
     div.hpp
     intx.cpp
