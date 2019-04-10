@@ -9,6 +9,109 @@
 
 using namespace intx;
 
+namespace
+{
+struct arith_test_case
+{
+    uint128 x;
+    uint128 y;
+    uint128 sum;
+    uint128 difference;
+    uint128 product;
+};
+
+constexpr arith_test_case arith_test_cases[] = {
+    {0, 0, 0, 0, 0},
+    {0, 1, 1, 0xffffffffffffffffffffffffffffffff_u128, 0},
+    {1, 0, 1, 1, 0},
+    {1, 1, 2, 0, 1},
+    {1, 0xffffffffffffffff, {1, 0}, 0xffffffffffffffff0000000000000002_u128, 0xffffffffffffffff},
+    {0xffffffffffffffff, 1, {1, 0}, 0xfffffffffffffffe, 0xffffffffffffffff},
+    {0xffffffffffffffff, 0xffffffffffffffff, 0x1fffffffffffffffe_u128, 0,
+        0xfffffffffffffffe0000000000000001_u128},
+    {0x8000000000000000, 0x8000000000000000, {1, 0}, 0, 0x40000000000000000000000000000000_u128},
+    {0x18000000000000000_u128, 0x8000000000000000, {2, 0}, {1, 0},
+        0xc0000000000000000000000000000000_u128},
+    {0x8000000000000000, 0x18000000000000000_u128, {2, 0}, 0xffffffffffffffff0000000000000000_u128,
+        0xc0000000000000000000000000000000_u128},
+    {{1, 0}, 0xffffffffffffffff, 0x1ffffffffffffffff_u128, 1, {0xffffffffffffffff, 0}},
+    {{1, 0}, {1, 0}, {2, 0}, 0, 0},
+};
+
+
+struct div_test_case
+{
+    uint128 x;
+    uint128 y;
+    uint128 quotient;
+    uint128 reminder;
+};
+
+constexpr div_test_case div_test_cases[] = {
+    {{0x8000000000000000, 1}, {0x8000000000000000, 1}, 1, 0},
+    {{0x8000000000000000, 1}, {0x8000000000000001, 1}, 0, {0x8000000000000000, 1}},
+    {{0x8000000000000001, 1}, {0x8000000000000000, 1}, 1, {1, 0}},
+    {{0x8000000000000000, 2}, {0x8000000000000000, 1}, 1, 1},
+    {{0x8000000000000000, 1}, {0x8000000000000000, 2}, 0, {0x8000000000000000, 1}},
+    {{1, 5}, 7, 0x2492492492492493, 0},
+    {{1, 5}, {2, 7}, 0, {1, 5}},
+    {{0xffffffffffffffff, 0xffffffffffffffff}, {1, 0xffffffffffffffff}, 0x8000000000000000,
+        0x7fffffffffffffff},
+    {{0xee657725ff64cd48, 0xb8fe188a09dc4f78}, 3, {0x4f7727b7552199c2, 0xe854b2d8adf41a7d}, 1},
+    {{0xbaf3f54fc23ec50a, 0x8db107aae7021a11}, {1, 0xa8d309c2d1c0a3ab}, 0x70a8814961f0fe6e,
+        0x8c95107768881c97},
+    {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, {0xb5967a16d599854c, 0xa8d309c2d1c0a3ab}, 0,
+        {0x9af3f54fc23ec50a, 0x8db107aae7021a11}},
+    {{0x395df916dfd1b5e, 0xe7e47d96b32ef2d5}, {0x537e3fbc5318dbc0, 0x38ae7c47ce8a620f}, 0,
+        {0x395df916dfd1b5e, 0xe7e47d96b32ef2d5}},
+    {0x6dfed7df267e7ed0, {0xb022a1a70b9cfbdf, 0xea31f3f6afbe6882}, 0, 0x6dfed7df267e7ed0},
+    {{0x62cbd6bebd625e29, 0}, {0x525661ea1ecad583, 0x39cb5e652a3a0656}, 1,
+        {0x107574d49e9788a5, 0xc634a19ad5c5f9aa}},
+    {{0x657725ff64cd486d, 0xb8fe188a09dc4f78}, 0xb92974ae3bfad96a, 0x8c488dc0d0453a78,
+        0x41bb80845d7261c8},
+    {{0x657725ff64cd48, 0xb8fe188a09dc4f78}, 0xb92974ae3bfad96a, 0x8c488dc0d0453a,
+        0xa25244a3b04d7b74},
+    {{0x657725ff64cd486d, 0xb8fe188a09dc4f78}, 0xb92974ae3bfad9, {0x8c, 0x488dc0d0453ac8a9},
+        0x955de0d6202e37},
+    {{0xb1440f0ef70d4ef1, 0x2457e03b7d2cf0ac}, {0x5834d9e467cf238b, 0}, 2,
+        {0xda5b46276f07db, 0x2457e03b7d2cf0ac}},
+    {{0xb1440f0ef70d4ef1, 0x2457e03b7d2cf0ac}, {0x2000, 0}, 0x58a207877b86a,
+        {0xef1, 0x2457e03b7d2cf0ac}},
+    {0, {0xbb6376e43a291fef, 0xfee012e52194af52}, 0, 0},
+    {0xdb7bf0efd05668d4, 0x510734f5eaa31a26, 2, 0x396d8703fb103488},
+    {0xba8221b60d12e7c8, {0x7dfb4ff3ec1e7777, 0}, 0, 0xba8221b60d12e7c8},
+    {{0x6558ce6e35a99381, 0}, 0xa08b35664c6dd38e, 0xa19b159fa722dbc7, 0x6a1e234ee7ca129e},
+    {{0xac163d152c4f2345, 0}, {0x1b2e2e4a4c2227ff, 0}, 6, {0x90127576382334b, 0}},
+    {0, 0x2f7c95d0092581f6, 0, 0},
+    {0, {0x7c0ee5320345187, 0}, 0, 0},
+    {{1, 0xe7e47d96b32ef2d5}, {0x537e3fbc5318dbc0, 0}, 0, {1, 0xe7e47d96b32ef2d5}},
+    {{0x657725ff64cd486d, 0xb8fe188a09dc4f78}, 0x2000000000000000, {3, 0x2bb92ffb266a436d},
+        0x18fe188a09dc4f78},
+    {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, 1, {0x9af3f54fc23ec50a, 0x8db107aae7021a11}, 0},
+    {{0x1313131313131313, 0x20}, {0x1313131313131313, 0x1313131313134013}, 0,
+        {0x1313131313131313, 0x20}},
+    {{0xffffffffffffffff, 0xff00000000002100}, {0xffff, 0xffffffffffffffff}, 0xffffffffffff,
+        {0xffff, 0xff010000000020ff}},
+    {{0x6904e619043deb6a, 0x4ee02431db62d7dd}, {0x8d86ba8220cd85d, 0xc92328ed07f1628}, 0xb,
+        {0x7b845df8db09f6a, 0xc497f80ee5ece425}},
+    {{0xf78a73117fbdc259, 0xc1626df64c827943}, {0x80053a19fc39bd5, 0x3aa770769c7e0f16}, 0x1e,
+        {0x780a620c6d17f5c, 0xe1c3400ff5bcb4af}},
+    {{0xe8e0eae8e8e8e8e5, 0xfffc000800000009}, 0x800091000e8e8, {0x1d1b, 0xfc6365e50bec6eb0},
+        0x16a8bed6c3089},
+    {{0xe8e0eae8e8e8e8e5, 0xfffc000000000000}, 0x800090000e8e8, {0x1d1b, 0xfc9d9d9c540368c6},
+        0xcf3ac5f59c90},
+    {{0xffffffffffffffff, 0xff3f060e0e0e7a0a}, {0x10, 0x401353ff}, 0xfffffffffbfecac,
+        0xf4f0fb98361f6b6},
+    {{0xffffffffffffffff, 0xf000000000000000}, {1, 0x40000000}, 0xffffffffc0000000, 0},
+    {{0xffffffffffffffff, 0xf000000000000000}, {1, 0x80000000}, 0xffffffff80000000,
+        0x3000000000000000},
+    {{0xf0f0f0f0f0f0f0f, 0xf0f0f0f0f0f8f01}, {0xf0f0f0f0f0f0f0f, 0xf0f0f0f0f0f0f0f}, 1, 0x7ff2},
+    {{0xdac7fff9ffd9e132, 0x2626262626262600}, 0xd021262626262626, {1, 0xd1a094108c5da55},
+        0x6f386ccc73c11f62},
+    {{0x100000000000004, 0xff00000000a20000}, 0x100000000000000, {1, 0x4ff}, 0xa20000},
+};
+}
+
 void static_test_comparison()
 {
     constexpr uint128 zero;
@@ -79,6 +182,32 @@ void static_test_arith()
     static_assert(+a == a, "");
 }
 
+TEST(int128, add)
+{
+    for (auto& t: arith_test_cases)
+    {
+        EXPECT_EQ(t.x + t.y, t.sum);
+        EXPECT_EQ(t.y + t.x, t.sum);
+    }
+}
+
+TEST(int128, sub)
+{
+    for (auto& t: arith_test_cases)
+    {
+        EXPECT_EQ(t.x - t.y, t.difference);
+    }
+}
+
+TEST(int128, mul)
+{
+    for (auto& t: arith_test_cases)
+    {
+        EXPECT_EQ(t.x * t.y, t.product);
+        EXPECT_EQ(t.y * t.x, t.product);
+    }
+}
+
 TEST(int128, increment)
 {
     constexpr auto IO = uint128{1, 0};
@@ -102,47 +231,6 @@ TEST(int128, increment)
 
 }
 
-TEST(int128, mul)
-{
-    uint128 zero;
-    uint128 one = 1;
-    uint128 two = 2;
-
-    EXPECT_EQ(zero * zero, 0);
-    EXPECT_EQ(zero * two, 0);
-    EXPECT_EQ(one * one, 1);
-    EXPECT_EQ(one * two, 2);
-
-    uint128 f = 0xffffffffffffffff;
-    EXPECT_EQ(f * f, uint128(0xfffffffffffffffe, 1));
-
-    uint128 b1{1, 0};
-    EXPECT_EQ(b1 * b1, zero);
-    EXPECT_EQ(b1 * f, uint128(0xffffffffffffffff, 0));
-}
-
-#ifdef __SIZEOF_INT128__
-TEST(int128, mul_random)
-{
-    size_t n = 10000;
-
-    lcg<unsigned __int128> rng(get_seed());
-    while (n-- > 0)
-    {
-        auto x = rng();
-        auto y = rng();
-        auto p = x * y;
-
-        uint128 a{uint64_t(x >> 64), uint64_t(x)};
-        uint128 b{uint64_t(y >> 64), uint64_t(y)};
-
-        auto r = a * b;
-        uint128 expected{uint64_t(p >> 64), uint64_t(p)};
-        EXPECT_EQ(r, expected);
-    }
-}
-#endif
-
 TEST(int128, shl)
 {
     constexpr uint128 x = 1;
@@ -163,82 +251,18 @@ TEST(int128, shr)
     static_assert((uint128(3, 0) >> 1) == uint128(1, uint64_t(1) << 63), "");
 }
 
-TEST(int128, div64)
-{
-    lcg<uint64_t> rng(get_seed());
-
-    for (size_t i = 0; i < 1000; ++i)
-    {
-        auto x = rng();
-        auto y = rng();
-
-        auto e = x / y;
-        EXPECT_EQ(uint128(x) / uint128(y), e) << x << " / " << y;
-    }
-}
-
-static const uint128 division_test_vectors[][2] = {
-    {{0x8000000000000000, 1}, {0x8000000000000000, 1}},
-    {{0x8000000000000000, 1}, {0x8000000000000001, 1}},
-    {{0x8000000000000001, 1}, {0x8000000000000000, 1}},
-    {{0x8000000000000000, 2}, {0x8000000000000000, 1}},
-    {{0x8000000000000000, 1}, {0x8000000000000000, 2}},
-    {{1, 5}, {0, 7}},
-    {{1, 5}, {2, 7}},
-    {{0xffffffffffffffff, 0xffffffffffffffff}, {1, 0xffffffffffffffff}},
-    {{0xee657725ff64cd48, 0xb8fe188a09dc4f78}, {0, 3}},  // Worst case for shift divs.
-    {{0xbaf3f54fc23ec50a, 0x8db107aae7021a11}, {1, 0xa8d309c2d1c0a3ab}},
-    {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, {0xb5967a16d599854c, 0xa8d309c2d1c0a3ab}},
-    {{0x395df916dfd1b5e, 0xe7e47d96b32ef2d5}, {0x537e3fbc5318dbc0, 0x38ae7c47ce8a620f}},
-    {{0, 0x6dfed7df267e7ed0}, {0xb022a1a70b9cfbdf, 0xea31f3f6afbe6882}},
-    {{0x62cbd6bebd625e29, 0}, {0x525661ea1ecad583, 0x39cb5e652a3a0656}},
-    {{0x657725ff64cd486d, 0xb8fe188a09dc4f78}, {0, 0xb92974ae3bfad96a}},
-    {{0x657725ff64cd48, 0xb8fe188a09dc4f78}, {0, 0xb92974ae3bfad96a}},
-    {{0x657725ff64cd486d, 0xb8fe188a09dc4f78}, {0, 0xb92974ae3bfad9}},
-    {{0xb1440f0ef70d4ef1, 0x2457e03b7d2cf0ac}, {0x5834d9e467cf238b, 0}},
-    {{0xb1440f0ef70d4ef1, 0x2457e03b7d2cf0ac}, {1 << 13, 0}},
-    {{0, 0}, {0xbb6376e43a291fef, 0xfee012e52194af52}},
-    {{0, 0xdb7bf0efd05668d4}, {0, 0x510734f5eaa31a26}},
-    {{0, 0xba8221b60d12e7c8}, {0x7dfb4ff3ec1e7777, 0}},
-    {{0x6558ce6e35a99381, 0}, {0, 0xa08b35664c6dd38e}},
-    {{0xac163d152c4f2345, 0}, {0x1b2e2e4a4c2227ff, 0}},
-    {{0, 0}, {0, 0x2f7c95d0092581f6}},
-    {{0, 0}, {0x7c0ee5320345187, 0}},
-    {{1, 0xe7e47d96b32ef2d5}, {0x537e3fbc5318dbc0, 0}},
-    {{0x657725ff64cd486d, 0xb8fe188a09dc4f78}, {0, 1ul << 61}},
-    {{0x9af3f54fc23ec50a, 0x8db107aae7021a11}, {0, 1}},
-    {{0x1313131313131313, 0x0000000000000020}, {0x1313131313131313, 0x1313131313134013}},
-    {{0xffffffffffffffff, 0xff00000000002100}, {0x000000000000ffff, 0xffffffffffffffff}},
-    {{7567426269009013610, 5683582526294251485}, {637377717142870109, 905842064019625512}},
-    {{17837195793149051481u, 13934821101650737475u}, {576552705938660309, 4226470430044458774}},
-    {{0xe8e0eae8e8e8e8e5, 0xfffc000800000009}, {0, 0x000800091000e8e8}},
-    {{0xe8e0eae8e8e8e8e5, 0xfffc000000000000}, {0, 0x000800090000e8e8}},
-    {{0xffffffffffffffff, 0xff3f060e0e0e7a0a}, {0x10, 0x00000000401353ff}},
-    {{0xffffffffffffffff, 0xf000000000000000}, {1, 0x40000000}},
-    {{0xffffffffffffffff, 0xf000000000000000}, {1, 0x80000000}},
-    {{0x0f0f0f0f0f0f0f0f, 0x0f0f0f0f0f0f8f01}, {0x0f0f0f0f0f0f0f0f, 0x0f0f0f0f0f0f0f0f}},
-    {0xdac7fff9ffd9e1322626262626262600_u128, 0xd021262626262626},
-    {0x100000000000004ff00000000a20000_u128, 0x100000000000000},
-};
-
 TEST(int128, div)
 {
     int index = 0;
-    for (auto& v : division_test_vectors)
+    for (auto& t : div_test_cases)
     {
-        auto q = v[0] / v[1];
-        auto r = v[0] % v[1];
+        auto q = t.x / t.y;
+        auto r = t.x % t.y;
 
-        auto x = ((unsigned __int128)v[0].hi << 64) | v[0].lo;
-        auto y = ((unsigned __int128)v[1].hi << 64) | v[1].lo;
-        auto nq = x / y;
-        auto nr = x % y;
-        uint128 eq{uint64_t(nq >> 64), uint64_t(nq)};
-        uint128 er{uint64_t(nr >> 64), uint64_t(nr)};
-        EXPECT_EQ(q, eq) << index;
-        EXPECT_EQ(r, er) << index;
+        EXPECT_EQ(q, t.quotient) << index;
+        EXPECT_EQ(r, t.reminder) << index;
 
-        auto res = udivrem(v[0], v[1]);
+        auto res = udivrem(t.x, t.y);
         EXPECT_EQ(res.quot, q) << index;
         EXPECT_EQ(res.rem, r) << index;
 
@@ -246,9 +270,10 @@ TEST(int128, div)
     }
 }
 
-TEST(int128, div_random)
+#ifdef __SIZEOF_INT128__
+TEST(int128, arith_random_args)
 {
-    int c = 10000000;
+    int c = 1000000;
 
     lcg<uint128> dist{get_seed()};
 
@@ -256,13 +281,27 @@ TEST(int128, div_random)
     {
         auto x = dist();
         auto y = dist();
-        auto r = udivrem(x, y).quot;
 
-        auto s = (unsigned __int128){x} / (unsigned __int128){y};
-        EXPECT_EQ(r.hi, uint64_t(s >> 64)) << c;
-        EXPECT_EQ(r.lo, uint64_t(s)) << c;
+        auto s = x + y;
+        auto d = x - y;
+        auto p = x * y;
+        auto q = x / y;
+        auto r = x  % y;
+
+        auto expected_s = uint128{(unsigned __int128){x} + (unsigned __int128){y}};
+        auto expected_d = uint128{(unsigned __int128){x} - (unsigned __int128){y}};
+        auto expected_p = uint128{(unsigned __int128){x} * (unsigned __int128){y}};
+        auto expected_q = uint128{(unsigned __int128){x} / (unsigned __int128){y}};
+        auto expected_r = uint128{(unsigned __int128){x} % (unsigned __int128){y}};
+
+        EXPECT_EQ(s, expected_s) << c;
+        EXPECT_EQ(d, expected_d) << c;
+        EXPECT_EQ(p, expected_p) << c;
+        EXPECT_EQ(q, expected_q) << c;
+        EXPECT_EQ(r, expected_r) << c;
     }
 }
+#endif
 
 TEST(int128, literals)
 {
