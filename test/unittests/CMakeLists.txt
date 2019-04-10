@@ -1,6 +1,6 @@
 # intx: extended precision integer library.
-# Copyright 2017 Pawel Bylica.
-# Licensed under the Apache License, Version 2.0. See the LICENSE file.
+# Copyright 2019 Pawel Bylica.
+# Licensed under the Apache License, Version 2.0.
 
 add_executable(intx-test
     test_cases.hpp
@@ -11,5 +11,5 @@ add_executable(intx-test
     test_safe.cpp
     test_uint256_api.cpp
 )
-target_link_libraries(intx-test PRIVATE intx GTest::gtest GTest::main GMP::gmp)
+target_link_libraries(intx-test PRIVATE intx GTest::gtest GTest::main)
 set_target_properties(intx-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)

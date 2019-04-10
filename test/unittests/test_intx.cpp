@@ -2,47 +2,13 @@
 // Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include "../utils/gmp.hpp"
 #include "test_cases.hpp"
 
 #include <intx/intx.hpp>
 
-#include <gmp.h>
 #include <gtest/gtest.h>
 
 using namespace intx;
-
-// constexpr uint64_t maximal[] = {
-//    0x0000000000000000,
-//    0x0000000000000001,
-//    0x0000000000000002,
-//    0x000000000000000f,
-//    0x0000000000000010,
-//    0x00000000fffffffe,
-//    0x00000000ffffffff,
-//    0x0000000100000000,
-//    0x0000000100000001,
-//    0x00000001fffffffe,
-//    0x00000001ffffffff,
-//    0x0000000200000000,
-//    0x0000000200000001,
-//    0x0fffffffffffffff,
-//    0x1000000000000000,
-//    0x1000000000000001,
-//    0x1010101010101010,
-//    0x1ffffffffffffffe,
-//    0x1fffffffffffffff,
-//    0x2000000000000000,
-//    0x7000000000000000,
-//    0x7ffffffffffffffd,
-//    0x7ffffffffffffffe,
-//    0x7fffffffffffffff,
-//    0x8000000000000000,
-//    0x8000000000000001,
-//    0xfffffffffffffffd,
-//    0xfffffffffffffffe,
-//    0xffffffffffffffff,
-//};
 
 constexpr uint64_t minimal[] = {
     0x0000000000000000,
@@ -58,10 +24,7 @@ constexpr uint64_t minimal[] = {
 class Uint256Test : public testing::Test
 {
 protected:
-    static constexpr size_t limbs = sizeof(uint256) / sizeof(mp_limb_t);
-
     std::vector<uint256> numbers;
-
 
     Uint256Test()
     {
@@ -75,8 +38,8 @@ protected:
                     for (auto d : parts_set)
                     {
                         uint256 n;
-                        n.lo = (static_cast<uint128>(a) << 64) | b;
-                        n.hi = (static_cast<uint128>(c) << 64) | d;
+                        n.lo = uint128{a, b};
+                        n.hi = uint128{c, d};
                         numbers.emplace_back(n);
                     }
                 }
@@ -84,59 +47,6 @@ protected:
         }
     }
 };
-
-TEST_F(Uint256Test, add_against_gmp)
-{
-    for (auto a : numbers)
-    {
-        for (auto b : numbers)
-        {
-            uint256 gmp;
-            auto p_gmp = (mp_ptr)&gmp;
-            auto p_a = (mp_srcptr)&a;
-            auto p_b = (mp_srcptr)&b;
-            mpn_add_n(p_gmp, p_a, p_b, limbs);
-
-            auto s = add(a, b);
-            EXPECT_EQ(gmp, s);
-        }
-    }
-
-    std::cerr << (numbers.size() * numbers.size()) << " additions";
-}
-
-TEST_F(Uint256Test, mul_against_gmp)
-{
-    for (auto a : numbers)
-    {
-        for (auto b : numbers)
-        {
-            uint256 gmp = gmp::mul(a, b);
-
-            auto p = mul(a, b);
-            auto r = mul_loop_opt(a, b);
-            EXPECT_EQ(gmp, p);
-            EXPECT_EQ(gmp, r);
-        }
-    }
-}
-
-
-TEST_F(Uint256Test, umul_full_against_gmp)
-{
-    for (auto a : numbers)
-    {
-        for (auto b : numbers)
-        {
-            uint512 gmp = gmp::mul_full(a, b);
-
-            uint512 p = umul(a, b);
-            uint512 q = umul_loop(a, b);
-            EXPECT_EQ(gmp, p);
-            EXPECT_EQ(gmp, q);
-        }
-    }
-}
 
 TEST_F(Uint256Test, count_significant_words_32)
 {
