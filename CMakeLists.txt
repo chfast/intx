@@ -18,8 +18,8 @@ set(HUNTER_CACHE_SERVERS
     CACHE STRING "Hunter cache servers")
 include(HunterGate)
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.19.167.tar.gz"
-    SHA1 "244a13718ea2e6c0c8998d15559c7e459f615708"
+    URL "https://github.com/ruslo/hunter/archive/v0.23.151.tar.gz"
+    SHA1 "68657b81508c2d3c248731b5a0c2125f19866721"
 )
 
 project(intx)
