@@ -31,8 +31,7 @@ struct lcg
 
     Int operator()()
     {
-        state = static_cast<Int>(6364136223846793005 * state + 1442695040888963407);
-        return state;
+        return state = static_cast<Int>(Int(0x5851f42d4c957f2d) * state + Int(0x14057b7ef767814f));
     }
 };
 

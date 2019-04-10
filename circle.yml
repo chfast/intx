@@ -66,36 +66,38 @@ defaults:
 version: 2
 jobs:
 
-  linux-gcc6-coverage:
+  linux-gcc-coverage:
     environment:
-      - CXX: g++-6
-      - CC:  gcc-6
-      - GCOV: gcov-6
-      - BUILD_PARALLEL_JOBS: 2
+      - CXX: g++-8
+      - CC:  gcc-8
+      - GCOV: gcov-8
+      - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
       - CMAKE_OPTIONS: -DCOVERAGE=ON
     docker:
-      - image: ethereum/cpp-build-env:2
+      - image: ethereum/cpp-build-env:11
     steps:
       - *install-deps
       - checkout
+      - *update-submodules
       - *configure
       - *build
       - *test
-      # - *upload-coverage-data
+      - *upload-coverage-data
 
   linux-clang-ubsan:
     environment:
-      - CXX: clang++-6.0
-      - CC:  clang-6.0
-      - BUILD_PARALLEL_JOBS: 2
-      - CMAKE_OPTIONS: -DSANITIZE=undefined,integer,nullability
+      - CXX: clang++-8
+      - CC:  clang-8
+      - BUILD_PARALLEL_JOBS: 4
+      - CMAKE_OPTIONS: -DSANITIZE=undefined,implicit-conversion,nullability
       - UBSAN_OPTIONS: halt_on_error=1
     docker:
-      - image: ethereum/cpp-build-env:7
+      - image: ethereum/cpp-build-env:11
     steps:
       - *install-deps
       - checkout
+      - *update-submodules
       - *configure
       - *build
       - *test
@@ -103,15 +105,16 @@ jobs:
 
   linux-clang-asan:
     environment:
-      - CXX: clang++-6.0
-      - CC:  clang-6.0
-      - BUILD_PARALLEL_JOBS: 2
+      - CXX: clang++-8
+      - CC:  clang-8
+      - BUILD_PARALLEL_JOBS: 4
       - CMAKE_OPTIONS: -DSANITIZE=address
     docker:
-      - image: ethereum/cpp-build-env:7
+      - image: ethereum/cpp-build-env:11
     steps:
       - *install-deps
       - checkout
+      - *update-submodules
       - *configure
       - *build
       - *test
@@ -121,6 +124,6 @@ workflows:
   version: 2
   intx:
     jobs:
-      - linux-gcc6-coverage
+      - linux-gcc-coverage
       - linux-clang-ubsan
       - linux-clang-asan

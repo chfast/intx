@@ -22,7 +22,7 @@ TEST(div, normalize)
     EXPECT_EQ(na.num_numerator_words, 0);
     EXPECT_EQ(na.numerator[0], 0);
     EXPECT_EQ(na.numerator[1], 0);
-    EXPECT_EQ(na.numerator[16], 0);
+    EXPECT_EQ(na.numerator[8], 0);
     EXPECT_EQ(na.denominator[0], uint64_t{1} << 63);
     EXPECT_EQ(na.denominator[1], 0);
 

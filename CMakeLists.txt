@@ -1,11 +1,15 @@
 # intx: extended precision integer library.
-# Copyright 2017 Pawel Bylica.
-# Licensed under the Apache License, Version 2.0. See the LICENSE file.
+# Copyright 2019 Pawel Bylica.
+# Licensed under the Apache License, Version 2.0.
 
 cmake_minimum_required(VERSION 3.5)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/toolchains/default.cmake CACHE FILEPATH "CMake toolchain file")
+include(cmake/cable/bootstrap.cmake)
+
+include(CableCompilerSettings)
+include(CableToolchains)
+
+cable_configure_toolchain(DEFAULT cxx14)
 
 set(HUNTER_CONFIGURATION_TYPES Release
     CACHE STRING "Build type of the Hunter packages")
@@ -18,11 +22,12 @@ HunterGate(
     SHA1 "244a13718ea2e6c0c8998d15559c7e459f615708"
 )
 
-
 project(intx)
 
 option(INTX_TESTING "Build IntX with tests" ON)
 option(INTX_FUZZING "Build intx fuzzers" OFF)
+
+cable_configure_compiler(NO_PEDANTIC NO_CONVERSION_WARNINGS)
 
 if(INTX_FUZZING)
     set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined,address)
@@ -30,19 +35,12 @@ if(INTX_FUZZING)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${fuzzing_flags}")
 endif()
 
-# FIXME: Add back -Wconversion, test with clang.
-add_compile_options(-Werror -Wall -Wextra)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
-
 option(NATIVE OFF)
 if(NATIVE)
     add_compile_options(-mtune=native -march=native)
 else()
     add_compile_options(-mtune=generic)
 endif()
-
-#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
-#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Og")
 
 add_subdirectory(lib/intx)
 

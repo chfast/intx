@@ -540,7 +540,7 @@ inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     auto lsh = clz(y.hi);
     if (lsh == 0)
     {
-        auto q = (y.hi < x.hi) | (y.lo <= x.lo);
+        const auto q = unsigned{y.hi < x.hi} | unsigned{y.lo <= x.lo};
         return {q, x - (q ? y : 0)};
     }
 
