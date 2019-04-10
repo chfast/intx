@@ -190,7 +190,7 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
         int64_t borrow = 0;
         for (unsigned i = 0; i < n; ++i) {
             uint64_t p = qp * v[i];
-            uint64_t subres = int64_t(u[j+i]) - borrow - intx::lo_half(p);
+            uint64_t subres = uint64_t(u[j+i]) - borrow - intx::lo_half(p);
             u[j+i] = intx::lo_half(subres);
             borrow = intx::hi_half(p) - intx::hi_half(subres);
             DEBUG(dbgs() << "KnuthLL: u[" << (j + i) << "] = " << u[j+i]
@@ -331,7 +331,7 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
         for (int i = 0; i < n; i++)
         {
             uint64_t p = qhat*vn[i];
-            uint64_t t = int64_t(un[i+j]) - borrow - static_cast<unsigned>(p);
+            uint64_t t = uint64_t(un[i+j]) - borrow - static_cast<unsigned>(p);
             un[i+j] = static_cast<unsigned>(t);
             borrow = unsigned(p >> 32) - unsigned(t >> 32);
 
@@ -436,7 +436,7 @@ static void udiv_knuth_internal_base(
         for (int i = 0; i < n; i++)
         {
             uint64_t p = qhat*vn[i];
-            uint64_t t = int64_t(un[i+j]) - borrow - static_cast<unsigned>(p);
+            uint64_t t = uint64_t(un[i+j]) - borrow - static_cast<unsigned>(p);
             un[i+j] = static_cast<unsigned>(t);
             borrow = unsigned(p >> 32) - unsigned(t >> 32);
 
@@ -681,10 +681,9 @@ static void udiv_knuth_internal_64(
         for (int i = 0; i < n; i++)
         {
             uint128 p = qhat * vn[i];
-            __int128 t = __int128(un[i + j]) - borrow - lo_half(p);
-            uint128 s = static_cast<uint128>(t);
-            un[i+j] = lo_half(s);
-            borrow = hi_half(p) - hi_half(s);
+            uint128 t = uint128{un[i + j]} - borrow - lo_half(p);
+            un[i+j] = lo_half(t);
+            borrow = hi_half(p) - hi_half(t);
         }
         DEBUG(dbgs() << "borrow: " << (int)borrow << "\n");
         __int128 t = un[j + n] - borrow;
