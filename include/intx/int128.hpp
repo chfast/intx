@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 
 #ifdef _MSC_VER
