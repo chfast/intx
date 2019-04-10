@@ -358,6 +358,21 @@ inline int clz(uint128 x)
 }
 
 
+inline uint64_t bswap(uint64_t x) noexcept
+{
+#ifdef _MSC_VER
+    return _byteswap_uint64(x);
+#else
+    return __builtin_bswap64(x);
+#endif
+}
+
+inline uint128 bswap(uint128 x) noexcept
+{
+    return {bswap(x.lo), bswap(x.hi)};
+}
+
+
 /// Division.
 /// @{
 
