@@ -2,12 +2,10 @@
 // Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include "../utils/gmp.hpp"
 #include "test_cases.hpp"
 
 #include <intx/intx.hpp>
 
-#include <gmp.h>
 #include <gtest/gtest.h>
 
 using namespace intx;
@@ -58,8 +56,6 @@ constexpr uint64_t minimal[] = {
 class Uint256Test : public testing::Test
 {
 protected:
-    static constexpr size_t limbs = sizeof(uint256) / sizeof(mp_limb_t);
-
     std::vector<uint256> numbers;
 
 
@@ -84,59 +80,6 @@ protected:
         }
     }
 };
-
-TEST_F(Uint256Test, add_against_gmp)
-{
-    for (auto a : numbers)
-    {
-        for (auto b : numbers)
-        {
-            uint256 gmp;
-            auto p_gmp = (mp_ptr)&gmp;
-            auto p_a = (mp_srcptr)&a;
-            auto p_b = (mp_srcptr)&b;
-            mpn_add_n(p_gmp, p_a, p_b, limbs);
-
-            auto s = add(a, b);
-            EXPECT_EQ(gmp, s);
-        }
-    }
-
-    std::cerr << (numbers.size() * numbers.size()) << " additions";
-}
-
-TEST_F(Uint256Test, mul_against_gmp)
-{
-    for (auto a : numbers)
-    {
-        for (auto b : numbers)
-        {
-            uint256 gmp = gmp::mul(a, b);
-
-            auto p = mul(a, b);
-            auto r = mul_loop_opt(a, b);
-            EXPECT_EQ(gmp, p);
-            EXPECT_EQ(gmp, r);
-        }
-    }
-}
-
-
-TEST_F(Uint256Test, umul_full_against_gmp)
-{
-    for (auto a : numbers)
-    {
-        for (auto b : numbers)
-        {
-            uint512 gmp = gmp::mul_full(a, b);
-
-            uint512 p = umul(a, b);
-            uint512 q = umul_loop(a, b);
-            EXPECT_EQ(gmp, p);
-            EXPECT_EQ(gmp, q);
-        }
-    }
-}
 
 TEST_F(Uint256Test, count_significant_words_32)
 {
