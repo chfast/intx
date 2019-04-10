@@ -805,17 +805,6 @@ inline Int from_string(const std::string& s)
     return x;
 }
 
-constexpr uint64_t bswap(uint64_t x) noexcept
-{
-    return __builtin_bswap64(x);
-}
-
-constexpr uint128 bswap(uint128 x) noexcept
-{
-    // FIXME: Move to int128.hpp.
-    return {bswap(x.lo), bswap(x.hi)};
-}
-
 template <typename Int>
 inline Int bswap(const Int& x) noexcept
 {

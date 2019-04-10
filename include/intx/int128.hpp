@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 
 #ifdef _MSC_VER
@@ -329,32 +330,47 @@ constexpr uint128& operator>>=(uint128& x, unsigned shift) noexcept
 /// @}
 
 
-inline int clz(uint32_t x) noexcept
+inline unsigned clz(uint32_t x) noexcept
 {
 #ifdef _MSC_VER
     unsigned long most_significant_bit;
     _BitScanReverse(&most_significant_bit, x);
-    return 31 ^ (int)most_significant_bit;
+    return 31 ^ (unsigned)most_significant_bit;
 #else
     return __builtin_clz(x);
 #endif
 }
 
-inline int clz(uint64_t x) noexcept
+inline unsigned clz(uint64_t x) noexcept
 {
 #ifdef _MSC_VER
     unsigned long most_significant_bit;
     _BitScanReverse64(&most_significant_bit, x);
-    return 63 ^ (int)most_significant_bit;
+    return 63 ^ (unsigned)most_significant_bit;
 #else
     return __builtin_clzl(x);
 #endif
 }
 
-inline int clz(uint128 x)
+inline unsigned clz(uint128 x) noexcept
 {
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
     return x.hi == 0 ? clz(x.lo) | 64 : clz(x.hi);
+}
+
+
+inline uint64_t bswap(uint64_t x) noexcept
+{
+#ifdef _MSC_VER
+    return _byteswap_uint64(x);
+#else
+    return __builtin_bswap64(x);
+#endif
+}
+
+inline uint128 bswap(uint128 x) noexcept
+{
+    return {bswap(x.lo), bswap(x.hi)};
 }
 
 
