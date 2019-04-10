@@ -85,10 +85,6 @@ protected:
     }
 };
 
-class Uint256ParamTest : public Uint256Test, public ::testing::WithParamInterface<int>
-{
-};
-
 TEST_F(Uint256Test, add_against_gmp)
 {
     for (auto a : numbers)
@@ -350,21 +346,21 @@ TEST_F(Uint256Test, string_conversions)
     }
 }
 
-TEST_P(Uint256ParamTest, mul_against_add)
+TEST_F(Uint256Test, mul_against_add)
 {
-    const int factor = GetParam();
-    for (auto a : numbers)
+    for (auto factor : {0, 1, 2, 3, 19, 32, 577})
     {
-        uint256 s = 0;
-        for (int i = 0; i < factor; ++i)
-            s = add(s, a);
+        for (auto a : numbers)
+        {
+            uint256 s = 0;
+            for (int i = 0; i < factor; ++i)
+                s = add(s, a);
 
-        uint256 p = mul(a, uint256(factor));
-        EXPECT_EQ(p, s);
+            uint256 p = mul(a, uint256(factor));
+            EXPECT_EQ(p, s);
+        }
     }
 }
-INSTANTIATE_TEST_CASE_P(primes, Uint256ParamTest,
-    testing::Values(0, 1, 2, 3, 17, 19, 32, 512, 577, 2048, 2069, 3011, 7919, 8192));
 
 TEST(uint256, negation_overflow)
 {
