@@ -5,7 +5,6 @@
 #include <div.hpp>
 #include <intx/intx.hpp>
 
-#include "../utils/random.hpp"
 #include "../utils/utils.hpp"
 #include <gtest/gtest.h>
 
