@@ -121,14 +121,12 @@ TEST_F(Uint256Test, udiv)
 
 TEST_F(Uint256Test, add_against_sub)
 {
-    for (auto a : numbers)
+    const auto n = numbers.size();
+    for (size_t i = 0; i < n; ++i)
     {
-        for (auto b : numbers)
-        {
-            uint256 sum = add(a, b);
-            uint256 test = sub(sum, b);
-            EXPECT_EQ(a, test);
-        }
+        auto a = numbers[i];
+        auto b = numbers[n - 1 - i];
+        EXPECT_EQ(a, (a + b) - b);
     }
 }
 
