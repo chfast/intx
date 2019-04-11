@@ -1,6 +1,11 @@
 # intx: extended precision integer library.
-# Copyright 2017 Pawel Bylica.
-# Licensed under the Apache License, Version 2.0. See the LICENSE file.
+# Copyright 2019 Pawel Bylica.
+# Licensed under the Apache License, Version 2.0.
+
+hunter_add_package(benchmark)
+find_package(benchmark CONFIG REQUIRED)
+
+find_package(GMP REQUIRED)
 
 add_executable(intx-bench
     bench_div.cpp

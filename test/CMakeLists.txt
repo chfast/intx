@@ -2,14 +2,6 @@
 # Copyright 2019 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
-hunter_add_package(GTest)
-find_package(GTest CONFIG REQUIRED)
-
-hunter_add_package(benchmark)
-find_package(benchmark CONFIG REQUIRED)
-
-find_package(GMP REQUIRED)
-
 add_subdirectory(benchmarks)
 add_subdirectory(integration)
 add_subdirectory(unittests)

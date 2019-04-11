@@ -2,6 +2,8 @@
 # Copyright 2019 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
+find_package(GMP REQUIRED)
+
 string(REPLACE fuzzer-no-link fuzzer CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
 
 add_executable(intx-fuzzer fuzz_intx.cpp)
