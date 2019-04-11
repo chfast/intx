@@ -256,16 +256,15 @@ TEST_F(Uint256Test, string_conversions)
 
 TEST_F(Uint256Test, mul_against_add)
 {
-    for (auto factor : {0, 1, 2, 3, 19, 32, 577})
+    for (auto factor : {0, 1, 3, 19, 32})
     {
         for (auto a : numbers)
         {
-            uint256 s = 0;
+            auto s = uint256{0};
             for (int i = 0; i < factor; ++i)
-                s = add(s, a);
+                s += a;
 
-            uint256 p = mul(a, uint256(factor));
-            EXPECT_EQ(p, s);
+            EXPECT_EQ(a * factor, s);
         }
     }
 }
