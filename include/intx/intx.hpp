@@ -12,36 +12,46 @@
 #include <cstring>
 #include <limits>
 #include <tuple>
+#include <type_traits>
 
 namespace intx
 {
-struct uint256
+template <unsigned N>
+struct uint
 {
-    constexpr uint256(uint64_t x = 0) noexcept : lo(x) {}
-    constexpr uint256(uint128 lo) noexcept : lo(lo) {}
-    constexpr uint256(uint128 lo, uint128 hi) noexcept : lo(lo), hi(hi) {}
+    static_assert((N & (N - 1)) == 0, "Number of bits must be power of 2");
+    static_assert(N >= 256, "Number of bits must be at lest 256");
 
-    uint128 lo = 0;
-    uint128 hi = 0;
+    /// The 2x smaller type.
+    ///
+    /// In the generic case of uint<N> the half type is just uint<N / 2>,
+    /// but we have to handle the uint<256> case differently by using
+    /// the external uint128 type.
+    using half_type = std::conditional_t<N == 256, uint128, uint<N / 2>>;
+
+    half_type lo = 0;
+    half_type hi = 0;
+
+    constexpr uint() noexcept = default;
+
+    /// Implicit converting constructor for built-in unsigned types.
+    constexpr uint(uint64_t x) noexcept : lo{x} {}  // NOLINT
+
+    /// Implicit converting constructor for the half type.
+    constexpr uint(half_type x) noexcept : lo(x) {}  // NOLINT
+
+    constexpr uint(half_type lo, half_type hi) noexcept : lo(lo), hi(hi) {}
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
     explicit operator Int() const noexcept
     {
-        return static_cast<Int>(lo.lo);
+        return static_cast<Int>(lo);
     }
 };
 
-struct uint512
-{
-    constexpr uint512(uint64_t x = 0) noexcept : lo(x) {}
-    constexpr uint512(uint256 lo) noexcept : lo(lo) {}
-    constexpr uint512(uint256 lo, uint256 hi) noexcept : lo(lo), hi(hi) {}
-
-    uint256 lo = {};
-    uint256 hi = {};
-};
-
+using uint256 = uint<256>;
+using uint512 = uint<512>;
 
 template <typename T>
 struct traits
@@ -52,7 +62,6 @@ template <>
 struct traits<uint64_t>
 {
     using double_type = uint128;
-    using half_type = uint32_t;
 
     static constexpr unsigned bits = 64;
     static constexpr unsigned half_bits = 32;
@@ -62,7 +71,6 @@ template <>
 struct traits<uint128>
 {
     using double_type = uint256;
-    using half_type = uint64_t;
 
     static constexpr unsigned bits = 128;
     static constexpr unsigned half_bits = 64;
@@ -72,7 +80,6 @@ template <>
 struct traits<uint256>
 {
     using double_type = uint512;
-    using half_type = uint128;
 
     static constexpr unsigned bits = 256;
     static constexpr unsigned half_bits = 128;
@@ -81,9 +88,6 @@ struct traits<uint256>
 template <>
 struct traits<uint512>
 {
-    //    using double_type = uint1024;
-    using half_type = uint256;
-
     static constexpr unsigned bits = 512;
     static constexpr unsigned half_bits = 256;
 };
@@ -171,88 +175,80 @@ constexpr unsigned num_bits(const T&)
     return sizeof(T) * 8;
 }
 
-template <typename Int>
-inline bool operator==(Int a, Int b)
+template <unsigned N>
+constexpr bool operator==(const uint<N>& a, const uint<N>& b) noexcept
 {
-    auto a_lo = lo_half(a);
-    auto a_hi = hi_half(a);
-    auto b_lo = lo_half(b);
-    auto b_hi = hi_half(b);
-    return (a_lo == b_lo) & (a_hi == b_hi);
+    return (a.lo == b.lo) & (a.hi == b.hi);
 }
 
-template <typename Int>
-inline bool operator==(Int a, uint64_t b)
+template <unsigned N>
+constexpr bool operator==(const uint<N>& a, uint64_t b) noexcept
 {
-    return a == Int(b);
+    return a == uint<N>{b};
 }
 
-inline bool operator!=(uint256 a, uint256 b)
+template <unsigned N>
+constexpr bool operator!=(const uint<N>& a, const uint<N>& b) noexcept
 {
     return !(a == b);
 }
 
-inline bool operator!=(uint512 a, uint512 b)
+template <unsigned N>
+constexpr bool operator!=(const uint<N>& a, uint64_t b) noexcept
 {
-    return !(a == b);
+    return a != uint<N>{b};
 }
 
-template <typename Int>
-inline bool operator<(Int a, Int b)
+template <unsigned N>
+constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept
 {
-    auto a_lo = lo_half(a);
-    auto a_hi = hi_half(a);
-    auto b_lo = lo_half(b);
-    auto b_hi = hi_half(b);
     // Bitwise operators are used to implement logic here to avoid branching.
     // It also should make the function smaller, but no proper benchmark has
     // been done.
-    return (a_hi < b_hi) | ((a_hi == b_hi) & (a_lo < b_lo));
+    return (a.hi < b.hi) | ((a.hi == b.hi) & (a.lo < b.lo));
 }
 
-template <typename Int>
-inline bool operator<(Int a, uint64_t b)
+template <unsigned N>
+constexpr bool operator>(const uint<N>& a, const uint<N>& b) noexcept
 {
-    return a < Int(b);
+    // Bitwise operators are used to implement logic here to avoid branching.
+    // It also should make the function smaller, but no proper benchmark has
+    // been done.
+    return (a.hi > b.hi) | ((a.hi == b.hi) & (a.lo > b.lo));
 }
 
-template <typename Int>
-inline bool operator<(uint64_t a, Int b)
-{
-    return Int(a) < b;
-}
-
-inline bool operator>=(uint256 a, uint256 b)
+template <unsigned N>
+constexpr bool operator>=(const uint<N>& a, const uint<N>& b) noexcept
 {
     return !(a < b);
 }
 
-template <typename Int>
-inline bool operator<=(Int a, Int b)
+template <unsigned N>
+constexpr bool operator<=(const uint<N>& a, const uint<N>& b) noexcept
 {
-    return (a < b) || (a == b);
+    return !(a > b);
 }
 
-template <typename Int>
-inline constexpr Int operator|(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator|(const uint<N>& x, const uint<N>& y) noexcept
 {
     return {x.lo | y.lo, x.hi | y.hi};
 }
 
-template <typename Int>
-inline constexpr Int operator&(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator&(const uint<N>& x, const uint<N>& y) noexcept
 {
     return {x.lo & y.lo, x.hi & y.hi};
 }
 
-template <typename Int>
-inline constexpr Int operator^(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator^(const uint<N>& x, const uint<N>& y) noexcept
 {
     return {x.lo ^ y.lo, x.hi ^ y.hi};
 }
 
-template <typename Int>
-inline constexpr Int operator~(const Int& x) noexcept
+template <unsigned N>
+constexpr uint<N> operator~(const uint<N>& x) noexcept
 {
     return {~x.lo, ~x.hi};
 }
@@ -275,22 +271,21 @@ inline uint128 lsr(uint128 a, unsigned b)
 template <typename Int>
 inline Int shl(Int x, unsigned shift) noexcept
 {
-    using half_type = typename traits<Int>::half_type;
     constexpr auto bits = traits<Int>::bits;
     constexpr auto half_bits = traits<Int>::half_bits;
 
     if (shift < half_bits)
     {
-        half_type lo = shl(x.lo, shift);
+        auto lo = shl(x.lo, shift);
 
         // Find the part moved from lo to hi.
         // The shift right here can be invalid:
         // for shift == 0 => lshift == half_bits.
         // Split it into 2 valid shifts by (rshift - 1) and 1.
         unsigned rshift = half_bits - shift;
-        half_type lo_overflow = lsr(lsr(x.lo, rshift - 1), 1);
-        half_type hi_part = shl(x.hi, shift);
-        half_type hi = hi_part | lo_overflow;
+        auto lo_overflow = lsr(lsr(x.lo, rshift - 1), 1);
+        auto hi_part = shl(x.hi, shift);
+        auto hi = hi_part | lo_overflow;
         return Int{lo, hi};
     }
 
@@ -298,7 +293,7 @@ inline Int shl(Int x, unsigned shift) noexcept
     // larger than size of the Int.
     if (shift < bits)
     {
-        half_type hi = shl(x.lo, shift - half_bits);
+        auto hi = shl(x.lo, shift - half_bits);
         return Int{0, hi};
     }
 
@@ -348,21 +343,20 @@ inline Int& operator>>=(Int& x, unsigned shift) noexcept
 template <typename Int>
 inline Int lsr(Int x, unsigned shift)
 {
-    using half_type = typename traits<Int>::half_type;
     constexpr auto bits = traits<Int>::bits;
     constexpr auto half_bits = traits<Int>::half_bits;
 
     if (shift < half_bits)
     {
-        half_type hi = lsr(x.hi, shift);
+        auto hi = lsr(x.hi, shift);
 
         // Find the part moved from hi to lo.
         // To avoid invalid shift left,
         // split them into 2 valid shifts by (lshift - 1) and 1.
         unsigned lshift = half_bits - shift;
-        half_type hi_overflow = shl(shl(x.hi, lshift - 1), 1);
-        half_type lo_part = lsr(x.lo, shift);
-        half_type lo = lo_part | hi_overflow;
+        auto hi_overflow = shl(shl(x.hi, lshift - 1), 1);
+        auto lo_part = lsr(x.lo, shift);
+        auto lo = lo_part | hi_overflow;
         return Int{lo, hi};
     }
 

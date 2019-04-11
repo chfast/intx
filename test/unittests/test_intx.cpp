@@ -336,3 +336,73 @@ TEST(uint256, count_significant_bytes)
     EXPECT_EQ(w, 15);
     EXPECT_EQ(count_significant_words<uint8_t>(0_u256), 0);
 }
+
+template <typename T>
+class uint_test : public testing::Test
+{
+};
+
+using types = testing::Types<uint256, uint512>;
+TYPED_TEST_CASE(uint_test, types);
+
+TYPED_TEST(uint_test, comparison)
+{
+    auto z00 = TypeParam{0, 0};
+    auto z01 = TypeParam{1, 0};
+    auto z10 = TypeParam{0, 1};
+    auto z11 = TypeParam{1, 1};
+
+    EXPECT_EQ(z00, z00);
+    EXPECT_EQ(z01, z01);
+    EXPECT_EQ(z10, z10);
+    EXPECT_EQ(z11, z11);
+
+    EXPECT_NE(z00, z01);
+    EXPECT_NE(z00, z10);
+    EXPECT_NE(z00, z11);
+    EXPECT_NE(z10, z00);
+    EXPECT_NE(z10, z01);
+    EXPECT_NE(z10, z11);
+
+    EXPECT_LT(z00, z01);
+    EXPECT_LT(z00, z10);
+    EXPECT_LT(z00, z11);
+    EXPECT_LT(z01, z10);
+    EXPECT_LT(z01, z11);
+    EXPECT_LT(z10, z11);
+
+    EXPECT_LE(z00, z00);
+    EXPECT_LE(z00, z01);
+    EXPECT_LE(z00, z10);
+    EXPECT_LE(z00, z11);
+    EXPECT_LE(z01, z01);
+    EXPECT_LE(z01, z10);
+    EXPECT_LE(z01, z11);
+    EXPECT_LE(z10, z10);
+    EXPECT_LE(z10, z11);
+    EXPECT_LE(z11, z11);
+
+    EXPECT_GT(z01, z00);
+    EXPECT_GT(z10, z00);
+    EXPECT_GT(z11, z00);
+    EXPECT_GT(z10, z01);
+    EXPECT_GT(z11, z01);
+    EXPECT_GT(z11, z10);
+
+    EXPECT_GE(z00, z00);
+    EXPECT_GE(z01, z00);
+    EXPECT_GE(z10, z00);
+    EXPECT_GE(z11, z00);
+    EXPECT_GE(z01, z01);
+    EXPECT_GE(z10, z01);
+    EXPECT_GE(z11, z01);
+    EXPECT_GE(z10, z10);
+    EXPECT_GE(z11, z10);
+    EXPECT_GE(z11, z11);
+}
+
+//
+//TEST(uint256, comparison)
+//{
+//    auto uint
+//}
