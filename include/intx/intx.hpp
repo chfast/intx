@@ -175,64 +175,47 @@ constexpr unsigned num_bits(const T&)
     return sizeof(T) * 8;
 }
 
-template <typename Int>
-inline bool operator==(Int a, Int b)
+template <unsigned N>
+constexpr bool operator==(const uint<N>& a, const uint<N>& b) noexcept
 {
-    auto a_lo = lo_half(a);
-    auto a_hi = hi_half(a);
-    auto b_lo = lo_half(b);
-    auto b_hi = hi_half(b);
-    return (a_lo == b_lo) & (a_hi == b_hi);
+    return (a.lo == b.lo) & (a.hi == b.hi);
 }
 
-template <typename Int>
-inline bool operator==(Int a, uint64_t b)
+template <unsigned N>
+constexpr bool operator==(const uint<N>& a, uint64_t b) noexcept
 {
-    return a == Int(b);
+    return a == uint<N>{b};
 }
 
-inline bool operator!=(uint256 a, uint256 b)
+template <unsigned N>
+constexpr bool operator!=(const uint<N>& a, const uint<N>& b) noexcept
 {
     return !(a == b);
 }
 
-inline bool operator!=(uint512 a, uint512 b)
+template <unsigned N>
+constexpr bool operator!=(const uint<N>& a, uint64_t b) noexcept
 {
-    return !(a == b);
+    return a != uint<N>{b};
 }
 
-template <typename Int>
-inline bool operator<(Int a, Int b)
+template <unsigned N>
+constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept
 {
-    auto a_lo = lo_half(a);
-    auto a_hi = hi_half(a);
-    auto b_lo = lo_half(b);
-    auto b_hi = hi_half(b);
     // Bitwise operators are used to implement logic here to avoid branching.
     // It also should make the function smaller, but no proper benchmark has
     // been done.
-    return (a_hi < b_hi) | ((a_hi == b_hi) & (a_lo < b_lo));
+    return (a.hi < b.hi) | ((a.hi == b.hi) & (a.lo < b.lo));
 }
 
-template <typename Int>
-inline bool operator<(Int a, uint64_t b)
-{
-    return a < Int(b);
-}
-
-template <typename Int>
-inline bool operator<(uint64_t a, Int b)
-{
-    return Int(a) < b;
-}
-
-inline bool operator>=(uint256 a, uint256 b)
+template <unsigned N>
+constexpr bool operator>=(const uint<N>& a, const uint<N>& b) noexcept
 {
     return !(a < b);
 }
 
-template <typename Int>
-inline bool operator<=(Int a, Int b)
+template <unsigned N>
+constexpr bool operator<=(const uint<N>& a, const uint<N>& b) noexcept
 {
     return (a < b) || (a == b);
 }
