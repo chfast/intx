@@ -12,36 +12,46 @@
 #include <cstring>
 #include <limits>
 #include <tuple>
+#include <type_traits>
 
 namespace intx
 {
-struct uint256
+template <unsigned N>
+struct uint
 {
-    constexpr uint256(uint64_t x = 0) noexcept : lo(x) {}
-    constexpr uint256(uint128 lo) noexcept : lo(lo) {}
-    constexpr uint256(uint128 lo, uint128 hi) noexcept : lo(lo), hi(hi) {}
+    static_assert((N & (N - 1)) == 0, "Number of bits must be power of 2");
+    static_assert(N >= 256, "Number of bits must be at lest 256");
 
-    uint128 lo = 0;
-    uint128 hi = 0;
+    /// The 2x smaller type.
+    ///
+    /// In the generic case of uint<N> the half type is just uint<N / 2>,
+    /// but we have to handle the uint<256> case differently by using
+    /// the external uint128 type.
+    using half_type = std::conditional_t<N == 256, uint128, uint<N / 2>>;
+
+    half_type lo = 0;
+    half_type hi = 0;
+
+    constexpr uint() noexcept = default;
+
+    /// Implicit converting constructor for built-in unsigned types.
+    constexpr uint(uint64_t x) noexcept : lo{x} {}  // NOLINT
+
+    /// Implicit converting constructor for the half type.
+    constexpr uint(half_type x) noexcept : lo(x) {}  // NOLINT
+
+    constexpr uint(half_type lo, half_type hi) noexcept : lo(lo), hi(hi) {}
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
     explicit operator Int() const noexcept
     {
-        return static_cast<Int>(lo.lo);
+        return static_cast<Int>(lo);
     }
 };
 
-struct uint512
-{
-    constexpr uint512(uint64_t x = 0) noexcept : lo(x) {}
-    constexpr uint512(uint256 lo) noexcept : lo(lo) {}
-    constexpr uint512(uint256 lo, uint256 hi) noexcept : lo(lo), hi(hi) {}
-
-    uint256 lo = {};
-    uint256 hi = {};
-};
-
+using uint256 = uint<256>;
+using uint512 = uint<512>;
 
 template <typename T>
 struct traits
