@@ -209,6 +209,15 @@ constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept
 }
 
 template <unsigned N>
+constexpr bool operator>(const uint<N>& a, const uint<N>& b) noexcept
+{
+    // Bitwise operators are used to implement logic here to avoid branching.
+    // It also should make the function smaller, but no proper benchmark has
+    // been done.
+    return (a.hi > b.hi) | ((a.hi == b.hi) & (a.lo > b.lo));
+}
+
+template <unsigned N>
 constexpr bool operator>=(const uint<N>& a, const uint<N>& b) noexcept
 {
     return !(a < b);
@@ -217,7 +226,7 @@ constexpr bool operator>=(const uint<N>& a, const uint<N>& b) noexcept
 template <unsigned N>
 constexpr bool operator<=(const uint<N>& a, const uint<N>& b) noexcept
 {
-    return (a < b) || (a == b);
+    return !(a > b);
 }
 
 template <unsigned N>
