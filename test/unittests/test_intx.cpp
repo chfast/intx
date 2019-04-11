@@ -121,14 +121,12 @@ TEST_F(Uint256Test, udiv)
 
 TEST_F(Uint256Test, add_against_sub)
 {
-    for (auto a : numbers)
+    const auto n = numbers.size();
+    for (size_t i = 0; i < n; ++i)
     {
-        for (auto b : numbers)
-        {
-            uint256 sum = add(a, b);
-            uint256 test = sub(sum, b);
-            EXPECT_EQ(a, test);
-        }
+        auto a = numbers[i];
+        auto b = numbers[n - 1 - i];
+        EXPECT_EQ(a, (a + b) - b);
     }
 }
 
@@ -258,16 +256,15 @@ TEST_F(Uint256Test, string_conversions)
 
 TEST_F(Uint256Test, mul_against_add)
 {
-    for (auto factor : {0, 1, 2, 3, 19, 32, 577})
+    for (auto factor : {0, 1, 3, 19, 32})
     {
         for (auto a : numbers)
         {
-            uint256 s = 0;
+            auto s = uint256{0};
             for (int i = 0; i < factor; ++i)
-                s = add(s, a);
+                s += a;
 
-            uint256 p = mul(a, uint256(factor));
-            EXPECT_EQ(p, s);
+            EXPECT_EQ(a * factor, s);
         }
     }
 }
@@ -399,6 +396,17 @@ TYPED_TEST(uint_test, comparison)
     EXPECT_GE(z10, z10);
     EXPECT_GE(z11, z10);
     EXPECT_GE(z11, z11);
+}
+
+TYPED_TEST(uint_test, shift_against_mul)
+{
+    auto a = TypeParam{0xaaaaaaa};
+    auto b = TypeParam{200};
+
+    auto x = a << b;
+    auto s = TypeParam{1} << b;
+    auto y = a * s;
+    EXPECT_EQ(x, y);
 }
 
 //

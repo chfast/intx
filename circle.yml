@@ -104,12 +104,12 @@ jobs:
       - *test
       - *benchmark
 
-  linux-clang-asan:
+  fuzzing:
     environment:
       - CXX: clang++-8
       - CC:  clang-8
       - BUILD_PARALLEL_JOBS: 4
-      - CMAKE_OPTIONS: -DSANITIZE=address
+      - CMAKE_OPTIONS: -DINTX_FUZZING=ON
     docker:
       - image: ethereum/cpp-build-env:11
     steps:
@@ -120,6 +120,19 @@ jobs:
       - *build
       - *test
       - *benchmark
+      - restore_cache:
+          keys:
+            - corpus
+      - run:
+          name: "Fuzzing"
+          working_directory: ~/build
+          command: |
+            mkdir -p ~/corpus
+            test/intx-fuzzer ~/corpus -use_value_profile=1 -max_len=129 -runs=100000
+      - save_cache:
+          key: corpus-{{ epoch }}
+          paths:
+            - ~/corpus
 
 workflows:
   version: 2
@@ -127,4 +140,4 @@ workflows:
     jobs:
       - linux-gcc-coverage
       - linux-clang-ubsan
-      - linux-clang-asan
+      - fuzzing

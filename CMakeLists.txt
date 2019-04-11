@@ -24,7 +24,8 @@ HunterGate(
 
 project(intx)
 
-option(INTX_TESTING "Build IntX with tests" ON)
+option(INTX_TESTING "Build intx with tests" ON)
+option(INTX_BENCHMARKING "Build intx with benchmark tools" ON)
 option(INTX_FUZZING "Build intx fuzzers" OFF)
 
 cable_configure_compiler(NO_PEDANTIC NO_CONVERSION_WARNINGS)
@@ -44,6 +45,6 @@ endif()
 
 add_subdirectory(lib/intx)
 
-if(INTX_TESTING)
+if(INTX_TESTING OR INTX_BENCHMARKING OR INTX_FUZZING)
     add_subdirectory(test)
 endif()

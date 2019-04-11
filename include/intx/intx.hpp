@@ -209,6 +209,12 @@ constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept
 }
 
 template <unsigned N>
+constexpr bool operator<(const uint<N>& a, uint64_t b) noexcept
+{
+    return a < uint<N>{b};
+}
+
+template <unsigned N>
 constexpr bool operator>(const uint<N>& a, const uint<N>& b) noexcept
 {
     // Bitwise operators are used to implement logic here to avoid branching.
