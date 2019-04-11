@@ -220,26 +220,26 @@ constexpr bool operator<=(const uint<N>& a, const uint<N>& b) noexcept
     return (a < b) || (a == b);
 }
 
-template <typename Int>
-inline constexpr Int operator|(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator|(const uint<N>& x, const uint<N>& y) noexcept
 {
     return {x.lo | y.lo, x.hi | y.hi};
 }
 
-template <typename Int>
-inline constexpr Int operator&(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator&(const uint<N>& x, const uint<N>& y) noexcept
 {
     return {x.lo & y.lo, x.hi & y.hi};
 }
 
-template <typename Int>
-inline constexpr Int operator^(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator^(const uint<N>& x, const uint<N>& y) noexcept
 {
     return {x.lo ^ y.lo, x.hi ^ y.hi};
 }
 
-template <typename Int>
-inline constexpr Int operator~(const Int& x) noexcept
+template <unsigned N>
+constexpr uint<N> operator~(const uint<N>& x) noexcept
 {
     return {~x.lo, ~x.hi};
 }
