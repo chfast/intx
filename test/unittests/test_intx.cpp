@@ -401,6 +401,17 @@ TYPED_TEST(uint_test, comparison)
     EXPECT_GE(z11, z11);
 }
 
+TYPED_TEST(uint_test, shift_against_mul)
+{
+    auto a = TypeParam{0xaaaaaaa};
+    auto b = TypeParam{200};
+
+    auto x = a << b;
+    auto s = TypeParam{1} << b;
+    auto y = a * s;
+    EXPECT_EQ(x, y);
+}
+
 //
 //TEST(uint256, comparison)
 //{
