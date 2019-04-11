@@ -62,7 +62,6 @@ template <>
 struct traits<uint64_t>
 {
     using double_type = uint128;
-    using half_type = uint32_t;
 
     static constexpr unsigned bits = 64;
     static constexpr unsigned half_bits = 32;
@@ -72,7 +71,6 @@ template <>
 struct traits<uint128>
 {
     using double_type = uint256;
-    using half_type = uint64_t;
 
     static constexpr unsigned bits = 128;
     static constexpr unsigned half_bits = 64;
@@ -82,7 +80,6 @@ template <>
 struct traits<uint256>
 {
     using double_type = uint512;
-    using half_type = uint128;
 
     static constexpr unsigned bits = 256;
     static constexpr unsigned half_bits = 128;
@@ -91,9 +88,6 @@ struct traits<uint256>
 template <>
 struct traits<uint512>
 {
-    //    using double_type = uint1024;
-    using half_type = uint256;
-
     static constexpr unsigned bits = 512;
     static constexpr unsigned half_bits = 256;
 };
@@ -285,22 +279,21 @@ inline uint128 lsr(uint128 a, unsigned b)
 template <typename Int>
 inline Int shl(Int x, unsigned shift) noexcept
 {
-    using half_type = typename traits<Int>::half_type;
     constexpr auto bits = traits<Int>::bits;
     constexpr auto half_bits = traits<Int>::half_bits;
 
     if (shift < half_bits)
     {
-        half_type lo = shl(x.lo, shift);
+        auto lo = shl(x.lo, shift);
 
         // Find the part moved from lo to hi.
         // The shift right here can be invalid:
         // for shift == 0 => lshift == half_bits.
         // Split it into 2 valid shifts by (rshift - 1) and 1.
         unsigned rshift = half_bits - shift;
-        half_type lo_overflow = lsr(lsr(x.lo, rshift - 1), 1);
-        half_type hi_part = shl(x.hi, shift);
-        half_type hi = hi_part | lo_overflow;
+        auto lo_overflow = lsr(lsr(x.lo, rshift - 1), 1);
+        auto hi_part = shl(x.hi, shift);
+        auto hi = hi_part | lo_overflow;
         return Int{lo, hi};
     }
 
@@ -308,7 +301,7 @@ inline Int shl(Int x, unsigned shift) noexcept
     // larger than size of the Int.
     if (shift < bits)
     {
-        half_type hi = shl(x.lo, shift - half_bits);
+        auto hi = shl(x.lo, shift - half_bits);
         return Int{0, hi};
     }
 
@@ -358,21 +351,20 @@ inline Int& operator>>=(Int& x, unsigned shift) noexcept
 template <typename Int>
 inline Int lsr(Int x, unsigned shift)
 {
-    using half_type = typename traits<Int>::half_type;
     constexpr auto bits = traits<Int>::bits;
     constexpr auto half_bits = traits<Int>::half_bits;
 
     if (shift < half_bits)
     {
-        half_type hi = lsr(x.hi, shift);
+        auto hi = lsr(x.hi, shift);
 
         // Find the part moved from hi to lo.
         // To avoid invalid shift left,
         // split them into 2 valid shifts by (lshift - 1) and 1.
         unsigned lshift = half_bits - shift;
-        half_type hi_overflow = shl(shl(x.hi, lshift - 1), 1);
-        half_type lo_part = lsr(x.lo, shift);
-        half_type lo = lo_part | hi_overflow;
+        auto hi_overflow = shl(shl(x.hi, lshift - 1), 1);
+        auto lo_part = lsr(x.lo, shift);
+        auto lo = lo_part | hi_overflow;
         return Int{lo, hi};
     }
 
