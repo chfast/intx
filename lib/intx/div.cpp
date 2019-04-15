@@ -11,10 +11,9 @@ namespace
 union uint512_words64
 {
     using word_type = uint64_t;
-    static constexpr int num_words = sizeof(uint512) / sizeof(word_type);
 
     const uint512 number;
-    word_type words[num_words];
+    word_type words[uint512::num_words];
 
     constexpr explicit uint512_words64(uint512 number = {}) noexcept : number{number} {}
 
@@ -27,12 +26,11 @@ inline div_result<uint512> udivrem_by1(const normalized_div_args& na) noexcept
     auto v = reciprocal_2by1(d);
 
     auto q = uint512_words64{};
-    constexpr auto num_words = decltype(q)::num_words;
 
-    auto x = div_result<decltype(q)::word_type>{0, na.numerator[num_words]};
+    auto x = div_result<decltype(q)::word_type>{0, na.numerator[uint512::num_words]};
 
     // OPT: Skip leading zero words.
-    for (int j = num_words - 1; j >= 0; --j)
+    for (int j = uint512::num_words - 1; j >= 0; --j)
     {
         x = udivrem_2by1({x.rem, na.numerator[j]}, d, v);
         q[j] = x.quot;
@@ -47,7 +45,7 @@ inline div_result<uint512> udivrem_by2(const normalized_div_args& na) noexcept
     auto v = reciprocal_3by2(d);
 
     auto q = uint512_words64{};
-    constexpr auto num_words = decltype(q)::num_words;
+    constexpr auto num_words = uint512::num_words;
 
     auto r = uint128{na.numerator[num_words], na.numerator[num_words - 1]};
 

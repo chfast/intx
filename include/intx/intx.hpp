@@ -22,12 +22,18 @@ struct uint
     static_assert((N & (N - 1)) == 0, "Number of bits must be power of 2");
     static_assert(N >= 256, "Number of bits must be at lest 256");
 
+    using word_type = uint64_t;
+
     /// The 2x smaller type.
     ///
     /// In the generic case of uint<N> the half type is just uint<N / 2>,
     /// but we have to handle the uint<256> case differently by using
     /// the external uint128 type.
     using half_type = std::conditional_t<N == 256, uint128, uint<N / 2>>;
+
+    static constexpr auto num_bits = N;
+    static constexpr auto num_words = N / 8 / sizeof(word_type);
+
 
     half_type lo = 0;
     half_type hi = 0;
@@ -65,34 +71,23 @@ template <>
 struct traits<uint64_t>
 {
     using double_type = uint128;
-
-    static constexpr unsigned bits = 64;
-    static constexpr unsigned half_bits = 32;
 };
 
 template <>
 struct traits<uint128>
 {
     using double_type = uint256;
-
-    static constexpr unsigned bits = 128;
-    static constexpr unsigned half_bits = 64;
 };
 
 template <>
 struct traits<uint256>
 {
     using double_type = uint512;
-
-    static constexpr unsigned bits = 256;
-    static constexpr unsigned half_bits = 128;
 };
 
 template <>
 struct traits<uint512>
 {
-    static constexpr unsigned bits = 512;
-    static constexpr unsigned half_bits = 256;
 };
 
 
@@ -280,8 +275,7 @@ inline uint128 lsr(uint128 a, unsigned b)
 template <typename Int>
 inline Int shl(Int x, unsigned shift) noexcept
 {
-    constexpr auto bits = traits<Int>::bits;
-    constexpr auto half_bits = traits<Int>::half_bits;
+    constexpr auto half_bits = Int::num_bits / 2;
 
     if (shift < half_bits)
     {
@@ -300,7 +294,7 @@ inline Int shl(Int x, unsigned shift) noexcept
 
     // This check is only needed if we want "defined" behavior for shifts
     // larger than size of the Int.
-    if (shift < bits)
+    if (shift < Int::num_bits)
     {
         auto hi = shl(x.lo, shift - half_bits);
         return Int{0, hi};
@@ -330,7 +324,7 @@ inline Target narrow_cast(const Int& x) noexcept
 template <typename Int>
 inline Int operator<<(const Int& x, const Int& shift) noexcept
 {
-    if (shift < traits<Int>::bits)
+    if (shift < Int::num_bits)
         return x << narrow_cast<unsigned>(shift);
     return 0;
 }
@@ -338,7 +332,7 @@ inline Int operator<<(const Int& x, const Int& shift) noexcept
 template <typename Int>
 inline Int operator>>(const Int& x, const Int& shift) noexcept
 {
-    if (shift < traits<Int>::bits)
+    if (shift < Int::num_bits)
         return lsr(x, narrow_cast<unsigned>(shift));
     return 0;
 }
@@ -352,8 +346,7 @@ inline Int& operator>>=(Int& x, unsigned shift) noexcept
 template <typename Int>
 inline Int lsr(Int x, unsigned shift)
 {
-    constexpr auto bits = traits<Int>::bits;
-    constexpr auto half_bits = traits<Int>::half_bits;
+    constexpr auto half_bits = Int::num_bits / 2;
 
     if (shift < half_bits)
     {
@@ -369,7 +362,7 @@ inline Int lsr(Int x, unsigned shift)
         return Int{lo, hi};
     }
 
-    if (shift < bits)
+    if (shift < Int::num_bits)
     {
         auto lo = lsr(x.hi, shift - half_bits);
         return Int{lo, 0};
@@ -538,7 +531,7 @@ inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexce
     auto u1 = t1 + Int{t0.hi};  // TODO: Fix conversion in uint256 + uint128.
     auto u2 = t2 + Int{u1.lo};
 
-    auto lo = (u2 << traits<Int>::half_bits) | Int{t0.lo};
+    auto lo = (u2 << (Int::num_bits / 2)) | Int{t0.lo};
     auto hi = t3 + Int{u2.hi} + Int{u1.hi};
 
     return {lo, hi};
