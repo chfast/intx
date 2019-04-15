@@ -610,7 +610,8 @@ inline uint256 operator*(const uint256& x, const uint256& y) noexcept
     return mul(x, y);
 }
 
-inline uint512 operator*(const uint512& x, const uint512& y) noexcept
+template <unsigned N>
+inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
 {
     return mul_loop_opt(x, y);
 }
@@ -878,6 +879,20 @@ template <unsigned N, typename T,
 constexpr uint<N> operator-(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) - y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator*(const uint<N>& x, const T& y) noexcept
+{
+    return x * uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator*(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) * y;
 }
 
 
