@@ -34,13 +34,16 @@ struct uint
 
     constexpr uint() noexcept = default;
 
-    /// Implicit converting constructor for built-in unsigned types.
-    constexpr uint(uint64_t x) noexcept : lo{x} {}  // NOLINT
+    constexpr uint(half_type lo, half_type hi) noexcept : lo(lo), hi(hi) {}
 
     /// Implicit converting constructor for the half type.
     constexpr uint(half_type x) noexcept : lo(x) {}  // NOLINT
 
-    constexpr uint(half_type lo, half_type hi) noexcept : lo(lo), hi(hi) {}
+    /// Implicit converting constructor for types convertible to the half type.
+    template <typename T,
+        typename = typename std::enable_if<std::is_convertible<T, half_type>::value>::type>
+    constexpr uint(T x) noexcept : lo(x)  // NOLINT
+    {}
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
@@ -449,22 +452,39 @@ inline std::tuple<uint512, bool> add_with_carry(uint512 a, uint512 b)
     return std::make_tuple(s, k2 || k3);
 }
 
-template <typename Int>
-inline Int add(Int a, Int b)
+template <unsigned N>
+constexpr uint<N> add(const uint<N>& a, const uint<N>& b) noexcept
 {
     return std::get<0>(add_with_carry(a, b));
 }
 
-template <typename Int, typename Int2>
-inline Int add(Int a, Int2 b)
+template <unsigned N>
+inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
 {
-    return add(a, Int(b));
+    static constexpr auto num_words = sizeof(a) / sizeof(uint64_t);
+
+    auto x = as_words(a);
+    auto y = as_words(b);
+
+    uint<N> s;
+    auto z = as_words(s);
+
+    bool k = false;
+    for (size_t i = 0; i < num_words; ++i)
+    {
+        z[i] = x[i] + y[i];
+        auto k1 = z[i] < x[i];
+        z[i] += k;
+        k = (z[i] < k) || k1;
+    }
+
+    return s;
 }
 
 template <typename Int>
-inline constexpr Int operator-(const Int& x) noexcept
+constexpr Int operator-(const Int& x) noexcept
 {
-    return add(~x, uint64_t(1));
+    return ~x + uint64_t{1};
 }
 
 inline uint128 sub(uint128 a, uint128 b)
@@ -478,27 +498,13 @@ inline Int sub(Int a, Int b)
     return add(a, -b);
 }
 
-inline uint128 add(uint128 a, uint128 b)
-{
-    return a + b;
-}
-
-inline uint64_t add(uint64_t a, uint64_t b)
-{
-    return a + b;
-}
-
-template <typename Int>
-inline Int operator+(Int x, Int y)
+template <unsigned N>
+constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
     return add(x, y);
 }
 
-template <typename Int>
-inline Int operator+(Int x, uint64_t y)
-{
-    return add(x, Int(y));
-}
+//static_assert(std::is_convertible<char*, uint256>::value == true, "");
 
 template <typename Int1, typename Int2>
 inline decltype(sub(Int1{}, Int2{})) operator-(const Int1& x, const Int2& y)
@@ -855,6 +861,24 @@ inline uint512 operator"" _u512(const char* s) noexcept
 {
     return parse_literal<uint512>(s);
 }
+
+
+// Support for type conversions for binary operators.
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator+(const uint<N>& x, const T& y) noexcept
+{
+    return x + uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator+(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) + y;
+}
+
 
 namespace be  // Conversions to/from BE bytes.
 {
