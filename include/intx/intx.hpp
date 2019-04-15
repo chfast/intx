@@ -481,35 +481,22 @@ inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
     return s;
 }
 
-template <typename Int>
-constexpr Int operator-(const Int& x) noexcept
-{
-    return ~x + uint64_t{1};
-}
-
-inline uint128 sub(uint128 a, uint128 b)
-{
-    return a - b;
-}
-
-template <typename Int>
-inline Int sub(Int a, Int b)
-{
-    return add(a, -b);
-}
-
 template <unsigned N>
 constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
     return add(x, y);
 }
 
-//static_assert(std::is_convertible<char*, uint256>::value == true, "");
-
-template <typename Int1, typename Int2>
-inline decltype(sub(Int1{}, Int2{})) operator-(const Int1& x, const Int2& y)
+template <unsigned N>
+constexpr uint<N> operator-(const uint<N>& x) noexcept
 {
-    return sub(x, y);
+    return ~x + uint<N>{1};
+}
+
+template <unsigned N>
+constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
+{
+    return x + -y;
 }
 
 inline uint256 operator<<(uint256 x, unsigned y) noexcept
@@ -877,6 +864,20 @@ template <unsigned N, typename T,
 constexpr uint<N> operator+(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) + y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator-(const uint<N>& x, const T& y) noexcept
+{
+    return x - uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator-(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) - y;
 }
 
 

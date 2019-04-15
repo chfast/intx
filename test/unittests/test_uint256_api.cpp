@@ -63,4 +63,15 @@ TYPED_TEST(uint_api, arithmetic)
     EXPECT_TRUE(b + x == 0);
     EXPECT_TRUE(c + x == 0);
     EXPECT_TRUE(d + x == 0);
+
+    EXPECT_TRUE(x - x == 0);
+    EXPECT_TRUE(x - a == 0);
+    EXPECT_TRUE(x - b == 0);
+    EXPECT_TRUE(x - c == 0);
+    EXPECT_TRUE(x - d == 0);
+
+    EXPECT_TRUE(a - x == 0);
+    EXPECT_TRUE(b - x == 0);
+    EXPECT_TRUE(c - x == 0);
+    EXPECT_TRUE(d - x == 0);
 }
