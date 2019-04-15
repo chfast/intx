@@ -879,7 +879,6 @@ div_result<uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v)
     // are using base 2^32 instead of base 10.
     if (n == 1)
     {
-        // FIXME: Replace with udivrem_1_stable().
         udivrem_1_stable(p_q, p_r, u_data, v_data[0], u_limbs);
     }
     else
