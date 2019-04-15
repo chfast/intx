@@ -57,8 +57,7 @@ inline div_result<uint512> udivrem_by2(const normalized_div_args& na) noexcept
         r = res.rem;
     }
 
-    // TODO: Add conversion uint128 -> uint512.
-    return {q.number, uint256{r >> na.shift}};
+    return {q.number, r >> na.shift};
 }
 
 div_result<uint512> udivrem_knuth(normalized_div_args& na) noexcept

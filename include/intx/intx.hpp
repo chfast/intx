@@ -528,11 +528,11 @@ inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexce
     auto t2 = umul(x.lo, y.hi);
     auto t3 = umul(x.hi, y.hi);
 
-    auto u1 = t1 + Int{t0.hi};  // TODO: Fix conversion in uint256 + uint128.
-    auto u2 = t2 + Int{u1.lo};
+    auto u1 = t1 + t0.hi;
+    auto u2 = t2 + u1.lo;
 
     auto lo = (u2 << (Int::num_bits / 2)) | Int{t0.lo};
-    auto hi = t3 + Int{u2.hi} + Int{u1.hi};
+    auto hi = t3 + u2.hi + u1.hi;
 
     return {lo, hi};
 }
