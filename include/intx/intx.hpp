@@ -179,11 +179,20 @@ constexpr bool operator==(const uint<N>& a, const uint<N>& b) noexcept
     return (a.lo == b.lo) & (a.hi == b.hi);
 }
 
-template <unsigned N>
-constexpr bool operator==(const uint<N>& a, uint64_t b) noexcept
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr bool operator==(const uint<N>& x, const T& y) noexcept
 {
-    return a == uint<N>{b};
+    return x == uint<N>(y);
 }
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr bool operator==(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(y) == x;
+}
+
 
 template <unsigned N>
 constexpr bool operator!=(const uint<N>& a, const uint<N>& b) noexcept
@@ -191,11 +200,20 @@ constexpr bool operator!=(const uint<N>& a, const uint<N>& b) noexcept
     return !(a == b);
 }
 
-template <unsigned N>
-constexpr bool operator!=(const uint<N>& a, uint64_t b) noexcept
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr bool operator!=(const uint<N>& x, const T& y) noexcept
 {
-    return a != uint<N>{b};
+    return x != uint<N>(y);
 }
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) != y;
+}
+
 
 template <unsigned N>
 constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept
