@@ -22,6 +22,8 @@ struct uint
     static_assert((N & (N - 1)) == 0, "Number of bits must be power of 2");
     static_assert(N >= 256, "Number of bits must be at lest 256");
 
+    using word_type = uint64_t;
+
     /// The 2x smaller type.
     ///
     /// In the generic case of uint<N> the half type is just uint<N / 2>,
@@ -29,18 +31,25 @@ struct uint
     /// the external uint128 type.
     using half_type = std::conditional_t<N == 256, uint128, uint<N / 2>>;
 
+    static constexpr auto num_bits = N;
+    static constexpr auto num_words = N / 8 / sizeof(word_type);
+
+
     half_type lo = 0;
     half_type hi = 0;
 
     constexpr uint() noexcept = default;
 
-    /// Implicit converting constructor for built-in unsigned types.
-    constexpr uint(uint64_t x) noexcept : lo{x} {}  // NOLINT
+    constexpr uint(half_type lo, half_type hi) noexcept : lo(lo), hi(hi) {}
 
     /// Implicit converting constructor for the half type.
     constexpr uint(half_type x) noexcept : lo(x) {}  // NOLINT
 
-    constexpr uint(half_type lo, half_type hi) noexcept : lo(lo), hi(hi) {}
+    /// Implicit converting constructor for types convertible to the half type.
+    template <typename T,
+        typename = typename std::enable_if<std::is_convertible<T, half_type>::value>::type>
+    constexpr uint(T x) noexcept : lo(x)  // NOLINT
+    {}
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
@@ -62,34 +71,23 @@ template <>
 struct traits<uint64_t>
 {
     using double_type = uint128;
-
-    static constexpr unsigned bits = 64;
-    static constexpr unsigned half_bits = 32;
 };
 
 template <>
 struct traits<uint128>
 {
     using double_type = uint256;
-
-    static constexpr unsigned bits = 128;
-    static constexpr unsigned half_bits = 64;
 };
 
 template <>
 struct traits<uint256>
 {
     using double_type = uint512;
-
-    static constexpr unsigned bits = 256;
-    static constexpr unsigned half_bits = 128;
 };
 
 template <>
 struct traits<uint512>
 {
-    static constexpr unsigned bits = 512;
-    static constexpr unsigned half_bits = 256;
 };
 
 
@@ -277,8 +275,7 @@ inline uint128 lsr(uint128 a, unsigned b)
 template <typename Int>
 inline Int shl(Int x, unsigned shift) noexcept
 {
-    constexpr auto bits = traits<Int>::bits;
-    constexpr auto half_bits = traits<Int>::half_bits;
+    constexpr auto half_bits = Int::num_bits / 2;
 
     if (shift < half_bits)
     {
@@ -297,7 +294,7 @@ inline Int shl(Int x, unsigned shift) noexcept
 
     // This check is only needed if we want "defined" behavior for shifts
     // larger than size of the Int.
-    if (shift < bits)
+    if (shift < Int::num_bits)
     {
         auto hi = shl(x.lo, shift - half_bits);
         return Int{0, hi};
@@ -327,7 +324,7 @@ inline Target narrow_cast(const Int& x) noexcept
 template <typename Int>
 inline Int operator<<(const Int& x, const Int& shift) noexcept
 {
-    if (shift < traits<Int>::bits)
+    if (shift < Int::num_bits)
         return x << narrow_cast<unsigned>(shift);
     return 0;
 }
@@ -335,7 +332,7 @@ inline Int operator<<(const Int& x, const Int& shift) noexcept
 template <typename Int>
 inline Int operator>>(const Int& x, const Int& shift) noexcept
 {
-    if (shift < traits<Int>::bits)
+    if (shift < Int::num_bits)
         return lsr(x, narrow_cast<unsigned>(shift));
     return 0;
 }
@@ -349,8 +346,7 @@ inline Int& operator>>=(Int& x, unsigned shift) noexcept
 template <typename Int>
 inline Int lsr(Int x, unsigned shift)
 {
-    constexpr auto bits = traits<Int>::bits;
-    constexpr auto half_bits = traits<Int>::half_bits;
+    constexpr auto half_bits = Int::num_bits / 2;
 
     if (shift < half_bits)
     {
@@ -366,7 +362,7 @@ inline Int lsr(Int x, unsigned shift)
         return Int{lo, hi};
     }
 
-    if (shift < bits)
+    if (shift < Int::num_bits)
     {
         auto lo = lsr(x.hi, shift - half_bits);
         return Int{lo, 0};
@@ -449,61 +445,51 @@ inline std::tuple<uint512, bool> add_with_carry(uint512 a, uint512 b)
     return std::make_tuple(s, k2 || k3);
 }
 
-template <typename Int>
-inline Int add(Int a, Int b)
+template <unsigned N>
+constexpr uint<N> add(const uint<N>& a, const uint<N>& b) noexcept
 {
     return std::get<0>(add_with_carry(a, b));
 }
 
-template <typename Int, typename Int2>
-inline Int add(Int a, Int2 b)
+template <unsigned N>
+inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
 {
-    return add(a, Int(b));
+    static constexpr auto num_words = sizeof(a) / sizeof(uint64_t);
+
+    auto x = as_words(a);
+    auto y = as_words(b);
+
+    uint<N> s;
+    auto z = as_words(s);
+
+    bool k = false;
+    for (size_t i = 0; i < num_words; ++i)
+    {
+        z[i] = x[i] + y[i];
+        auto k1 = z[i] < x[i];
+        z[i] += k;
+        k = (z[i] < k) || k1;
+    }
+
+    return s;
 }
 
-template <typename Int>
-inline constexpr Int operator-(const Int& x) noexcept
-{
-    return add(~x, uint64_t(1));
-}
-
-inline uint128 sub(uint128 a, uint128 b)
-{
-    return a - b;
-}
-
-template <typename Int>
-inline Int sub(Int a, Int b)
-{
-    return add(a, -b);
-}
-
-inline uint128 add(uint128 a, uint128 b)
-{
-    return a + b;
-}
-
-inline uint64_t add(uint64_t a, uint64_t b)
-{
-    return a + b;
-}
-
-template <typename Int>
-inline Int operator+(Int x, Int y)
+template <unsigned N>
+constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
     return add(x, y);
 }
 
-template <typename Int>
-inline Int operator+(Int x, uint64_t y)
+template <unsigned N>
+constexpr uint<N> operator-(const uint<N>& x) noexcept
 {
-    return add(x, Int(y));
+    return ~x + uint<N>{1};
 }
 
-template <typename Int1, typename Int2>
-inline decltype(sub(Int1{}, Int2{})) operator-(const Int1& x, const Int2& y)
+template <unsigned N>
+constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return sub(x, y);
+    return x + -y;
 }
 
 inline uint256 operator<<(uint256 x, unsigned y) noexcept
@@ -542,11 +528,11 @@ inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexce
     auto t2 = umul(x.lo, y.hi);
     auto t3 = umul(x.hi, y.hi);
 
-    auto u1 = t1 + Int{t0.hi};  // TODO: Fix conversion in uint256 + uint128.
-    auto u2 = t2 + Int{u1.lo};
+    auto u1 = t1 + t0.hi;
+    auto u2 = t2 + u1.lo;
 
-    auto lo = (u2 << traits<Int>::half_bits) | Int{t0.lo};
-    auto hi = t3 + Int{u2.hi} + Int{u1.hi};
+    auto lo = (u2 << (Int::num_bits / 2)) | Int{t0.lo};
+    auto hi = t3 + u2.hi + u1.hi;
 
     return {lo, hi};
 }
@@ -617,7 +603,8 @@ inline uint256 operator*(const uint256& x, const uint256& y) noexcept
     return mul(x, y);
 }
 
-inline uint512 operator*(const uint512& x, const uint512& y) noexcept
+template <unsigned N>
+inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
 {
     return mul_loop_opt(x, y);
 }
@@ -855,6 +842,52 @@ inline uint512 operator"" _u512(const char* s) noexcept
 {
     return parse_literal<uint512>(s);
 }
+
+
+// Support for type conversions for binary operators.
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator+(const uint<N>& x, const T& y) noexcept
+{
+    return x + uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator+(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) + y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator-(const uint<N>& x, const T& y) noexcept
+{
+    return x - uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator-(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) - y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator*(const uint<N>& x, const T& y) noexcept
+{
+    return x * uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator*(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) * y;
+}
+
 
 namespace be  // Conversions to/from BE bytes.
 {

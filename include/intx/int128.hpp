@@ -17,6 +17,8 @@ namespace intx
 {
 struct uint128
 {
+    static constexpr auto num_bits = 128;
+
     uint64_t lo = 0;
     uint64_t hi = 0;
 
