@@ -220,7 +220,7 @@ static void shift(benchmark::State& state)
     lcg<Int> rng_x(get_seed());
 
     std::mt19937_64 rng{get_seed()};
-    std::uniform_int_distribution<unsigned> dist_y(0, Int::num_bits);
+    std::uniform_int_distribution<unsigned> dist_y(0, sizeof(Int) * 8);
 
     constexpr size_t size = 1000;
     std::vector<Int> input_x(size);

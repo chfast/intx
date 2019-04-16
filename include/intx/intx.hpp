@@ -31,7 +31,6 @@ struct uint
     /// the external uint128 type.
     using half_type = std::conditional_t<N == 256, uint128, uint<N / 2>>;
 
-    static constexpr auto num_bits = N;
     static constexpr auto num_words = N / 8 / sizeof(word_type);
 
 
@@ -346,7 +345,7 @@ inline uint128 lsr(uint128 a, unsigned b)
 template <typename Int>
 inline Int shl(Int x, unsigned shift) noexcept
 {
-    constexpr auto half_bits = Int::num_bits / 2;
+    constexpr auto half_bits = num_bits(x) / 2;
 
     if (shift < half_bits)
     {
@@ -365,7 +364,7 @@ inline Int shl(Int x, unsigned shift) noexcept
 
     // This check is only needed if we want "defined" behavior for shifts
     // larger than size of the Int.
-    if (shift < Int::num_bits)
+    if (shift < num_bits(x))
     {
         auto hi = shl(x.lo, shift - half_bits);
         return Int{0, hi};
@@ -395,7 +394,7 @@ inline Target narrow_cast(const Int& x) noexcept
 template <typename Int>
 inline Int operator<<(const Int& x, const Int& shift) noexcept
 {
-    if (shift < Int::num_bits)
+    if (shift < num_bits(x))
         return x << narrow_cast<unsigned>(shift);
     return 0;
 }
@@ -403,7 +402,7 @@ inline Int operator<<(const Int& x, const Int& shift) noexcept
 template <typename Int>
 inline Int operator>>(const Int& x, const Int& shift) noexcept
 {
-    if (shift < Int::num_bits)
+    if (shift < num_bits(x))
         return lsr(x, narrow_cast<unsigned>(shift));
     return 0;
 }
@@ -417,7 +416,7 @@ inline Int& operator>>=(Int& x, unsigned shift) noexcept
 template <typename Int>
 inline Int lsr(Int x, unsigned shift)
 {
-    constexpr auto half_bits = Int::num_bits / 2;
+    constexpr auto half_bits = num_bits(x) / 2;
 
     if (shift < half_bits)
     {
@@ -433,7 +432,7 @@ inline Int lsr(Int x, unsigned shift)
         return Int{lo, hi};
     }
 
-    if (shift < Int::num_bits)
+    if (shift < num_bits(x))
     {
         auto lo = lsr(x.hi, shift - half_bits);
         return Int{lo, 0};
@@ -602,7 +601,7 @@ inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexce
     auto u1 = t1 + t0.hi;
     auto u2 = t2 + u1.lo;
 
-    auto lo = (u2 << (Int::num_bits / 2)) | Int{t0.lo};
+    auto lo = (u2 << (num_bits(x) / 2)) | Int{t0.lo};
     auto hi = t3 + u2.hi + u1.hi;
 
     return {lo, hi};
