@@ -70,7 +70,6 @@ TYPED_TEST(uint_api, arithmetic)
 
 TYPED_TEST(uint_api, comparison)
 {
-
     auto a = int{3};
     auto b = uint64_t{5};
     auto c = uint128{7};
@@ -87,6 +86,7 @@ TYPED_TEST(uint_api, comparison)
     EXPECT_FALSE(x == d);
     EXPECT_FALSE(d == x);
 
+    EXPECT_FALSE(x != x);
     EXPECT_TRUE(x != a);
     EXPECT_TRUE(a != x);
     EXPECT_TRUE(x != b);
@@ -95,4 +95,44 @@ TYPED_TEST(uint_api, comparison)
     EXPECT_TRUE(c != x);
     EXPECT_TRUE(x != d);
     EXPECT_TRUE(d != x);
+
+    EXPECT_FALSE(x < x);
+    EXPECT_TRUE(x < a);
+    EXPECT_TRUE(x < b);
+    EXPECT_TRUE(x < c);
+    EXPECT_TRUE(x < d);
+    EXPECT_FALSE(a < x);
+    EXPECT_FALSE(b < x);
+    EXPECT_FALSE(c < x);
+    EXPECT_FALSE(d < x);
+
+    EXPECT_FALSE(x > x);
+    EXPECT_FALSE(x > a);
+    EXPECT_FALSE(x > b);
+    EXPECT_FALSE(x > c);
+    EXPECT_FALSE(x > d);
+    EXPECT_TRUE(a > x);
+    EXPECT_TRUE(b > x);
+    EXPECT_TRUE(c > x);
+    EXPECT_TRUE(d > x);
+
+    EXPECT_TRUE(x <= x);
+    EXPECT_TRUE(x <= a);
+    EXPECT_TRUE(x <= b);
+    EXPECT_TRUE(x <= c);
+    EXPECT_TRUE(x <= d);
+    EXPECT_FALSE(a <= x);
+    EXPECT_FALSE(b <= x);
+    EXPECT_FALSE(c <= x);
+    EXPECT_FALSE(d <= x);
+
+    EXPECT_TRUE(x >= x);
+    EXPECT_FALSE(x >= a);
+    EXPECT_FALSE(x >= b);
+    EXPECT_FALSE(x >= c);
+    EXPECT_FALSE(x >= d);
+    EXPECT_TRUE(a >= x);
+    EXPECT_TRUE(b >= x);
+    EXPECT_TRUE(c >= x);
+    EXPECT_TRUE(d >= x);
 }
