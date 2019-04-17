@@ -959,6 +959,49 @@ constexpr uint<N> operator*(const T& x, const uint<N>& y) noexcept
 }
 
 
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator|(const uint<N>& x, const T& y) noexcept
+{
+    return x | uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator|(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) | y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator&(const uint<N>& x, const T& y) noexcept
+{
+    return x & uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator&(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) & y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator^(const uint<N>& x, const T& y) noexcept
+{
+    return x ^ uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator^(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) ^ y;
+}
+
+
 namespace be  // Conversions to/from BE bytes.
 {
 inline intx::uint256 uint256(const uint8_t bytes[32]) noexcept
