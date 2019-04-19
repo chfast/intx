@@ -327,11 +327,6 @@ constexpr uint<N> operator~(const uint<N>& x) noexcept
     return {~x.lo, ~x.hi};
 }
 
-inline uint128 lsr(uint128 a, unsigned b)
-{
-    return a >> b;
-}
-
 template <unsigned N>
 constexpr uint<N> operator<<(const uint<N>& x, unsigned shift) noexcept
 {
@@ -380,47 +375,45 @@ constexpr uint<N> operator<<(const uint<N>& x, const uint<N>& shift) noexcept
     return 0;
 }
 
-template <typename Int>
-inline Int operator>>(const Int& x, const Int& shift) noexcept
+template <unsigned N>
+constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
 {
-    if (shift < num_bits(x))
-        return lsr(x, narrow_cast<unsigned>(shift));
-    return 0;
-}
-
-template <typename Int>
-inline Int& operator>>=(Int& x, unsigned shift) noexcept
-{
-    return x = lsr(x, shift);
-}
-
-template <typename Int>
-inline Int lsr(Int x, unsigned shift)
-{
-    constexpr auto half_bits = num_bits(x) / 2;
+    constexpr auto half_bits = sizeof(x) * 4;
 
     if (shift < half_bits)
     {
-        auto hi = lsr(x.hi, shift);
+        auto hi = x.hi >> shift;
 
         // Find the part moved from hi to lo.
         // To avoid invalid shift left,
         // split them into 2 valid shifts by (lshift - 1) and 1.
         unsigned lshift = half_bits - shift;
         auto hi_overflow = (x.hi << (lshift - 1)) << 1;
-        auto lo_part = lsr(x.lo, shift);
+        auto lo_part = x.lo >> shift;
         auto lo = lo_part | hi_overflow;
-        return Int{lo, hi};
+        return {lo, hi};
     }
 
     if (shift < num_bits(x))
-    {
-        auto lo = lsr(x.hi, shift - half_bits);
-        return Int{lo, 0};
-    }
+        return {x.hi >> (shift - half_bits), 0};
 
     return 0;
 }
+
+template <unsigned N>
+constexpr uint<N> operator>>(const uint<N>& x, const uint<N>& shift) noexcept
+{
+    if (shift < num_bits(x))
+        return x >> narrow_cast<unsigned>(shift);
+    return 0;
+}
+
+template <unsigned N>
+inline uint<N>& operator>>=(uint<N>& x, unsigned shift) noexcept
+{
+    return x = x >> shift;
+}
+
 
 constexpr uint64_t* as_words(uint128& x) noexcept
 {
@@ -541,11 +534,6 @@ template <unsigned N>
 constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
     return x + -y;
-}
-
-inline uint256 operator>>(uint256 x, unsigned y)
-{
-    return lsr(x, y);
 }
 
 template <typename Int1, typename Int2>

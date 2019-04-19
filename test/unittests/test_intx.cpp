@@ -194,7 +194,7 @@ TEST_F(Uint256Test, shift_one_bit)
     {
         uint256 x = 1;
         uint256 y = x << shift;
-        uint256 z = lsr(y, shift);
+        uint256 z = y >> shift;
         EXPECT_EQ(x, z) << "shift: " << shift;
     }
 }
@@ -205,7 +205,7 @@ TEST_F(Uint256Test, shift_loop_one_bit)
     {
         uint256 x = 1;
         uint256 y = shl_loop(x, shift);
-        uint256 z = lsr(y, shift);
+        uint256 z = y >> shift;
         EXPECT_EQ(x, z) << "shift: " << shift;
     }
 }
@@ -227,7 +227,7 @@ TEST_F(Uint256Test, shift_all_ones)
     {
         uint256 x = 1;
         uint256 y = x << shift;
-        uint256 z = lsr(y, shift);
+        uint256 z = y >> shift;
         EXPECT_EQ(x, z) << "shift: " << shift;
     }
 }
