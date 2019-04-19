@@ -595,6 +595,22 @@ inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     return {res.quot, res.rem >> lsh};
 }
 
+inline div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
+{
+    constexpr auto sign_mask = uint128{1} << 127;
+    const auto x_is_neg = (x & sign_mask) != 0;
+    const auto y_is_neg = (y & sign_mask) != 0;
+
+    const auto x_abs = x_is_neg ? -x : x;
+    const auto y_abs = y_is_neg ? -y : y;
+
+    const auto q_is_neg = x_is_neg ^ y_is_neg;
+
+    const auto res = udivrem(x_abs, y_abs);
+
+    return {q_is_neg ? -res.quot : res.quot, x_is_neg ? -res.rem : res.rem};
+}
+
 inline uint128 operator/(uint128 x, uint128 y) noexcept
 {
     return udivrem(x, y).quot;
