@@ -213,6 +213,13 @@ constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
                (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
 }
 
+constexpr uint128 operator<<(uint128 x, uint128 shift) noexcept
+{
+    if (shift < 128)
+        return x << unsigned(shift);
+    return 0;
+}
+
 constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
 {
     return (shift < 64) ?
@@ -224,6 +231,14 @@ constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
                // Guarantee "defined" behavior for shifts larger than 128.
                (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
 }
+
+constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
+{
+    if (shift < 128)
+        return x >> unsigned(shift);
+    return 0;
+}
+
 
 /// @}
 
