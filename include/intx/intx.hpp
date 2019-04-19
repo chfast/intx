@@ -425,14 +425,14 @@ constexpr const uint64_t* as_words(const uint128& x) noexcept
     return &x.lo;
 }
 
-template <typename Int>
-constexpr uint64_t* as_words(Int& x) noexcept
+template <unsigned N>
+constexpr uint64_t* as_words(uint<N>& x) noexcept
 {
     return as_words(x.lo);
 }
 
-template <typename Int>
-constexpr const uint64_t* as_words(const Int& x) noexcept
+template <unsigned N>
+constexpr const uint64_t* as_words(const uint<N>& x) noexcept
 {
     return as_words(x.lo);
 }
@@ -462,31 +462,22 @@ inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
 }
 
 
-inline std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b)
+constexpr std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b) noexcept
 {
-    auto s = a + b;
-    auto k = s < a;
-    return std::make_tuple(s, k);
+    const auto s = a + b;
+    const auto k = s < a;
+    return {s, k};
 }
 
-inline std::tuple<uint256, bool> add_with_carry(uint256 a, uint256 b)
+template <unsigned N>
+constexpr std::tuple<uint<N>, bool> add_with_carry(const uint<N>& a, const uint<N>&  b) noexcept
 {
-    uint256 s;
-    bool k1, k2, k3;
+    uint<N> s;
+    bool k1 = false, k2 = false, k3 = false;
     std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
     std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
-    std::tie(s.hi, k3) = add_with_carry(s.hi, static_cast<uint128>(k1));
-    return std::make_tuple(s, k2 || k3);
-}
-
-inline std::tuple<uint512, bool> add_with_carry(uint512 a, uint512 b)
-{
-    uint512 s;
-    bool k1, k2, k3;
-    std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
-    std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
-    std::tie(s.hi, k3) = add_with_carry(s.hi, static_cast<uint256>(k1));
-    return std::make_tuple(s, k2 || k3);
+    std::tie(s.hi, k3) = add_with_carry(s.hi, typename uint<N>::half_type{k1});
+    return {s, k2 || k3};
 }
 
 template <unsigned N>
