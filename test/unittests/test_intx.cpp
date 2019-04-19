@@ -193,7 +193,7 @@ TEST_F(Uint256Test, shift_one_bit)
     for (unsigned shift = 0; shift < 256; ++shift)
     {
         uint256 x = 1;
-        uint256 y = shl(x, shift);
+        uint256 y = x << shift;
         uint256 z = lsr(y, shift);
         EXPECT_EQ(x, z) << "shift: " << shift;
     }
@@ -215,7 +215,7 @@ TEST_F(Uint256Test, not_of_zero)
     uint256 ones = ~uint256(0);
     for (unsigned pos = 0; pos < 256; ++pos)
     {
-        uint256 probe = shl(uint256(1), pos);
+        uint256 probe = uint256{1} << pos;
         uint256 test = probe & ones;
         EXPECT_NE(test, 0) << "bit position: " << pos;
     }
@@ -226,7 +226,7 @@ TEST_F(Uint256Test, shift_all_ones)
     for (unsigned shift = 0; shift < 256; ++shift)
     {
         uint256 x = 1;
-        uint256 y = shl(x, shift);
+        uint256 y = x << shift;
         uint256 z = lsr(y, shift);
         EXPECT_EQ(x, z) << "shift: " << shift;
     }
@@ -240,7 +240,7 @@ TEST_F(Uint256Test, clz_one_bit)
     {
         unsigned c = clz(t);
         EXPECT_EQ(c, b - 1 - i);
-        t = shl(t, 1);
+        t = t << 1;
     }
 }
 
@@ -300,7 +300,7 @@ TEST(uint512, bswap)
 {
     auto x = 1_u512;
     auto y = bswap(x);
-    EXPECT_EQ(y, shl(1_u512, 504));
+    EXPECT_EQ(y, 1_u512 << 504);
 }
 
 TEST(uint256, arithmetic)

@@ -40,7 +40,7 @@ TEST(div, normalize)
     EXPECT_EQ(na.denominator[4], uint64_t{12} << 60);
     EXPECT_EQ(na.denominator[5], 0);
 
-    u = shl(uint512{3}, 510);
+    u = uint512{3} << 510;
     v = uint512{uint256{1, 0xffffffffffffffff}, 0};
     na = normalize(u, v);
     EXPECT_EQ(na.shift, 0);
@@ -57,7 +57,7 @@ TEST(div, normalize)
     EXPECT_EQ(na.denominator[2], 0xffffffffffffffff);
     EXPECT_EQ(na.denominator[3], 0);
 
-    u = shl(uint512{7}, 509);
+    u = uint512{7} << 509;
     v = uint512{uint256{1, 0x3fffffffffffffff}, 0};
     na = normalize(u, v);
     EXPECT_EQ(na.shift, 2);

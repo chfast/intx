@@ -214,7 +214,13 @@ BENCHMARK_TEMPLATE(binary_op512, mul);
 BENCHMARK_TEMPLATE(binary_op512, public_mul);
 BENCHMARK_TEMPLATE(binary_op512, gmp::mul);
 
-template <typename Int, Int ShiftFn(Int, unsigned)>
+template <unsigned N>
+inline intx::uint<N> shl(const intx::uint<N>& x, unsigned y) noexcept
+{
+    return x << y;
+}
+
+template <typename Int, Int ShiftFn(const Int&, unsigned)>
 static void shift(benchmark::State& state)
 {
     lcg<Int> rng_x(get_seed());

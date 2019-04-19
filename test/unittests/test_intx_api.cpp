@@ -4,6 +4,10 @@
 
 #include <intx/intx.hpp>
 
+#include <ctime>
+
+auto x = std::time(0);
+
 #include <gtest/gtest.h>
 
 using namespace intx;
