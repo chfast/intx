@@ -470,7 +470,7 @@ constexpr std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b) noexcep
 }
 
 template <unsigned N>
-constexpr std::tuple<uint<N>, bool> add_with_carry(const uint<N>& a, const uint<N>&  b) noexcept
+constexpr std::tuple<uint<N>, bool> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
 {
     uint<N> s;
     bool k1 = false, k2 = false, k3 = false;
@@ -546,7 +546,7 @@ inline Int1& operator*=(Int1& x, const Int2& y)
 }
 
 template <typename Int>
-inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
+constexpr typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
 {
     auto t0 = umul(x.lo, y.lo);
     auto t1 = umul(x.hi, y.lo);
@@ -556,7 +556,7 @@ inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexce
     auto u1 = t1 + t0.hi;
     auto u2 = t2 + u1.lo;
 
-    auto lo = (u2 << (num_bits(x) / 2)) | Int{t0.lo};
+    auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
     auto hi = t3 + u2.hi + u1.hi;
 
     return {lo, hi};
@@ -644,13 +644,13 @@ inline uint512& operator*=(uint512& x, const uint512& y) noexcept
     return x = x * y;
 }
 
-template <typename Int>
-Int exp(Int base, Int exponent) noexcept
+template <unsigned N>
+constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 {
-    Int result{1};
+    auto result = uint<N>{1};
     while (exponent != 0)
     {
-        if ((exponent & Int{1}) != 0)
+        if ((exponent & 1) != 0)
             result *= base;
         base *= base;
         exponent >>= 1;
@@ -658,11 +658,9 @@ Int exp(Int base, Int exponent) noexcept
     return result;
 }
 
-template <typename Int>
-inline unsigned clz(Int x)
+template <unsigned N>
+constexpr unsigned clz(const uint<N>& x) noexcept
 {
-    auto l = lo_half(x);
-    auto h = hi_half(x);
     unsigned half_bits = num_bits(x) / 2;
 
     // TODO: Try:
@@ -674,7 +672,7 @@ inline unsigned clz(Int x)
 
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
     // FIXME: For `x == 0` this is UB.
-    return h == 0 ? clz(l) | half_bits : clz(h);
+    return x.hi == 0 ? clz(x.lo) | half_bits : clz(x.hi);
 }
 
 template <typename Word, typename Int>
@@ -735,10 +733,10 @@ div_result<uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y);
 div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept;
 div_result<uint512> udivrem(const uint512& x, const uint512& y) noexcept;
 
-template <typename Int>
-div_result<Int> sdivrem(const Int& u, const Int& v) noexcept
+template <unsigned N>
+constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
-    const auto sign_mask = Int(1) << (sizeof(Int) * 8 - 1);
+    const auto sign_mask = uint<N>{1} << (sizeof(u) * 8 - 1);
     auto u_is_neg = (u & sign_mask) != 0;
     auto v_is_neg = (v & sign_mask) != 0;
 
@@ -752,19 +750,20 @@ div_result<Int> sdivrem(const Int& u, const Int& v) noexcept
     return {q_is_neg ? -res.quot : res.quot, u_is_neg ? -res.rem : res.rem};
 }
 
-template <typename Int>
-inline Int operator/(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator/(const uint<N>& x, const uint<N>& y) noexcept
 {
     return udivrem(x, y).quot;
 }
 
-template <typename Int>
-inline Int operator%(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator%(const uint<N>& x, const uint<N>& y) noexcept
 {
     return udivrem(x, y).rem;
 }
 
-inline std::string to_string(uint256 x)
+template<unsigned N>
+inline std::string to_string(uint<N> x)
 {
     if (x == 0)
         return "0";
@@ -772,9 +771,9 @@ inline std::string to_string(uint256 x)
     std::string s;
     while (x != 0)
     {
-        const auto res = udivrem(x, uint256{10});
+        const auto res = udivrem(x, 10);
         x = res.quot;
-        auto c = static_cast<size_t>(res.rem);
+        const auto c = static_cast<size_t>(res.rem);
         s.push_back(static_cast<char>('0' + c));
     }
     std::reverse(s.begin(), s.end());
@@ -784,23 +783,6 @@ inline std::string to_string(uint256 x)
 inline std::string to_string(uint128 x)
 {
     return to_string(uint256(x));
-}
-
-inline std::string to_string(uint512 x)
-{
-    if (x == 0)
-        return "0";
-
-    std::string s;
-    while (x != 0)
-    {
-        const auto res = udiv_qr_knuth_512(x, uint512(10));
-        x = res.quot;
-        auto c = static_cast<size_t>(res.rem.lo);
-        s.push_back(static_cast<char>('0' + c));
-    }
-    std::reverse(s.begin(), s.end());
-    return s;
 }
 
 template <typename Int>
@@ -817,17 +799,12 @@ inline Int from_string(const std::string& s)
     return x;
 }
 
-template <typename Int>
-inline Int bswap(const Int& x) noexcept
+template <unsigned N>
+inline uint<N> bswap(const uint<N>& x) noexcept
 {
     return {bswap(x.hi), bswap(x.lo)};
 }
 
-
-// constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
-//{
-//    return uint256{x};
-//}
 
 template <typename Int>
 inline Int parse_literal(const char* s) noexcept
