@@ -66,11 +66,29 @@ defaults:
 version: 2
 jobs:
 
-  linux-gcc-coverage:
+  linux-gcc-asan:
     environment:
       - CXX: g++-8
       - CC:  gcc-8
       - GCOV: gcov-8
+      - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: Debug
+      - CMAKE_OPTIONS: -DSANITIZE=address
+    docker:
+      - image: ethereum/cpp-build-env:11
+    steps:
+      - *install-deps
+      - checkout
+      - *update-submodules
+      - *configure
+      - *build
+      - *test
+
+  linux-clang-coverage:
+    environment:
+      - CXX: clang++-8
+      - CC:  clang-8
+      - GCOV: llvm-cov-8 gcov
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
       - CMAKE_OPTIONS: -DCOVERAGE=ON
@@ -85,6 +103,7 @@ jobs:
       - *build
       - *test
       - *upload-coverage-data
+
 
   linux-clang-ubsan:
     environment:
@@ -128,7 +147,7 @@ jobs:
           working_directory: ~/build
           command: |
             mkdir -p ~/corpus
-            test/intx-fuzzer ~/corpus -use_value_profile=1 -max_len=129 -runs=100000
+            test/intx-fuzzer ~/corpus -use_value_profile=1 -max_len=129 -runs=200000
       - save_cache:
           key: corpus-{{ epoch }}
           paths:
@@ -138,6 +157,7 @@ workflows:
   version: 2
   intx:
     jobs:
-      - linux-gcc-coverage
+      - linux-gcc-asan
+      - linux-clang-coverage
       - linux-clang-ubsan
       - fuzzing
