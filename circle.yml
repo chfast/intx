@@ -153,6 +153,25 @@ jobs:
           paths:
             - ~/corpus
 
+  macos:
+    environment:
+      BUILD_PARALLEL_JOBS: 8
+      TEST_PARALLEL_JOBS: 8
+    macos:
+      xcode: 10.2.0
+    steps:
+      - run:
+          name: "Install deps"
+          command: |
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake gmp
+      - checkout
+      - *update-submodules
+      - *configure
+      - *build
+      - *test
+      - *benchmark
+
+
 workflows:
   version: 2
   intx:
@@ -161,3 +180,4 @@ workflows:
       - linux-clang-coverage
       - linux-clang-ubsan
       - fuzzing
+      - macos
