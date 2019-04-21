@@ -4,6 +4,10 @@
 
 #include <intx/intx.hpp>
 
+#include <ctime>
+
+auto x = std::time(0);
+
 #include <gtest/gtest.h>
 
 using namespace intx;
@@ -66,6 +70,49 @@ TYPED_TEST(uint_api, arithmetic)
     EXPECT_TRUE(b * x == 0);
     EXPECT_TRUE(c * x == 0);
     EXPECT_TRUE(d * x == 0);
+}
+
+TYPED_TEST(uint_api, bitwise)
+{
+    auto a = int{};
+    auto b = uint64_t{};
+    auto c = uint128{};
+    auto d = uint256{};
+
+    auto x = TypeParam{};
+
+    EXPECT_TRUE((x | x) == 0);
+    EXPECT_TRUE((x | a) == 0);
+    EXPECT_TRUE((x | b) == 0);
+    EXPECT_TRUE((x | c) == 0);
+    EXPECT_TRUE((x | d) == 0);
+
+    EXPECT_TRUE((a | x) == 0);
+    EXPECT_TRUE((b | x) == 0);
+    EXPECT_TRUE((c | x) == 0);
+    EXPECT_TRUE((d | x) == 0);
+
+    EXPECT_TRUE((x & x) == 0);
+    EXPECT_TRUE((x & a) == 0);
+    EXPECT_TRUE((x & b) == 0);
+    EXPECT_TRUE((x & c) == 0);
+    EXPECT_TRUE((x & d) == 0);
+
+    EXPECT_TRUE((a & x) == 0);
+    EXPECT_TRUE((b & x) == 0);
+    EXPECT_TRUE((c & x) == 0);
+    EXPECT_TRUE((d & x) == 0);
+
+    EXPECT_TRUE((x ^ x) == 0);
+    EXPECT_TRUE((x ^ a) == 0);
+    EXPECT_TRUE((x ^ b) == 0);
+    EXPECT_TRUE((x ^ c) == 0);
+    EXPECT_TRUE((x ^ d) == 0);
+
+    EXPECT_TRUE((a ^ x) == 0);
+    EXPECT_TRUE((b ^ x) == 0);
+    EXPECT_TRUE((c ^ x) == 0);
+    EXPECT_TRUE((d ^ x) == 0);
 }
 
 TYPED_TEST(uint_api, comparison)

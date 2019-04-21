@@ -167,7 +167,7 @@ constexpr uint256 join(uint128 hi, uint128 lo) noexcept
 }
 
 template <typename T>
-constexpr unsigned num_bits(const T&)
+constexpr unsigned num_bits(const T&) noexcept
 {
     return sizeof(T) * 8;
 }
@@ -327,56 +327,32 @@ constexpr uint<N> operator~(const uint<N>& x) noexcept
     return {~x.lo, ~x.hi};
 }
 
-inline uint128 shl(uint128 a, unsigned b)
+template <unsigned N>
+constexpr uint<N> operator<<(const uint<N>& x, unsigned shift) noexcept
 {
-    return a << b;
-}
-
-inline uint64_t shl(uint64_t a, unsigned b)
-{
-    return a << b;
-}
-
-inline uint128 lsr(uint128 a, unsigned b)
-{
-    return a >> b;
-}
-
-template <typename Int>
-inline Int shl(Int x, unsigned shift) noexcept
-{
-    constexpr auto half_bits = num_bits(x) / 2;
+    constexpr auto num_bits = N;
+    constexpr auto half_bits = num_bits / 2;
 
     if (shift < half_bits)
     {
-        auto lo = shl(x.lo, shift);
+        const auto lo = x.lo << shift;
 
         // Find the part moved from lo to hi.
         // The shift right here can be invalid:
         // for shift == 0 => lshift == half_bits.
         // Split it into 2 valid shifts by (rshift - 1) and 1.
-        unsigned rshift = half_bits - shift;
-        auto lo_overflow = lsr(lsr(x.lo, rshift - 1), 1);
-        auto hi_part = shl(x.hi, shift);
-        auto hi = hi_part | lo_overflow;
-        return Int{lo, hi};
+        const auto rshift = half_bits - shift;
+        const auto lo_overflow = (x.lo >> (rshift - 1)) >> 1;
+        const auto hi = (x.hi << shift) | lo_overflow;
+        return {lo, hi};
     }
 
     // This check is only needed if we want "defined" behavior for shifts
     // larger than size of the Int.
-    if (shift < num_bits(x))
-    {
-        auto hi = shl(x.lo, shift - half_bits);
-        return Int{0, hi};
-    }
+    if (shift < num_bits)
+        return {0, x.lo << (shift - half_bits)};
 
     return 0;
-}
-
-template <typename Int>
-inline Int operator<<(const Int& x, unsigned shift) noexcept
-{
-    return shl(x, shift);
 }
 
 template <typename Target>
@@ -391,55 +367,53 @@ inline Target narrow_cast(const Int& x) noexcept
     return narrow_cast<Target>(x.lo);
 }
 
-template <typename Int>
-inline Int operator<<(const Int& x, const Int& shift) noexcept
+template <unsigned N>
+constexpr uint<N> operator<<(const uint<N>& x, const uint<N>& shift) noexcept
 {
     if (shift < num_bits(x))
         return x << narrow_cast<unsigned>(shift);
     return 0;
 }
 
-template <typename Int>
-inline Int operator>>(const Int& x, const Int& shift) noexcept
+template <unsigned N>
+constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
 {
-    if (shift < num_bits(x))
-        return lsr(x, narrow_cast<unsigned>(shift));
-    return 0;
-}
-
-template <typename Int>
-inline Int& operator>>=(Int& x, unsigned shift) noexcept
-{
-    return x = lsr(x, shift);
-}
-
-template <typename Int>
-inline Int lsr(Int x, unsigned shift)
-{
-    constexpr auto half_bits = num_bits(x) / 2;
+    constexpr auto half_bits = sizeof(x) * 4;
 
     if (shift < half_bits)
     {
-        auto hi = lsr(x.hi, shift);
+        auto hi = x.hi >> shift;
 
         // Find the part moved from hi to lo.
         // To avoid invalid shift left,
         // split them into 2 valid shifts by (lshift - 1) and 1.
         unsigned lshift = half_bits - shift;
-        auto hi_overflow = shl(shl(x.hi, lshift - 1), 1);
-        auto lo_part = lsr(x.lo, shift);
+        auto hi_overflow = (x.hi << (lshift - 1)) << 1;
+        auto lo_part = x.lo >> shift;
         auto lo = lo_part | hi_overflow;
-        return Int{lo, hi};
+        return {lo, hi};
     }
 
     if (shift < num_bits(x))
-    {
-        auto lo = lsr(x.hi, shift - half_bits);
-        return Int{lo, 0};
-    }
+        return {x.hi >> (shift - half_bits), 0};
 
     return 0;
 }
+
+template <unsigned N>
+constexpr uint<N> operator>>(const uint<N>& x, const uint<N>& shift) noexcept
+{
+    if (shift < num_bits(x))
+        return x >> narrow_cast<unsigned>(shift);
+    return 0;
+}
+
+template <unsigned N>
+inline uint<N>& operator>>=(uint<N>& x, unsigned shift) noexcept
+{
+    return x = x >> shift;
+}
+
 
 constexpr uint64_t* as_words(uint128& x) noexcept
 {
@@ -451,26 +425,26 @@ constexpr const uint64_t* as_words(const uint128& x) noexcept
     return &x.lo;
 }
 
-template <typename Int>
-constexpr uint64_t* as_words(Int& x) noexcept
+template <unsigned N>
+constexpr uint64_t* as_words(uint<N>& x) noexcept
 {
     return as_words(x.lo);
 }
 
-template <typename Int>
-constexpr const uint64_t* as_words(const Int& x) noexcept
+template <unsigned N>
+constexpr const uint64_t* as_words(const uint<N>& x) noexcept
 {
     return as_words(x.lo);
 }
 
 /// Implementation of shift left as a loop.
 /// This one is slower than the one using "split" strategy.
-template <typename Int>
-inline Int shl_loop(Int x, unsigned shift)
+template <unsigned N>
+inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
 {
-    Int r;
+    auto r = uint<N>{};
     constexpr unsigned word_bits = sizeof(uint64_t) * 8;
-    constexpr size_t num_words = sizeof(Int) / sizeof(uint64_t);
+    constexpr size_t num_words = sizeof(uint<N>) / sizeof(uint64_t);
     auto rw = as_words(r);
     auto words = as_words(x);
     unsigned s = shift % word_bits;
@@ -488,31 +462,22 @@ inline Int shl_loop(Int x, unsigned shift)
 }
 
 
-inline std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b)
+constexpr std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b) noexcept
 {
-    auto s = a + b;
-    auto k = s < a;
-    return std::make_tuple(s, k);
+    const auto s = a + b;
+    const auto k = s < a;
+    return {s, k};
 }
 
-inline std::tuple<uint256, bool> add_with_carry(uint256 a, uint256 b)
+template <unsigned N>
+constexpr std::tuple<uint<N>, bool> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
 {
-    uint256 s;
-    bool k1, k2, k3;
+    uint<N> s;
+    bool k1 = false, k2 = false, k3 = false;
     std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
     std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
-    std::tie(s.hi, k3) = add_with_carry(s.hi, static_cast<uint128>(k1));
-    return std::make_tuple(s, k2 || k3);
-}
-
-inline std::tuple<uint512, bool> add_with_carry(uint512 a, uint512 b)
-{
-    uint512 s;
-    bool k1, k2, k3;
-    std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
-    std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
-    std::tie(s.hi, k3) = add_with_carry(s.hi, static_cast<uint256>(k1));
-    return std::make_tuple(s, k2 || k3);
+    std::tie(s.hi, k3) = add_with_carry(s.hi, typename uint<N>::half_type{k1});
+    return {s, k2 || k3};
 }
 
 template <unsigned N>
@@ -562,16 +527,6 @@ constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
     return x + -y;
 }
 
-inline uint256 operator<<(uint256 x, unsigned y) noexcept
-{
-    return shl(x, y);
-}
-
-inline uint256 operator>>(uint256 x, unsigned y)
-{
-    return lsr(x, y);
-}
-
 template <typename Int1, typename Int2>
 inline Int1& operator+=(Int1& x, const Int2& y)
 {
@@ -591,7 +546,7 @@ inline Int1& operator*=(Int1& x, const Int2& y)
 }
 
 template <typename Int>
-inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
+constexpr typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
 {
     auto t0 = umul(x.lo, y.lo);
     auto t1 = umul(x.hi, y.lo);
@@ -601,7 +556,7 @@ inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexce
     auto u1 = t1 + t0.hi;
     auto u2 = t2 + u1.lo;
 
-    auto lo = (u2 << (num_bits(x) / 2)) | Int{t0.lo};
+    auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
     auto hi = t3 + u2.hi + u1.hi;
 
     return {lo, hi};
@@ -689,13 +644,13 @@ inline uint512& operator*=(uint512& x, const uint512& y) noexcept
     return x = x * y;
 }
 
-template <typename Int>
-Int exp(Int base, Int exponent) noexcept
+template <unsigned N>
+constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 {
-    Int result{1};
+    auto result = uint<N>{1};
     while (exponent != 0)
     {
-        if ((exponent & Int{1}) != 0)
+        if ((exponent & 1) != 0)
             result *= base;
         base *= base;
         exponent >>= 1;
@@ -703,11 +658,9 @@ Int exp(Int base, Int exponent) noexcept
     return result;
 }
 
-template <typename Int>
-inline unsigned clz(Int x)
+template <unsigned N>
+constexpr unsigned clz(const uint<N>& x) noexcept
 {
-    auto l = lo_half(x);
-    auto h = hi_half(x);
     unsigned half_bits = num_bits(x) / 2;
 
     // TODO: Try:
@@ -719,7 +672,7 @@ inline unsigned clz(Int x)
 
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
     // FIXME: For `x == 0` this is UB.
-    return h == 0 ? clz(l) | half_bits : clz(h);
+    return x.hi == 0 ? clz(x.lo) | half_bits : clz(x.hi);
 }
 
 template <typename Word, typename Int>
@@ -780,10 +733,10 @@ div_result<uint512> udiv_qr_knuth_512_64(const uint512& x, const uint512& y);
 div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept;
 div_result<uint512> udivrem(const uint512& x, const uint512& y) noexcept;
 
-template <typename Int>
-div_result<Int> sdivrem(const Int& u, const Int& v) noexcept
+template <unsigned N>
+constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
-    const auto sign_mask = Int(1) << (sizeof(Int) * 8 - 1);
+    const auto sign_mask = uint<N>{1} << (sizeof(u) * 8 - 1);
     auto u_is_neg = (u & sign_mask) != 0;
     auto v_is_neg = (v & sign_mask) != 0;
 
@@ -797,19 +750,20 @@ div_result<Int> sdivrem(const Int& u, const Int& v) noexcept
     return {q_is_neg ? -res.quot : res.quot, u_is_neg ? -res.rem : res.rem};
 }
 
-template <typename Int>
-inline Int operator/(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator/(const uint<N>& x, const uint<N>& y) noexcept
 {
     return udivrem(x, y).quot;
 }
 
-template <typename Int>
-inline Int operator%(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<N> operator%(const uint<N>& x, const uint<N>& y) noexcept
 {
     return udivrem(x, y).rem;
 }
 
-inline std::string to_string(uint256 x)
+template<unsigned N>
+inline std::string to_string(uint<N> x)
 {
     if (x == 0)
         return "0";
@@ -817,9 +771,9 @@ inline std::string to_string(uint256 x)
     std::string s;
     while (x != 0)
     {
-        const auto res = udivrem(x, uint256{10});
+        const auto res = udivrem(x, 10);
         x = res.quot;
-        auto c = static_cast<size_t>(res.rem);
+        const auto c = static_cast<size_t>(res.rem);
         s.push_back(static_cast<char>('0' + c));
     }
     std::reverse(s.begin(), s.end());
@@ -829,23 +783,6 @@ inline std::string to_string(uint256 x)
 inline std::string to_string(uint128 x)
 {
     return to_string(uint256(x));
-}
-
-inline std::string to_string(uint512 x)
-{
-    if (x == 0)
-        return "0";
-
-    std::string s;
-    while (x != 0)
-    {
-        const auto res = udiv_qr_knuth_512(x, uint512(10));
-        x = res.quot;
-        auto c = static_cast<size_t>(res.rem.lo);
-        s.push_back(static_cast<char>('0' + c));
-    }
-    std::reverse(s.begin(), s.end());
-    return s;
 }
 
 template <typename Int>
@@ -862,17 +799,12 @@ inline Int from_string(const std::string& s)
     return x;
 }
 
-template <typename Int>
-inline Int bswap(const Int& x) noexcept
+template <unsigned N>
+inline uint<N> bswap(const uint<N>& x) noexcept
 {
     return {bswap(x.hi), bswap(x.lo)};
 }
 
-
-// constexpr inline uint256 operator"" _u256(unsigned long long x) noexcept
-//{
-//    return uint256{x};
-//}
 
 template <typename Int>
 inline Int parse_literal(const char* s) noexcept
@@ -956,6 +888,49 @@ template <unsigned N, typename T,
 constexpr uint<N> operator*(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) * y;
+}
+
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator|(const uint<N>& x, const T& y) noexcept
+{
+    return x | uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator|(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) | y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator&(const uint<N>& x, const T& y) noexcept
+{
+    return x & uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator&(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) & y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator^(const uint<N>& x, const T& y) noexcept
+{
+    return x ^ uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator^(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) ^ y;
 }
 
 

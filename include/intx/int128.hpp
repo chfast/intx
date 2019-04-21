@@ -125,58 +125,6 @@ constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
 /// @}
 
 
-/// Bitwise operators.
-/// @{
-
-constexpr uint128 operator~(uint128 x) noexcept
-{
-    return {~x.hi, ~x.lo};
-}
-
-constexpr uint128 operator|(uint128 x, uint128 y) noexcept
-{
-    // Clang7: perfect.
-    // GCC8: stupidly uses a vector instruction in all bitwise operators.
-    return {x.hi | y.hi, x.lo | y.lo};
-}
-
-constexpr uint128 operator&(uint128 x, uint128 y) noexcept
-{
-    return {x.hi & y.hi, x.lo & y.lo};
-}
-
-constexpr uint128 operator^(uint128 x, uint128 y) noexcept
-{
-    return {x.hi ^ y.hi, x.lo ^ y.lo};
-}
-
-constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
-{
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 right shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{(x.hi << shift) | ((x.lo >> 1) >> (63 - shift)), x.lo << shift} :
-
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
-}
-
-constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
-{
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 left shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{x.hi >> shift, (x.lo >> shift) | ((x.hi << 1) << (63 - shift))} :
-
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
-}
-
-/// @}
-
-
 /// Comparison operators.
 ///
 /// In all implementations bitwise operators are used instead of logical ones
@@ -224,6 +172,73 @@ constexpr bool operator>=(uint128 x, uint128 y) noexcept
 {
     return !(x < y);
 }
+
+/// @}
+
+
+/// Bitwise operators.
+/// @{
+
+constexpr uint128 operator~(uint128 x) noexcept
+{
+    return {~x.hi, ~x.lo};
+}
+
+constexpr uint128 operator|(uint128 x, uint128 y) noexcept
+{
+    // Clang7: perfect.
+    // GCC8: stupidly uses a vector instruction in all bitwise operators.
+    return {x.hi | y.hi, x.lo | y.lo};
+}
+
+constexpr uint128 operator&(uint128 x, uint128 y) noexcept
+{
+    return {x.hi & y.hi, x.lo & y.lo};
+}
+
+constexpr uint128 operator^(uint128 x, uint128 y) noexcept
+{
+    return {x.hi ^ y.hi, x.lo ^ y.lo};
+}
+
+constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
+{
+    return (shift < 64) ?
+               // Find the part moved from lo to hi.
+               // For shift == 0 right shift by (64 - shift) is invalid so
+               // split it into 2 shifts by 1 and (63 - shift).
+               uint128{(x.hi << shift) | ((x.lo >> 1) >> (63 - shift)), x.lo << shift} :
+
+               // Guarantee "defined" behavior for shifts larger than 128.
+               (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
+}
+
+constexpr uint128 operator<<(uint128 x, uint128 shift) noexcept
+{
+    if (shift < 128)
+        return x << unsigned(shift);
+    return 0;
+}
+
+constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
+{
+    return (shift < 64) ?
+               // Find the part moved from lo to hi.
+               // For shift == 0 left shift by (64 - shift) is invalid so
+               // split it into 2 shifts by 1 and (63 - shift).
+               uint128{x.hi >> shift, (x.lo >> shift) | ((x.hi << 1) << (63 - shift))} :
+
+               // Guarantee "defined" behavior for shifts larger than 128.
+               (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
+}
+
+constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
+{
+    if (shift < 128)
+        return x >> unsigned(shift);
+    return 0;
+}
+
 
 /// @}
 
@@ -578,6 +593,22 @@ inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     auto res = udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_hi, yn_lo}, v);
 
     return {res.quot, res.rem >> lsh};
+}
+
+inline div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
+{
+    constexpr auto sign_mask = uint128{1} << 127;
+    const auto x_is_neg = (x & sign_mask) != 0;
+    const auto y_is_neg = (y & sign_mask) != 0;
+
+    const auto x_abs = x_is_neg ? -x : x;
+    const auto y_abs = y_is_neg ? -y : y;
+
+    const auto q_is_neg = x_is_neg ^ y_is_neg;
+
+    const auto res = udivrem(x_abs, y_abs);
+
+    return {q_is_neg ? -res.quot : res.quot, x_is_neg ? -res.rem : res.rem};
 }
 
 inline uint128 operator/(uint128 x, uint128 y) noexcept
