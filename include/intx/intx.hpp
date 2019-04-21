@@ -696,30 +696,20 @@ unsigned count_significant_words_loop(uint256 x) noexcept
 }
 
 template <typename Word, typename Int>
-inline unsigned count_significant_words(const Int& x) noexcept
+inline typename std::enable_if<sizeof(Word) == sizeof(Int), unsigned>::type count_significant_words(
+    const Int& x) noexcept
+{
+    return x != 0 ? 1 : 0;
+}
+
+template <typename Word, typename Int>
+inline typename std::enable_if<sizeof(Word) < sizeof(Int), unsigned>::type count_significant_words(
+    const Int& x) noexcept
 {
     constexpr auto num_words = static_cast<unsigned>(sizeof(x) / sizeof(Word));
     auto h = count_significant_words<Word>(hi_half(x));
     auto l = count_significant_words<Word>(lo_half(x));
     return h != 0 ? h + (num_words / 2) : l;
-}
-
-template <>
-inline unsigned count_significant_words<uint8_t, uint8_t>(const uint8_t& x) noexcept
-{
-    return x != 0 ? 1 : 0;
-}
-
-template <>
-inline unsigned count_significant_words<uint32_t, uint32_t>(const uint32_t& x) noexcept
-{
-    return x != 0 ? 1 : 0;
-}
-
-template <>
-inline unsigned count_significant_words<uint64_t, uint64_t>(const uint64_t& x) noexcept
-{
-    return x != 0 ? 1 : 0;
 }
 
 div_result<uint256> udiv_qr_knuth_hd_base(const uint256& x, const uint256& y);
@@ -762,7 +752,7 @@ constexpr uint<N> operator%(const uint<N>& x, const uint<N>& y) noexcept
     return udivrem(x, y).rem;
 }
 
-template<unsigned N>
+template <unsigned N>
 inline std::string to_string(uint<N> x)
 {
     if (x == 0)

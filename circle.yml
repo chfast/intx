@@ -155,6 +155,7 @@ jobs:
 
   macos:
     environment:
+      BUILD_TYPE: Release
       BUILD_PARALLEL_JOBS: 8
       TEST_PARALLEL_JOBS: 8
     macos:
