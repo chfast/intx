@@ -676,7 +676,7 @@ static void udiv_knuth_internal_64(
         }
 
         // Multiply and subtract.
-        __int128 borrow = 0;
+        uint128 borrow = 0;
         for (int i = 0; i < n; i++)
         {
             uint128 p = qhat * vn[i];
@@ -685,7 +685,7 @@ static void udiv_knuth_internal_64(
             borrow = hi_half(p) - hi_half(t);
         }
         DEBUG(dbgs() << "borrow: " << (int)borrow << "\n");
-        __int128 t = un[j + n] - borrow;
+        auto t = un[j + n] - borrow;
         un[j + n] = static_cast<uint64_t>(t);
 
         q[j] = lo_half(qhat); // Store quotient digit.
