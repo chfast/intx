@@ -442,7 +442,8 @@ inline uint64_t reciprocal_2by1(uint64_t d) noexcept
 
     auto d0 = d % 2;
     auto d63 = d / 2 + d0;  // ceil(d/2)
-    auto e = ((v2 / 2) & -d0) - v2 * d63;
+    auto nd0 = uint64_t(-int64_t(d0));
+    auto e = ((v2 / 2) & nd0) - v2 * d63;
     auto mh = umul(v2, e).hi;
     auto v3 = (v2 << 31) + (mh >> 1);
 
