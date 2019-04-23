@@ -10,7 +10,6 @@ add_executable(intx-test
     test_div.cpp
     test_int128.cpp
     test_intx.cpp
-    test_mul_full.cpp
     test_intx_api.cpp
 )
 target_link_libraries(intx-test PRIVATE intx GTest::gtest GTest::main)
