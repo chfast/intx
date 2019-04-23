@@ -48,32 +48,6 @@ protected:
     }
 };
 
-TEST_F(Uint256Test, count_significant_words_32)
-{
-    // FIXME: Test uint512.
-    constexpr auto csw = count_significant_words<uint32_t, uint256>;
-
-    uint256 x;
-    EXPECT_EQ(csw(x), 0);
-
-    x = 1;
-    for (unsigned s = 0; s < 256; ++s)
-        EXPECT_EQ(csw(x << s), s / 32 + 1);
-}
-
-TEST_F(Uint256Test, count_significant_words_64)
-{
-    // FIXME: Test uint512.
-    constexpr auto csw = count_significant_words<uint64_t, uint256>;
-
-    uint256 x;
-    EXPECT_EQ(csw(x), 0);
-
-    x = 1;
-    for (unsigned s = 0; s < 256; ++s)
-        EXPECT_EQ(csw(x << s), s / 64 + 1);
-}
-
 TEST_F(Uint256Test, udiv)
 {
     for (auto a : numbers)
@@ -409,8 +383,26 @@ TYPED_TEST(uint_test, shift_against_mul)
     EXPECT_EQ(x, y);
 }
 
-//
-//TEST(uint256, comparison)
-//{
-//    auto uint
-//}
+TYPED_TEST(uint_test, count_significant_words_32)
+{
+    constexpr auto csw = count_significant_words<uint32_t, TypeParam>;
+
+    TypeParam x;
+    EXPECT_EQ(csw(x), 0);
+
+    x = 1;
+    for (unsigned s = 0; s < sizeof(TypeParam) * 8; ++s)
+        EXPECT_EQ(csw(x << s), s / 32 + 1);
+}
+
+TYPED_TEST(uint_test, count_significant_words_64)
+{
+    constexpr auto csw = count_significant_words<uint64_t, TypeParam>;
+
+    TypeParam x;
+    EXPECT_EQ(csw(x), 0);
+
+    x = 1;
+    for (unsigned s = 0; s < sizeof(TypeParam) * 8; ++s)
+        EXPECT_EQ(csw(x << s), s / 64 + 1);
+}
