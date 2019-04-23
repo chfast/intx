@@ -10,7 +10,6 @@ find_package(GMP REQUIRED)
 add_executable(intx-bench
     bench_div.cpp
     bench_int128.cpp
-    bench_mul_full.cpp
     benchmarks.cpp
     utils.cpp
 )
