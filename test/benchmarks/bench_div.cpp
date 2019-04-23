@@ -45,25 +45,42 @@ constexpr uint64_t neg(uint64_t x) noexcept
     return ~x;
 }
 
+inline uint64_t reciprocal_naive(uint64_t d) noexcept
+{
+    const auto u = uint128{~d, ~uint64_t{0}};
+    uint64_t v;
+
+#if _MSC_VER
+    v = (u / d).lo;
+#else
+    uint64_t _;
+    asm("divq %4" : "=d"(_), "=a"(v) : "d"(u.hi), "a"(u.lo), "g"(d));
+#endif
+
+    return v;
+}
+
 template <decltype(reciprocal_2by1) Fn>
 static void div_unary(benchmark::State& state)
 {
-    auto input = gen_uniform_seq(1000);
+    constexpr auto top_bit = uint64_t{1} << 63;
+    auto input = gen_uniform_seq(10);
+
     for (auto& i : input)
-        i |= (uint64_t{1} << 63);
+        i |= top_bit;
 
     benchmark::ClobberMemory();
+    uint64_t x = 0;
     for (auto _ : state)
     {
-        for (auto& i : input)
-            i = Fn(i);
+        for (const auto& i : input)
+            x ^= Fn(i);
     }
-    benchmark::DoNotOptimize(input.data());
+    benchmark::DoNotOptimize(x);
 }
 BENCHMARK_TEMPLATE(div_unary, neg);
 BENCHMARK_TEMPLATE(div_unary, reciprocal_2by1);
-// FIXME: Broken.
-//BENCHMARK_TEMPLATE(div_unary, reciprocal_naive);
+BENCHMARK_TEMPLATE(div_unary, reciprocal_naive);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
 static void udiv64(benchmark::State& state)
