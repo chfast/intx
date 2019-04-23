@@ -265,7 +265,6 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
 {
     const uint64_t b = uint64_t(1) << 32; // Number base (32 bits).
     unsigned *un, *vn; // Normalized form of u, v.
-    int i, j;
     if (m < n || n <= 0 || v[n-1] == 0)
         return 1; // Return if invalid param.
 
@@ -288,13 +287,13 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
     unsigned shift = intx::clz(v[n-1]);
     vn = static_cast<uint32_t*>(alloca(n * sizeof(uint32_t)));
     // shift == 0, we would get shift by 32 => UB. Consider using uint64.
-    for (i = n - 1; i > 0; i--)
+    for (auto i = n - 1; i > 0; i--)
         vn[i] = shift != 0 ? (v[i] << shift) | (v[i - 1] >> (32 - shift)) : v[i];
     vn[0] = v[0] << shift;
 
     un = static_cast<uint32_t*>(alloca((m + 1) * sizeof(uint32_t)));
     un[m] = shift != 0 ? u[m - 1] >> (32 - shift) : 0;
-    for (i = m - 1; i > 0; i--)
+    for (auto i = m - 1; i > 0; i--)
         un[i] = shift != 0 ? (u[i] << shift) | (u[i - 1] >> (32 - shift)) : u[i];
     un[0] = u[0] << shift;
 
@@ -304,7 +303,7 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
     DEBUG(for (int i = n; i >0; i--) dbgs() << " " << vn[i-1]);
     DEBUG(dbgs() << '\n');
 
-    for (j = m - n; j >= 0; j--)  // Main loop.
+    for (auto j = m - n; j >= 0; j--)  // Main loop.
     {
 
         DEBUG(dbgs() << "KnuthHD: quotient digit #" << j << '\n');
@@ -352,9 +351,9 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
             for (int i = 0; i < n; i++)
             {
                 // TODO: Consider using bool carry. See LLVM version.
-                uint64_t t = uint64_t(un[i+j]) + vn[i] + carry;
-                un[i+j] = static_cast<unsigned>(t);
-                carry = t >> 32;
+                uint64_t t1 = uint64_t(un[i+j]) + vn[i] + carry;
+                un[i+j] = static_cast<unsigned>(t1);
+                carry = t1 >> 32;
             }
             un[j+n] = static_cast<unsigned>(un[j+n] + carry);
         }
@@ -366,7 +365,7 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
 // If the caller wants the remainder, unnormalize
 // it and pass it back.
     if (r) {
-        for (i = 0; i < n; i++)
+        for (auto i = 0; i < n; i++)
             r[i] = shift != 0 ? (un[i] >> shift) | (un[i + 1] << (32-shift)) : un[i];
     }
     return 0;
@@ -457,9 +456,9 @@ static void udiv_knuth_internal_base(
             for (int i = 0; i < n; i++)
             {
                 // TODO: Consider using bool carry. See LLVM version.
-                uint64_t t = uint64_t(un[i+j]) + vn[i] + carry;
-                un[i+j] = static_cast<unsigned>(t);
-                carry = t >> 32;
+                uint64_t t1 = uint64_t(un[i+j]) + vn[i] + carry;
+                un[i+j] = static_cast<unsigned>(t1);
+                carry = t1 >> 32;
             }
             un[j+n] = static_cast<unsigned>(un[j+n] + carry);
         }
@@ -677,7 +676,7 @@ static void udiv_knuth_internal_64(
         }
 
         // Multiply and subtract.
-        __int128 borrow = 0;
+        uint128 borrow = 0;
         for (int i = 0; i < n; i++)
         {
             uint128 p = qhat * vn[i];
@@ -686,7 +685,7 @@ static void udiv_knuth_internal_64(
             borrow = hi_half(p) - hi_half(t);
         }
         DEBUG(dbgs() << "borrow: " << (int)borrow << "\n");
-        __int128 t = un[j + n] - borrow;
+        auto t = un[j + n] - borrow;
         un[j + n] = static_cast<uint64_t>(t);
 
         q[j] = lo_half(qhat); // Store quotient digit.
