@@ -2,7 +2,6 @@
 // Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include <intx/mul_full.h>
 #include <intx/int128.hpp>
 
 #include "../utils/random.hpp"
@@ -28,7 +27,5 @@ static void mul_full(benchmark::State& state)
         benchmark::DoNotOptimize(ahi);
     }
 }
-BENCHMARK_TEMPLATE(mul_full, mul_full_64_result, mul_full_64_generic);
-BENCHMARK_TEMPLATE(mul_full, mul_full_64_result, mul_full_64_native);
 BENCHMARK_TEMPLATE(mul_full, intx::uint128, intx::umul_generic);
 BENCHMARK_TEMPLATE(mul_full, intx::uint128, intx::umul);
