@@ -22,24 +22,25 @@ struct uint128
 
     constexpr uint128() noexcept = default;
 
-    // TODO: Would it be enough to have a constructor for uint64_t?
-    template <typename T>
-    constexpr uint128(typename std::enable_if<std::is_unsigned<T>::value>::type x) noexcept : lo{x}
-    {}
-
-    template <typename T>
-    constexpr explicit uint128(typename std::enable_if<std::is_signed<T>::value>::type x) noexcept
-      : lo{static_cast<uint64_t>(x)}
-    {}
-
     constexpr uint128(uint64_t hi, uint64_t lo) noexcept : lo{lo}, hi{hi} {}
 
+    template <typename T,
+        typename = typename std::enable_if<std::is_convertible<T, uint64_t>::value>::type>
+    constexpr uint128(T x) noexcept : lo(x)  // NOLINT
+    {}
+
+    template <typename T, typename std::enable_if<std::is_integral<T>::value>::type>
+    constexpr explicit uint128(T x) noexcept : lo(x)
+    {}
+
 #ifdef __SIZEOF_INT128__
-    constexpr uint128(unsigned __int128 x) noexcept : lo{uint64_t(x)}, hi{uint64_t(x >> 64)} {}
+    constexpr uint128(unsigned __int128 x) noexcept  // NOLINT
+      : lo{uint64_t(x)}, hi{uint64_t(x >> 64)}
+    {}
 
     constexpr explicit operator unsigned __int128() const noexcept
     {
-        return (static_cast<unsigned __int128>(hi) << 64) | lo;
+        return ((unsigned __int128){hi} << 64) | lo;
     }
 #endif
 
@@ -114,7 +115,7 @@ inline uint128 operator--(uint128& x, int) noexcept
 /// broken during other optimizations.
 constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
 {
-#ifdef __SIZEOF_INT128__
+#ifdef __SIZEOF_INT128__xxx
     return (unsigned __int128){x} + (unsigned __int128){y};
 #else
     // Fallback to regular addition.
@@ -441,7 +442,8 @@ inline uint64_t reciprocal_2by1(uint64_t d) noexcept
 
     auto d0 = d % 2;
     auto d63 = d / 2 + d0;  // ceil(d/2)
-    auto e = ((v2 / 2) & -d0) - v2 * d63;
+    auto nd0 = uint64_t(-int64_t(d0));
+    auto e = ((v2 / 2) & nd0) - v2 * d63;
     auto mh = umul(v2, e).hi;
     auto v3 = (v2 << 31) + (mh >> 1);
 
