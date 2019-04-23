@@ -271,11 +271,11 @@ constexpr uint128 umul_generic(uint64_t x, uint64_t y) noexcept
 inline uint128 umul(uint64_t x, uint64_t y) noexcept
 {
 #if defined(__SIZEOF_INT128__)
-    auto p = (unsigned __int128){x} * y;
+    const auto p = (unsigned __int128){x} * y;
     return {uint64_t(p >> 64), uint64_t(p)};
 #elif defined(_MSC_VER)
-    uint64_t hi;
-    auto lo = _mul128(x, y, &hi);
+    unsigned __int64 hi;
+    const auto lo = _umul128(x, y, &hi);
     return {hi, lo};
 #else
     return umul_generic(x, y);

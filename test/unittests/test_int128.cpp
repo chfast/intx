@@ -110,7 +110,7 @@ constexpr div_test_case div_test_cases[] = {
         0x6f386ccc73c11f62},
     {{0x100000000000004, 0xff00000000a20000}, 0x100000000000000, {1, 0x4ff}, 0xa20000},
 };
-}
+}  // namespace
 
 void static_test_comparison()
 {
@@ -184,7 +184,7 @@ void static_test_arith()
 
 TEST(int128, add)
 {
-    for (auto& t: arith_test_cases)
+    for (auto& t : arith_test_cases)
     {
         EXPECT_EQ(t.x + t.y, t.sum);
         EXPECT_EQ(t.y + t.x, t.sum);
@@ -193,7 +193,7 @@ TEST(int128, add)
 
 TEST(int128, sub)
 {
-    for (auto& t: arith_test_cases)
+    for (auto& t : arith_test_cases)
     {
         EXPECT_EQ(t.x - t.y, t.difference);
     }
@@ -201,7 +201,7 @@ TEST(int128, sub)
 
 TEST(int128, mul)
 {
-    for (auto& t: arith_test_cases)
+    for (auto& t : arith_test_cases)
     {
         EXPECT_EQ(t.x * t.y, t.product);
         EXPECT_EQ(t.y * t.x, t.product);
@@ -228,7 +228,6 @@ TEST(int128, increment)
     auto d = IO;
     EXPECT_EQ(d--, IO);
     EXPECT_EQ(d, Of);
-
 }
 
 TEST(int128, shl)
@@ -286,7 +285,7 @@ TEST(int128, arith_random_args)
         auto d = x - y;
         auto p = x * y;
         auto q = x / y;
-        auto r = x  % y;
+        auto r = x % y;
 
         auto expected_s = uint128{(unsigned __int128){x} + (unsigned __int128){y}};
         auto expected_d = uint128{(unsigned __int128){x} - (unsigned __int128){y}};
@@ -323,4 +322,21 @@ TEST(int128, literals)
     EXPECT_THROW(operator""_u128("0xabcxdef"), std::invalid_argument);
 
     EXPECT_EQ(0xaBc123eFd_u128, 0xAbC123EfD_u128);
+}
+
+TEST(int128, umul_random)
+{
+    const auto inputs = gen_uniform_seq(10000);
+
+    for (size_t i = 1; i < inputs.size(); ++i)
+    {
+        auto x = inputs[i - 1];
+        auto y = inputs[i];
+
+        auto generic = intx::umul_generic(x, y);
+        auto best = intx::umul(x, y);
+
+        EXPECT_EQ(generic.hi, best.hi) << x << " x " << y;
+        EXPECT_EQ(generic.lo, best.lo) << x << " x " << y;
+    }
 }
