@@ -162,62 +162,6 @@ TEST_F(Uint256Test, simple_udiv)
     }
 }
 
-TEST_F(Uint256Test, shift_one_bit)
-{
-    for (unsigned shift = 0; shift < 256; ++shift)
-    {
-        uint256 x = 1;
-        uint256 y = x << shift;
-        uint256 z = y >> shift;
-        EXPECT_EQ(x, z) << "shift: " << shift;
-    }
-}
-
-TEST_F(Uint256Test, shift_loop_one_bit)
-{
-    for (unsigned shift = 0; shift < 256; ++shift)
-    {
-        uint256 x = 1;
-        uint256 y = shl_loop(x, shift);
-        uint256 z = y >> shift;
-        EXPECT_EQ(x, z) << "shift: " << shift;
-    }
-}
-
-TEST_F(Uint256Test, not_of_zero)
-{
-    uint256 ones = ~uint256(0);
-    for (unsigned pos = 0; pos < 256; ++pos)
-    {
-        uint256 probe = uint256{1} << pos;
-        uint256 test = probe & ones;
-        EXPECT_NE(test, 0) << "bit position: " << pos;
-    }
-}
-
-TEST_F(Uint256Test, shift_all_ones)
-{
-    for (unsigned shift = 0; shift < 256; ++shift)
-    {
-        uint256 x = 1;
-        uint256 y = x << shift;
-        uint256 z = y >> shift;
-        EXPECT_EQ(x, z) << "shift: " << shift;
-    }
-}
-
-TEST_F(Uint256Test, clz_one_bit)
-{
-    uint256 t = 1;
-    unsigned b = num_bits(t);
-    for (unsigned i = 0; i < b; ++i)
-    {
-        unsigned c = clz(t);
-        EXPECT_EQ(c, b - 1 - i);
-        t = t << 1;
-    }
-}
-
 TEST_F(Uint256Test, string_conversions)
 {
     for (auto n : numbers)
@@ -243,17 +187,6 @@ TEST_F(Uint256Test, mul_against_add)
     }
 }
 
-TEST(uint256, negation_overflow)
-{
-    auto x = -1_u256;
-    auto z = 0_u256;
-    EXPECT_NE(x, z);
-    EXPECT_EQ(x, ~z);
-
-    auto m = 1_u256 << 255;  // Minimal signed value.
-    EXPECT_EQ(-m, m);
-}
-
 TEST(uint512, literal)
 {
     auto x = 1_u512;
@@ -268,13 +201,6 @@ TEST(uint512, literal)
 
     x = 0xab12ff00_u512;
     EXPECT_EQ(x, 0xab12ff00);
-}
-
-TEST(uint512, bswap)
-{
-    auto x = 1_u512;
-    auto y = bswap(x);
-    EXPECT_EQ(y, 1_u512 << 504);
 }
 
 TEST(uint256, arithmetic)
@@ -372,6 +298,85 @@ TYPED_TEST(uint_test, comparison)
     EXPECT_GE(z11, z11);
 }
 
+TYPED_TEST(uint_test, bitwise)
+{
+    auto x00 = TypeParam{0b00};
+    auto l01 = TypeParam{0b01};
+    auto l10 = TypeParam{0b10};
+    auto l11 = TypeParam{0b11};
+    auto h01 = TypeParam{0, 0b01};
+    auto h10 = TypeParam{0, 0b10};
+    auto h11 = TypeParam{0, 0b11};
+    auto x11 = TypeParam{0b11, 0b11};
+
+    EXPECT_EQ(x00 | l01 | l10 | l11, l11);
+    EXPECT_EQ(x00 | h01 | h10 | h11, h11);
+    EXPECT_EQ(l10 | l01 | h10 | h01, x11);
+
+    EXPECT_EQ(l01 & l10 & l11, 0);
+    EXPECT_EQ(h01 & h10 & h11, 0);
+    EXPECT_EQ(l01 & l11, l01);
+    EXPECT_EQ(h01 & h11, h01);
+    EXPECT_EQ(h11 & l11, 0);
+
+    EXPECT_EQ(l01 ^ l10, l11);
+    EXPECT_EQ(l11 ^ l10, l01);
+    EXPECT_EQ(h01 ^ h10, h11);
+    EXPECT_EQ(h11 ^ h10, h01);
+}
+
+TYPED_TEST(uint_test, negation_overflow)
+{
+    auto x = -TypeParam{1};
+    auto z = TypeParam{0};
+    EXPECT_NE(x, z);
+    EXPECT_EQ(x, ~z);
+
+    auto m = TypeParam{1} << (sizeof(TypeParam) * 8 - 1);  // Minimal signed value.
+    EXPECT_EQ(-m, m);
+}
+
+TYPED_TEST(uint_test, shift_one_bit)
+{
+    for (unsigned shift = 0; shift < sizeof(TypeParam) * 8; ++shift)
+    {
+        auto x = TypeParam{1};
+        auto y = x << shift;
+        auto z = y >> shift;
+        EXPECT_EQ(x, z) << "shift: " << shift;
+    }
+}
+
+TYPED_TEST(uint_test, shift_loop_one_bit)
+{
+    for (unsigned shift = 0; shift < sizeof(TypeParam) * 8; ++shift)
+    {
+        auto x = TypeParam{1};
+        auto y = shl_loop(x, shift);
+        auto z = y >> shift;
+        EXPECT_EQ(x, z) << "shift: " << shift;
+    }
+}
+
+TYPED_TEST(uint_test, not_of_zero)
+{
+    auto ones = ~TypeParam{};
+    for (unsigned pos = 0; pos < sizeof(TypeParam) * 8; ++pos)
+        EXPECT_NE((TypeParam{1} << pos) & ones, 0);
+}
+
+TYPED_TEST(uint_test, clz_one_bit)
+{
+    auto t = TypeParam{1};
+    unsigned b = num_bits(t);
+    for (unsigned i = 0; i < b; ++i)
+    {
+        unsigned c = clz(t);
+        EXPECT_EQ(c, b - 1 - i);
+        t = t << 1;  // TODO: Add proper <<= overload.
+    }
+}
+
 TYPED_TEST(uint_test, shift_against_mul)
 {
     auto a = TypeParam{0xaaaaaaa};
@@ -405,4 +410,10 @@ TYPED_TEST(uint_test, count_significant_words_64)
     x = 1;
     for (unsigned s = 0; s < sizeof(TypeParam) * 8; ++s)
         EXPECT_EQ(csw(x << s), s / 64 + 1);
+}
+
+TYPED_TEST(uint_test, bswap)
+{
+    auto x = TypeParam{1};
+    EXPECT_EQ(bswap(x), x << ((sizeof(x) - 1) * 8));
 }
