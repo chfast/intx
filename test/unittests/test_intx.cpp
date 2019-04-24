@@ -162,29 +162,6 @@ TEST_F(Uint256Test, simple_udiv)
     }
 }
 
-TEST_F(Uint256Test, not_of_zero)
-{
-    uint256 ones = ~uint256(0);
-    for (unsigned pos = 0; pos < 256; ++pos)
-    {
-        uint256 probe = uint256{1} << pos;
-        uint256 test = probe & ones;
-        EXPECT_NE(test, 0) << "bit position: " << pos;
-    }
-}
-
-TEST_F(Uint256Test, clz_one_bit)
-{
-    uint256 t = 1;
-    unsigned b = num_bits(t);
-    for (unsigned i = 0; i < b; ++i)
-    {
-        unsigned c = clz(t);
-        EXPECT_EQ(c, b - 1 - i);
-        t = t << 1;
-    }
-}
-
 TEST_F(Uint256Test, string_conversions)
 {
     for (auto n : numbers)
@@ -224,13 +201,6 @@ TEST(uint512, literal)
 
     x = 0xab12ff00_u512;
     EXPECT_EQ(x, 0xab12ff00);
-}
-
-TEST(uint512, bswap)
-{
-    auto x = 1_u512;
-    auto y = bswap(x);
-    EXPECT_EQ(y, 1_u512 << 504);
 }
 
 TEST(uint256, arithmetic)
@@ -388,6 +358,25 @@ TYPED_TEST(uint_test, shift_loop_one_bit)
     }
 }
 
+TYPED_TEST(uint_test, not_of_zero)
+{
+    auto ones = ~TypeParam{};
+    for (unsigned pos = 0; pos < sizeof(TypeParam) * 8; ++pos)
+        EXPECT_NE((TypeParam{1} << pos) & ones, 0);
+}
+
+TYPED_TEST(uint_test, clz_one_bit)
+{
+    auto t = TypeParam{1};
+    unsigned b = num_bits(t);
+    for (unsigned i = 0; i < b; ++i)
+    {
+        unsigned c = clz(t);
+        EXPECT_EQ(c, b - 1 - i);
+        t = t << 1;  // TODO: Add proper <<= overload.
+    }
+}
+
 TYPED_TEST(uint_test, shift_against_mul)
 {
     auto a = TypeParam{0xaaaaaaa};
@@ -421,4 +410,10 @@ TYPED_TEST(uint_test, count_significant_words_64)
     x = 1;
     for (unsigned s = 0; s < sizeof(TypeParam) * 8; ++s)
         EXPECT_EQ(csw(x << s), s / 64 + 1);
+}
+
+TYPED_TEST(uint_test, bswap)
+{
+    auto x = TypeParam{1};
+    EXPECT_EQ(bswap(x), x << ((sizeof(x) - 1) * 8));
 }
