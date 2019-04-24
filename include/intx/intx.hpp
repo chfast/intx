@@ -39,7 +39,7 @@ struct uint
 
     constexpr uint() noexcept = default;
 
-    constexpr uint(half_type lo, half_type hi) noexcept : lo(lo), hi(hi) {}
+    constexpr uint(half_type hi, half_type lo) noexcept : lo(lo), hi(hi) {}
 
     /// Implicit converting constructor for the half type.
     constexpr uint(half_type x) noexcept : lo(x) {}  // NOLINT
@@ -158,12 +158,6 @@ constexpr uint64_t join(uint32_t hi, uint32_t lo)
 constexpr uint128 join(uint64_t hi, uint64_t lo) noexcept
 {
     return {hi, lo};
-}
-
-constexpr uint256 join(uint128 hi, uint128 lo) noexcept
-{
-    // FIXME: Change order of hi - lo.
-    return {lo, hi};
 }
 
 template <typename T>
@@ -306,25 +300,25 @@ constexpr bool operator<=(const T& x, const uint<N>& y) noexcept
 template <unsigned N>
 constexpr uint<N> operator|(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return {x.lo | y.lo, x.hi | y.hi};
+    return {x.hi | y.hi, x.lo | y.lo};
 }
 
 template <unsigned N>
 constexpr uint<N> operator&(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return {x.lo & y.lo, x.hi & y.hi};
+    return {x.hi & y.hi, x.lo & y.lo};
 }
 
 template <unsigned N>
 constexpr uint<N> operator^(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return {x.lo ^ y.lo, x.hi ^ y.hi};
+    return {x.hi ^ y.hi, x.lo ^ y.lo};
 }
 
 template <unsigned N>
 constexpr uint<N> operator~(const uint<N>& x) noexcept
 {
-    return {~x.lo, ~x.hi};
+    return {~x.hi, ~x.lo};
 }
 
 template <unsigned N>
@@ -344,13 +338,13 @@ constexpr uint<N> operator<<(const uint<N>& x, unsigned shift) noexcept
         const auto rshift = half_bits - shift;
         const auto lo_overflow = (x.lo >> (rshift - 1)) >> 1;
         const auto hi = (x.hi << shift) | lo_overflow;
-        return {lo, hi};
+        return {hi, lo};
     }
 
     // This check is only needed if we want "defined" behavior for shifts
     // larger than size of the Int.
     if (shift < num_bits)
-        return {0, x.lo << (shift - half_bits)};
+        return {x.lo << (shift - half_bits), 0};
 
     return 0;
 }
@@ -391,11 +385,11 @@ constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
         auto hi_overflow = (x.hi << (lshift - 1)) << 1;
         auto lo_part = x.lo >> shift;
         auto lo = lo_part | hi_overflow;
-        return {lo, hi};
+        return {hi, lo};
     }
 
     if (shift < num_bits(x))
-        return {x.hi >> (shift - half_bits), 0};
+        return {0, x.hi >> (shift - half_bits)};
 
     return 0;
 }
@@ -559,7 +553,7 @@ constexpr typename traits<Int>::double_type umul(const Int& x, const Int& y) noe
     auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
     auto hi = t3 + u2.hi + u1.hi;
 
-    return {lo, hi};
+    return {hi, lo};
 }
 
 template <typename Int>
@@ -572,7 +566,7 @@ inline Int mul(const Int& a, const Int& b) noexcept
     auto hi = (a.lo * b.hi) + (a.hi * b.lo) + hi_half(t);
     auto lo = lo_half(t);
 
-    return {lo, hi};
+    return {hi, lo};
 }
 
 template <typename Int>
@@ -792,7 +786,7 @@ inline Int from_string(const std::string& s)
 template <unsigned N>
 inline uint<N> bswap(const uint<N>& x) noexcept
 {
-    return {bswap(x.hi), bswap(x.lo)};
+    return {bswap(x.lo), bswap(x.hi)};
 }
 
 
