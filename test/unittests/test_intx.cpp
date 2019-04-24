@@ -162,28 +162,6 @@ TEST_F(Uint256Test, simple_udiv)
     }
 }
 
-TEST_F(Uint256Test, shift_one_bit)
-{
-    for (unsigned shift = 0; shift < 256; ++shift)
-    {
-        uint256 x = 1;
-        uint256 y = x << shift;
-        uint256 z = y >> shift;
-        EXPECT_EQ(x, z) << "shift: " << shift;
-    }
-}
-
-TEST_F(Uint256Test, shift_loop_one_bit)
-{
-    for (unsigned shift = 0; shift < 256; ++shift)
-    {
-        uint256 x = 1;
-        uint256 y = shl_loop(x, shift);
-        uint256 z = y >> shift;
-        EXPECT_EQ(x, z) << "shift: " << shift;
-    }
-}
-
 TEST_F(Uint256Test, not_of_zero)
 {
     uint256 ones = ~uint256(0);
@@ -192,17 +170,6 @@ TEST_F(Uint256Test, not_of_zero)
         uint256 probe = uint256{1} << pos;
         uint256 test = probe & ones;
         EXPECT_NE(test, 0) << "bit position: " << pos;
-    }
-}
-
-TEST_F(Uint256Test, shift_all_ones)
-{
-    for (unsigned shift = 0; shift < 256; ++shift)
-    {
-        uint256 x = 1;
-        uint256 y = x << shift;
-        uint256 z = y >> shift;
-        EXPECT_EQ(x, z) << "shift: " << shift;
     }
 }
 
@@ -397,6 +364,28 @@ TYPED_TEST(uint_test, negation_overflow)
 
     auto m = TypeParam{1} << (sizeof(TypeParam) * 8 - 1);  // Minimal signed value.
     EXPECT_EQ(-m, m);
+}
+
+TYPED_TEST(uint_test, shift_one_bit)
+{
+    for (unsigned shift = 0; shift < sizeof(TypeParam) * 8; ++shift)
+    {
+        auto x = TypeParam{1};
+        auto y = x << shift;
+        auto z = y >> shift;
+        EXPECT_EQ(x, z) << "shift: " << shift;
+    }
+}
+
+TYPED_TEST(uint_test, shift_loop_one_bit)
+{
+    for (unsigned shift = 0; shift < sizeof(TypeParam) * 8; ++shift)
+    {
+        auto x = TypeParam{1};
+        auto y = shl_loop(x, shift);
+        auto z = y >> shift;
+        EXPECT_EQ(x, z) << "shift: " << shift;
+    }
 }
 
 TYPED_TEST(uint_test, shift_against_mul)
