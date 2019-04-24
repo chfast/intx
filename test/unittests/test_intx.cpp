@@ -245,8 +245,8 @@ TYPED_TEST_CASE(uint_test, types);
 TYPED_TEST(uint_test, comparison)
 {
     auto z00 = TypeParam{0, 0};
-    auto z01 = TypeParam{1, 0};
-    auto z10 = TypeParam{0, 1};
+    auto z01 = TypeParam{0, 1};
+    auto z10 = TypeParam{1, 0};
     auto z11 = TypeParam{1, 1};
 
     EXPECT_EQ(z00, z00);
@@ -304,9 +304,9 @@ TYPED_TEST(uint_test, bitwise)
     auto l01 = TypeParam{0b01};
     auto l10 = TypeParam{0b10};
     auto l11 = TypeParam{0b11};
-    auto h01 = TypeParam{0, 0b01};
-    auto h10 = TypeParam{0, 0b10};
-    auto h11 = TypeParam{0, 0b11};
+    auto h01 = TypeParam{0b01, 0};
+    auto h10 = TypeParam{0b10, 0};
+    auto h11 = TypeParam{0b11, 0};
     auto x11 = TypeParam{0b11, 0b11};
 
     EXPECT_EQ(x00 | l01 | l10 | l11, l11);

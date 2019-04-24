@@ -28,8 +28,8 @@ inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 template <decltype(normalize) NormalizeFn>
 static void div_normalize(benchmark::State& state)
 {
-    uint512 u{uint256{1324254353, 4343242153453}, uint256{100324254353, 48882153453}};
-    uint512 v{uint256{1333354353, 4343242156663}, uint256{16666654353, 48882100453}};
+    auto u = uint512{{48882153453, 100324254353}, {4343242153453, 1324254353}};
+    auto v = uint512{{48882100453, 16666654353}, {4343242156663, 1333354353}};
 
     for (auto _ : state)
     {

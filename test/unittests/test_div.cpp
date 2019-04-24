@@ -23,8 +23,8 @@ TEST(div, normalize)
     EXPECT_EQ(na.denominator[0], uint64_t{1} << 63);
     EXPECT_EQ(na.denominator[1], 0);
 
-    u = uint512{1313, 1414};
-    v = uint512{1212, 12};
+    u = uint512{1414, 1313};
+    v = uint512{12, 1212};
     na = normalize(u, v);
     EXPECT_EQ(na.shift, 60);
     EXPECT_EQ(na.num_denominator_words, 5);
@@ -41,7 +41,7 @@ TEST(div, normalize)
     EXPECT_EQ(na.denominator[5], 0);
 
     u = uint512{3} << 510;
-    v = uint512{uint256{1, 0xffffffffffffffff}, 0};
+    v = uint256{0xffffffffffffffff, 1};
     na = normalize(u, v);
     EXPECT_EQ(na.shift, 0);
     EXPECT_EQ(na.num_denominator_words, 3);
@@ -58,7 +58,7 @@ TEST(div, normalize)
     EXPECT_EQ(na.denominator[3], 0);
 
     u = uint512{7} << 509;
-    v = uint512{uint256{1, 0x3fffffffffffffff}, 0};
+    v = uint256{0x3fffffffffffffff, 1};
     na = normalize(u, v);
     EXPECT_EQ(na.shift, 2);
     EXPECT_EQ(na.num_denominator_words, 3);
