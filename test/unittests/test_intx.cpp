@@ -243,17 +243,6 @@ TEST_F(Uint256Test, mul_against_add)
     }
 }
 
-TEST(uint256, negation_overflow)
-{
-    auto x = -1_u256;
-    auto z = 0_u256;
-    EXPECT_NE(x, z);
-    EXPECT_EQ(x, ~z);
-
-    auto m = 1_u256 << 255;  // Minimal signed value.
-    EXPECT_EQ(-m, m);
-}
-
 TEST(uint512, literal)
 {
     auto x = 1_u512;
@@ -370,6 +359,44 @@ TYPED_TEST(uint_test, comparison)
     EXPECT_GE(z10, z10);
     EXPECT_GE(z11, z10);
     EXPECT_GE(z11, z11);
+}
+
+TYPED_TEST(uint_test, bitwise)
+{
+    auto x00 = TypeParam{0b00};
+    auto l01 = TypeParam{0b01};
+    auto l10 = TypeParam{0b10};
+    auto l11 = TypeParam{0b11};
+    auto h01 = TypeParam{0, 0b01};
+    auto h10 = TypeParam{0, 0b10};
+    auto h11 = TypeParam{0, 0b11};
+    auto x11 = TypeParam{0b11, 0b11};
+
+    EXPECT_EQ(x00 | l01 | l10 | l11, l11);
+    EXPECT_EQ(x00 | h01 | h10 | h11, h11);
+    EXPECT_EQ(l10 | l01 | h10 | h01, x11);
+
+    EXPECT_EQ(l01 & l10 & l11, 0);
+    EXPECT_EQ(h01 & h10 & h11, 0);
+    EXPECT_EQ(l01 & l11, l01);
+    EXPECT_EQ(h01 & h11, h01);
+    EXPECT_EQ(h11 & l11, 0);
+
+    EXPECT_EQ(l01 ^ l10, l11);
+    EXPECT_EQ(l11 ^ l10, l01);
+    EXPECT_EQ(h01 ^ h10, h11);
+    EXPECT_EQ(h11 ^ h10, h01);
+}
+
+TYPED_TEST(uint_test, negation_overflow)
+{
+    auto x = -TypeParam{1};
+    auto z = TypeParam{0};
+    EXPECT_NE(x, z);
+    EXPECT_EQ(x, ~z);
+
+    auto m = TypeParam{1} << (sizeof(TypeParam) * 8 - 1);  // Minimal signed value.
+    EXPECT_EQ(-m, m);
 }
 
 TYPED_TEST(uint_test, shift_against_mul)
