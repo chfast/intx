@@ -44,9 +44,9 @@ defaults:
       working_directory: ~/build
       command: |
         if [ -z "$GTEST_FILTER" ]; then
-          test/intx-test
+          test/intx-unittests
         else
-          test/intx-test --gtest_filter=$GTEST_FILTER
+          test/intx-unittests --gtest_filter=$GTEST_FILTER
         fi
 
   benchmark: &benchmark

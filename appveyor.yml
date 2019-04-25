@@ -31,4 +31,4 @@ build_script:
 
 after_build:
 - ps: |
-    test/Release/intx-test.exe
+    test/Release/intx-unittests.exe
