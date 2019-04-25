@@ -15,8 +15,8 @@ Provides following types:
 To build, test or benchmark.
 
 ```bash
-git clone --recursive https://github.com/chfast/intx
-cd evmone
+git clone https://github.com/chfast/intx
+cd intx
 mkdir build
 cd build
 
