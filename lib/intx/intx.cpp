@@ -19,17 +19,18 @@ inline std::ostream& dbgs() { return std::cerr; }
 
 namespace intx
 {
+// FIXME: Move this and related div implementation to test/.
 inline std::tuple<uint32_t, uint32_t> udivrem_long_asm(uint64_t u, uint32_t v)
 {
-#ifdef _MSC_VER
-    const auto q = uint32_t(u / v);
-    const auto r = uint32_t(u % v);
-#else
+#if (__GNUC__ || __clang__) && __x86_64__
     // RDX:RAX by r/m64 : RAX <- Quotient, RDX <- Remainder.
     uint32_t q, r;
-    uint32_t uh = static_cast<uint32_t>(u >> 32);
-    uint32_t ul = static_cast<uint32_t>(u);
+    const auto uh = static_cast<uint32_t>(u >> 32);
+    const auto ul = static_cast<uint32_t>(u);
     asm("divl %4" : "=d"(r), "=a"(q) : "d"(uh), "a"(ul), "g"(v));
+#else
+    const auto q = uint32_t(u / v);
+    const auto r = uint32_t(u % v);
 #endif
     return {q, r};
 }
