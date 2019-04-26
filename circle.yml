@@ -37,6 +37,7 @@ defaults:
       command: |
         cmake --build . -- -j $BUILD_PARALLEL_JOBS
         cmake --build . --target install
+        cmake --build . --target package
 
   test: &test
     run:
