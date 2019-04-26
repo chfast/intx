@@ -43,11 +43,7 @@ defaults:
       name: "Test"
       working_directory: ~/build
       command: |
-        if [ -z "$GTEST_FILTER" ]; then
-          test/intx-unittests
-        else
-          test/intx-unittests --gtest_filter=$GTEST_FILTER
-        fi
+        ctest -j4 --output-on-failure --schedule-random -R ${TESTS_FILTER:-'.*'} -E ${TESTS_EXCLUDE}
 
   benchmark: &benchmark
     run:
@@ -92,7 +88,8 @@ jobs:
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
       - CMAKE_OPTIONS: -DCOVERAGE=ON
-      - GTEST_FILTER: -*random*
+      - TESTS_FILTER: unittests
+      - TESTS_EXCLUDE: random
     docker:
       - image: ethereum/cpp-build-env:11
     steps:
