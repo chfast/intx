@@ -2,6 +2,15 @@
 # Copyright 2019 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
+# Figure out if Hunter is needed.
+if(INTX_TESTING OR INTX_BENCHMARKING)
+    set(hunter_enabled TRUE)
+else()
+    set(hunter_enabled FALSE)
+endif()
+
+option(HUNTER_ENABLED "Enable Hunter package manager" ${hunter_enabled})
+
 set(HUNTER_CONFIGURATION_TYPES Release
     CACHE STRING "Build type of the Hunter packages")
 set(HUNTER_CACHE_SERVERS

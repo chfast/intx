@@ -11,6 +11,9 @@ include(CableToolchains)
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
+option(INTX_TESTING "Build intx with tests" ON)
+option(INTX_BENCHMARKING "Build intx with benchmark tools" ON)
+option(INTX_FUZZING "Build intx fuzzers" OFF)
 
 cable_configure_toolchain(DEFAULT cxx14)
 
@@ -18,10 +21,6 @@ include(Hunter/init)
 
 project(intx)
 set(PROJECT_VERSION 0.1.0-dev)
-
-option(INTX_TESTING "Build intx with tests" ON)
-option(INTX_BENCHMARKING "Build intx with benchmark tools" ON)
-option(INTX_FUZZING "Build intx fuzzers" OFF)
 
 cable_configure_compiler(NO_PEDANTIC NO_CONVERSION_WARNINGS)
 
