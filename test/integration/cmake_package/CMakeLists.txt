@@ -11,7 +11,8 @@ file(MAKE_DIRECTORY ${build_dir} ${use_build_dir})
 add_test(
     NAME ${PROJECT_NAME}/cmake_package/configure
     COMMAND
-        ${CMAKE_COMMAND} ${PROJECT_SOURCE_DIR} -DCMAKE_INSTALL_PREFIX=${install_dir}
+        ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
+        ${PROJECT_SOURCE_DIR} -DCMAKE_INSTALL_PREFIX=${install_dir}
         -DINTX_TESTING=OFF -DINTX_BENCHMARKING=OFF -DINTX_FUZZING=OFF
     WORKING_DIRECTORY ${build_dir}
 )
@@ -28,7 +29,9 @@ set_tests_properties(
 
 add_test(
     NAME ${PROJECT_NAME}/cmake_package/use_cmake_package/configure
-    COMMAND ${CMAKE_COMMAND} ${PROJECT_SOURCE_DIR}/examples/use_cmake_package -DCMAKE_PREFIX_PATH=${install_dir}
+    COMMAND
+        ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
+        ${PROJECT_SOURCE_DIR}/examples/use_cmake_package -DCMAKE_PREFIX_PATH=${install_dir}
     WORKING_DIRECTORY ${use_build_dir}
 )
 set_tests_properties(
