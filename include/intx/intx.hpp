@@ -918,6 +918,24 @@ constexpr uint<N> operator^(const T& x, const uint<N>& y) noexcept
 }
 
 
+namespace le  // Conversions to/from LE bytes.
+{
+inline intx::uint256 uint256(const uint8_t bytes[32]) noexcept
+{
+    intx::uint256 x;
+    std::memcpy(&x, bytes, sizeof(x));
+    return x;
+}
+
+template <typename Int>
+inline void store(uint8_t* dst, const Int& x) noexcept
+{
+    std::memcpy(dst, &x, sizeof(x));
+}
+
+}  // namespace le
+
+
 namespace be  // Conversions to/from BE bytes.
 {
 inline intx::uint256 uint256(const uint8_t bytes[32]) noexcept
