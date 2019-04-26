@@ -2,14 +2,12 @@
 # Copyright 2019 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
-include(GNUInstallDirs)
-
 set(include_dir ${PROJECT_SOURCE_DIR}/include)
 
 add_library(int128 INTERFACE)
 add_library(intx::int128 ALIAS int128)
-target_sources(int128 INTERFACE ${include_dir}/intx/int128.hpp)
-target_include_directories(int128 INTERFACE ${include_dir})
+target_sources(int128 INTERFACE $<BUILD_INTERFACE:${include_dir}/intx/int128.hpp>)
+target_include_directories(int128 INTERFACE $<BUILD_INTERFACE:${include_dir}>$<INSTALL_INTERFACE:include>)
 
 
 add_library(intx STATIC
@@ -19,7 +17,7 @@ add_library(intx STATIC
     intx.cpp
 )
 add_library(intx::intx ALIAS intx)
-target_include_directories(intx PUBLIC ${include_dir} ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(intx PUBLIC $<BUILD_INTERFACE:${include_dir}>$<INSTALL_INTERFACE:include>)
 target_link_libraries(intx PUBLIC intx::int128)
 
 install(
