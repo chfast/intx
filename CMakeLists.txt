@@ -24,6 +24,10 @@ set(PROJECT_VERSION 0.1.0-dev)
 
 cable_configure_compiler(NO_PEDANTIC NO_CONVERSION_WARNINGS)
 
+if(INTX_TESTING)
+    enable_testing()
+endif()
+
 if(INTX_FUZZING)
     set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined,address)
     add_compile_options(${fuzzing_flags})
@@ -42,14 +46,7 @@ elseif(NOT MSVC)
 endif()
 
 add_subdirectory(lib/intx)
-
-if(INTX_TESTING)
-    enable_testing()
-endif()
-
-if(INTX_TESTING OR INTX_BENCHMARKING OR INTX_FUZZING)
-    add_subdirectory(test)
-endif()
+add_subdirectory(test)
 
 write_basic_package_version_file(intxConfigVersion.cmake COMPATIBILITY ExactVersion)
 
