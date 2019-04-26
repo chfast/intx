@@ -16,8 +16,6 @@ environment:
 cache:
   - C:\.hunter\_Base\Cache -> cmake\Hunter\init.cmake
 
-install:
-  - git submodule update --init --recursive
 before_build:
 - ps: |
     if (!(test-path build)) { mkdir build }

@@ -79,7 +79,6 @@ jobs:
     steps:
       - *install-deps
       - checkout
-      - *update-submodules
       - *configure
       - *build
       - *test
@@ -98,7 +97,6 @@ jobs:
     steps:
       - *install-deps
       - checkout
-      - *update-submodules
       - *configure
       - *build
       - *test
@@ -117,7 +115,6 @@ jobs:
     steps:
       - *install-deps
       - checkout
-      - *update-submodules
       - *configure
       - *build
       - *test
@@ -134,7 +131,6 @@ jobs:
     steps:
       - *install-deps
       - checkout
-      - *update-submodules
       - *configure
       - *build
       - *test
@@ -166,7 +162,6 @@ jobs:
           command: |
             HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake gmp
       - checkout
-      - *update-submodules
       - *configure
       - *build
       - *test
