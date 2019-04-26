@@ -28,7 +28,8 @@ before_build:
 build_script:
 - ps: |
     cmake --build . --config $env:CONFIGURATION --target install
+    cmake --build . --config $env:CONFIGURATION --target package
 
 after_build:
 - ps: |
-    test/Release/intx-unittests.exe
+    ctest -C $env:CONFIGURATION -j4 --output-on-failure --schedule-random
