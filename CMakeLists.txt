@@ -44,6 +44,10 @@ endif()
 
 add_subdirectory(lib/intx)
 
+if(INTX_TESTING)
+    enable_testing()
+endif()
+
 if(INTX_TESTING OR INTX_BENCHMARKING OR INTX_FUZZING)
     add_subdirectory(test)
 endif()
