@@ -417,3 +417,21 @@ TYPED_TEST(uint_test, bswap)
     auto x = TypeParam{1};
     EXPECT_EQ(bswap(x), x << ((sizeof(x) - 1) * 8));
 }
+
+TYPED_TEST(uint_test, endianness)
+{
+    constexpr auto s = sizeof(TypeParam);
+
+    uint8_t data[s];
+    const auto x = TypeParam{1};
+
+    le::store(data, x);
+    EXPECT_EQ(data[0], 1);
+    EXPECT_EQ(data[s - 1], 0);
+    EXPECT_EQ(le::uint<s * 8>(data), x);
+
+    be::store(data, x);
+    EXPECT_EQ(data[0], 0);
+    EXPECT_EQ(data[s - 1], 1);
+    EXPECT_EQ(be::uint<s * 8>(data), x);
+}

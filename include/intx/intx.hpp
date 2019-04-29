@@ -920,15 +920,18 @@ constexpr uint<N> operator^(const T& x, const uint<N>& y) noexcept
 
 namespace le  // Conversions to/from LE bytes.
 {
-inline intx::uint256 uint256(const uint8_t bytes[32]) noexcept
+template <unsigned N>
+inline intx::uint<N> uint(const uint8_t bytes[sizeof(intx::uint<N>)]) noexcept
 {
-    intx::uint256 x;
+    auto x = intx::uint<N>{};
     std::memcpy(&x, bytes, sizeof(x));
     return x;
 }
+constexpr auto uint256 = uint<256>;
+constexpr auto uint512 = uint<512>;
 
-template <typename Int>
-inline void store(uint8_t* dst, const Int& x) noexcept
+template <unsigned N>
+inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
 {
     std::memcpy(dst, &x, sizeof(x));
 }
@@ -938,15 +941,18 @@ inline void store(uint8_t* dst, const Int& x) noexcept
 
 namespace be  // Conversions to/from BE bytes.
 {
-inline intx::uint256 uint256(const uint8_t bytes[32]) noexcept
+template <unsigned N>
+inline intx::uint<N> uint(const uint8_t bytes[sizeof(intx::uint<N>)]) noexcept
 {
-    intx::uint256 x;
+    auto x = intx::uint<N>{};
     std::memcpy(&x, bytes, sizeof(x));
     return bswap(x);
 }
+constexpr auto uint256 = uint<256>;
+constexpr auto uint512 = uint<512>;
 
-template <typename Int>
-inline void store(uint8_t* dst, const Int& x) noexcept
+template <unsigned N>
+inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
 {
     auto d = bswap(x);
     std::memcpy(dst, &d, sizeof(d));
