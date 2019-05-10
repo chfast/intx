@@ -697,11 +697,13 @@ struct numeric_limits<intx::uint<N>>
 
 namespace intx
 {
-constexpr uint128 parse(const char* s)
+template <typename Int>
+constexpr Int parse(const char* s)
 {
+    // FIXME: Rename to from_string().
     using namespace std::literals;
 
-    auto x = uint128{};
+    auto x = Int{};
     int num_digits = 0;
 
     if (s[0] == '0' && s[1] == 'x')
@@ -728,10 +730,10 @@ constexpr uint128 parse(const char* s)
 
     while (auto d = *s++)
     {
-        if (num_digits++ > std::numeric_limits<uint128>::digits10)
+        if (num_digits++ > std::numeric_limits<Int>::digits10)
             throw std::overflow_error{"Integer overflow"};
 
-        x = constexpr_mul(x, 10);
+        x = constexpr_mul(x, Int{10});
         if (d >= '0' && d <= '9')
             d -= '0';
         else
@@ -745,6 +747,6 @@ constexpr uint128 parse(const char* s)
 
 constexpr uint128 operator""_u128(const char* s)
 {
-    return parse(s);
+    return parse<uint128>(s);
 }
 }  // namespace intx
