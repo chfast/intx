@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.5)
 
 include(cmake/cable/bootstrap.cmake)
 
+include(CableBuildType)
 include(CableCompilerSettings)
 include(CableToolchains)
 include(CMakePackageConfigHelpers)
@@ -16,6 +17,7 @@ option(INTX_BENCHMARKING "Build intx with benchmark tools" ON)
 option(INTX_FUZZING "Build intx fuzzers" OFF)
 
 cable_configure_toolchain(DEFAULT cxx14)
+cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Release;Debug)
 
 include(Hunter/init)
 
@@ -32,17 +34,6 @@ if(INTX_FUZZING)
     set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined,address)
     add_compile_options(${fuzzing_flags})
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${fuzzing_flags}")
-endif()
-
-option(NATIVE OFF)
-if(NATIVE)
-    if(MSVC)
-        add_compile_options(-arch:AVX)
-    else()
-        add_compile_options(-mtune=native -march=native)
-    endif()
-elseif(NOT MSVC)
-    add_compile_options(-mtune=generic)
 endif()
 
 add_subdirectory(lib/intx)
