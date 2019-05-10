@@ -34,17 +34,6 @@ if(INTX_FUZZING)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${fuzzing_flags}")
 endif()
 
-option(NATIVE OFF)
-if(NATIVE)
-    if(MSVC)
-        add_compile_options(-arch:AVX)
-    else()
-        add_compile_options(-mtune=native -march=native)
-    endif()
-elseif(NOT MSVC)
-    add_compile_options(-mtune=generic)
-endif()
-
 add_subdirectory(lib/intx)
 add_subdirectory(test)
 
