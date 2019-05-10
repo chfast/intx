@@ -19,7 +19,7 @@ cable_configure_toolchain(DEFAULT cxx14)
 
 include(Hunter/init)
 
-project(intx)
+project(intx LANGUAGES CXX)
 set(PROJECT_VERSION 0.2.0-dev)
 
 cable_configure_compiler(NO_PEDANTIC NO_CONVERSION_WARNINGS NO_STACK_PROTECTION)
