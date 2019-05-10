@@ -698,9 +698,8 @@ struct numeric_limits<intx::uint<N>>
 namespace intx
 {
 template <typename Int>
-constexpr Int parse(const char* s)
+constexpr Int from_string(const char* s)
 {
-    // FIXME: Rename to from_string().
     using namespace std::literals;
 
     auto x = Int{};
@@ -745,8 +744,14 @@ constexpr Int parse(const char* s)
     return x;
 }
 
+template<typename Int>
+constexpr Int from_string(const std::string& s)
+{
+    return from_string<Int>(s.c_str());
+}
+
 constexpr uint128 operator""_u128(const char* s)
 {
-    return parse<uint128>(s);
+    return from_string<uint128>(s);
 }
 }  // namespace intx

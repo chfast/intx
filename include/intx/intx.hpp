@@ -806,26 +806,11 @@ inline std::string to_string(uint128 x)
     return to_string(uint256(x));
 }
 
-template <typename Int>
-inline Int from_string(const std::string& s)
-{
-    Int x{};
-
-    for (auto c : s)
-    {
-        auto v = c - '0';
-        x *= 10;
-        x += v;
-    }
-    return x;
-}
-
 template <unsigned N>
 inline uint<N> bswap(const uint<N>& x) noexcept
 {
     return {bswap(x.lo), bswap(x.hi)};
 }
-
 
 template <typename Int>
 inline Int parse_literal(const char* s) noexcept
