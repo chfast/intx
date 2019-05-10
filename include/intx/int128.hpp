@@ -649,52 +649,11 @@ inline uint128& operator%=(uint128& x, uint128 y) noexcept
 
 /// @}
 
+constexpr uint128 parse(const char* s);
 
 constexpr uint128 operator""_u128(const char* s)
 {
-    using namespace std::literals;
-
-    uint128 x;
-    size_t num_digits = 0;
-
-    if (s[0] == '0' && s[1] == 'x')
-    {
-        s += 2;
-        while (auto d = *s++)
-        {
-            if (++num_digits > sizeof(x) * 2)
-                throw std::overflow_error{"Literal overflow"};
-
-            x <<= 4;
-            if (d >= '0' && d <= '9')
-                d -= '0';
-            else if (d >= 'a' && d <= 'f')
-                d -= 'a' - 10;
-            else if (d >= 'A' && d <= 'F')
-                d -= 'A' - 10;
-            else
-                throw std::invalid_argument{"Invalid literal character: "s + d};
-            x += d;
-        }
-        return x;
-    }
-
-    while (auto d = *s++)
-    {
-        // TODO: std::numeric_limits<uint128>::digits10 can be used here.
-        if (++num_digits > 39)
-            throw std::overflow_error{"Literal overflow"};
-
-        x = constexpr_mul(x, 10);
-        if (d >= '0' && d <= '9')
-            d -= '0';
-        else
-            throw std::invalid_argument{"Invalid literal character: "s + d};
-        x += d;
-        if (x < d)
-            throw std::overflow_error{"Literal overflow"};
-    }
-    return x;
+    return parse(s);
 }
 
 }  // namespace intx
@@ -741,4 +700,54 @@ struct numeric_limits<intx::uint<N>>
     static constexpr type signaling_NaN() noexcept { return 0; }
     static constexpr type denorm_min() noexcept { return 0; }
 };
+}  // namespace std
+
+namespace intx
+{
+constexpr uint128 parse(const char* s)
+{
+    using namespace std::literals;
+
+    uint128 x;
+    size_t num_digits = 0;
+
+    if (s[0] == '0' && s[1] == 'x')
+    {
+        s += 2;
+        while (auto d = *s++)
+        {
+            if (++num_digits > sizeof(x) * 2)
+                throw std::overflow_error{"Integer overflow"};
+
+            x <<= 4;
+            if (d >= '0' && d <= '9')
+                d -= '0';
+            else if (d >= 'a' && d <= 'f')
+                d -= 'a' - 10;
+            else if (d >= 'A' && d <= 'F')
+                d -= 'A' - 10;
+            else
+                throw std::invalid_argument{"Invalid literal character: "s + d};
+            x += d;
+        }
+        return x;
+    }
+
+    while (auto d = *s++)
+    {
+        // TODO: std::numeric_limits<uint128>::digits10 can be used here.
+        if (++num_digits > std::numeric_limits<uint128>::digits10)
+            throw std::overflow_error{"Integer overflow"};
+
+        x = constexpr_mul(x, 10);
+        if (d >= '0' && d <= '9')
+            d -= '0';
+        else
+            throw std::invalid_argument{"Invalid literal character: "s + d};
+        x += d;
+        if (x < d)
+            throw std::overflow_error{"Integer overflow"};
+    }
+    return x;
 }
+}  // namespace intx
