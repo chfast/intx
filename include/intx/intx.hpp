@@ -25,14 +25,9 @@ struct uint
     using word_type = uint64_t;
 
     /// The 2x smaller type.
-    ///
-    /// In the generic case of uint<N> the half type is just uint<N / 2>,
-    /// but we have to handle the uint<256> case differently by using
-    /// the external uint128 type.
-    using half_type = std::conditional_t<N == 256, uint128, uint<N / 2>>;
+    using half_type = uint<N / 2>;
 
     static constexpr auto num_words = N / 8 / sizeof(word_type);
-
 
     half_type lo = 0;
     half_type hi = 0;
