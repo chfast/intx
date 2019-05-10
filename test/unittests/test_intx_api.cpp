@@ -27,7 +27,7 @@ class uint_api : public testing::Test
 {
 };
 
-using types = testing::Types<uint256, uint512>;
+using types = testing::Types<uint128, uint256, uint512>;
 TYPED_TEST_CASE(uint_api, types);
 
 TYPED_TEST(uint_api, arithmetic)
@@ -217,4 +217,23 @@ TYPED_TEST(uint_api, comparison)
     EXPECT_TRUE(b >= x);
     EXPECT_TRUE(c >= x);
     EXPECT_TRUE(d >= x);
+}
+
+TYPED_TEST(uint_api, arithmetic_op_assignment)
+{
+    auto x = TypeParam{};
+
+    EXPECT_EQ(x += 11, 11);
+    EXPECT_EQ(x -= 4, 7);
+    EXPECT_EQ(x *= 2, 14);
+    EXPECT_EQ(x %= 8, 6);
+    EXPECT_EQ(x /= 3, 2);
+
+    EXPECT_EQ(x += x, 4);
+    EXPECT_EQ(x -= x, 0);
+    EXPECT_EQ(x += uint128{3}, 3);
+    EXPECT_EQ(x *= 3u, 9);
+    EXPECT_EQ(x /= x, 1);
+    EXPECT_EQ(x %= x, 0);
+
 }

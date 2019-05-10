@@ -521,23 +521,20 @@ constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
     return x + -y;
 }
 
-template <typename Int1, typename Int2>
-inline Int1& operator+=(Int1& x, const Int2& y)
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator+=(uint<N>& x, const T& y) noexcept
 {
     return x = x + y;
 }
 
-template <typename Int1, typename Int2>
-inline Int1& operator-=(Int1& x, const Int2& y)
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 {
     return x = x - y;
 }
 
-template <typename Int1, typename Int2>
-inline Int1& operator*=(Int1& x, const Int2& y)
-{
-    return x = x * y;
-}
 
 template <typename Int>
 constexpr typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
@@ -628,12 +625,10 @@ inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
     return mul_loop_opt(x, y);
 }
 
-inline uint256& operator*=(uint256& x, const uint256& y) noexcept
-{
-    return x = x * y;
-}
 
-inline uint512& operator*=(uint512& x, const uint512& y) noexcept
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator*=(uint<N>& x, const T& y) noexcept
 {
     return x = x * y;
 }
@@ -744,6 +739,20 @@ template <unsigned N>
 constexpr uint<N> operator%(const uint<N>& x, const uint<N>& y) noexcept
 {
     return udivrem(x, y).rem;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator/=(uint<N>& x, const T& y) noexcept
+{
+    return x = x / y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator%=(uint<N>& x, const T& y) noexcept
+{
+    return x = x % y;
 }
 
 template <unsigned N>
