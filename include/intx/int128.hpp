@@ -44,6 +44,8 @@ struct uint128
     }
 #endif
 
+    constexpr explicit operator bool() const noexcept { return hi | lo; }
+
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
     constexpr explicit operator Int() const noexcept

@@ -166,6 +166,15 @@ void static_test_bitwise_operators()
     static_assert(~x == y, "");
 }
 
+void static_test_explicit_conversion_to_bool()
+{
+    static_assert(uint128{1, 0}, "");
+    static_assert(uint128{0, 1}, "");
+    static_assert(uint128{1, 1}, "");
+    static_assert(!uint128{0, 0}, "");
+    static_assert(!static_cast<bool>(uint128{0, 0}), "");
+}
+
 #ifndef _MSC_VER
 // FIXME: Investigate "integer constant overflow" issue on MSVC.
 void static_test_arith()

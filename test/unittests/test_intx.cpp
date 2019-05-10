@@ -435,3 +435,14 @@ TYPED_TEST(uint_test, endianness)
     EXPECT_EQ(data[s - 1], 1);
     EXPECT_EQ(be::uint<s * 8>(data), x);
 }
+
+TYPED_TEST(uint_test, convert_to_bool)
+{
+    EXPECT_TRUE((TypeParam{1, 0}));
+    EXPECT_TRUE((TypeParam{0, 1}));
+    EXPECT_TRUE((TypeParam{1, 1}));
+    EXPECT_TRUE((TypeParam{2, 0}));
+    EXPECT_TRUE((TypeParam{0, 2}));
+    EXPECT_TRUE((TypeParam{2, 2}));
+    EXPECT_FALSE((TypeParam{0, 0}));
+}
