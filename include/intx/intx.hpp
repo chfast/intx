@@ -50,6 +50,11 @@ struct uint
     constexpr uint(T x) noexcept : lo(x)  // NOLINT
     {}
 
+    constexpr explicit operator bool() const noexcept
+    {
+        return static_cast<bool>(lo) | static_cast<bool>(hi);
+    }
+
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
     explicit operator Int() const noexcept
