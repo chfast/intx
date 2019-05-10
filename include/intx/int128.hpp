@@ -4,7 +4,9 @@
 
 #pragma once
 
+#include <climits>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -696,3 +698,45 @@ constexpr uint128 operator""_u128(const char* s)
 }
 
 }  // namespace intx
+
+
+namespace std
+{
+template <>
+struct numeric_limits<intx::uint128>
+{
+    static constexpr bool is_specialized = true;
+    static constexpr bool is_integer = true;
+    static constexpr bool is_signed = false;
+    static constexpr bool is_exact = true;
+    static constexpr bool has_infinity = false;
+    static constexpr bool has_quiet_NaN = false;
+    static constexpr bool has_signaling_NaN = false;
+    static constexpr float_denorm_style has_denorm = denorm_absent;
+    static constexpr bool has_denorm_loss = false;
+    static constexpr float_round_style round_style = round_toward_zero;
+    static constexpr bool is_iec559 = false;
+    static constexpr bool is_bounded = true;
+    static constexpr bool is_modulo = true;
+    static constexpr int digits = CHAR_BIT * sizeof(intx::uint128);
+    static constexpr int digits10 = int(0.3010299956639812 * digits);
+    static constexpr int max_digits10 = 0;
+    static constexpr int radix = 2;
+    static constexpr int min_exponent = 0;
+    static constexpr int min_exponent10 = 0;
+    static constexpr int max_exponent = 0;
+    static constexpr int max_exponent10 = 0;
+    static constexpr bool traps = std::numeric_limits<unsigned>::traps;
+    static constexpr bool tinyness_before = false;
+
+    static constexpr intx::uint128 min() noexcept { return 0; }
+    static constexpr intx::uint128 lowest() noexcept { return min(); }
+    static constexpr intx::uint128 max() noexcept { return intx::uint128{0} - 1; }
+    static constexpr intx::uint128 epsilon() noexcept { return 0; }
+    static constexpr intx::uint128 round_error() noexcept { return 0; }
+    static constexpr intx::uint128 infinity() noexcept { return 0; }
+    static constexpr intx::uint128 quiet_NaN() noexcept { return 0; }
+    static constexpr intx::uint128 signaling_NaN() noexcept { return 0; }
+    static constexpr intx::uint128 denorm_min() noexcept { return 0; }
+};
+}

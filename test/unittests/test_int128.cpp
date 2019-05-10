@@ -194,6 +194,18 @@ void static_test_arith()
 }
 #endif
 
+void static_test_numeric_limits()
+{
+    static_assert(!std::numeric_limits<uint128>::is_signed, "");
+    static_assert(std::numeric_limits<uint128>::is_integer, "");
+    static_assert(std::numeric_limits<uint128>::is_exact, "");
+    static_assert(std::numeric_limits<uint128>::radix == 2, "");
+
+    static_assert(std::numeric_limits<uint128>::digits10 == 38, "");
+    static_assert(std::numeric_limits<uint128>::min() == 0, "");
+    static_assert(std::numeric_limits<uint128>::max() == uint128{~uint64_t{0}, ~uint64_t{0}}, "");
+}
+
 TEST(int128, add)
 {
     for (auto& t : arith_test_cases)
