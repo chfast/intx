@@ -15,26 +15,34 @@
 
 namespace intx
 {
-struct uint128
+template <unsigned N>
+struct uint;
+
+/// The 128-bit unsigned integer.
+///
+/// This type is defined as a specialization of uint<> to easier integration with full intx package,
+/// however, uint128 may be used indepedently.
+template<>
+struct uint<128>
 {
     uint64_t lo = 0;
     uint64_t hi = 0;
 
-    constexpr uint128() noexcept = default;
+    constexpr uint() noexcept = default;
 
-    constexpr uint128(uint64_t hi, uint64_t lo) noexcept : lo{lo}, hi{hi} {}
+    constexpr uint(uint64_t hi, uint64_t lo) noexcept : lo{lo}, hi{hi} {}
 
     template <typename T,
         typename = typename std::enable_if<std::is_convertible<T, uint64_t>::value>::type>
-    constexpr uint128(T x) noexcept : lo(x)  // NOLINT
+    constexpr uint(T x) noexcept : lo(x)  // NOLINT
     {}
 
     template <typename T, typename std::enable_if<std::is_integral<T>::value>::type>
-    constexpr explicit uint128(T x) noexcept : lo(x)
+    constexpr explicit uint(T x) noexcept : lo(x)
     {}
 
 #ifdef __SIZEOF_INT128__
-    constexpr uint128(unsigned __int128 x) noexcept  // NOLINT
+    constexpr uint(unsigned __int128 x) noexcept  // NOLINT
       : lo{uint64_t(x)}, hi{uint64_t(x >> 64)}
     {}
 
@@ -53,6 +61,8 @@ struct uint128
         return static_cast<Int>(lo);
     }
 };
+
+using uint128 = uint<128>;
 
 
 /// Linear arithmetic operators.
