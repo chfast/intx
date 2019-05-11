@@ -27,7 +27,7 @@ class uint_api : public testing::Test
 {
 };
 
-using types = testing::Types<uint256, uint512>;
+using types = testing::Types<uint128, uint256, uint512>;
 TYPED_TEST_CASE(uint_api, types);
 
 TYPED_TEST(uint_api, arithmetic)
@@ -72,6 +72,40 @@ TYPED_TEST(uint_api, arithmetic)
     EXPECT_TRUE(c * x == 0);
     EXPECT_TRUE(d * x == 0);
 }
+
+
+TYPED_TEST(uint_api, division)
+{
+    auto a = int{1};
+    auto b = uint64_t{1};
+    auto c = uint128{1};
+    auto d = uint256{1};
+
+    auto x = TypeParam{1};
+
+    EXPECT_TRUE(x / x == 1);
+    EXPECT_TRUE(x / a == 1);
+    EXPECT_TRUE(x / b == 1);
+    EXPECT_TRUE(x / c == 1);
+    EXPECT_TRUE(x / d == 1);
+
+    EXPECT_TRUE(a / x == 1);
+    EXPECT_TRUE(b / x == 1);
+    EXPECT_TRUE(c / x == 1);
+    EXPECT_TRUE(d / x == 1);
+
+    EXPECT_TRUE(x % x == 0);
+    EXPECT_TRUE(x % a == 0);
+    EXPECT_TRUE(x % b == 0);
+    EXPECT_TRUE(x % c == 0);
+    EXPECT_TRUE(x % d == 0);
+
+    EXPECT_TRUE(a % x == 0);
+    EXPECT_TRUE(b % x == 0);
+    EXPECT_TRUE(c % x == 0);
+    EXPECT_TRUE(d % x == 0);
+}
+
 
 TYPED_TEST(uint_api, bitwise)
 {
@@ -183,4 +217,48 @@ TYPED_TEST(uint_api, comparison)
     EXPECT_TRUE(b >= x);
     EXPECT_TRUE(c >= x);
     EXPECT_TRUE(d >= x);
+}
+
+TYPED_TEST(uint_api, arithmetic_op_assignment)
+{
+    auto x = TypeParam{};
+
+    EXPECT_EQ(x += 11, 11);
+    EXPECT_EQ(x -= 4, 7);
+    EXPECT_EQ(x *= 2, 14);
+    EXPECT_EQ(x %= 8, 6);
+    EXPECT_EQ(x /= 3, 2);
+
+    EXPECT_EQ(x += x, 4);
+    EXPECT_EQ(x -= x, 0);
+    EXPECT_EQ(x += uint128{3}, 3);
+    EXPECT_EQ(x *= 3u, 9);
+    EXPECT_EQ(x /= x, 1);
+    EXPECT_EQ(x %= x, 0);
+
+}
+
+TYPED_TEST(uint_api, bitwise_op_assignment)
+{
+    auto x = TypeParam{};
+
+    EXPECT_EQ(x |= 0b1011, 0b1011);
+    EXPECT_EQ(x &= 0b0110, 0b0010);
+    EXPECT_EQ(x ^= 0b1110, 0b1100);
+    EXPECT_EQ(x >>= 2, 0b0011);
+    EXPECT_EQ(x <<= 1, 0b0110);
+
+    x = 0;
+    EXPECT_EQ(x |= uint128{0b1011}, 0b1011);
+    EXPECT_EQ(x &= uint128{0b0110}, 0b0010);
+    EXPECT_EQ(x ^= uint128{0b1110}, 0b1100);
+    EXPECT_EQ(x >>= uint128{2}, 0b0011);
+    EXPECT_EQ(x <<= uint128{1}, 0b0110);
+
+    EXPECT_EQ(x |= x, x);
+    EXPECT_EQ(x &= x, x);
+    EXPECT_EQ(x ^= x, 0);
+    EXPECT_EQ(x |= 1, 1);
+    EXPECT_EQ(x <<= x, 2);
+    EXPECT_EQ(x >>= x, 0);
 }
