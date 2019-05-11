@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <tuple>
 #include <type_traits>
 
 namespace intx
@@ -459,28 +458,35 @@ inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
 }
 
 
-constexpr std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b) noexcept
+template<unsigned N>
+struct uint_with_carry
 {
+    uint<N> value;
+    bool carry;
+};
+
+constexpr uint_with_carry<128> add_with_carry(uint128 a, uint128 b) noexcept
+{
+    // FIXME: Rename add_with_carry() to add_overflow().
     const auto s = a + b;
     const auto k = s < a;
     return {s, k};
 }
 
 template <unsigned N>
-constexpr std::tuple<uint<N>, bool> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
+constexpr uint_with_carry<N> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
 {
-    uint<N> s;
-    bool k1 = false, k2 = false, k3 = false;
-    std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
-    std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
-    std::tie(s.hi, k3) = add_with_carry(s.hi, typename uint<N>::half_type{k1});
-    return {s, k2 || k3};
+    const auto lo = add_with_carry(a.lo, b.lo);
+    const auto tt = add_with_carry(a.hi, b.hi);
+    const auto hi = add_with_carry(tt.value, typename uint<N>::half_type{lo.carry});
+    return {{hi.value, lo.value}, tt.carry || hi.carry};
 }
 
 template <unsigned N>
 constexpr uint<N> add(const uint<N>& a, const uint<N>& b) noexcept
 {
-    return std::get<0>(add_with_carry(a, b));
+    // FIXME: Remove this function.
+    return add_with_carry(a, b).value;
 }
 
 template <unsigned N>

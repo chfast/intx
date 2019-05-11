@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <tuple>
 
 
 #if 0
