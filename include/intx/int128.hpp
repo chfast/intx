@@ -702,9 +702,11 @@ constexpr uint128 operator""_u128(const char* s)
 
 namespace std
 {
-template <>
-struct numeric_limits<intx::uint128>
+template <unsigned N>
+struct numeric_limits<intx::uint<N>>
 {
+    using type = intx::uint<N>;
+
     static constexpr bool is_specialized = true;
     static constexpr bool is_integer = true;
     static constexpr bool is_signed = false;
@@ -718,7 +720,7 @@ struct numeric_limits<intx::uint128>
     static constexpr bool is_iec559 = false;
     static constexpr bool is_bounded = true;
     static constexpr bool is_modulo = true;
-    static constexpr int digits = CHAR_BIT * sizeof(intx::uint128);
+    static constexpr int digits = CHAR_BIT * sizeof(type);
     static constexpr int digits10 = int(0.3010299956639812 * digits);
     static constexpr int max_digits10 = 0;
     static constexpr int radix = 2;
@@ -729,14 +731,14 @@ struct numeric_limits<intx::uint128>
     static constexpr bool traps = std::numeric_limits<unsigned>::traps;
     static constexpr bool tinyness_before = false;
 
-    static constexpr intx::uint128 min() noexcept { return 0; }
-    static constexpr intx::uint128 lowest() noexcept { return min(); }
-    static constexpr intx::uint128 max() noexcept { return intx::uint128{0} - 1; }
-    static constexpr intx::uint128 epsilon() noexcept { return 0; }
-    static constexpr intx::uint128 round_error() noexcept { return 0; }
-    static constexpr intx::uint128 infinity() noexcept { return 0; }
-    static constexpr intx::uint128 quiet_NaN() noexcept { return 0; }
-    static constexpr intx::uint128 signaling_NaN() noexcept { return 0; }
-    static constexpr intx::uint128 denorm_min() noexcept { return 0; }
+    static constexpr type min() noexcept { return 0; }
+    static constexpr type lowest() noexcept { return min(); }
+    static constexpr type max() noexcept { return ~type{0}; }
+    static constexpr type epsilon() noexcept { return 0; }
+    static constexpr type round_error() noexcept { return 0; }
+    static constexpr type infinity() noexcept { return 0; }
+    static constexpr type quiet_NaN() noexcept { return 0; }
+    static constexpr type signaling_NaN() noexcept { return 0; }
+    static constexpr type denorm_min() noexcept { return 0; }
 };
 }

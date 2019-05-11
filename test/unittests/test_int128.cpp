@@ -203,7 +203,7 @@ void static_test_numeric_limits()
 
     static_assert(std::numeric_limits<uint128>::digits10 == 38, "");
     static_assert(std::numeric_limits<uint128>::min() == 0, "");
-    static_assert(std::numeric_limits<uint128>::max() == uint128{~uint64_t{0}, ~uint64_t{0}}, "");
+    static_assert(std::numeric_limits<uint128>::max() == uint128{0} - 1, "");
 }
 
 TEST(int128, add)

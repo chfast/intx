@@ -10,6 +10,19 @@
 
 using namespace intx;
 
+
+static_assert(!std::numeric_limits<uint256>::is_signed, "");
+static_assert(std::numeric_limits<uint256>::is_integer, "");
+static_assert(std::numeric_limits<uint256>::is_exact, "");
+static_assert(std::numeric_limits<uint256>::radix == 2, "");
+
+static_assert(std::numeric_limits<uint256>::min() == 0, "");
+static_assert(std::numeric_limits<uint256>::max() == uint256{0} - 1, "");
+
+static_assert(std::numeric_limits<uint256>::digits10 == 77, "");
+static_assert(std::numeric_limits<uint512>::digits10 == 154, "");
+
+
 constexpr uint64_t minimal[] = {
     0x0000000000000000,
     0x0000000000000001,
