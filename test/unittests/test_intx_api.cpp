@@ -13,6 +13,21 @@ static_assert(&be::uint<512> == be::uint512, "wrong alias: be::uint512");
 static_assert(&le::uint<256> == le::uint256, "wrong alias: le::uint256");
 static_assert(&le::uint<512> == le::uint512, "wrong alias: le::uint512");
 
+static_assert(uint128{2} + uint128{2} == 4, "");
+static_assert(uint256{2} + uint256{2} == 4, "");
+static_assert(uint512{2} + uint512{2} == 4, "");
+
+static_assert(uint128{2} - uint128{1} == 1, "");
+#ifndef _MSC_VER
+// FIXME: Investigate "integer constant overflow" issue on MSVC.
+static_assert(uint256{2} - uint256{1} == 1, "");
+static_assert(uint512{2} - uint512{1} == 1, "");
+#endif
+
+static_assert(constexpr_mul(uint128{2}, uint128{2}) == 4, "");
+static_assert(constexpr_mul(uint256{2}, uint256{2}) == 4, "");
+static_assert(constexpr_mul(uint512{2}, uint512{2}) == 4, "");
+
 TEST(uint256, div)
 {
     uint256 a = 10001;

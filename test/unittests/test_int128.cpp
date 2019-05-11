@@ -345,7 +345,7 @@ TEST(int128, umul_random)
         auto x = inputs[i - 1];
         auto y = inputs[i];
 
-        auto generic = intx::umul_generic(x, y);
+        auto generic = intx::constexpr_umul(x, y);
         auto best = intx::umul(x, y);
 
         EXPECT_EQ(generic.hi, best.hi) << x << " x " << y;

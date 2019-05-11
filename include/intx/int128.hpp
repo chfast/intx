@@ -260,7 +260,7 @@ constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
 /// @{
 
 /// Portable full unsigned multiplication 64 x 64 -> 128.
-constexpr uint128 umul_generic(uint64_t x, uint64_t y) noexcept
+constexpr uint128 constexpr_umul(uint64_t x, uint64_t y) noexcept
 {
     uint64_t xl = x & 0xffffffff;
     uint64_t xh = x >> 32;
@@ -304,7 +304,7 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
 
 constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
 {
-    auto p = umul_generic(x.lo, y.lo);
+    auto p = constexpr_umul(x.lo, y.lo);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
     return {p.hi, p.lo};
 }

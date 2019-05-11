@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <tuple>
 #include <type_traits>
 
 namespace intx
@@ -459,28 +458,28 @@ inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
 }
 
 
-constexpr std::tuple<uint128, bool> add_with_carry(uint128 a, uint128 b) noexcept
+template<unsigned N>
+struct uint_with_carry
 {
+    uint<N> value;
+    bool carry;
+};
+
+constexpr uint_with_carry<128> add_with_carry(uint128 a, uint128 b) noexcept
+{
+    // FIXME: Rename add_with_carry() to add_overflow().
     const auto s = a + b;
     const auto k = s < a;
     return {s, k};
 }
 
 template <unsigned N>
-constexpr std::tuple<uint<N>, bool> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
+constexpr uint_with_carry<N> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
 {
-    uint<N> s;
-    bool k1 = false, k2 = false, k3 = false;
-    std::tie(s.lo, k1) = add_with_carry(a.lo, b.lo);
-    std::tie(s.hi, k2) = add_with_carry(a.hi, b.hi);
-    std::tie(s.hi, k3) = add_with_carry(s.hi, typename uint<N>::half_type{k1});
-    return {s, k2 || k3};
-}
-
-template <unsigned N>
-constexpr uint<N> add(const uint<N>& a, const uint<N>& b) noexcept
-{
-    return std::get<0>(add_with_carry(a, b));
+    const auto lo = add_with_carry(a.lo, b.lo);
+    const auto tt = add_with_carry(a.hi, b.hi);
+    const auto hi = add_with_carry(tt.value, typename uint<N>::half_type{lo.carry});
+    return {{hi.value, lo.value}, tt.carry || hi.carry};
 }
 
 template <unsigned N>
@@ -509,7 +508,7 @@ inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
 template <unsigned N>
 constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return add(x, y);
+    return add_with_carry(x, y).value;
 }
 
 template <unsigned N>
@@ -540,12 +539,29 @@ constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 
 
 template <typename Int>
-constexpr typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
+inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
 {
     auto t0 = umul(x.lo, y.lo);
     auto t1 = umul(x.hi, y.lo);
     auto t2 = umul(x.lo, y.hi);
     auto t3 = umul(x.hi, y.hi);
+
+    auto u1 = t1 + t0.hi;
+    auto u2 = t2 + u1.lo;
+
+    auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
+    auto hi = t3 + u2.hi + u1.hi;
+
+    return {hi, lo};
+}
+
+template <typename Int>
+constexpr typename traits<Int>::double_type constexpr_umul(const Int& x, const Int& y) noexcept
+{
+    auto t0 = constexpr_umul(x.lo, y.lo);
+    auto t1 = constexpr_umul(x.hi, y.lo);
+    auto t2 = constexpr_umul(x.lo, y.hi);
+    auto t3 = constexpr_umul(x.hi, y.hi);
 
     auto u1 = t1 + t0.hi;
     auto u2 = t2 + u1.lo;
@@ -563,11 +579,20 @@ inline Int mul(const Int& a, const Int& b) noexcept
     // Clang & GCC implements 128-bit multiplication this way.
 
     auto t = umul(a.lo, b.lo);
-    auto hi = (a.lo * b.hi) + (a.hi * b.lo) + hi_half(t);
-    auto lo = lo_half(t);
+    auto hi = (a.lo * b.hi) + (a.hi * b.lo) + t.hi;
 
-    return {hi, lo};
+    return {hi, t.lo};
 }
+
+
+template <unsigned N>
+constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
+{
+    auto t = constexpr_umul(a.lo, b.lo);
+    auto hi = constexpr_mul(a.lo, b.hi) + constexpr_mul(a.hi, b.lo) + t.hi;
+    return {hi, t.lo};
+}
+
 
 template <typename Int>
 inline typename traits<Int>::double_type umul_loop(const Int& x, const Int& y) noexcept
