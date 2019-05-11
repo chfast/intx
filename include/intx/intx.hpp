@@ -539,12 +539,29 @@ constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 
 
 template <typename Int>
-constexpr typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
+inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
 {
     auto t0 = umul(x.lo, y.lo);
     auto t1 = umul(x.hi, y.lo);
     auto t2 = umul(x.lo, y.hi);
     auto t3 = umul(x.hi, y.hi);
+
+    auto u1 = t1 + t0.hi;
+    auto u2 = t2 + u1.lo;
+
+    auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
+    auto hi = t3 + u2.hi + u1.hi;
+
+    return {hi, lo};
+}
+
+template <typename Int>
+constexpr typename traits<Int>::double_type constexpr_umul(const Int& x, const Int& y) noexcept
+{
+    auto t0 = constexpr_umul(x.lo, y.lo);
+    auto t1 = constexpr_umul(x.hi, y.lo);
+    auto t2 = constexpr_umul(x.lo, y.hi);
+    auto t3 = constexpr_umul(x.hi, y.hi);
 
     auto u1 = t1 + t0.hi;
     auto u2 = t2 + u1.lo;
@@ -566,6 +583,16 @@ inline Int mul(const Int& a, const Int& b) noexcept
 
     return {hi, t.lo};
 }
+
+
+template <unsigned N>
+constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
+{
+    auto t = constexpr_umul(a.lo, b.lo);
+    auto hi = constexpr_mul(a.lo, b.hi) + constexpr_mul(a.hi, b.lo) + t.hi;
+    return {hi, t.lo};
+}
+
 
 template <typename Int>
 inline typename traits<Int>::double_type umul_loop(const Int& x, const Int& y) noexcept

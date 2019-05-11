@@ -114,5 +114,5 @@ static void umul128(benchmark::State& state)
         benchmark::DoNotOptimize(ahi);
     }
 }
-BENCHMARK_TEMPLATE(umul128, intx::uint128, intx::umul_generic);
+BENCHMARK_TEMPLATE(umul128, intx::uint128, intx::constexpr_umul);
 BENCHMARK_TEMPLATE(umul128, intx::uint128, intx::umul);
