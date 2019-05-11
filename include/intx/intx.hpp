@@ -563,10 +563,9 @@ inline Int mul(const Int& a, const Int& b) noexcept
     // Clang & GCC implements 128-bit multiplication this way.
 
     auto t = umul(a.lo, b.lo);
-    auto hi = (a.lo * b.hi) + (a.hi * b.lo) + hi_half(t);
-    auto lo = lo_half(t);
+    auto hi = (a.lo * b.hi) + (a.hi * b.lo) + t.hi;
 
-    return {hi, lo};
+    return {hi, t.lo};
 }
 
 template <typename Int>
