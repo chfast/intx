@@ -237,3 +237,28 @@ TYPED_TEST(uint_api, arithmetic_op_assignment)
     EXPECT_EQ(x %= x, 0);
 
 }
+
+TYPED_TEST(uint_api, bitwise_op_assignment)
+{
+    auto x = TypeParam{};
+
+    EXPECT_EQ(x |= 0b1011, 0b1011);
+    EXPECT_EQ(x &= 0b0110, 0b0010);
+    EXPECT_EQ(x ^= 0b1110, 0b1100);
+    EXPECT_EQ(x >>= 2, 0b0011);
+    EXPECT_EQ(x <<= 1, 0b0110);
+
+    x = 0;
+    EXPECT_EQ(x |= uint128{0b1011}, 0b1011);
+    EXPECT_EQ(x &= uint128{0b0110}, 0b0010);
+    EXPECT_EQ(x ^= uint128{0b1110}, 0b1100);
+    EXPECT_EQ(x >>= uint128{2}, 0b0011);
+    EXPECT_EQ(x <<= uint128{1}, 0b0110);
+
+    EXPECT_EQ(x |= x, x);
+    EXPECT_EQ(x &= x, x);
+    EXPECT_EQ(x ^= x, 0);
+    EXPECT_EQ(x |= 1, 1);
+    EXPECT_EQ(x <<= x, 2);
+    EXPECT_EQ(x >>= x, 0);
+}

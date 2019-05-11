@@ -362,14 +362,6 @@ inline Target narrow_cast(const Int& x) noexcept
 }
 
 template <unsigned N>
-constexpr uint<N> operator<<(const uint<N>& x, const uint<N>& shift) noexcept
-{
-    if (shift < num_bits(x))
-        return x << narrow_cast<unsigned>(shift);
-    return 0;
-}
-
-template <unsigned N>
 constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
 {
     constexpr auto half_bits = sizeof(x) * 4;
@@ -394,11 +386,22 @@ constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
     return 0;
 }
 
-template <unsigned N>
-constexpr uint<N> operator>>(const uint<N>& x, const uint<N>& shift) noexcept
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator<<(const uint<N>& x, const T& shift) noexcept
 {
-    if (shift < num_bits(x))
-        return x >> narrow_cast<unsigned>(shift);
+    if (shift < T{sizeof(x) * 8})
+        return x << static_cast<unsigned>(shift);
+    return 0;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator>>(const uint<N>& x, const T& shift) noexcept
+{
+    if (shift < T{sizeof(x) * 8})
+        return x >> static_cast<unsigned>(shift);
     return 0;
 }
 
@@ -951,6 +954,41 @@ template <unsigned N, typename T,
 constexpr uint<N> operator^(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) ^ y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator|=(uint<N>& x, const T& y) noexcept
+{
+    return x = x | y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator&=(uint<N>& x, const T& y) noexcept
+{
+    return x = x & y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator^=(uint<N>& x, const T& y) noexcept
+{
+    return x = x ^ y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator<<=(uint<N>& x, const T& y) noexcept
+{
+    return x = x << y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
+{
+    return x = x >> y;
 }
 
 
