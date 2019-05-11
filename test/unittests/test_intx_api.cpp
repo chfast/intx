@@ -73,6 +73,40 @@ TYPED_TEST(uint_api, arithmetic)
     EXPECT_TRUE(d * x == 0);
 }
 
+
+TYPED_TEST(uint_api, division)
+{
+    auto a = int{1};
+    auto b = uint64_t{1};
+    auto c = uint128{1};
+    auto d = uint256{1};
+
+    auto x = TypeParam{1};
+
+    EXPECT_TRUE(x / x == 1);
+    EXPECT_TRUE(x / a == 1);
+    EXPECT_TRUE(x / b == 1);
+    EXPECT_TRUE(x / c == 1);
+    EXPECT_TRUE(x / d == 1);
+
+    EXPECT_TRUE(a / x == 1);
+    EXPECT_TRUE(b / x == 1);
+    EXPECT_TRUE(c / x == 1);
+    EXPECT_TRUE(d / x == 1);
+
+    EXPECT_TRUE(x % x == 0);
+    EXPECT_TRUE(x % a == 0);
+    EXPECT_TRUE(x % b == 0);
+    EXPECT_TRUE(x % c == 0);
+    EXPECT_TRUE(x % d == 0);
+
+    EXPECT_TRUE(a % x == 0);
+    EXPECT_TRUE(b % x == 0);
+    EXPECT_TRUE(c % x == 0);
+    EXPECT_TRUE(d % x == 0);
+}
+
+
 TYPED_TEST(uint_api, bitwise)
 {
     auto a = int{};

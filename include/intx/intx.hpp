@@ -874,6 +874,33 @@ constexpr uint<N> operator*(const T& x, const uint<N>& y) noexcept
     return uint<N>(x) * y;
 }
 
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator/(const uint<N>& x, const T& y) noexcept
+{
+    return x / uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator/(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) / y;
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator%(const uint<N>& x, const T& y) noexcept
+{
+    return x % uint<N>(y);
+}
+
+template <unsigned N, typename T,
+    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+constexpr uint<N> operator%(const T& x, const uint<N>& y) noexcept
+{
+    return uint<N>(x) % y;
+}
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
