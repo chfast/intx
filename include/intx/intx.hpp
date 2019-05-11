@@ -483,13 +483,6 @@ constexpr uint_with_carry<N> add_with_carry(const uint<N>& a, const uint<N>& b) 
 }
 
 template <unsigned N>
-constexpr uint<N> add(const uint<N>& a, const uint<N>& b) noexcept
-{
-    // FIXME: Remove this function.
-    return add_with_carry(a, b).value;
-}
-
-template <unsigned N>
 inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
 {
     static constexpr auto num_words = sizeof(a) / sizeof(uint64_t);
@@ -515,7 +508,7 @@ inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
 template <unsigned N>
 constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return add(x, y);
+    return add_with_carry(x, y).value;
 }
 
 template <unsigned N>
