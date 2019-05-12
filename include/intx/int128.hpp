@@ -778,4 +778,10 @@ inline std::string to_string(uint<N> x, int base = 10)
     std::reverse(s.begin(), s.end());
     return s;
 }
+
+template <unsigned N>
+inline std::string hex(uint<N> x)
+{
+    return to_string(x, 16);
+}
 }  // namespace intx

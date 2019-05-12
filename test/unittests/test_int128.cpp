@@ -351,6 +351,7 @@ TEST(int128, literals)
 TEST(int128, to_string)
 {
     EXPECT_EQ(to_string(uint128{33}, 33), "10");
+    EXPECT_EQ(hex(uint128{7 * 16 + 1}), "71");
 }
 
 TEST(int128, umul_random)
