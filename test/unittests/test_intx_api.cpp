@@ -28,6 +28,14 @@ static_assert(constexpr_mul(uint128{2}, uint128{2}) == 4, "");
 static_assert(constexpr_mul(uint256{2}, uint256{2}) == 4, "");
 static_assert(constexpr_mul(uint512{2}, uint512{2}) == 4, "");
 
+static_assert(0_u256 == 0, "");
+static_assert(-1_u256 == ~0_u256, "");
+static_assert(
+    115792089237316195423570985008687907853269984665640564039457584007913129639935_u256 == ~0_u256,
+    "");
+static_assert(
+    0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u256 == ~0_u256, "");
+
 TEST(uint256, div)
 {
     uint256 a = 10001;
@@ -250,7 +258,6 @@ TYPED_TEST(uint_api, arithmetic_op_assignment)
     EXPECT_EQ(x *= 3u, 9);
     EXPECT_EQ(x /= x, 1);
     EXPECT_EQ(x %= x, 0);
-
 }
 
 TYPED_TEST(uint_api, bitwise_op_assignment)

@@ -459,3 +459,22 @@ TYPED_TEST(uint_test, convert_to_bool)
     EXPECT_TRUE((TypeParam{2, 2}));
     EXPECT_FALSE((TypeParam{0, 0}));
 }
+
+TYPED_TEST(uint_test, string_conversions)
+{
+    auto values = {
+        TypeParam{1} << (sizeof(TypeParam) * 8 - 1),
+        TypeParam{0},
+        TypeParam{1, 0},
+        TypeParam{1, 1},
+        ~TypeParam{1},
+        ~TypeParam{0},
+    };
+
+    for (auto v : values)
+    {
+        auto s = to_string(v);
+        auto x = from_string<TypeParam>(s);
+        EXPECT_EQ(x, v);
+    }
+}
