@@ -789,22 +789,18 @@ inline std::string to_string(uint<N> x)
     if (x == 0)
         return "0";
 
-    std::string s;
+    auto s = std::string{};
     while (x != 0)
     {
+        // TODO: Use constexpr udivrem_1?
         const auto res = udivrem(x, 10);
+        s.push_back(char('0' + int(res.rem)));
         x = res.quot;
-        const auto c = static_cast<size_t>(res.rem);
-        s.push_back(static_cast<char>('0' + c));
     }
     std::reverse(s.begin(), s.end());
     return s;
 }
 
-inline std::string to_string(uint128 x)
-{
-    return to_string(uint256(x));
-}
 
 template <unsigned N>
 inline uint<N> bswap(const uint<N>& x) noexcept
