@@ -348,6 +348,11 @@ TEST(int128, literals)
     EXPECT_EQ(0xaBc123eFd_u128, 0xAbC123EfD_u128);
 }
 
+TEST(int128, to_string)
+{
+    EXPECT_EQ(to_string(uint128{33}, 33), "10");
+}
+
 TEST(int128, umul_random)
 {
     const auto inputs = gen_uniform_seq(10000);

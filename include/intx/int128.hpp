@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <climits>
 #include <cstdint>
 #include <limits>
@@ -24,7 +25,7 @@ struct uint;
 ///
 /// This type is defined as a specialization of uint<> to easier integration with full intx package,
 /// however, uint128 may be used indepedently.
-template<>
+template <>
 struct uint<128>
 {
     uint64_t lo = 0;
@@ -744,7 +745,7 @@ constexpr Int from_string(const char* s)
     return x;
 }
 
-template<typename Int>
+template <typename Int>
 constexpr Int from_string(const std::string& s)
 {
     return from_string<Int>(s.c_str());
@@ -753,5 +754,28 @@ constexpr Int from_string(const std::string& s)
 constexpr uint128 operator""_u128(const char* s)
 {
     return from_string<uint128>(s);
+}
+
+template <unsigned N>
+inline std::string to_string(uint<N> x, int base = 10)
+{
+    if (base < 2 || base > 36)
+        throw std::invalid_argument{"invalid base: " + std::to_string(base)};
+
+    if (x == 0)
+        return "0";
+
+    auto s = std::string{};
+    while (x != 0)
+    {
+        // TODO: Use constexpr udivrem_1?
+        const auto res = udivrem(x, base);
+        const auto d = int(res.rem);
+        const auto c = d < 10 ? '0' + d : 'a' + d - 10;
+        s.push_back(char(c));
+        x = res.quot;
+    }
+    std::reverse(s.begin(), s.end());
+    return s;
 }
 }  // namespace intx
