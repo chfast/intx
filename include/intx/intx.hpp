@@ -806,64 +806,10 @@ inline std::string to_string(uint128 x)
     return to_string(uint256(x));
 }
 
-template <typename Int>
-inline Int from_string(const std::string& s)
-{
-    Int x{};
-
-    for (auto c : s)
-    {
-        auto v = c - '0';
-        x *= 10;
-        x += v;
-    }
-    return x;
-}
-
 template <unsigned N>
 inline uint<N> bswap(const uint<N>& x) noexcept
 {
     return {bswap(x.lo), bswap(x.hi)};
-}
-
-
-template <typename Int>
-inline Int parse_literal(const char* s) noexcept
-{
-    // TODO: It can buffer overflow.
-    // TODO: Control the length of the s, not to overflow the integer.
-    Int x;
-
-    if (s[0] == '0' && s[1] == 'x')
-    {
-        s += 2;
-        while (auto c = *s++)
-        {
-            x *= 16;
-            if (c <= '9')
-                x += (c - '0');
-            else
-                x += (c - 'a' + 10);
-        }
-        return x;
-    }
-
-    while (auto c = *s++)
-    {
-        x *= 10;
-        x += (c - '0');
-    }
-    return x;
-}
-
-inline uint256 operator"" _u256(const char* s) noexcept
-{
-    return parse_literal<uint256>(s);
-}
-
-inline uint512 operator"" _u512(const char* s) noexcept
-{
-    return parse_literal<uint512>(s);
 }
 
 
@@ -1016,6 +962,16 @@ constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
     return x = x >> y;
 }
 
+
+constexpr uint256 operator"" _u256(const char* s) noexcept
+{
+    return from_string<uint256>(s);
+}
+
+constexpr uint512 operator"" _u512(const char* s) noexcept
+{
+    return from_string<uint512>(s);
+}
 
 namespace le  // Conversions to/from LE bytes.
 {

@@ -10,6 +10,19 @@
 
 using namespace intx;
 
+
+static_assert(!std::numeric_limits<uint256>::is_signed, "");
+static_assert(std::numeric_limits<uint256>::is_integer, "");
+static_assert(std::numeric_limits<uint256>::is_exact, "");
+static_assert(std::numeric_limits<uint256>::radix == 2, "");
+
+static_assert(std::numeric_limits<uint256>::min() == 0, "");
+static_assert(std::numeric_limits<uint256>::max() == uint256{0} - 1, "");
+
+static_assert(std::numeric_limits<uint256>::digits10 == 77, "");
+static_assert(std::numeric_limits<uint512>::digits10 == 154, "");
+
+
 constexpr uint64_t minimal[] = {
     0x0000000000000000,
     0x0000000000000001,
@@ -445,4 +458,23 @@ TYPED_TEST(uint_test, convert_to_bool)
     EXPECT_TRUE((TypeParam{0, 2}));
     EXPECT_TRUE((TypeParam{2, 2}));
     EXPECT_FALSE((TypeParam{0, 0}));
+}
+
+TYPED_TEST(uint_test, string_conversions)
+{
+    auto values = {
+        TypeParam{1} << (sizeof(TypeParam) * 8 - 1),
+        TypeParam{0},
+        TypeParam{1, 0},
+        TypeParam{1, 1},
+        ~TypeParam{1},
+        ~TypeParam{0},
+    };
+
+    for (auto v : values)
+    {
+        auto s = to_string(v);
+        auto x = from_string<TypeParam>(s);
+        EXPECT_EQ(x, v);
+    }
 }

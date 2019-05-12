@@ -4,7 +4,9 @@
 
 #pragma once
 
+#include <climits>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -647,21 +649,69 @@ inline uint128& operator%=(uint128& x, uint128 y) noexcept
 
 /// @}
 
+}  // namespace intx
 
-constexpr uint128 operator""_u128(const char* s)
+
+namespace std
+{
+template <unsigned N>
+struct numeric_limits<intx::uint<N>>
+{
+    using type = intx::uint<N>;
+
+    static constexpr bool is_specialized = true;
+    static constexpr bool is_integer = true;
+    static constexpr bool is_signed = false;
+    static constexpr bool is_exact = true;
+    static constexpr bool has_infinity = false;
+    static constexpr bool has_quiet_NaN = false;
+    static constexpr bool has_signaling_NaN = false;
+    static constexpr float_denorm_style has_denorm = denorm_absent;
+    static constexpr bool has_denorm_loss = false;
+    static constexpr float_round_style round_style = round_toward_zero;
+    static constexpr bool is_iec559 = false;
+    static constexpr bool is_bounded = true;
+    static constexpr bool is_modulo = true;
+    static constexpr int digits = CHAR_BIT * sizeof(type);
+    static constexpr int digits10 = int(0.3010299956639812 * digits);
+    static constexpr int max_digits10 = 0;
+    static constexpr int radix = 2;
+    static constexpr int min_exponent = 0;
+    static constexpr int min_exponent10 = 0;
+    static constexpr int max_exponent = 0;
+    static constexpr int max_exponent10 = 0;
+    static constexpr bool traps = std::numeric_limits<unsigned>::traps;
+    static constexpr bool tinyness_before = false;
+
+    static constexpr type min() noexcept { return 0; }
+    static constexpr type lowest() noexcept { return min(); }
+    static constexpr type max() noexcept { return ~type{0}; }
+    static constexpr type epsilon() noexcept { return 0; }
+    static constexpr type round_error() noexcept { return 0; }
+    static constexpr type infinity() noexcept { return 0; }
+    static constexpr type quiet_NaN() noexcept { return 0; }
+    static constexpr type signaling_NaN() noexcept { return 0; }
+    static constexpr type denorm_min() noexcept { return 0; }
+};
+}  // namespace std
+
+namespace intx
+{
+template <typename Int>
+constexpr Int from_string(const char* s)
 {
     using namespace std::literals;
 
-    uint128 x;
-    size_t num_digits = 0;
+    auto x = Int{};
+    int num_digits = 0;
 
     if (s[0] == '0' && s[1] == 'x')
     {
         s += 2;
         while (auto d = *s++)
         {
-            if (++num_digits > sizeof(x) * 2)
-                throw std::overflow_error{"Literal overflow"};
+            if (++num_digits > int{sizeof(x) * 2})
+                throw std::overflow_error{"Integer overflow"};
 
             x <<= 4;
             if (d >= '0' && d <= '9')
@@ -672,27 +722,36 @@ constexpr uint128 operator""_u128(const char* s)
                 d -= 'A' - 10;
             else
                 throw std::invalid_argument{"Invalid literal character: "s + d};
-            x += d;
+            x |= d;
         }
         return x;
     }
 
     while (auto d = *s++)
     {
-        // TODO: std::numeric_limits<uint128>::digits10 can be used here.
-        if (++num_digits > 39)
-            throw std::overflow_error{"Literal overflow"};
+        if (num_digits++ > std::numeric_limits<Int>::digits10)
+            throw std::overflow_error{"Integer overflow"};
 
-        x = constexpr_mul(x, 10);
+        x = constexpr_mul(x, Int{10});
         if (d >= '0' && d <= '9')
             d -= '0';
         else
             throw std::invalid_argument{"Invalid literal character: "s + d};
         x += d;
         if (x < d)
-            throw std::overflow_error{"Literal overflow"};
+            throw std::overflow_error{"Integer overflow"};
     }
     return x;
 }
 
+template<typename Int>
+constexpr Int from_string(const std::string& s)
+{
+    return from_string<Int>(s.c_str());
+}
+
+constexpr uint128 operator""_u128(const char* s)
+{
+    return from_string<uint128>(s);
+}
 }  // namespace intx
