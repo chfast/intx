@@ -8,16 +8,6 @@
 
 namespace intx
 {
-inline div_result<uint64_t> udivrem_long(uint128 x, uint64_t y) noexcept
-{
-    auto shift = clz(y);
-    auto yn = y << shift;
-    auto xn = x << shift;
-    auto v = reciprocal_2by1(yn);
-    auto res = udivrem_2by1(xn, yn, v);
-    return {res.quot, res.rem >> shift};
-}
-
 struct normalized_div_args
 {
     using word_type = uint64_t;

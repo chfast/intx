@@ -13,6 +13,6 @@ add_executable(intx-bench
     benchmarks.cpp
     utils.cpp
 )
-target_link_libraries(intx-bench PRIVATE intx benchmark::benchmark GMP::gmp)
+target_link_libraries(intx-bench PRIVATE intx intx::experimental benchmark::benchmark GMP::gmp)
 target_include_directories(intx-bench PRIVATE ${intx_internal_include_dir})
 set_target_properties(intx-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)

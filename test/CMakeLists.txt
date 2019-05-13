@@ -4,6 +4,10 @@
 
 set(intx_internal_include_dir ${PROJECT_SOURCE_DIR}/lib/intx)
 
+if(INTX_TESTING OR INTX_BENCHMARKING)
+    add_subdirectory(experimental)
+endif()
+
 if(INTX_TESTING)
     add_subdirectory(integration)
     add_subdirectory(unittests)

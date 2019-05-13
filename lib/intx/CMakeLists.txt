@@ -14,7 +14,6 @@ add_library(intx STATIC
     ${include_dir}/intx/intx.hpp
     div.cpp
     div.hpp
-    intx.cpp
 )
 add_library(intx::intx ALIAS intx)
 target_include_directories(intx PUBLIC $<BUILD_INTERFACE:${include_dir}>$<INSTALL_INTERFACE:include>)
