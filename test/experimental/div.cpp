@@ -2,7 +2,7 @@
 // Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include "div.hpp"
+#include <experimental/div.hpp>
 #include <intx/intx.hpp>
 
 #include <cassert>
@@ -15,12 +15,24 @@
 #define DEBUG(X) X
 inline std::ostream& dbgs() { return std::cerr; }
 #else
-#define DEBUG(X) do {} while (false)
+#define DEBUG(X) \
+    do           \
+    {            \
+    } while (false)
 #endif
 
 namespace intx
 {
-// FIXME: Move this and related div implementation to test/.
+inline div_result<uint64_t> udivrem_long(uint128 x, uint64_t y) noexcept
+{
+    auto shift = clz(y);
+    auto yn = y << shift;
+    auto xn = x << shift;
+    auto v = reciprocal_2by1(yn);
+    auto res = udivrem_2by1(xn, yn, v);
+    return {res.quot, res.rem >> shift};
+}
+
 inline std::tuple<uint32_t, uint32_t> udivrem_long_asm(uint64_t u, uint32_t v)
 {
 #if (__GNUC__ || __clang__) && __x86_64__
@@ -103,19 +115,19 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
     assert(v && "Must provide divisor");
     assert(q && "Must provide quotient");
     assert(u != v && u != q && v != q && "Must use different memory");
-    assert(n>1 && "n must be > 1");
+    assert(n > 1 && "n must be > 1");
 
     // b denotes the base of the number system. In our case b is 2^32.
     const uint64_t b = uint64_t(1) << 32;
 
-// The DEBUG macros here tend to be spam in the debug output if you're not
-// debugging this code. Disable them unless KNUTH_DEBUG is defined.
+    // The DEBUG macros here tend to be spam in the debug output if you're not
+    // debugging this code. Disable them unless KNUTH_DEBUG is defined.
 
     DEBUG(dbgs() << "KnuthLL: m=" << m << " n=" << n << '\n');
     DEBUG(dbgs() << "KnuthLL: original:");
-    DEBUG(for (int i = m+n; i >=0; i--) dbgs() << " " << u[i]);
+    DEBUG(for (int i = m + n; i >= 0; i--) dbgs() << " " << u[i]);
     DEBUG(dbgs() << " by");
-    DEBUG(for (int i = n; i >0; i--) dbgs() << " " << v[i-1]);
+    DEBUG(for (int i = n; i > 0; i--) dbgs() << " " << v[i - 1]);
     DEBUG(dbgs() << '\n');
     // D1. [Normalize.] Set d = b / (v[n-1] + 1) and multiply all the digits of
     // u and v by d. Note that we have taken Knuth's advice here to use a power
@@ -125,32 +137,36 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
     // and v so that its high bits are shifted to the top of v's range without
     // overflow. Note that this can require an extra word in u so that u must
     // be of length m+n+1.
-    unsigned shift = clz(v[n-1]);
+    unsigned shift = clz(v[n - 1]);
     uint32_t v_carry = 0;
     uint32_t u_carry = 0;
-    if (shift) {
-        for (unsigned i = 0; i < m+n; ++i) {
+    if (shift)
+    {
+        for (unsigned i = 0; i < m + n; ++i)
+        {
             uint32_t u_tmp = u[i] >> (32 - shift);
             u[i] = (u[i] << shift) | u_carry;
             u_carry = u_tmp;
         }
-        for (unsigned i = 0; i < n; ++i) {
+        for (unsigned i = 0; i < n; ++i)
+        {
             uint32_t v_tmp = v[i] >> (32 - shift);
             v[i] = (v[i] << shift) | v_carry;
             v_carry = v_tmp;
         }
     }
-    u[m+n] = u_carry;
+    u[m + n] = u_carry;
 
     DEBUG(dbgs() << "KnuthLL:   normal:");
-    DEBUG(for (int i = m+n; i >=0; i--) dbgs() << " " << u[i]);
+    DEBUG(for (int i = m + n; i >= 0; i--) dbgs() << " " << u[i]);
     DEBUG(dbgs() << " by");
-    DEBUG(for (int i = n; i >0; i--) dbgs() << " " << v[i-1]);
+    DEBUG(for (int i = n; i > 0; i--) dbgs() << " " << v[i - 1]);
     DEBUG(dbgs() << '\n');
 
     // D2. [Initialize j.]  Set j to m. This is the loop counter over the places.
     int j = m;
-    do {
+    do
+    {
         DEBUG(dbgs() << "KnuthLL: quotient digit #" << j << '\n');
         // D3. [Calculate q'.].
         //     Set qp = (u[j+n]*b + u[j+n-1]) / v[n-1]. (qp=qprime=q')
@@ -160,27 +176,29 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
         // on v[n-2] determines at high speed most of the cases in which the trial
         // value qp is one too large, and it eliminates all cases where qp is two
         // too large.
-        uint64_t dividend = intx::join(u[j+n], u[j+n-1]);
+        uint64_t dividend = intx::join(u[j + n], u[j + n - 1]);
         DEBUG(dbgs() << "KnuthLL: dividend == " << dividend << '\n');
 
         uint64_t qp, rp;
-        if (u[j+n] >= v[n-1])
+        if (u[j + n] >= v[n - 1])
         {
             // Overflow:
             qp = b;
-            rp = dividend - qp * v[n-1];
+            rp = dividend - qp * v[n - 1];
         }
         else
         {
-            qp = dividend / v[n-1];
-            rp = dividend % v[n-1];
+            qp = dividend / v[n - 1];
+            rp = dividend % v[n - 1];
         }
 
 
-        if (qp == b || qp*v[n-2] > b*rp + u[j+n-2]) {
+        if (qp == b || qp * v[n - 2] > b * rp + u[j + n - 2])
+        {
             qp--;
-            rp += v[n-1];
-            if (rp < b && (qp == b || qp*v[n-2] > b*rp + u[j+n-2])) {
+            rp += v[n - 1];
+            if (rp < b && (qp == b || qp * v[n - 2] > b * rp + u[j + n - 2]))
+            {
                 qp--;
             }
         }
@@ -195,25 +213,27 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
         // true value plus b**(n+1), namely as the b's complement of
         // the true value, and a "borrow" to the left should be remembered.
         int64_t borrow = 0;
-        for (unsigned i = 0; i < n; ++i) {
+        for (unsigned i = 0; i < n; ++i)
+        {
             uint64_t p = qp * v[i];
-            uint64_t subres = uint64_t(u[j+i]) - borrow - intx::lo_half(p);
-            u[j+i] = intx::lo_half(subres);
+            uint64_t subres = uint64_t(u[j + i]) - borrow - intx::lo_half(p);
+            u[j + i] = intx::lo_half(subres);
             borrow = intx::hi_half(p) - intx::hi_half(subres);
-            DEBUG(dbgs() << "KnuthLL: u[" << (j + i) << "] = " << u[j+i]
+            DEBUG(dbgs() << "KnuthLL: u[" << (j + i) << "] = " << u[j + i]
                          << ", borrow = " << borrow << '\n');
         }
-        bool isNeg = u[j+n] < borrow;
-        u[j+n] -= intx::lo_half(static_cast<uint64_t>(borrow));
+        bool isNeg = u[j + n] < borrow;
+        u[j + n] -= intx::lo_half(static_cast<uint64_t>(borrow));
 
         DEBUG(dbgs() << "KnuthLL: after subtraction:");
-        DEBUG(for (int i = m+n; i >=0; i--) dbgs() << " " << u[i]);
+        DEBUG(for (int i = m + n; i >= 0; i--) dbgs() << " " << u[i]);
         DEBUG(dbgs() << '\n');
 
         // D5. [Test remainder.] Set q[j] = qp. If the result of step D4 was
         // negative, go to step D6; otherwise go on to step D7.
         q[j] = intx::lo_half(qp);
-        if (isNeg) {
+        if (isNeg)
+        {
             // D6. [Add back]. The probability that this step is necessary is very
             // small, on the order of only 2/b. Make sure that test data accounts for
             // this possibility. Decrease q[j] by 1
@@ -222,42 +242,50 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
             // A carry will occur to the left of u[j+n], and it should be ignored
             // since it cancels with the borrow that occurred in D4.
             bool carry = false;
-            for (unsigned i = 0; i < n; i++) {
-                uint32_t limit = std::min(u[j+i],v[i]);
-                DEBUG(dbgs() << "KnuthLL: u[" << (j+i) << "] = " << u[j+i] << " + " << v[i] << " + " << (int)carry << '\n');
-                u[j+i] += v[i] + carry;
-                carry = u[j+i] < limit || (carry && u[j+i] == limit);
+            for (unsigned i = 0; i < n; i++)
+            {
+                uint32_t limit = std::min(u[j + i], v[i]);
+                DEBUG(dbgs() << "KnuthLL: u[" << (j + i) << "] = " << u[j + i] << " + " << v[i]
+                             << " + " << (int)carry << '\n');
+                u[j + i] += v[i] + carry;
+                carry = u[j + i] < limit || (carry && u[j + i] == limit);
             }
-            u[j+n] += carry;
+            u[j + n] += carry;
         }
         DEBUG(dbgs() << "KnuthLL: after correction:");
-        DEBUG(for (int i = m+n; i >=0; i--) dbgs() << " " << u[i]);
+        DEBUG(for (int i = m + n; i >= 0; i--) dbgs() << " " << u[i]);
         DEBUG(dbgs() << "\nKnuthLL: digit result = " << q[j] << '\n');
 
         // D7. [Loop on j.]  Decrease j by one. Now if j >= 0, go back to D3.
     } while (--j >= 0);
 
     DEBUG(dbgs() << "KnuthLL: quotient:");
-    DEBUG(for (int i = m; i >=0; i--) dbgs() <<" " << q[i]);
+    DEBUG(for (int i = m; i >= 0; i--) dbgs() << " " << q[i]);
     DEBUG(dbgs() << '\n');
 
     // D8. [Unnormalize]. Now q[...] is the desired quotient, and the desired
     // remainder may be obtained by dividing u[...] by d. If r is non-null we
     // compute the remainder (urem uses this).
-    if (r) {
+    if (r)
+    {
         // The value d is expressed by the "shift" value above since we avoided
         // multiplication by d by using a shift left. So, all we have to do is
         // shift right here.
-        if (shift) {
+        if (shift)
+        {
             uint32_t carry = 0;
             DEBUG(dbgs() << "KnuthLL: remainder:");
-            for (int i = n-1; i >= 0; i--) {
+            for (int i = n - 1; i >= 0; i--)
+            {
                 r[i] = (u[i] >> shift) | carry;
                 carry = u[i] << (32 - shift);
                 DEBUG(dbgs() << " " << r[i]);
             }
-        } else {
-            for (int i = n-1; i >= 0; i--) {
+        }
+        else
+        {
+            for (int i = n - 1; i >= 0; i--)
+            {
                 r[i] = u[i];
                 DEBUG(dbgs() << " " << r[i]);
             }
@@ -268,30 +296,31 @@ static void KnuthDiv(uint32_t* u, uint32_t* v, uint32_t* q, uint32_t* r, unsigne
 }
 
 
-int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
+static int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], int m, int n)
 {
-    const uint64_t b = uint64_t(1) << 32; // Number base (32 bits).
-    unsigned *un, *vn; // Normalized form of u, v.
-    if (m < n || n <= 0 || v[n-1] == 0)
-        return 1; // Return if invalid param.
+    const uint64_t b = uint64_t(1) << 32;  // Number base (32 bits).
+    unsigned *un, *vn;                     // Normalized form of u, v.
+    if (m < n || n <= 0 || v[n - 1] == 0)
+        return 1;  // Return if invalid param.
 
-    if (n == 1) {
+    if (n == 1)
+    {
         udivrem_1_stable(q, r, u, v[0], m);
         return 0;
     }
 
     DEBUG(dbgs() << "KnuthHD: m=" << m << " n=" << n << '\n');
     DEBUG(dbgs() << "KnuthHD: original:");
-    DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << u[i]);
+    DEBUG(for (int i = m; i >= 0; i--) dbgs() << " " << u[i]);
     DEBUG(dbgs() << " by");
-    DEBUG(for (int i = n; i >0; i--) dbgs() << " " << v[i-1]);
+    DEBUG(for (int i = n; i > 0; i--) dbgs() << " " << v[i - 1]);
     DEBUG(dbgs() << '\n');
 
-// Normalize by shifting v left just enough so that
-// its high-order bit is on, and shift u left the
-// same amount. We may have to append a high-order
-// digit on the dividend; we do that unconditionally.
-    unsigned shift = intx::clz(v[n-1]);
+    // Normalize by shifting v left just enough so that
+    // its high-order bit is on, and shift u left the
+    // same amount. We may have to append a high-order
+    // digit on the dividend; we do that unconditionally.
+    unsigned shift = intx::clz(v[n - 1]);
     vn = static_cast<uint32_t*>(alloca(n * sizeof(uint32_t)));
     // shift == 0, we would get shift by 32 => UB. Consider using uint64.
     for (auto i = n - 1; i > 0; i--)
@@ -305,27 +334,26 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
     un[0] = u[0] << shift;
 
     DEBUG(dbgs() << "KnuthHD:   normal:");
-    DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
+    DEBUG(for (int i = m; i >= 0; i--) dbgs() << " " << un[i]);
     DEBUG(dbgs() << " by");
-    DEBUG(for (int i = n; i >0; i--) dbgs() << " " << vn[i-1]);
+    DEBUG(for (int i = n; i > 0; i--) dbgs() << " " << vn[i - 1]);
     DEBUG(dbgs() << '\n');
 
     for (auto j = m - n; j >= 0; j--)  // Main loop.
     {
-
         DEBUG(dbgs() << "KnuthHD: quotient digit #" << j << '\n');
 
-        auto dividend = un[j+n]*b + un[j+n-1];
+        auto dividend = un[j + n] * b + un[j + n - 1];
         DEBUG(dbgs() << "KnuthHD: dividend == " << dividend << '\n');
 
         // Compute estimate qhat of q[j].
-        uint64_t qhat = dividend / vn[n-1];         // Estimated quotient digit.
-        uint64_t rhat = dividend - qhat * vn[n-1];  // A remainder.
+        uint64_t qhat = dividend / vn[n - 1];         // Estimated quotient digit.
+        uint64_t rhat = dividend - qhat * vn[n - 1];  // A remainder.
     again:
-        if (qhat >= b || qhat*vn[n-2] > b*rhat + un[j+n-2])
+        if (qhat >= b || qhat * vn[n - 2] > b * rhat + un[j + n - 2])
         {
             qhat--;
-            rhat += vn[n-1];
+            rhat += vn[n - 1];
             if (rhat < b)
                 goto again;
         }
@@ -336,44 +364,46 @@ int divmnu(unsigned q[], unsigned r[], const unsigned u[], const unsigned v[], i
         int64_t borrow = 0;
         for (int i = 0; i < n; i++)
         {
-            uint64_t p = qhat*vn[i];
-            uint64_t t = uint64_t(un[i+j]) - borrow - static_cast<unsigned>(p);
-            un[i+j] = static_cast<unsigned>(t);
+            uint64_t p = qhat * vn[i];
+            uint64_t t = uint64_t(un[i + j]) - borrow - static_cast<unsigned>(p);
+            un[i + j] = static_cast<unsigned>(t);
             borrow = unsigned(p >> 32) - unsigned(t >> 32);
 
-            DEBUG(dbgs() << "KnuthHD: u[" << (j + i) << "] = " << u[j+i]
+            DEBUG(dbgs() << "KnuthHD: u[" << (j + i) << "] = " << u[j + i]
                          << ", borrow = " << borrow << '\n');
         }
-        int64_t t = un[j+n] - borrow;
-        un[j+n] = static_cast<unsigned>(t);
+        int64_t t = un[j + n] - borrow;
+        un[j + n] = static_cast<unsigned>(t);
 
         DEBUG(dbgs() << "KnuthHD: after subtraction:");
-        DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
+        DEBUG(for (int i = m; i >= 0; i--) dbgs() << " " << un[i]);
         DEBUG(dbgs() << '\n');
 
-        q[j] = static_cast<unsigned>(qhat); // Store quotient digit.
-        if (t < 0) { // If we subtracted too
-            q[j]--; // much, add back.
+        q[j] = static_cast<unsigned>(qhat);  // Store quotient digit.
+        if (t < 0)
+        {            // If we subtracted too
+            q[j]--;  // much, add back.
             uint64_t carry = 0;
             for (int i = 0; i < n; i++)
             {
                 // TODO: Consider using bool carry. See LLVM version.
-                uint64_t t1 = uint64_t(un[i+j]) + vn[i] + carry;
-                un[i+j] = static_cast<unsigned>(t1);
+                uint64_t t1 = uint64_t(un[i + j]) + vn[i] + carry;
+                un[i + j] = static_cast<unsigned>(t1);
                 carry = t1 >> 32;
             }
-            un[j+n] = static_cast<unsigned>(un[j+n] + carry);
+            un[j + n] = static_cast<unsigned>(un[j + n] + carry);
         }
 
         DEBUG(dbgs() << "KnuthHD: after correction:");
-        DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
+        DEBUG(for (int i = m; i >= 0; i--) dbgs() << " " << un[i]);
         DEBUG(dbgs() << "\nKnuthHD: digit result = " << q[j] << '\n');
-    } // End j.
-// If the caller wants the remainder, unnormalize
-// it and pass it back.
-    if (r) {
+    }  // End j.
+       // If the caller wants the remainder, unnormalize
+       // it and pass it back.
+    if (r)
+    {
         for (auto i = 0; i < n; i++)
-            r[i] = shift != 0 ? (un[i] >> shift) | (un[i + 1] << (32-shift)) : un[i];
+            r[i] = shift != 0 ? (un[i] >> shift) | (un[i + 1] << (32 - shift)) : un[i];
     }
     return 0;
 }
@@ -386,9 +416,9 @@ static void udiv_knuth_internal_base(
 
     DEBUG(dbgs() << "KnuthHD: m=" << m << " n=" << n << '\n');
     DEBUG(dbgs() << "KnuthHD: original:");
-    DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << u[i]);
+    DEBUG(for (int i = m; i >= 0; i--) dbgs() << " " << u[i]);
     DEBUG(dbgs() << " by");
-    DEBUG(for (int i = n; i >0; i--) dbgs() << " " << v[i-1]);
+    DEBUG(for (int i = n; i > 0; i--) dbgs() << " " << v[i - 1]);
     DEBUG(dbgs() << '\n');
 
     // Normalize by shifting the divisor v left so that its highest bit is on,
@@ -409,28 +439,27 @@ static void udiv_knuth_internal_base(
 
 
     DEBUG(dbgs() << "KnuthHD:   normal:");
-    DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
+    DEBUG(for (int i = m; i >= 0; i--) dbgs() << " " << un[i]);
     DEBUG(dbgs() << " by");
-    DEBUG(for (int i = n; i >0; i--) dbgs() << " " << vn[i-1]);
+    DEBUG(for (int i = n; i > 0; i--) dbgs() << " " << vn[i - 1]);
     DEBUG(dbgs() << '\n');
 
-    const uint64_t b = uint64_t(1) << 32; // Number base (32 bits).
-    for (int j = m - n; j >= 0; j--)  // Main loop.
+    const uint64_t b = uint64_t(1) << 32;  // Number base (32 bits).
+    for (int j = m - n; j >= 0; j--)       // Main loop.
     {
-
         DEBUG(dbgs() << "KnuthHD: quotient digit #" << j << '\n');
 
-        auto dividend = un[j+n]*b + un[j+n-1];
+        auto dividend = un[j + n] * b + un[j + n - 1];
         DEBUG(dbgs() << "KnuthHD: dividend == " << dividend << '\n');
 
         // Compute estimate qhat of q[j].
-        uint64_t qhat = dividend / vn[n-1];         // Estimated quotient digit.
-        uint64_t rhat = dividend - qhat * vn[n-1];  // A remainder.
-        again:
-        if (qhat >= b || qhat*vn[n-2] > b*rhat + un[j+n-2])
+        uint64_t qhat = dividend / vn[n - 1];         // Estimated quotient digit.
+        uint64_t rhat = dividend - qhat * vn[n - 1];  // A remainder.
+    again:
+        if (qhat >= b || qhat * vn[n - 2] > b * rhat + un[j + n - 2])
         {
             qhat--;
-            rhat += vn[n-1];
+            rhat += vn[n - 1];
             if (rhat < b)
                 goto again;
         }
@@ -441,44 +470,46 @@ static void udiv_knuth_internal_base(
         int64_t borrow = 0;
         for (int i = 0; i < n; i++)
         {
-            uint64_t p = qhat*vn[i];
-            uint64_t t = uint64_t(un[i+j]) - borrow - static_cast<unsigned>(p);
-            un[i+j] = static_cast<unsigned>(t);
+            uint64_t p = qhat * vn[i];
+            uint64_t t = uint64_t(un[i + j]) - borrow - static_cast<unsigned>(p);
+            un[i + j] = static_cast<unsigned>(t);
             borrow = unsigned(p >> 32) - unsigned(t >> 32);
 
-            DEBUG(dbgs() << "KnuthHD: u[" << (j + i) << "] = " << u[j+i]
+            DEBUG(dbgs() << "KnuthHD: u[" << (j + i) << "] = " << u[j + i]
                          << ", borrow = " << borrow << '\n');
         }
-        int64_t t = un[j+n] - borrow;
-        un[j+n] = static_cast<unsigned>(t);
+        int64_t t = un[j + n] - borrow;
+        un[j + n] = static_cast<unsigned>(t);
 
         DEBUG(dbgs() << "KnuthHD: after subtraction:");
-        DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
+        DEBUG(for (int i = m; i >= 0; i--) dbgs() << " " << un[i]);
         DEBUG(dbgs() << '\n');
 
-        q[j] = static_cast<unsigned>(qhat); // Store quotient digit.
-        if (t < 0) { // If we subtracted too
-            q[j]--; // much, add back.
+        q[j] = static_cast<unsigned>(qhat);  // Store quotient digit.
+        if (t < 0)
+        {            // If we subtracted too
+            q[j]--;  // much, add back.
             uint64_t carry = 0;
             for (int i = 0; i < n; i++)
             {
                 // TODO: Consider using bool carry. See LLVM version.
-                uint64_t t1 = uint64_t(un[i+j]) + vn[i] + carry;
-                un[i+j] = static_cast<unsigned>(t1);
+                uint64_t t1 = uint64_t(un[i + j]) + vn[i] + carry;
+                un[i + j] = static_cast<unsigned>(t1);
                 carry = t1 >> 32;
             }
-            un[j+n] = static_cast<unsigned>(un[j+n] + carry);
+            un[j + n] = static_cast<unsigned>(un[j + n] + carry);
         }
 
         DEBUG(dbgs() << "KnuthHD: after correction:");
-        DEBUG(for (int i = m; i >=0; i--) dbgs() << " " << un[i]);
+        DEBUG(for (int i = m; i >= 0; i--) dbgs() << " " << un[i]);
         DEBUG(dbgs() << "\nKnuthHD: digit result = " << q[j] << '\n');
-    } // End j.
-// If the caller wants the remainder, unnormalize
-// it and pass it back.
-    if (r) {
+    }  // End j.
+       // If the caller wants the remainder, unnormalize
+       // it and pass it back.
+    if (r)
+    {
         for (int i = 0; i < n; i++)
-            r[i] = shift != 0 ? (un[i] >> shift) | (un[i + 1] << (32-shift)) : un[i];
+            r[i] = shift != 0 ? (un[i] >> shift) | (un[i + 1] << (32 - shift)) : un[i];
     }
 }
 
@@ -502,65 +533,65 @@ static void udiv_knuth_internal(
         un[i] = shift ? (u[i] << shift) | (u[i - 1] >> lshift) : u[i];
     un[0] = u[0] << shift;
 
-//    DEBUG(dbgs() << std::hex << "un: ");
-//    DEBUG(for (int i = m; i >= 0; i--) dbgs() << un[i]);
-//    DEBUG(dbgs() << "\n");
+    //    DEBUG(dbgs() << std::hex << "un: ");
+    //    DEBUG(for (int i = m; i >= 0; i--) dbgs() << un[i]);
+    //    DEBUG(dbgs() << "\n");
 
     DEBUG(dbgs() << std::hex << "vn: ");
     DEBUG(for (int i = n - 1; i >= 0; i--) dbgs() << vn[i] << " ");
     DEBUG(dbgs() << "\n");
 
-//    uint32_t v_carry = 0;
-//    uint32_t u_carry = 0;
-//    if (shift)
-//    {
-//        for (int i = 0; i < m; ++i)
-//        {
-//            uint32_t u_tmp = u[i] >> lshift;
-//            un[i] = (u[i] << shift) | u_carry;
-//            u_carry = u_tmp;
-//        }
-//        for (int i = 0; i < n; ++i)
-//        {
-//            uint32_t v_tmp = v[i] >> lshift;
-//            vn[i] = (v[i] << shift) | v_carry;
-//            v_carry = v_tmp;
-//        }
-//    }
-//    else
-//    {
-//        std::copy_n(u, m, un);
-//        std::copy_n(v, n, vn);
-//    }
-//    un[m] = u_carry;
+    //    uint32_t v_carry = 0;
+    //    uint32_t u_carry = 0;
+    //    if (shift)
+    //    {
+    //        for (int i = 0; i < m; ++i)
+    //        {
+    //            uint32_t u_tmp = u[i] >> lshift;
+    //            un[i] = (u[i] << shift) | u_carry;
+    //            u_carry = u_tmp;
+    //        }
+    //        for (int i = 0; i < n; ++i)
+    //        {
+    //            uint32_t v_tmp = v[i] >> lshift;
+    //            vn[i] = (v[i] << shift) | v_carry;
+    //            v_carry = v_tmp;
+    //        }
+    //    }
+    //    else
+    //    {
+    //        std::copy_n(u, m, un);
+    //        std::copy_n(v, n, vn);
+    //    }
+    //    un[m] = u_carry;
 
 
-//    std::copy_n(u, m, un);
-//    std::copy_n(v, n, vn);
-//    un[m] = 0;  // The dividend may get additional high-order digit.
-//
-//
-//    if (shift)
-//    {
-//        uint32_t u_carry = 0;
-//        for (int i = 0; i < (m + 1); ++i)
-//        {
-//            uint32_t u_tmp = un[i] >> lshift;
-//            un[i] = (un[i] << shift) | u_carry;
-//            u_carry = u_tmp;
-//        }
-//        uint32_t v_carry = 0;
-//        for (int i = 0; i < n; ++i)
-//        {
-//            uint32_t v_tmp = vn[i] >> lshift;
-//            vn[i] = (vn[i] << shift) | v_carry;
-//            v_carry = v_tmp;
-//        }
-//    }
+    //    std::copy_n(u, m, un);
+    //    std::copy_n(v, n, vn);
+    //    un[m] = 0;  // The dividend may get additional high-order digit.
+    //
+    //
+    //    if (shift)
+    //    {
+    //        uint32_t u_carry = 0;
+    //        for (int i = 0; i < (m + 1); ++i)
+    //        {
+    //            uint32_t u_tmp = un[i] >> lshift;
+    //            un[i] = (un[i] << shift) | u_carry;
+    //            u_carry = u_tmp;
+    //        }
+    //        uint32_t v_carry = 0;
+    //        for (int i = 0; i < n; ++i)
+    //        {
+    //            uint32_t v_tmp = vn[i] >> lshift;
+    //            vn[i] = (vn[i] << shift) | v_carry;
+    //            v_carry = v_tmp;
+    //        }
+    //    }
 
 
     const uint64_t base = uint64_t(1) << 32;  // Number base (32 bits).
-    for (int j = m - n; j >= 0; j--)  // Main loop.
+    for (int j = m - n; j >= 0; j--)          // Main loop.
     {
         uint64_t qhat, rhat;
         uint32_t divisor = vn[n - 1];
@@ -593,14 +624,14 @@ static void udiv_knuth_internal(
             uint64_t p = qhat * vn[i];
             int64_t t = int64_t(un[i + j]) - borrow - lo_half(p);
             uint64_t s = static_cast<uint64_t>(t);
-            un[i+j] = lo_half(s);
+            un[i + j] = lo_half(s);
             borrow = hi_half(p) - hi_half(s);
         }
         DEBUG(dbgs() << "borrow: " << (int)borrow << "\n");
         int64_t t = un[j + n] - borrow;
         un[j + n] = static_cast<uint32_t>(t);
 
-        q[j] = lo_half(qhat); // Store quotient digit.
+        q[j] = lo_half(qhat);  // Store quotient digit.
         DEBUG(dbgs() << std::hex << "q[" << j << "]: " << q[j] << "\n");
 
         if (t < 0)
@@ -623,7 +654,6 @@ static void udiv_knuth_internal(
 }
 
 
-
 static void udiv_knuth_internal_64(
     uint64_t q[], uint64_t r[], const uint64_t u[], const uint64_t v[], int m, int n)
 {
@@ -644,9 +674,9 @@ static void udiv_knuth_internal_64(
         un[i] = shift ? (u[i] << shift) | (u[i - 1] >> lshift) : u[i];
     un[0] = u[0] << shift;
 
-//    DEBUG(dbgs() << std::hex << "un: ");
-//    DEBUG(for (int i = m; i >= 0; i--) dbgs() << un[i]);
-//    DEBUG(dbgs() << "\n");
+    //    DEBUG(dbgs() << std::hex << "un: ");
+    //    DEBUG(for (int i = m; i >= 0; i--) dbgs() << un[i]);
+    //    DEBUG(dbgs() << "\n");
 
     DEBUG(dbgs() << std::hex << "vn: ");
     DEBUG(for (int i = n - 1; i >= 0; i--) dbgs() << vn[i] << " ");
@@ -654,7 +684,7 @@ static void udiv_knuth_internal_64(
 
 
     constexpr uint128 base = uint128(1) << 64;  // Number base (32 bits).
-    for (int j = m - n; j >= 0; j--)  // Main loop.
+    for (int j = m - n; j >= 0; j--)            // Main loop.
     {
         uint128 qhat, rhat;
         uint64_t divisor = vn[n - 1];
@@ -688,14 +718,14 @@ static void udiv_knuth_internal_64(
         {
             uint128 p = qhat * vn[i];
             uint128 t = uint128{un[i + j]} - borrow - lo_half(p);
-            un[i+j] = lo_half(t);
+            un[i + j] = lo_half(t);
             borrow = hi_half(p) - hi_half(t);
         }
         DEBUG(dbgs() << "borrow: " << (int)borrow << "\n");
         auto t = un[j + n] - borrow;
         un[j + n] = static_cast<uint64_t>(t);
 
-        q[j] = lo_half(qhat); // Store quotient digit.
+        q[j] = lo_half(qhat);  // Store quotient digit.
         DEBUG(dbgs() << std::hex << "q[" << j << "]: " << q[j] << "\n");
 
         if (t < 0)

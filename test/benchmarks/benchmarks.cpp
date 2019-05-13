@@ -7,6 +7,7 @@
 
 #include <benchmark/benchmark.h>
 #include <div.hpp>
+#include <experimental/div.hpp>
 #include <intx/intx.hpp>
 
 using namespace intx;
