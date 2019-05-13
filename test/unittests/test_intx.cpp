@@ -252,7 +252,7 @@ class uint_test : public testing::Test
 {
 };
 
-using types = testing::Types<uint256, uint512>;
+using types = testing::Types<uint128,uint256, uint512>;
 TYPED_TEST_CASE(uint_test, types);
 
 TYPED_TEST(uint_test, comparison)
@@ -477,4 +477,16 @@ TYPED_TEST(uint_test, string_conversions)
         auto x = from_string<TypeParam>(s);
         EXPECT_EQ(x, v);
     }
+}
+
+TYPED_TEST(uint_test, to_string_base)
+{
+    auto x = TypeParam{1024};
+    EXPECT_THROW(to_string(x, 1), std::invalid_argument);
+    EXPECT_THROW(to_string(x, 37), std::invalid_argument);
+    EXPECT_EQ(to_string(x, 10), "1024");
+    EXPECT_EQ(to_string(x, 16), "400");
+    EXPECT_EQ(to_string(x, 36), "sg");
+    EXPECT_EQ(to_string(x, 2), "10000000000");
+    EXPECT_EQ(to_string(x, 8), "2000");
 }

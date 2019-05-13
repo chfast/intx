@@ -458,7 +458,7 @@ inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
 }
 
 
-template<unsigned N>
+template <unsigned N>
 struct uint_with_carry
 {
     uint<N> value;
@@ -781,29 +781,6 @@ template <unsigned N, typename T,
 constexpr uint<N>& operator%=(uint<N>& x, const T& y) noexcept
 {
     return x = x % y;
-}
-
-template <unsigned N>
-inline std::string to_string(uint<N> x)
-{
-    if (x == 0)
-        return "0";
-
-    std::string s;
-    while (x != 0)
-    {
-        const auto res = udivrem(x, 10);
-        x = res.quot;
-        const auto c = static_cast<size_t>(res.rem);
-        s.push_back(static_cast<char>('0' + c));
-    }
-    std::reverse(s.begin(), s.end());
-    return s;
-}
-
-inline std::string to_string(uint128 x)
-{
-    return to_string(uint256(x));
 }
 
 template <unsigned N>
