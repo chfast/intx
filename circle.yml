@@ -111,6 +111,23 @@ jobs:
       - build_and_test
       - benchmark
 
+  linux-32bit:
+    environment:
+      - CXX: g++-8
+      - CC:  gcc-8
+      - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: Release
+      - CMAKE_OPTIONS: -DTOOLCHAIN=cxx14-32bit -DINTX_BENCHMARKING=OFF
+    docker:
+      - image: ethereum/cpp-build-env:11
+    steps:
+      - run:
+          name: "Install GCC multilib"
+          command: |
+            sudo apt -q update
+            sudo apt install -qy g++-8-multilib
+      - build_and_test
+
   fuzzing:
     environment:
       - CXX: clang++-8
@@ -160,5 +177,6 @@ workflows:
       - linux-gcc-coverage
       - linux-clang-asan
       - linux-clang-ubsan
+      - linux-32bit
       - fuzzing
       - macos
