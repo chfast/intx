@@ -63,28 +63,11 @@ defaults:
 version: 2
 jobs:
 
-  linux-gcc-asan:
+  linux-gcc-coverage:
     environment:
       - CXX: g++-8
       - CC:  gcc-8
       - GCOV: gcov-8
-      - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: Debug
-      - CMAKE_OPTIONS: -DSANITIZE=address
-    docker:
-      - image: ethereum/cpp-build-env:11
-    steps:
-      - *install-deps
-      - checkout
-      - *configure
-      - *build
-      - *test
-
-  linux-clang-coverage:
-    environment:
-      - CXX: clang++-8
-      - CC:  clang-8
-      - GCOV: llvm-cov-8 gcov
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
       - CMAKE_OPTIONS: -DCOVERAGE=ON
@@ -100,6 +83,22 @@ jobs:
       - *test
       - *upload-coverage-data
 
+  linux-clang-asan:
+    environment:
+      - CXX: clang++-8
+      - CC:  clang-8
+      - GCOV: gcov-8
+      - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: Debug
+      - CMAKE_OPTIONS: -DSANITIZE=address
+    docker:
+      - image: ethereum/cpp-build-env:11
+    steps:
+      - *install-deps
+      - checkout
+      - *configure
+      - *build
+      - *test
 
   linux-clang-ubsan:
     environment:
@@ -170,8 +169,8 @@ workflows:
   version: 2
   intx:
     jobs:
-      - linux-gcc-asan
-      - linux-clang-coverage
+      - linux-gcc-coverage
+      - linux-clang-asan
       - linux-clang-ubsan
       - fuzzing
       - macos
