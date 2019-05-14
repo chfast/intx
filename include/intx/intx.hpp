@@ -33,7 +33,7 @@ struct uint
 
     constexpr uint() noexcept = default;
 
-    constexpr uint(half_type hi, half_type lo) noexcept : lo(lo), hi(hi) {}
+    constexpr uint(half_type high, half_type low) noexcept : lo(low), hi(high) {}
 
     /// Implicit converting constructor for the half type.
     constexpr uint(half_type x) noexcept : lo(x) {}  // NOLINT

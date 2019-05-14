@@ -57,7 +57,7 @@ macro(cable_configure_compiler)
             endif()
 
             # Enable basing warnings set and treat them as errors.
-            add_compile_options(-Werror -Wall -Wextra)
+            add_compile_options(-Werror -Wall -Wextra -Wshadow)
 
             if(NOT cable_NO_CONVERSION_WARNINGS)
                 # Enable conversion warnings if not explicitly disabled.
@@ -109,7 +109,7 @@ macro(cable_configure_compiler)
             else()
                 add_compile_options(-mtune=native -march=native)
             endif()
-        else(NOT MSVC)
+        elseif(NOT MSVC)
             # Tune for currently most common CPUs.
             cable_add_cxx_compiler_flag_if_supported(-mtune=generic)
         endif()

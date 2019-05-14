@@ -33,7 +33,7 @@ struct uint<128>
 
     constexpr uint() noexcept = default;
 
-    constexpr uint(uint64_t hi, uint64_t lo) noexcept : lo{lo}, hi{hi} {}
+    constexpr uint(uint64_t high, uint64_t low) noexcept : lo{low}, hi{high} {}
 
     template <typename T,
         typename = typename std::enable_if<std::is_convertible<T, uint64_t>::value>::type>

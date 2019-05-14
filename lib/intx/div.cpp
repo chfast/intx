@@ -15,7 +15,7 @@ union uint512_words64
     const uint512 number;
     word_type words[uint512::num_words];
 
-    constexpr explicit uint512_words64(uint512 number = {}) noexcept : number{number} {}
+    constexpr explicit uint512_words64(uint512 x = {}) noexcept : number{x} {}
 
     word_type& operator[](size_t index) { return words[index]; }
 };
