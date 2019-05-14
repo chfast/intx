@@ -379,7 +379,7 @@ inline unsigned clz(uint64_t x) noexcept
     _BitScanReverse64(&most_significant_bit, x);
     return 63 ^ (unsigned)most_significant_bit;
 #else
-    return __builtin_clzl(x);
+    return __builtin_clzll(x);
 #endif
 }
 
