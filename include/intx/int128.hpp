@@ -294,7 +294,7 @@ inline uint128 umul(uint64_t x, uint64_t y) noexcept
     const auto lo = _umul128(x, y, &hi);
     return {hi, lo};
 #else
-    return umul_generic(x, y);
+    return constexpr_umul(x, y);
 #endif
 }
 
