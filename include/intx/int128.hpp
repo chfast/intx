@@ -294,7 +294,7 @@ inline uint128 umul(uint64_t x, uint64_t y) noexcept
     const auto lo = _umul128(x, y, &hi);
     return {hi, lo};
 #else
-    return umul_generic(x, y);
+    return constexpr_umul(x, y);
 #endif
 }
 
@@ -379,7 +379,7 @@ inline unsigned clz(uint64_t x) noexcept
     _BitScanReverse64(&most_significant_bit, x);
     return 63 ^ (unsigned)most_significant_bit;
 #else
-    return __builtin_clzl(x);
+    return __builtin_clzll(x);
 #endif
 }
 

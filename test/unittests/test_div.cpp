@@ -245,11 +245,11 @@ inline uint64_t reciprocal_naive(uint64_t d) noexcept
     const auto u = uint128{~d, ~uint64_t{0}};
     uint64_t v;
 
-#if _MSC_VER
-    v = (u / d).lo;
-#else
+#if __x86_64__
     uint64_t _;
     asm("divq %4" : "=d"(_), "=a"(v) : "d"(u.hi), "a"(u.lo), "g"(d));
+#else
+    v = (u / d).lo;
 #endif
 
     return v;
