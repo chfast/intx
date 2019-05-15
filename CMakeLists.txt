@@ -22,7 +22,7 @@ cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Release;Debug)
 include(Hunter/init)
 
 project(intx LANGUAGES CXX)
-set(PROJECT_VERSION 0.2.0-dev)
+set(PROJECT_VERSION 0.2.0)
 
 cable_configure_compiler(NO_PEDANTIC NO_CONVERSION_WARNINGS NO_STACK_PROTECTION)
 
