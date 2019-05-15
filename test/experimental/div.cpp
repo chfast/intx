@@ -899,13 +899,12 @@ div_result<uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v)
 
     unsigned m = u_limbs - n;
 
-    uint256 q, r;
     uint32_t u_data[9];  // u needs one limb more.
     std::memcpy(u_data, &u, sizeof(u));
     uint32_t v_data[8];
     std::memcpy(v_data, &v, sizeof(v));
-    auto p_q = (uint32_t*)&q;
-    auto p_r = (uint32_t*)&r;
+    uint32_t q[8];
+    uint32_t r[8];
 
     // If we're left with only a single word for the divisor, Knuth doesn't work
     // so we implement the short division algorithm here. This is much simpler
@@ -915,16 +914,19 @@ div_result<uint256> udiv_qr_knuth_llvm_base(const uint256& u, const uint256& v)
     // are using base 2^32 instead of base 10.
     if (n == 1)
     {
-        udivrem_1_stable(p_q, p_r, u_data, v_data[0], u_limbs);
+        udivrem_1_stable(q, r, u_data, v_data[0], u_limbs);
     }
     else
     {
         // Now we're ready to invoke the Knuth classical divide algorithm. In this
         // case n > 1.
-        KnuthDiv(u_data, v_data, p_q, p_r, m, n);
+        KnuthDiv(u_data, v_data, q, r, m, n);
     }
 
-    return {q, r};
+    uint256 qq, rr;
+    std::memcpy(&qq, q, (m + 1) * sizeof(uint32_t));
+    std::memcpy(&rr, r, n * sizeof(uint32_t));
+    return {qq, rr};
 }
 
 }  // namespace intx
