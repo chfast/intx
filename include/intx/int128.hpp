@@ -24,7 +24,7 @@ struct uint;
 /// The 128-bit unsigned integer.
 ///
 /// This type is defined as a specialization of uint<> to easier integration with full intx package,
-/// however, uint128 may be used indepedently.
+/// however, uint128 may be used independently.
 template <>
 struct uint<128>
 {
@@ -36,23 +36,22 @@ struct uint<128>
     constexpr uint(uint64_t high, uint64_t low) noexcept : lo{low}, hi{high} {}
 
     template <typename T,
-        typename = typename std::enable_if<std::is_convertible<T, uint64_t>::value>::type>
-    constexpr uint(T x) noexcept : lo(x)  // NOLINT
-    {}
-
-    template <typename T, typename std::enable_if<std::is_integral<T>::value>::type>
-    constexpr explicit uint(T x) noexcept : lo(x)
+        typename = typename std::enable_if_t<std::is_convertible<T, uint64_t>::value>>
+    constexpr uint(T x) noexcept : lo(static_cast<uint64_t>(x))  // NOLINT
     {}
 
 #ifdef __SIZEOF_INT128__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
     constexpr uint(unsigned __int128 x) noexcept  // NOLINT
       : lo{uint64_t(x)}, hi{uint64_t(x >> 64)}
     {}
 
     constexpr explicit operator unsigned __int128() const noexcept
     {
-        return ((unsigned __int128){hi} << 64) | lo;
+        return (static_cast<unsigned __int128>(hi) << 64) | lo;
     }
+#pragma GCC diagnostic pop
 #endif
 
     constexpr explicit operator bool() const noexcept { return hi | lo; }
@@ -287,8 +286,11 @@ constexpr uint128 constexpr_umul(uint64_t x, uint64_t y) noexcept
 inline uint128 umul(uint64_t x, uint64_t y) noexcept
 {
 #if defined(__SIZEOF_INT128__)
-    const auto p = (unsigned __int128){x} * y;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+    const auto p = static_cast<unsigned __int128>(x) * y;
     return {uint64_t(p >> 64), uint64_t(p)};
+#pragma GCC diagnostic pop
 #elif defined(_MSC_VER)
     unsigned __int64 hi;
     const auto lo = _umul128(x, y, &hi);
@@ -368,7 +370,7 @@ inline unsigned clz(uint32_t x) noexcept
     _BitScanReverse(&most_significant_bit, x);
     return 31 ^ (unsigned)most_significant_bit;
 #else
-    return __builtin_clz(x);
+    return unsigned(__builtin_clz(x));
 #endif
 }
 
@@ -379,7 +381,7 @@ inline unsigned clz(uint64_t x) noexcept
     _BitScanReverse64(&most_significant_bit, x);
     return 63 ^ (unsigned)most_significant_bit;
 #else
-    return __builtin_clzll(x);
+    return unsigned(__builtin_clzll(x));
 #endif
 }
 

@@ -24,7 +24,7 @@ include(Hunter/init)
 project(intx LANGUAGES CXX)
 set(PROJECT_VERSION 0.3.0-dev)
 
-cable_configure_compiler(NO_PEDANTIC NO_CONVERSION_WARNINGS NO_STACK_PROTECTION)
+cable_configure_compiler(NO_CONVERSION_WARNINGS NO_STACK_PROTECTION)
 
 if(INTX_TESTING)
     enable_testing()

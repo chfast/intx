@@ -294,6 +294,9 @@ TEST(int128, div)
 }
 
 #ifdef __SIZEOF_INT128__
+#pragma GCC diagnostic ignored "-Wpedantic"
+using uint128_ty = unsigned __int128;
+
 TEST(int128, arith_random_args)
 {
     int c = 1000000;
@@ -311,11 +314,11 @@ TEST(int128, arith_random_args)
         auto q = x / y;
         auto r = x % y;
 
-        auto expected_s = uint128{(unsigned __int128){x} + (unsigned __int128){y}};
-        auto expected_d = uint128{(unsigned __int128){x} - (unsigned __int128){y}};
-        auto expected_p = uint128{(unsigned __int128){x} * (unsigned __int128){y}};
-        auto expected_q = uint128{(unsigned __int128){x} / (unsigned __int128){y}};
-        auto expected_r = uint128{(unsigned __int128){x} % (unsigned __int128){y}};
+        auto expected_s = uint128{uint128_ty{x} + uint128_ty{y}};
+        auto expected_d = uint128{uint128_ty{x} - uint128_ty{y}};
+        auto expected_p = uint128{uint128_ty{x} * uint128_ty{y}};
+        auto expected_q = uint128{uint128_ty{x} / uint128_ty{y}};
+        auto expected_r = uint128{uint128_ty{x} % uint128_ty{y}};
 
         EXPECT_EQ(s, expected_s) << c;
         EXPECT_EQ(d, expected_d) << c;
