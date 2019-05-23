@@ -52,7 +52,7 @@ inline div_result<Int> udivrem(const Int& x, const Int& y) noexcept
     auto p_y = (mp_srcptr)&y;
     mpn_tdiv_qr(p_q, p_r, 0, p_x, x_limbs, p_y, y_limbs);
     return {q, r};
-};
+}
 
 template <typename Int>
 inline div_result<Int> sdivrem(const Int& x, const Int& y) noexcept
@@ -98,7 +98,7 @@ inline div_result<Int> sdivrem(const Int& x, const Int& y) noexcept
     mpz_clears(x_gmp, y_gmp, q_gmp, r_gmp, NULL);
 
     return {q, r};
-};
+}
 
 template <typename Int>
 inline Int add(const Int& x, const Int& y) noexcept

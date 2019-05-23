@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstring>
 
+#pragma GCC diagnostic ignored "-Wpedantic"
 
 uint64_t udiv_native(uint64_t x, uint64_t y) noexcept
 {

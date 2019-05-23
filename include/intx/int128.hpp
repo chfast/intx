@@ -45,14 +45,17 @@ struct uint<128>
     {}
 
 #ifdef __SIZEOF_INT128__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
     constexpr uint(unsigned __int128 x) noexcept  // NOLINT
       : lo{uint64_t(x)}, hi{uint64_t(x >> 64)}
     {}
 
     constexpr explicit operator unsigned __int128() const noexcept
     {
-        return ((unsigned __int128){hi} << 64) | lo;
+        return (static_cast<unsigned __int128>(hi) << 64) | lo;
     }
+#pragma GCC diagnostic pop
 #endif
 
     constexpr explicit operator bool() const noexcept { return hi | lo; }
@@ -287,8 +290,11 @@ constexpr uint128 constexpr_umul(uint64_t x, uint64_t y) noexcept
 inline uint128 umul(uint64_t x, uint64_t y) noexcept
 {
 #if defined(__SIZEOF_INT128__)
-    const auto p = (unsigned __int128){x} * y;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+    const auto p = static_cast<unsigned __int128>(x) * y;
     return {uint64_t(p >> 64), uint64_t(p)};
+#pragma GCC diagnostic pop
 #elif defined(_MSC_VER)
     unsigned __int64 hi;
     const auto lo = _umul128(x, y, &hi);
