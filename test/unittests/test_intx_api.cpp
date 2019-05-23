@@ -53,6 +53,17 @@ class uint_api : public testing::Test
 using types = testing::Types<uint128, uint256, uint512>;
 TYPED_TEST_CASE(uint_api, types);
 
+TYPED_TEST(uint_api, constructor)
+{
+    auto i = int{-1};
+    auto x = TypeParam{i};
+    TypeParam y = i;
+    auto z = TypeParam(i);
+
+    EXPECT_EQ(x, y);
+    EXPECT_EQ(x, z);
+}
+
 TYPED_TEST(uint_api, arithmetic)
 {
     auto a = int{};

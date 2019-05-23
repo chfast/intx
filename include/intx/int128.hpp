@@ -36,12 +36,8 @@ struct uint<128>
     constexpr uint(uint64_t high, uint64_t low) noexcept : lo{low}, hi{high} {}
 
     template <typename T,
-        typename = typename std::enable_if<std::is_convertible<T, uint64_t>::value>::type>
+        typename = typename std::enable_if_t<std::is_convertible<T, uint64_t>::value>>
     constexpr uint(T x) noexcept : lo(static_cast<uint64_t>(x))  // NOLINT
-    {}
-
-    template <typename T, typename std::enable_if<std::is_integral<T>::value>::type>
-    constexpr explicit uint(T x) noexcept : lo(x)
     {}
 
 #ifdef __SIZEOF_INT128__
