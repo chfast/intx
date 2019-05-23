@@ -24,7 +24,7 @@ struct uint;
 /// The 128-bit unsigned integer.
 ///
 /// This type is defined as a specialization of uint<> to easier integration with full intx package,
-/// however, uint128 may be used indepedently.
+/// however, uint128 may be used independently.
 template <>
 struct uint<128>
 {
@@ -37,7 +37,7 @@ struct uint<128>
 
     template <typename T,
         typename = typename std::enable_if<std::is_convertible<T, uint64_t>::value>::type>
-    constexpr uint(T x) noexcept : lo(x)  // NOLINT
+    constexpr uint(T x) noexcept : lo(static_cast<uint64_t>(x))  // NOLINT
     {}
 
     template <typename T, typename std::enable_if<std::is_integral<T>::value>::type>
@@ -374,7 +374,7 @@ inline unsigned clz(uint32_t x) noexcept
     _BitScanReverse(&most_significant_bit, x);
     return 31 ^ (unsigned)most_significant_bit;
 #else
-    return __builtin_clz(x);
+    return unsigned(__builtin_clz(x));
 #endif
 }
 
@@ -385,7 +385,7 @@ inline unsigned clz(uint64_t x) noexcept
     _BitScanReverse64(&most_significant_bit, x);
     return 63 ^ (unsigned)most_significant_bit;
 #else
-    return __builtin_clzll(x);
+    return unsigned(__builtin_clzll(x));
 #endif
 }
 
