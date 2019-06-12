@@ -22,17 +22,18 @@ union uint512_words64
 
 inline div_result<uint512> udivrem_by1(const normalized_div_args& na) noexcept
 {
+    auto u = as_words(na.numerator);
     auto d = as_words(na.denominator)[0];
     auto v = reciprocal_2by1(d);
 
     auto q = uint512_words64{};
 
-    auto x = div_result<decltype(q)::word_type>{0, na.numerator[uint512::num_words]};
+    auto x = div_result<decltype(q)::word_type>{0, na.numerator_ex};
 
     // OPT: Skip leading zero words.
     for (int j = uint512::num_words - 1; j >= 0; --j)
     {
-        x = udivrem_2by1({x.rem, na.numerator[j]}, d, v);
+        x = udivrem_2by1({x.rem, u[j]}, d, v);
         q[j] = x.quot;
     }
 
@@ -41,6 +42,7 @@ inline div_result<uint512> udivrem_by1(const normalized_div_args& na) noexcept
 
 inline div_result<uint512> udivrem_by2(const normalized_div_args& na) noexcept
 {
+    auto u = as_words(na.numerator);
     auto dw = as_words(na.denominator);
     auto d = uint128{dw[1], dw[0]};
     auto v = reciprocal_3by2(d);
@@ -48,12 +50,12 @@ inline div_result<uint512> udivrem_by2(const normalized_div_args& na) noexcept
     auto q = uint512_words64{};
     constexpr auto num_words = uint512::num_words;
 
-    auto r = uint128{na.numerator[num_words], na.numerator[num_words - 1]};
+    auto r = uint128{u[num_words], u[num_words - 1]};
 
     // OPT: Skip leading zero words.
     for (int j = num_words - 2; j >= 0; --j)
     {
-        auto res = udivrem_3by2(r.hi, r.lo, na.numerator[j], d, v);
+        auto res = udivrem_3by2(r.hi, r.lo, u[j], d, v);
         q[j] = res.quot.lo;
         r = res.rem;
     }
@@ -147,7 +149,7 @@ inline div_result<uint512> udivrem_knuth_wrapper(normalized_div_args& na) noexce
     auto n = na.num_denominator_words;
     auto m = na.num_numerator_words;
 
-    auto& un = na.numerator;  // Will be modified.
+    auto un = as_words(na.numerator);  // Will be modified.
 
     uint512 q;
     uint512_words64 r;

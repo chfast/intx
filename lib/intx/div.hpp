@@ -10,10 +10,9 @@ namespace intx
 {
 struct normalized_div_args
 {
-    using word_type = uint64_t;
-
     uint<512> denominator;
-    std::array<word_type, sizeof(uint512) / sizeof(word_type) + 1> numerator;
+    uint<512> numerator;
+    uint<512>::word_type numerator_ex;
     int num_denominator_words;
     int num_numerator_words;
     int shift;
@@ -21,13 +20,13 @@ struct normalized_div_args
 
 inline normalized_div_args normalize(const uint512& numerator, const uint512& denominator) noexcept
 {
-    static constexpr auto num_words = int{sizeof(uint512) / sizeof(normalized_div_args::word_type)};
+    static constexpr auto num_words = uint512::num_words;
 
     auto* u = as_words(numerator);
     auto* v = as_words(denominator);
 
     normalized_div_args na;
-    auto* un = &na.numerator[0];
+    auto* un = as_words(na.numerator);
     auto* vn = as_words(na.denominator);
 
     auto& m = na.num_numerator_words;
