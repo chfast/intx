@@ -12,10 +12,10 @@ struct normalized_div_args
 {
     using word_type = uint64_t;
 
+    uint<512> denominator;
     std::array<word_type, sizeof(uint512) / sizeof(word_type) + 1> numerator;
-    std::array<word_type, sizeof(uint512) / sizeof(word_type)> denominator;
-    int num_numerator_words;
     int num_denominator_words;
+    int num_numerator_words;
     int shift;
 };
 
@@ -28,7 +28,7 @@ inline normalized_div_args normalize(const uint512& numerator, const uint512& de
 
     normalized_div_args na;
     auto* un = &na.numerator[0];
-    auto* vn = &na.denominator[0];
+    auto* vn = as_words(na.denominator);
 
     auto& m = na.num_numerator_words;
     for (m = num_words; m > 0 && u[m - 1] == 0; --m)

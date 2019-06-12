@@ -22,7 +22,7 @@ union uint512_words64
 
 inline div_result<uint512> udivrem_by1(const normalized_div_args& na) noexcept
 {
-    auto d = na.denominator[0];
+    auto d = as_words(na.denominator)[0];
     auto v = reciprocal_2by1(d);
 
     auto q = uint512_words64{};
@@ -41,7 +41,8 @@ inline div_result<uint512> udivrem_by1(const normalized_div_args& na) noexcept
 
 inline div_result<uint512> udivrem_by2(const normalized_div_args& na) noexcept
 {
-    auto d = uint128{na.denominator[1], na.denominator[0]};
+    auto dw = as_words(na.denominator);
+    auto d = uint128{dw[1], dw[0]};
     auto v = reciprocal_3by2(d);
 
     auto q = uint512_words64{};
@@ -146,13 +147,12 @@ inline div_result<uint512> udivrem_knuth_wrapper(normalized_div_args& na) noexce
     auto n = na.num_denominator_words;
     auto m = na.num_numerator_words;
 
-    const auto& vn = na.denominator;
     auto& un = na.numerator;  // Will be modified.
 
     uint512 q;
     uint512_words64 r;
 
-    udivrem_knuth(as_words(q), &un[0], m, &vn[0], n);
+    udivrem_knuth(as_words(q), &un[0], m, as_words(na.denominator), n);
 
     for (int i = 0; i < n; ++i)
         r[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
