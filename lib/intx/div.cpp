@@ -60,17 +60,8 @@ inline div_result<uint512> udivrem_by2(const normalized_div_args& na) noexcept
     return {q.number, r >> na.shift};
 }
 
-div_result<uint512> udivrem_knuth(normalized_div_args& na) noexcept
+void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int n) noexcept
 {
-    auto n = na.num_denominator_words;
-    auto m = na.num_numerator_words;
-
-    const auto& vn = na.denominator;
-    auto& un = na.numerator;  // Will be modified.
-
-    uint512_words64 q;
-    uint512_words64 r;
-
     const auto divisor = uint128{vn[n - 1], vn[n - 2]};
     const auto reciprocal = reciprocal_2by1(divisor.hi);
     for (int j = m - n; j >= 0; --j)
@@ -148,11 +139,25 @@ div_result<uint512> udivrem_knuth(normalized_div_args& na) noexcept
         // OPT: We can avoid allocating q, un can re used to store quotient.
         q[j] = qhat;  // Store quotient digit.
     }
+}
+
+inline div_result<uint512> udivrem_knuth_wrapper(normalized_div_args& na) noexcept
+{
+    auto n = na.num_denominator_words;
+    auto m = na.num_numerator_words;
+
+    const auto& vn = na.denominator;
+    auto& un = na.numerator;  // Will be modified.
+
+    uint512 q;
+    uint512_words64 r;
+
+    udivrem_knuth(as_words(q), &un[0], m, &vn[0], n);
 
     for (int i = 0; i < n; ++i)
         r[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
 
-    return {q.number, r.number};
+    return {q, r.number};
 }
 }  // namespace
 
@@ -175,7 +180,7 @@ div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
     if (na.num_denominator_words == 2)
         return udivrem_by2(na);
 
-    return udivrem_knuth(na);
+    return udivrem_knuth_wrapper(na);
 }
 
 }  // namespace intx
