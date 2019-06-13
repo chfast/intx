@@ -55,9 +55,9 @@ inline normalized_div_args<IntT::num_bits> normalize(
     }
     else
     {
-        un[num_words] = 0;
-        std::memcpy(un, u, sizeof(numerator));
-        std::memcpy(vn, v, sizeof(denominator));
+        na.numerator_ex = 0;
+        na.numerator = numerator;
+        na.denominator = denominator;
     }
 
     return na;
