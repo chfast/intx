@@ -20,24 +20,27 @@ union uint512_words64
     word_type& operator[](size_t index) { return words[index]; }
 };
 
-inline div_result<uint512> udivrem_by1(const normalized_div_args<512>& na) noexcept
+/// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
+/// @param u  The array of a normalized numerator words. It will contain the quotient after
+///           execution.
+/// @param m  The number of numerator words BEFORE normalization.
+/// @param d  The normalized denominator.
+/// @return   The remainder.
+inline uint64_t udivrem_by1(uint64_t u[], int m, uint64_t d) noexcept
 {
-    auto u = as_words(na.numerator);
-    auto d = as_words(na.denominator)[0];
-    auto v = reciprocal_2by1(d);
+    const auto v = reciprocal_2by1(d);
 
-    auto q = uint512_words64{};
+    auto r = u[m];  // Set the top word as remainder.
+    u[m] = 0;       // Reset the word being a part of the result quotient.
 
-    auto x = div_result<decltype(q)::word_type>{0, na.numerator_ex};
-
-    // OPT: Skip leading zero words.
-    for (int j = uint512::num_words - 1; j >= 0; --j)
+    for (int j = m - 1; j >= 0; --j)
     {
-        x = udivrem_2by1({x.rem, u[j]}, d, v);
-        q[j] = x.quot;
+        const auto x = udivrem_2by1({r, u[j]}, d, v);
+        u[j] = x.quot;
+        r = x.rem;
     }
 
-    return {q.number, x.rem >> na.shift};
+    return r;
 }
 
 inline div_result<uint512> udivrem_by2(const normalized_div_args<512>& na) noexcept
@@ -177,7 +180,11 @@ div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
         return {0, u};
 
     if (na.num_denominator_words == 1)
-        return udivrem_by1(na);
+    {
+        auto r = udivrem_by1(
+            as_words(na.numerator), na.num_numerator_words, as_words(na.denominator)[0]);
+        return {na.numerator, r >> na.shift};
+    }
 
     if (na.num_denominator_words == 2)
         return udivrem_by2(na);
