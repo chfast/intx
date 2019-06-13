@@ -17,11 +17,9 @@ TEST(div, normalize)
     EXPECT_EQ(na.shift, 63);
     EXPECT_EQ(na.num_denominator_words, 1);
     EXPECT_EQ(na.num_numerator_words, 0);
-    EXPECT_EQ(na.numerator[0], 0);
-    EXPECT_EQ(na.numerator[1], 0);
-    EXPECT_EQ(na.numerator[8], 0);
-    EXPECT_EQ(na.denominator[0], uint64_t{1} << 63);
-    EXPECT_EQ(na.denominator[1], 0);
+    EXPECT_EQ(na.numerator, 0);
+    EXPECT_EQ(na.numerator_ex, 0);
+    EXPECT_EQ(na.denominator, v << 63);
 
     u = uint512{1414, 1313};
     v = uint512{12, 1212};
@@ -29,16 +27,9 @@ TEST(div, normalize)
     EXPECT_EQ(na.shift, 60);
     EXPECT_EQ(na.num_denominator_words, 5);
     EXPECT_EQ(na.num_numerator_words, 5);
-    EXPECT_EQ(na.numerator[0], uint64_t{1313} << 60);
-    EXPECT_EQ(na.numerator[1], uint64_t{1313} >> (64 - 60));
-    EXPECT_EQ(na.numerator[2], 0);
-    EXPECT_EQ(na.numerator[4], uint64_t{1414} << 60);
-    EXPECT_EQ(na.numerator[na.num_numerator_words], uint64_t{1414} >> (64 - 60));
-    EXPECT_EQ(na.denominator[0], uint64_t{1212} << 60);
-    EXPECT_EQ(na.denominator[1], uint64_t{1212} >> (64 - 60));
-    EXPECT_EQ(na.denominator[2], 0);
-    EXPECT_EQ(na.denominator[4], uint64_t{12} << 60);
-    EXPECT_EQ(na.denominator[5], 0);
+    EXPECT_EQ(na.numerator, u << 60);
+    EXPECT_EQ(na.numerator_ex, 0);
+    EXPECT_EQ(na.denominator, v << 60);
 
     u = uint512{3} << 510;
     v = uint256{0xffffffffffffffff, 1};
@@ -46,16 +37,9 @@ TEST(div, normalize)
     EXPECT_EQ(na.shift, 0);
     EXPECT_EQ(na.num_denominator_words, 3);
     EXPECT_EQ(na.num_numerator_words, 8);
-    EXPECT_EQ(na.numerator[0], 0);
-    EXPECT_EQ(na.numerator[1], 0);
-    EXPECT_EQ(na.numerator[2], 0);
-    EXPECT_EQ(na.numerator[4], 0);
-    EXPECT_EQ(na.numerator[7], uint64_t{3} << 62);
-    EXPECT_EQ(na.numerator[8], 0);
-    EXPECT_EQ(na.denominator[0], 1);
-    EXPECT_EQ(na.denominator[1], 0);
-    EXPECT_EQ(na.denominator[2], 0xffffffffffffffff);
-    EXPECT_EQ(na.denominator[3], 0);
+    EXPECT_EQ(na.numerator, u);
+    EXPECT_EQ(na.numerator_ex, 0);
+    EXPECT_EQ(na.denominator, v);
 
     u = uint512{7} << 509;
     v = uint256{0x3fffffffffffffff, 1};
@@ -63,13 +47,9 @@ TEST(div, normalize)
     EXPECT_EQ(na.shift, 2);
     EXPECT_EQ(na.num_denominator_words, 3);
     EXPECT_EQ(na.num_numerator_words, 8);
-    EXPECT_EQ(na.numerator[6], 0);
-    EXPECT_EQ(na.numerator[7], uint64_t{1} << 63);
-    EXPECT_EQ(na.numerator[8], 3);
-    EXPECT_EQ(na.denominator[0], 4);
-    EXPECT_EQ(na.denominator[1], 0);
-    EXPECT_EQ(na.denominator[2], 0xfffffffffffffffc);
-    EXPECT_EQ(na.denominator[3], 0);
+    EXPECT_EQ(na.numerator, u << 2);
+    EXPECT_EQ(na.numerator_ex, 3);
+    EXPECT_EQ(na.denominator, v << 2);
 }
 
 template <typename Int>

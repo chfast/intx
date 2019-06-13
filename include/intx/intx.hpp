@@ -26,6 +26,7 @@ struct uint
     /// The 2x smaller type.
     using half_type = uint<N / 2>;
 
+    static constexpr auto num_bits = N;
     static constexpr auto num_words = N / 8 / sizeof(word_type);
 
     half_type lo = 0;
@@ -729,8 +730,8 @@ inline typename std::enable_if<sizeof(Word) < sizeof(Int), unsigned>::type count
     return h != 0 ? h + (num_words / 2) : l;
 }
 
-div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept;
-div_result<uint512> udivrem(const uint512& x, const uint512& y) noexcept;
+template <unsigned N>
+div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept;
 
 template <unsigned N>
 constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept

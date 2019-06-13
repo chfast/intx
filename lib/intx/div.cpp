@@ -8,69 +8,54 @@ namespace intx
 {
 namespace
 {
-union uint512_words64
+/// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
+/// @param u  The array of a normalized numerator words. It will contain the quotient after
+///           execution.
+/// @param m  The number of numerator words BEFORE normalization.
+/// @param d  The normalized denominator.
+/// @return   The remainder.
+inline uint64_t udivrem_by1(uint64_t u[], int m, uint64_t d) noexcept
 {
-    using word_type = uint64_t;
+    const auto v = reciprocal_2by1(d);
 
-    const uint512 number;
-    word_type words[uint512::num_words];
+    auto r = u[m];  // Set the top word as remainder.
+    u[m] = 0;       // Reset the word being a part of the result quotient.
 
-    constexpr explicit uint512_words64(uint512 x = {}) noexcept : number{x} {}
-
-    word_type& operator[](size_t index) { return words[index]; }
-};
-
-inline div_result<uint512> udivrem_by1(const normalized_div_args& na) noexcept
-{
-    auto d = na.denominator[0];
-    auto v = reciprocal_2by1(d);
-
-    auto q = uint512_words64{};
-
-    auto x = div_result<decltype(q)::word_type>{0, na.numerator[uint512::num_words]};
-
-    // OPT: Skip leading zero words.
-    for (int j = uint512::num_words - 1; j >= 0; --j)
+    for (int j = m - 1; j >= 0; --j)
     {
-        x = udivrem_2by1({x.rem, na.numerator[j]}, d, v);
-        q[j] = x.quot;
+        const auto x = udivrem_2by1({r, u[j]}, d, v);
+        u[j] = x.quot;
+        r = x.rem;
     }
 
-    return {q.number, x.rem >> na.shift};
+    return r;
 }
 
-inline div_result<uint512> udivrem_by2(const normalized_div_args& na) noexcept
+/// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
+/// @param u  The array of a normalized numerator words. It will contain the quotient after
+///           execution.
+/// @param m  The number of numerator words BEFORE normalization.
+/// @param d  The normalized denominator.
+/// @return   The remainder.
+inline uint128 udivrem_by2(uint64_t u[], int m, uint128 d) noexcept
 {
-    auto d = uint128{na.denominator[1], na.denominator[0]};
-    auto v = reciprocal_3by2(d);
+    const auto v = reciprocal_3by2(d);
 
-    auto q = uint512_words64{};
-    constexpr auto num_words = uint512::num_words;
+    auto r = uint128{u[m], u[m - 1]};  // Set the 2 top words as remainder.
+    u[m] = u[m - 1] = 0;               // Reset these words being a part of the result quotient.
 
-    auto r = uint128{na.numerator[num_words], na.numerator[num_words - 1]};
-
-    // OPT: Skip leading zero words.
-    for (int j = num_words - 2; j >= 0; --j)
+    for (int j = m - 2; j >= 0; --j)
     {
-        auto res = udivrem_3by2(r.hi, r.lo, na.numerator[j], d, v);
-        q[j] = res.quot.lo;
-        r = res.rem;
+        const auto x = udivrem_3by2(r.hi, r.lo, u[j], d, v);
+        u[j] = x.quot.lo;
+        r = x.rem;
     }
 
-    return {q.number, r >> na.shift};
+    return r;
 }
 
-div_result<uint512> udivrem_knuth(normalized_div_args& na) noexcept
+void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int n) noexcept
 {
-    auto n = na.num_denominator_words;
-    auto m = na.num_numerator_words;
-
-    const auto& vn = na.denominator;
-    auto& un = na.numerator;  // Will be modified.
-
-    uint512_words64 q;
-    uint512_words64 r;
-
     const auto divisor = uint128{vn[n - 1], vn[n - 2]};
     const auto reciprocal = reciprocal_2by1(divisor.hi);
     for (int j = m - n; j >= 0; --j)
@@ -145,24 +130,14 @@ div_result<uint512> udivrem_knuth(normalized_div_args& na) noexcept
             // un[j+n] += k;
         }
 
-        // OPT: We can avoid allocating q, un can re used to store quotient.
         q[j] = qhat;  // Store quotient digit.
     }
-
-    for (int i = 0; i < n; ++i)
-        r[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
-
-    return {q.number, r.number};
 }
+
 }  // namespace
 
-div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept
-{
-    auto x = udivrem(uint512{u}, uint512{v});
-    return {x.quot.lo, x.rem.lo};
-}
-
-div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
+template <unsigned N>
+div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
     auto na = normalize(u, v);
 
@@ -170,12 +145,37 @@ div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
         return {0, u};
 
     if (na.num_denominator_words == 1)
-        return udivrem_by1(na);
+    {
+        auto r = udivrem_by1(
+            as_words(na.numerator), na.num_numerator_words, as_words(na.denominator)[0]);
+        return {na.numerator, r >> na.shift};
+    }
 
     if (na.num_denominator_words == 2)
-        return udivrem_by2(na);
+    {
+        auto d = as_words(na.denominator);
+        auto r = udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[1], d[0]});
+        return {na.numerator, r >> na.shift};
+    }
 
-    return udivrem_knuth(na);
+    const auto n = na.num_denominator_words;
+    const auto m = na.num_numerator_words;
+
+    auto un = as_words(na.numerator);  // Will be modified.
+
+    uint<N> q;
+    uint<N> r;
+    auto rw = as_words(r);
+
+    udivrem_knuth(as_words(q), &un[0], m, as_words(na.denominator), n);
+
+    for (int i = 0; i < n; ++i)
+        rw[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
+
+    return {q, r};
 }
+
+template div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept;
+template div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept;
 
 }  // namespace intx

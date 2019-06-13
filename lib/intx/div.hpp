@@ -8,27 +8,30 @@
 
 namespace intx
 {
+template <unsigned N>
 struct normalized_div_args
 {
-    using word_type = uint64_t;
-
-    std::array<word_type, sizeof(uint512) / sizeof(word_type) + 1> numerator;
-    std::array<word_type, sizeof(uint512) / sizeof(word_type)> denominator;
-    int num_numerator_words;
+    uint<N> denominator;
+    uint<N> numerator;
+    typename uint<N>::word_type numerator_ex;
     int num_denominator_words;
+    int num_numerator_words;
     int shift;
 };
 
-inline normalized_div_args normalize(const uint512& numerator, const uint512& denominator) noexcept
+template <typename IntT>
+inline normalized_div_args<IntT::num_bits> normalize(
+    const IntT& numerator, const IntT& denominator) noexcept
 {
-    static constexpr auto num_words = int{sizeof(uint512) / sizeof(normalized_div_args::word_type)};
+    // FIXME: Make the implementation type independent
+    static constexpr auto num_words = IntT::num_words;
 
     auto* u = as_words(numerator);
     auto* v = as_words(denominator);
 
-    normalized_div_args na;
-    auto* un = &na.numerator[0];
-    auto* vn = &na.denominator[0];
+    normalized_div_args<IntT::num_bits> na;
+    auto* un = as_words(na.numerator);
+    auto* vn = as_words(na.denominator);
 
     auto& m = na.num_numerator_words;
     for (m = num_words; m > 0 && u[m - 1] == 0; --m)
@@ -52,9 +55,9 @@ inline normalized_div_args normalize(const uint512& numerator, const uint512& de
     }
     else
     {
-        un[num_words] = 0;
-        std::memcpy(un, u, sizeof(numerator));
-        std::memcpy(vn, v, sizeof(denominator));
+        na.numerator_ex = 0;
+        na.numerator = numerator;
+        na.denominator = denominator;
     }
 
     return na;
