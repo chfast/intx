@@ -147,23 +147,6 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
     }
 }
 
-inline div_result<uint512> udivrem_knuth_wrapper(normalized_div_args<512>& na) noexcept
-{
-    auto n = na.num_denominator_words;
-    auto m = na.num_numerator_words;
-
-    auto un = as_words(na.numerator);  // Will be modified.
-
-    uint512 q;
-    uint512_words64 r;
-
-    udivrem_knuth(as_words(q), &un[0], m, as_words(na.denominator), n);
-
-    for (int i = 0; i < n; ++i)
-        r[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
-
-    return {q, r.number};
-}
 }  // namespace
 
 div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept
@@ -193,7 +176,21 @@ div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
         return {na.numerator, r >> na.shift};
     }
 
-    return udivrem_knuth_wrapper(na);
+    const auto n = na.num_denominator_words;
+    const auto m = na.num_numerator_words;
+
+    auto un = as_words(na.numerator);  // Will be modified.
+
+    uint512 q;
+    uint512 r;
+    auto rw = as_words(r);
+
+    udivrem_knuth(as_words(q), &un[0], m, as_words(na.denominator), n);
+
+    for (int i = 0; i < n; ++i)
+        rw[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
+
+    return {q, r};
 }
 
 }  // namespace intx
