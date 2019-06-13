@@ -130,7 +130,6 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
             // un[j+n] += k;
         }
 
-        // OPT: We can avoid allocating q, un can re used to store quotient.
         q[j] = qhat;  // Store quotient digit.
     }
 }
