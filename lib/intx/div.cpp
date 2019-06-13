@@ -20,7 +20,7 @@ union uint512_words64
     word_type& operator[](size_t index) { return words[index]; }
 };
 
-inline div_result<uint512> udivrem_by1(const normalized_div_args& na) noexcept
+inline div_result<uint512> udivrem_by1(const normalized_div_args<512>& na) noexcept
 {
     auto u = as_words(na.numerator);
     auto d = as_words(na.denominator)[0];
@@ -40,7 +40,7 @@ inline div_result<uint512> udivrem_by1(const normalized_div_args& na) noexcept
     return {q.number, x.rem >> na.shift};
 }
 
-inline div_result<uint512> udivrem_by2(const normalized_div_args& na) noexcept
+inline div_result<uint512> udivrem_by2(const normalized_div_args<512>& na) noexcept
 {
     auto u = as_words(na.numerator);
     auto dw = as_words(na.denominator);
@@ -144,7 +144,7 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
     }
 }
 
-inline div_result<uint512> udivrem_knuth_wrapper(normalized_div_args& na) noexcept
+inline div_result<uint512> udivrem_knuth_wrapper(normalized_div_args<512>& na) noexcept
 {
     auto n = na.num_denominator_words;
     auto m = na.num_numerator_words;

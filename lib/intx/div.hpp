@@ -8,24 +8,28 @@
 
 namespace intx
 {
+template <unsigned N>
 struct normalized_div_args
 {
-    uint<512> denominator;
-    uint<512> numerator;
-    uint<512>::word_type numerator_ex;
+    uint<N> denominator;
+    uint<N> numerator;
+    typename uint<N>::word_type numerator_ex;
     int num_denominator_words;
     int num_numerator_words;
     int shift;
 };
 
-inline normalized_div_args normalize(const uint512& numerator, const uint512& denominator) noexcept
+template <typename IntT>
+inline normalized_div_args<IntT::num_bits> normalize(
+    const IntT& numerator, const IntT& denominator) noexcept
 {
-    static constexpr auto num_words = uint512::num_words;
+    // FIXME: Make the implementation type independent
+    static constexpr auto num_words = IntT::num_words;
 
     auto* u = as_words(numerator);
     auto* v = as_words(denominator);
 
-    normalized_div_args na;
+    normalized_div_args<IntT::num_bits> na;
     auto* un = as_words(na.numerator);
     auto* vn = as_words(na.denominator);
 

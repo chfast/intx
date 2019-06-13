@@ -25,7 +25,7 @@ inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 }
 
 
-template <decltype(normalize) NormalizeFn>
+template <decltype(normalize<uint512>) NormalizeFn>
 static void div_normalize(benchmark::State& state)
 {
     auto u = uint512{{48882153453, 100324254353}, {4343242153453, 1324254353}};

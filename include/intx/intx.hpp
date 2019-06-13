@@ -26,6 +26,7 @@ struct uint
     /// The 2x smaller type.
     using half_type = uint<N / 2>;
 
+    static constexpr auto num_bits = N;
     static constexpr auto num_words = N / 8 / sizeof(word_type);
 
     half_type lo = 0;
