@@ -8,18 +8,6 @@ namespace intx
 {
 namespace
 {
-union uint512_words64
-{
-    using word_type = uint64_t;
-
-    const uint512 number;
-    word_type words[uint512::num_words];
-
-    constexpr explicit uint512_words64(uint512 x = {}) noexcept : number{x} {}
-
-    word_type& operator[](size_t index) { return words[index]; }
-};
-
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
 /// @param u  The array of a normalized numerator words. It will contain the quotient after
 ///           execution.
@@ -149,13 +137,8 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
 
 }  // namespace
 
-div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept
-{
-    auto x = udivrem(uint512{u}, uint512{v});
-    return {x.quot.lo, x.rem.lo};
-}
-
-div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
+template <unsigned N>
+div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
     auto na = normalize(u, v);
 
@@ -181,8 +164,8 @@ div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
 
     auto un = as_words(na.numerator);  // Will be modified.
 
-    uint512 q;
-    uint512 r;
+    uint<N> q;
+    uint<N> r;
     auto rw = as_words(r);
 
     udivrem_knuth(as_words(q), &un[0], m, as_words(na.denominator), n);
@@ -192,5 +175,8 @@ div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
 
     return {q, r};
 }
+
+template div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept;
+template div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept;
 
 }  // namespace intx
