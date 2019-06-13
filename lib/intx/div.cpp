@@ -43,27 +43,27 @@ inline uint64_t udivrem_by1(uint64_t u[], int m, uint64_t d) noexcept
     return r;
 }
 
-inline div_result<uint512> udivrem_by2(const normalized_div_args<512>& na) noexcept
+/// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
+/// @param u  The array of a normalized numerator words. It will contain the quotient after
+///           execution.
+/// @param m  The number of numerator words BEFORE normalization.
+/// @param d  The normalized denominator.
+/// @return   The remainder.
+inline uint128 udivrem_by2(uint64_t u[], int m, uint128 d) noexcept
 {
-    auto u = as_words(na.numerator);
-    auto dw = as_words(na.denominator);
-    auto d = uint128{dw[1], dw[0]};
-    auto v = reciprocal_3by2(d);
+    const auto v = reciprocal_3by2(d);
 
-    auto q = uint512_words64{};
-    constexpr auto num_words = uint512::num_words;
+    auto r = uint128{u[m], u[m - 1]};  // Set the 2 top words as remainder.
+    u[m] = u[m - 1] = 0;               // Reset these words being a part of the result quotient.
 
-    auto r = uint128{u[num_words], u[num_words - 1]};
-
-    // OPT: Skip leading zero words.
-    for (int j = num_words - 2; j >= 0; --j)
+    for (int j = m - 2; j >= 0; --j)
     {
-        auto res = udivrem_3by2(r.hi, r.lo, u[j], d, v);
-        q[j] = res.quot.lo;
-        r = res.rem;
+        const auto x = udivrem_3by2(r.hi, r.lo, u[j], d, v);
+        u[j] = x.quot.lo;
+        r = x.rem;
     }
 
-    return {q.number, r >> na.shift};
+    return r;
 }
 
 void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int n) noexcept
@@ -187,7 +187,11 @@ div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept
     }
 
     if (na.num_denominator_words == 2)
-        return udivrem_by2(na);
+    {
+        auto d = as_words(na.denominator);
+        auto r = udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[1], d[0]});
+        return {na.numerator, r >> na.shift};
+    }
 
     return udivrem_knuth_wrapper(na);
 }
