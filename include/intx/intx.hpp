@@ -933,6 +933,18 @@ constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
 }
 
 
+inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
+{
+    const auto s = add_with_carry(x, y);
+    return (uint512{s.carry, s.value} % mod).lo;
+}
+
+inline uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
+{
+    return (umul(x, y) % mod).lo;
+}
+
+
 constexpr uint256 operator"" _u256(const char* s) noexcept
 {
     return from_string<uint256>(s);
