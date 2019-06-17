@@ -3,7 +3,9 @@
 # Licensed under the Apache License, Version 2.0.
 
 find_path(GMP_INCLUDE_DIR NAMES gmp.h)
-find_library(GMP_LIBRARY NAMES gmp)
+
+# Find the library file, prefer static over dynamic.
+find_library(GMP_LIBRARY NAMES ${CMAKE_STATIC_LIBRARY_PREFIX}gmp${CMAKE_STATIC_LIBRARY_SUFFIX} gmp)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GMP DEFAULT_MSG GMP_LIBRARY GMP_INCLUDE_DIR)
