@@ -111,6 +111,46 @@ BENCHMARK_TEMPLATE(udiv, uint512, uint256, udiv_qr_knuth_512_64);
 BENCHMARK_TEMPLATE(udiv, uint512, uint256, udivrem);
 BENCHMARK_TEMPLATE(udiv, uint512, uint256, gmp::udivrem);
 
+
+template <uint256 Fn(const uint256&, const uint256&, const uint256&), typename ModT>
+static void mod(benchmark::State& state)
+{
+    // Pick random operands using global seed to have exactly the same inputs for each function.
+    lcg<seed_type> rng_seed(get_seed());
+    lcg<uint256> rng_x(rng_seed());
+    lcg<uint256> rng_y(rng_seed());
+    lcg<ModT> rng_m(rng_seed());
+
+    constexpr size_t size = 1000;
+    std::vector<uint256> input_x(size);
+    std::vector<uint256> input_y(size);
+    std::vector<uint256> input_m(size);
+    std::vector<uint256> output(size);
+    for (size_t i = 0; i < size; ++i)
+    {
+        // Generate non-zero modulus.
+        do
+            input_m[i] = rng_m();
+        while (input_m[i] == 0);
+
+        input_x[i] = rng_x();
+        input_y[i] = rng_y();
+    }
+
+    for (auto _ : state)
+    {
+        for (size_t i = 0; i < size; ++i)
+            output[i] = Fn(input_x[i], input_y[i], input_m[i]);
+        benchmark::DoNotOptimize(output.data());
+    }
+}
+BENCHMARK_TEMPLATE(mod, addmod, uint64_t);
+BENCHMARK_TEMPLATE(mod, addmod, uint128);
+BENCHMARK_TEMPLATE(mod, addmod, uint256);
+BENCHMARK_TEMPLATE(mod, mulmod, uint64_t);
+BENCHMARK_TEMPLATE(mod, mulmod, uint128);
+BENCHMARK_TEMPLATE(mod, mulmod, uint256);
+
 using binary_fn256 = uint256 (*)(const uint256&, const uint256&);
 template <binary_fn256 BinFn>
 static void binary_op256(benchmark::State& state)
