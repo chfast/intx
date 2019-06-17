@@ -387,7 +387,7 @@ TYPED_TEST(uint_test, clz_one_bit)
     {
         unsigned c = clz(t);
         EXPECT_EQ(c, b - 1 - i);
-        t = t << 1;  // TODO: Add proper <<= overload.
+        t <<= 1;
     }
 }
 
