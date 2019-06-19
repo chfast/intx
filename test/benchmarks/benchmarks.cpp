@@ -322,4 +322,29 @@ static void count_sigificant_words32_256(benchmark::State& state)
 }
 BENCHMARK(count_sigificant_words32_256)->DenseRange(0, 8);
 
+template <typename Int>
+static void to_string(benchmark::State& state)
+{
+    // Pick random operands. Keep the divisor small, because this is the worst
+    // case for most algorithms.
+    lcg<Int> rng(get_seed());
+
+    constexpr size_t size = 1000;
+    std::vector<Int> input(size);
+    for (auto& x : input)
+        x = rng();
+
+    for (auto _ : state)
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            auto s = intx::to_string(input[i]);
+            benchmark::DoNotOptimize(s.data());
+        }
+    }
+}
+BENCHMARK_TEMPLATE(to_string, uint128);
+BENCHMARK_TEMPLATE(to_string, uint256);
+BENCHMARK_TEMPLATE(to_string, uint512);
+
 BENCHMARK_MAIN();
