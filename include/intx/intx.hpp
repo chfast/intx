@@ -995,6 +995,15 @@ inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
     std::memcpy(dst, &d, sizeof(d));
 }
 
+template<typename T, unsigned N>
+inline T store(const intx::uint<N>& x) noexcept
+{
+    auto res = T{};
+    static_assert(sizeof(res.bytes) == sizeof(x), "wrong result type size");
+    store(res.bytes, x);
+    return res;
+}
+
 }  // namespace be
 
 }  // namespace intx

@@ -295,3 +295,19 @@ TYPED_TEST(uint_api, bitwise_op_assignment)
     EXPECT_EQ(x <<= x, 2);
     EXPECT_EQ(x >>= x, 0);
 }
+
+template <unsigned S>
+struct storage
+{
+    uint8_t bytes[S];
+};
+
+TYPED_TEST(uint_api, store_be)
+{
+    using storage_type = storage<sizeof(TypeParam)>;
+    auto x = TypeParam{0x0102, 0x0304};
+
+    auto s = be::store<storage_type>(x);
+    auto t = be::uint<TypeParam::num_bits>(s.bytes);
+    EXPECT_EQ(x, t);
+}
