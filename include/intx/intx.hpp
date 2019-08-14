@@ -434,6 +434,18 @@ constexpr const uint64_t* as_words(const uint<N>& x) noexcept
     return as_words(x.lo);
 }
 
+template <unsigned N>
+inline uint8_t* as_bytes(uint<N>& x) noexcept
+{
+    return reinterpret_cast<uint8_t*>(as_words(x));
+}
+
+template <unsigned N>
+inline const uint8_t* as_bytes(const uint<N>& x) noexcept
+{
+    return reinterpret_cast<const uint8_t*>(as_words(x));
+}
+
 /// Implementation of shift left as a loop.
 /// This one is slower than the one using "split" strategy.
 template <unsigned N>
