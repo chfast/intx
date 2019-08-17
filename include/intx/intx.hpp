@@ -970,17 +970,15 @@ constexpr uint512 operator"" _u512(const char* s) noexcept
 namespace le  // Conversions to/from LE bytes.
 {
 template <unsigned N>
-inline intx::uint<N> uint(const uint8_t bytes[sizeof(intx::uint<N>)]) noexcept
+inline intx::uint<N> uint(const uint8_t (&bytes)[N / 8]) noexcept
 {
     auto x = intx::uint<N>{};
     std::memcpy(&x, bytes, sizeof(x));
     return x;
 }
-constexpr auto uint256 = uint<256>;
-constexpr auto uint512 = uint<512>;
 
 template <unsigned N>
-inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
+inline void store(uint8_t (&dst)[N / 8], const intx::uint<N>& x) noexcept
 {
     std::memcpy(dst, &x, sizeof(x));
 }
