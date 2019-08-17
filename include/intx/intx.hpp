@@ -1008,6 +1008,16 @@ inline void store(uint8_t (&dst)[N / 8], const intx::uint<N>& x) noexcept
     std::memcpy(dst, &d, sizeof(d));
 }
 
+/// Stores an uint value in .bytes field of type T. The .bytes must be an array of uint8_t
+/// of the size matching the size of uint.
+template <typename T, unsigned N>
+inline T store(const intx::uint<N>& x) noexcept
+{
+    T r{};
+    store(r.bytes, x);
+    return r;
+}
+
 /// Stores the truncated value of an uint in a bytes array.
 /// Only the least significant bytes from big-endian representation of the uint
 /// are stored in the result bytes array up to array's size.

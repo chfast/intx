@@ -462,7 +462,7 @@ TYPED_TEST(uint_test, be_load)
     constexpr auto size = sizeof(TypeParam);
     uint8_t data[size]{};
     data[0] = 0x80;
-    data[size-1] = 1;
+    data[size - 1] = 1;
     const auto x = be::uint<TypeParam::num_bits>(data);
     EXPECT_EQ(x, (TypeParam{1} << (TypeParam::num_bits - 1)) | 1);
 }
@@ -485,6 +485,19 @@ TYPED_TEST(uint_test, be_trunc)
     be::trunc(out, x);
     const auto str = std::string{reinterpret_cast<char*>(out), sizeof(out)};
     EXPECT_EQ(str, "Hello Solaris!!");
+}
+
+template <unsigned M>
+struct storage
+{
+    uint8_t bytes[M];
+};
+
+TYPED_TEST(uint_test, typed_store)
+{
+    const auto x = TypeParam{2};
+    const auto s = be::store<storage<sizeof(x)>>(x);
+    EXPECT_EQ(s.bytes[sizeof(x) - 1], 2);
 }
 
 
