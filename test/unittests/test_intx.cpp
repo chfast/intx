@@ -510,6 +510,20 @@ TYPED_TEST(uint_test, typed_trunc)
     EXPECT_EQ(s.bytes[0], 0);
 }
 
+TYPED_TEST(uint_test, typed_zext)
+{
+    const auto s = storage<1>({0xed});
+    const auto x = be::uint<TypeParam::num_bits>(s);
+    EXPECT_EQ(x, 0xed);
+}
+
+TYPED_TEST(uint_test, typed_load)
+{
+    const auto s = storage<sizeof(TypeParam)>({0x88});
+    const auto x = be::uint<TypeParam::num_bits>(s);
+    EXPECT_EQ(x, TypeParam{0x88} << (TypeParam::num_bits - 8));
+}
+
 
 TYPED_TEST(uint_test, convert_to_bool)
 {

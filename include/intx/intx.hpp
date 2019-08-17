@@ -1000,6 +1000,12 @@ inline intx::uint<N> uint(const uint8_t (&bytes)[M]) noexcept
     return bswap(x);
 }
 
+template <unsigned N, typename T>
+inline intx::uint<N> uint(const T& t) noexcept
+{
+    return uint<N>(t.bytes);
+}
+
 /// Stores an uint value in a bytes array in big-endian order.
 template <unsigned N>
 inline void store(uint8_t (&dst)[N / 8], const intx::uint<N>& x) noexcept
