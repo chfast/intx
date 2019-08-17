@@ -448,6 +448,11 @@ TYPED_TEST(uint_test, endianness)
     EXPECT_EQ(data[0], 0);
     EXPECT_EQ(data[s - 1], 1);
     EXPECT_EQ(be::uint<s * 8>(data), x);
+
+    be::store_unsafe(data, x);
+    EXPECT_EQ(data[0], 0);
+    EXPECT_EQ(data[s - 1], 1);
+    EXPECT_EQ(be::uint_unsafe<s * 8>(data), x);
 }
 
 TYPED_TEST(uint_test, be_zext)

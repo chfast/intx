@@ -1006,6 +1006,16 @@ inline intx::uint<N> uint(const T& t) noexcept
     return uint<N>(t.bytes);
 }
 
+/// Loads an uint value from a buffer. The user must make sure
+/// that the provided buffer is big enough. Therefore marked "unsafe".
+template <unsigned N>
+inline intx::uint<N> uint_unsafe(const uint8_t* bytes) noexcept
+{
+    auto x = intx::uint<N>{};
+    std::memcpy(&x, bytes, sizeof(x));
+    return bswap(x);
+}
+
 /// Stores an uint value in a bytes array in big-endian order.
 template <unsigned N>
 inline void store(uint8_t (&dst)[N / 8], const intx::uint<N>& x) noexcept
@@ -1044,6 +1054,16 @@ inline T trunc(const intx::uint<N>& x) noexcept
     trunc(r.bytes, x);
     return r;
 }
+
+/// Stores an uint value at the provided pointer in big-endian order. The user must make sure
+/// that the provided buffer is big enough to fit the value. Therefore marked "unsafe".
+template <unsigned N>
+inline void store_unsafe(uint8_t* dst, const intx::uint<N>& x) noexcept
+{
+    const auto d = bswap(x);
+    std::memcpy(dst, &d, sizeof(d));
+}
+
 
 
 }  // namespace be
