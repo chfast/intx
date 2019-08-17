@@ -1008,6 +1008,19 @@ inline void store(uint8_t (&dst)[N / 8], const intx::uint<N>& x) noexcept
     std::memcpy(dst, &d, sizeof(d));
 }
 
+/// Stores the truncated value of an uint in a bytes array.
+/// Only the least significant bytes from big-endian representation of the uint
+/// are stored in the result bytes array up to array's size.
+template <unsigned M, unsigned N>
+inline void trunc(uint8_t (&dst)[M], const intx::uint<N>& x) noexcept
+{
+    static_assert(M < N / 8, "destination must be smaller than the source value");
+    const auto d = bswap(x);
+    const auto b = as_bytes(d);
+    std::memcpy(dst, &b[sizeof(d) - M], M);
+}
+
+
 }  // namespace be
 
 }  // namespace intx

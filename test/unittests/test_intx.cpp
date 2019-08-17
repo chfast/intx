@@ -461,6 +461,16 @@ TYPED_TEST(uint_test, be_store)
     EXPECT_EQ(data[0], 0);
 }
 
+TYPED_TEST(uint_test, be_trunc)
+{
+    constexpr auto x = TypeParam{0xee48656c6c6f20536f6c617269732121_u128};
+    uint8_t out[15];
+    be::trunc(out, x);
+    const auto str = std::string{reinterpret_cast<char*>(out), sizeof(out)};
+    EXPECT_EQ(str, "Hello Solaris!!");
+}
+
+
 TYPED_TEST(uint_test, convert_to_bool)
 {
     EXPECT_TRUE((TypeParam{1, 0}));
