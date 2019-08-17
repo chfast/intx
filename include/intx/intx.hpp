@@ -1000,10 +1000,11 @@ inline intx::uint<N> uint(const uint8_t bytes[sizeof(intx::uint<N>)]) noexcept
 constexpr auto uint256 = uint<256>;
 constexpr auto uint512 = uint<512>;
 
+/// Stores an uint value in a bytes array in big-endian order.
 template <unsigned N>
-inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
+inline void store(uint8_t (&dst)[N / 8], const intx::uint<N>& x) noexcept
 {
-    auto d = bswap(x);
+    const auto d = bswap(x);
     std::memcpy(dst, &d, sizeof(d));
 }
 

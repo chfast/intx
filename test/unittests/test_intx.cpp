@@ -450,6 +450,17 @@ TYPED_TEST(uint_test, endianness)
     EXPECT_EQ(be::uint<s * 8>(data), x);
 }
 
+TYPED_TEST(uint_test, be_store)
+{
+    const auto x = TypeParam{0x0201};
+    uint8_t data[sizeof(x)];
+    be::store(data, x);
+    EXPECT_EQ(data[sizeof(x) - 1], 1);
+    EXPECT_EQ(data[sizeof(x) - 2], 2);
+    EXPECT_EQ(data[sizeof(x) - 3], 0);
+    EXPECT_EQ(data[0], 0);
+}
+
 TYPED_TEST(uint_test, convert_to_bool)
 {
     EXPECT_TRUE((TypeParam{1, 0}));
