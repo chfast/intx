@@ -1030,6 +1030,15 @@ inline void trunc(uint8_t (&dst)[M], const intx::uint<N>& x) noexcept
     std::memcpy(dst, &b[sizeof(d) - M], M);
 }
 
+/// Stores the truncated value of an uint in the .bytes field of an object of type T.
+template <typename T, unsigned N>
+inline T trunc(const intx::uint<N>& x) noexcept
+{
+    T r{};
+    trunc(r.bytes, x);
+    return r;
+}
+
 
 }  // namespace be
 

@@ -500,6 +500,16 @@ TYPED_TEST(uint_test, typed_store)
     EXPECT_EQ(s.bytes[sizeof(x) - 1], 2);
 }
 
+TYPED_TEST(uint_test, typed_trunc)
+{
+    const auto x = TypeParam{0xaabb};
+    const auto s = be::trunc<storage<9>>(x);
+    EXPECT_EQ(s.bytes[8], 0xbb);
+    EXPECT_EQ(s.bytes[7], 0xaa);
+    EXPECT_EQ(s.bytes[6], 0);
+    EXPECT_EQ(s.bytes[0], 0);
+}
+
 
 TYPED_TEST(uint_test, convert_to_bool)
 {
