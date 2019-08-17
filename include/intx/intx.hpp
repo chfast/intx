@@ -990,15 +990,17 @@ inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
 
 namespace be  // Conversions to/from BE bytes.
 {
-template <unsigned N>
-inline intx::uint<N> uint(const uint8_t bytes[sizeof(intx::uint<N>)]) noexcept
+/// Loads an uint value from bytes of big-endian order.
+/// If the size of bytes is smaller than the result uint, the value is zero-extended.
+template <unsigned N, unsigned M>
+inline intx::uint<N> uint(const uint8_t (&bytes)[M]) noexcept
 {
+    static_assert(
+        M <= N / 8, "the size of source bytes must not exceed the size of the destination uint");
     auto x = intx::uint<N>{};
-    std::memcpy(&x, bytes, sizeof(x));
+    std::memcpy(&as_bytes(x)[N / 8 - M], bytes, M);
     return bswap(x);
 }
-constexpr auto uint256 = uint<256>;
-constexpr auto uint512 = uint<512>;
 
 /// Stores an uint value in a bytes array in big-endian order.
 template <unsigned N>

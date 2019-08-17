@@ -450,6 +450,23 @@ TYPED_TEST(uint_test, endianness)
     EXPECT_EQ(be::uint<s * 8>(data), x);
 }
 
+TYPED_TEST(uint_test, be_zext)
+{
+    uint8_t data[] = {0x01, 0x02, 0x03};
+    const auto x = be::uint<TypeParam::num_bits>(data);
+    EXPECT_EQ(x, 0x010203);
+}
+
+TYPED_TEST(uint_test, be_load)
+{
+    constexpr auto size = sizeof(TypeParam);
+    uint8_t data[size]{};
+    data[0] = 0x80;
+    data[size-1] = 1;
+    const auto x = be::uint<TypeParam::num_bits>(data);
+    EXPECT_EQ(x, (TypeParam{1} << (TypeParam::num_bits - 1)) | 1);
+}
+
 TYPED_TEST(uint_test, be_store)
 {
     const auto x = TypeParam{0x0201};
