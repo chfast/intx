@@ -442,7 +442,7 @@ TYPED_TEST(uint_test, endianness)
     le::store(data, x);
     EXPECT_EQ(data[0], 1);
     EXPECT_EQ(data[s - 1], 0);
-    EXPECT_EQ(le::uint<s * 8>(data), x);
+    EXPECT_EQ(le::load<TypeParam>(data), x);
 
     be::store(data, x);
     EXPECT_EQ(data[0], 0);

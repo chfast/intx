@@ -969,10 +969,12 @@ constexpr uint512 operator"" _u512(const char* s) noexcept
 
 namespace le  // Conversions to/from LE bytes.
 {
-template <unsigned N>
-inline intx::uint<N> uint(const uint8_t (&bytes)[N / 8]) noexcept
+template <typename IntT, unsigned M>
+inline IntT load(const uint8_t (&bytes)[M]) noexcept
 {
-    auto x = intx::uint<N>{};
+    static_assert(M == IntT::num_bits / 8,
+        "the size of source bytes must match the size of the destination uint");
+    auto x = IntT{};
     std::memcpy(&x, bytes, sizeof(x));
     return x;
 }
