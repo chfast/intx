@@ -449,10 +449,10 @@ TYPED_TEST(uint_test, endianness)
     EXPECT_EQ(data[s - 1], 1);
     EXPECT_EQ(be::load<TypeParam>(data), x);
 
-    be::store_unsafe(data, x);
+    be::unsafe::store(data, x);
     EXPECT_EQ(data[0], 0);
     EXPECT_EQ(data[s - 1], 1);
-    EXPECT_EQ(be::unsafe_load<TypeParam>(data), x);
+    EXPECT_EQ(be::unsafe::load<TypeParam>(data), x);
 }
 
 TYPED_TEST(uint_test, be_zext)

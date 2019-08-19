@@ -1006,16 +1006,6 @@ inline IntT load(const T& t) noexcept
     return load<IntT>(t.bytes);
 }
 
-/// Loads an uint value from a buffer. The user must make sure
-/// that the provided buffer is big enough. Therefore marked "unsafe".
-template <typename IntT>
-inline IntT unsafe_load(const uint8_t* bytes) noexcept
-{
-    auto x = IntT{};
-    std::memcpy(&x, bytes, sizeof(x));
-    return bswap(x);
-}
-
 /// Stores an uint value in a bytes array in big-endian order.
 template <unsigned N>
 inline void store(uint8_t (&dst)[N / 8], const intx::uint<N>& x) noexcept
@@ -1055,16 +1045,27 @@ inline T trunc(const intx::uint<N>& x) noexcept
     return r;
 }
 
+namespace unsafe
+{
+/// Loads an uint value from a buffer. The user must make sure
+/// that the provided buffer is big enough. Therefore marked "unsafe".
+template <typename IntT>
+inline IntT load(const uint8_t* bytes) noexcept
+{
+    auto x = IntT{};
+    std::memcpy(&x, bytes, sizeof(x));
+    return bswap(x);
+}
+
 /// Stores an uint value at the provided pointer in big-endian order. The user must make sure
 /// that the provided buffer is big enough to fit the value. Therefore marked "unsafe".
 template <unsigned N>
-inline void store_unsafe(uint8_t* dst, const intx::uint<N>& x) noexcept
+inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
 {
     const auto d = bswap(x);
     std::memcpy(dst, &d, sizeof(d));
 }
-
-
+}  // namespace unsafe
 
 }  // namespace be
 
