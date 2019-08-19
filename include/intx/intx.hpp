@@ -991,7 +991,7 @@ namespace be  // Conversions to/from BE bytes.
 /// Loads an uint value from bytes of big-endian order.
 /// If the size of bytes is smaller than the result uint, the value is zero-extended.
 template <unsigned N, unsigned M>
-inline intx::uint<N> uint(const uint8_t (&bytes)[M]) noexcept
+inline intx::uint<N> load(const uint8_t (&bytes)[M]) noexcept
 {
     static_assert(
         M <= N / 8, "the size of source bytes must not exceed the size of the destination uint");
@@ -1001,9 +1001,9 @@ inline intx::uint<N> uint(const uint8_t (&bytes)[M]) noexcept
 }
 
 template <unsigned N, typename T>
-inline intx::uint<N> uint(const T& t) noexcept
+inline intx::uint<N> load(const T& t) noexcept
 {
-    return uint<N>(t.bytes);
+    return load<N>(t.bytes);
 }
 
 /// Loads an uint value from a buffer. The user must make sure
