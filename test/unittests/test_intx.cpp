@@ -447,18 +447,18 @@ TYPED_TEST(uint_test, endianness)
     be::store(data, x);
     EXPECT_EQ(data[0], 0);
     EXPECT_EQ(data[s - 1], 1);
-    EXPECT_EQ(be::load<s * 8>(data), x);
+    EXPECT_EQ(be::load<TypeParam>(data), x);
 
     be::store_unsafe(data, x);
     EXPECT_EQ(data[0], 0);
     EXPECT_EQ(data[s - 1], 1);
-    EXPECT_EQ(be::uint_unsafe<s * 8>(data), x);
+    EXPECT_EQ(be::unsafe_load<TypeParam>(data), x);
 }
 
 TYPED_TEST(uint_test, be_zext)
 {
     uint8_t data[] = {0x01, 0x02, 0x03};
-    const auto x = be::load<TypeParam::num_bits>(data);
+    const auto x = be::load<TypeParam>(data);
     EXPECT_EQ(x, 0x010203);
 }
 
@@ -468,7 +468,7 @@ TYPED_TEST(uint_test, be_load)
     uint8_t data[size]{};
     data[0] = 0x80;
     data[size - 1] = 1;
-    const auto x = be::load<TypeParam::num_bits>(data);
+    const auto x = be::load<TypeParam>(data);
     EXPECT_EQ(x, (TypeParam{1} << (TypeParam::num_bits - 1)) | 1);
 }
 
@@ -518,14 +518,14 @@ TYPED_TEST(uint_test, typed_trunc)
 TYPED_TEST(uint_test, typed_load_zext)
 {
     const auto s = storage<1>({0xed});
-    const auto x = be::load<TypeParam::num_bits>(s);
+    const auto x = be::load<TypeParam>(s);
     EXPECT_EQ(x, 0xed);
 }
 
 TYPED_TEST(uint_test, typed_load)
 {
     const auto s = storage<sizeof(TypeParam)>({0x88});
-    const auto x = be::load<TypeParam::num_bits>(s);
+    const auto x = be::load<TypeParam>(s);
     EXPECT_EQ(x, TypeParam{0x88} << (TypeParam::num_bits - 8));
 }
 

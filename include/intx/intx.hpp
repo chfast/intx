@@ -990,28 +990,28 @@ namespace be  // Conversions to/from BE bytes.
 {
 /// Loads an uint value from bytes of big-endian order.
 /// If the size of bytes is smaller than the result uint, the value is zero-extended.
-template <unsigned N, unsigned M>
-inline intx::uint<N> load(const uint8_t (&bytes)[M]) noexcept
+template <typename IntT, unsigned M>
+inline IntT load(const uint8_t (&bytes)[M]) noexcept
 {
-    static_assert(
-        M <= N / 8, "the size of source bytes must not exceed the size of the destination uint");
-    auto x = intx::uint<N>{};
-    std::memcpy(&as_bytes(x)[N / 8 - M], bytes, M);
+    static_assert(M <= IntT::num_bits / 8,
+        "the size of source bytes must not exceed the size of the destination uint");
+    auto x = IntT{};
+    std::memcpy(&as_bytes(x)[IntT::num_bits / 8 - M], bytes, M);
     return bswap(x);
 }
 
-template <unsigned N, typename T>
-inline intx::uint<N> load(const T& t) noexcept
+template <typename IntT, typename T>
+inline IntT load(const T& t) noexcept
 {
-    return load<N>(t.bytes);
+    return load<IntT>(t.bytes);
 }
 
 /// Loads an uint value from a buffer. The user must make sure
 /// that the provided buffer is big enough. Therefore marked "unsafe".
-template <unsigned N>
-inline intx::uint<N> uint_unsafe(const uint8_t* bytes) noexcept
+template <typename IntT>
+inline IntT unsafe_load(const uint8_t* bytes) noexcept
 {
-    auto x = intx::uint<N>{};
+    auto x = IntT{};
     std::memcpy(&x, bytes, sizeof(x));
     return bswap(x);
 }
