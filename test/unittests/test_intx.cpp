@@ -492,7 +492,7 @@ TYPED_TEST(uint_test, be_trunc)
     EXPECT_EQ(str, "Hello Solaris!!");
 }
 
-template <unsigned M>
+template <size_t M>
 struct storage
 {
     uint8_t bytes[M];
