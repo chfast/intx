@@ -31,6 +31,13 @@ static_assert(
 static_assert(
     0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u256 == ~0_u256, "");
 
+static_assert(clz(uint128{0}) == 128, "");
+static_assert(clz(uint128{1}) == 127, "");
+static_assert(clz(uint256{0}) == 256, "");
+static_assert(clz(uint256{1}) == 255, "");
+static_assert(clz(uint512{0}) == 512, "");
+static_assert(clz(uint512{1}) == 511, "");
+
 TEST(uint256, div)
 {
     uint256 a = 10001;

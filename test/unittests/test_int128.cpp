@@ -373,3 +373,13 @@ TEST(int128, umul_random)
         EXPECT_EQ(generic.lo, best.lo) << x << " x " << y;
     }
 }
+
+TEST(int128, clz)
+{
+    EXPECT_EQ(clz(intx::uint128{0}), 128);
+    for (unsigned i = 0; i < intx::uint128::num_bits; ++i)
+    {
+        const auto input = (intx::uint128{1} << (intx::uint128::num_bits - 1)) >> i;
+        EXPECT_EQ(clz(input), i);
+    }
+}

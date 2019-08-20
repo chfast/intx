@@ -415,10 +415,10 @@ constexpr inline unsigned clz(uint64_t x) noexcept
 #endif
 }
 
-inline unsigned clz(uint128 x) noexcept
+constexpr inline unsigned clz(uint128 x) noexcept
 {
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
-    return x.hi == 0 ? clz(x.lo) | 64 : clz(x.hi);
+    return x.hi == 0 ? clz(x.lo) + 64 : clz(x.hi);
 }
 
 
