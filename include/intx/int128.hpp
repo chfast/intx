@@ -365,32 +365,60 @@ constexpr uint128& operator>>=(uint128& x, unsigned shift) noexcept
 /// @}
 
 
-inline unsigned clz(uint32_t x) noexcept
+constexpr unsigned clz_generic(uint32_t x) noexcept
+{
+    unsigned n = 32;
+    for (int i = 4; i >= 0; --i)
+    {
+        const auto s = 1 << i;
+        const auto hi = x >> s;
+        if (hi != 0)
+        {
+            n -= s;
+            x = hi;
+        }
+    }
+    return n - x;
+}
+
+constexpr unsigned clz_generic(uint64_t x) noexcept
+{
+    unsigned n = 64;
+    for (int i = 5; i >= 0; --i)
+    {
+        const auto s = 1 << i;
+        const auto hi = x >> s;
+        if (hi != 0)
+        {
+            n -= s;
+            x = hi;
+        }
+    }
+    return n - static_cast<unsigned>(x);
+}
+
+constexpr inline unsigned clz(uint32_t x) noexcept
 {
 #ifdef _MSC_VER
-    unsigned long most_significant_bit;
-    _BitScanReverse(&most_significant_bit, x);
-    return 31 ^ (unsigned)most_significant_bit;
+    return clz_generic(x);
 #else
-    return unsigned(__builtin_clz(x));
+    return x != 0 ? unsigned(__builtin_clz(x)) : 32;
 #endif
 }
 
-inline unsigned clz(uint64_t x) noexcept
+constexpr inline unsigned clz(uint64_t x) noexcept
 {
 #ifdef _MSC_VER
-    unsigned long most_significant_bit;
-    _BitScanReverse64(&most_significant_bit, x);
-    return 63 ^ (unsigned)most_significant_bit;
+    return clz_generic(x);
 #else
-    return unsigned(__builtin_clzll(x));
+    return x != 0 ? unsigned(__builtin_clzll(x)) : 64;
 #endif
 }
 
-inline unsigned clz(uint128 x) noexcept
+constexpr inline unsigned clz(uint128 x) noexcept
 {
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
-    return x.hi == 0 ? clz(x.lo) | 64 : clz(x.hi);
+    return x.hi == 0 ? clz(x.lo) + 64 : clz(x.hi);
 }
 
 

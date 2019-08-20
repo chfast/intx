@@ -691,7 +691,7 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 template <unsigned N>
 constexpr unsigned clz(const uint<N>& x) noexcept
 {
-    unsigned half_bits = num_bits(x) / 2;
+    const auto half_bits = num_bits(x) / 2;
 
     // TODO: Try:
     // bool take_hi = h != 0;
@@ -701,8 +701,7 @@ constexpr unsigned clz(const uint<N>& x) noexcept
     // return clz_hi | clz_lo;
 
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
-    // FIXME: For `x == 0` this is UB.
-    return x.hi == 0 ? clz(x.lo) | half_bits : clz(x.hi);
+    return x.hi == 0 ? clz(x.lo) + half_bits : clz(x.hi);
 }
 
 template <typename Word, typename Int>

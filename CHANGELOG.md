@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning].
 
 - The endian-specific API for converting intx types to/from bytes has been reworked.
   [[#107](https://github.com/chfast/intx/pull/107)]
+- The `clz()` is now `constexpr` and produces correct answer for zero inputs.
+  [[#108](https://github.com/chfast/intx/pull/108)]
 
 
 ## [0.3.0] - 2019-06-20
