@@ -8,11 +8,6 @@
 
 using namespace intx;
 
-static_assert(&be::uint<256> == be::uint256, "wrong alias: be::uint256");
-static_assert(&be::uint<512> == be::uint512, "wrong alias: be::uint512");
-static_assert(&le::uint<256> == le::uint256, "wrong alias: le::uint256");
-static_assert(&le::uint<512> == le::uint512, "wrong alias: le::uint512");
-
 static_assert(uint128{2} + uint128{2} == 4, "");
 static_assert(uint256{2} + uint256{2} == 4, "");
 static_assert(uint512{2} + uint512{2} == 4, "");

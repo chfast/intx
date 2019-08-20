@@ -442,13 +442,93 @@ TYPED_TEST(uint_test, endianness)
     le::store(data, x);
     EXPECT_EQ(data[0], 1);
     EXPECT_EQ(data[s - 1], 0);
-    EXPECT_EQ(le::uint<s * 8>(data), x);
+    EXPECT_EQ(le::load<TypeParam>(data), x);
 
     be::store(data, x);
     EXPECT_EQ(data[0], 0);
     EXPECT_EQ(data[s - 1], 1);
-    EXPECT_EQ(be::uint<s * 8>(data), x);
+    EXPECT_EQ(be::load<TypeParam>(data), x);
+
+    be::unsafe::store(data, x);
+    EXPECT_EQ(data[0], 0);
+    EXPECT_EQ(data[s - 1], 1);
+    EXPECT_EQ(be::unsafe::load<TypeParam>(data), x);
 }
+
+TYPED_TEST(uint_test, be_zext)
+{
+    uint8_t data[] = {0x01, 0x02, 0x03};
+    const auto x = be::load<TypeParam>(data);
+    EXPECT_EQ(x, 0x010203);
+}
+
+TYPED_TEST(uint_test, be_load)
+{
+    constexpr auto size = sizeof(TypeParam);
+    uint8_t data[size]{};
+    data[0] = 0x80;
+    data[size - 1] = 1;
+    const auto x = be::load<TypeParam>(data);
+    EXPECT_EQ(x, (TypeParam{1} << (TypeParam::num_bits - 1)) | 1);
+}
+
+TYPED_TEST(uint_test, be_store)
+{
+    const auto x = TypeParam{0x0201};
+    uint8_t data[sizeof(x)];
+    be::store(data, x);
+    EXPECT_EQ(data[sizeof(x) - 1], 1);
+    EXPECT_EQ(data[sizeof(x) - 2], 2);
+    EXPECT_EQ(data[sizeof(x) - 3], 0);
+    EXPECT_EQ(data[0], 0);
+}
+
+TYPED_TEST(uint_test, be_trunc)
+{
+    constexpr auto x = TypeParam{0xee48656c6c6f20536f6c617269732121_u128};
+    uint8_t out[15];
+    be::trunc(out, x);
+    const auto str = std::string{reinterpret_cast<char*>(out), sizeof(out)};
+    EXPECT_EQ(str, "Hello Solaris!!");
+}
+
+template <unsigned M>
+struct storage
+{
+    uint8_t bytes[M];
+};
+
+TYPED_TEST(uint_test, typed_store)
+{
+    const auto x = TypeParam{2};
+    const auto s = be::store<storage<sizeof(x)>>(x);
+    EXPECT_EQ(s.bytes[sizeof(x) - 1], 2);
+}
+
+TYPED_TEST(uint_test, typed_trunc)
+{
+    const auto x = TypeParam{0xaabb};
+    const auto s = be::trunc<storage<9>>(x);
+    EXPECT_EQ(s.bytes[8], 0xbb);
+    EXPECT_EQ(s.bytes[7], 0xaa);
+    EXPECT_EQ(s.bytes[6], 0);
+    EXPECT_EQ(s.bytes[0], 0);
+}
+
+TYPED_TEST(uint_test, typed_load_zext)
+{
+    const auto s = storage<1>({0xed});
+    const auto x = be::load<TypeParam>(s);
+    EXPECT_EQ(x, 0xed);
+}
+
+TYPED_TEST(uint_test, typed_load)
+{
+    const auto s = storage<sizeof(TypeParam)>({0x88});
+    const auto x = be::load<TypeParam>(s);
+    EXPECT_EQ(x, TypeParam{0x88} << (TypeParam::num_bits - 8));
+}
+
 
 TYPED_TEST(uint_test, convert_to_bool)
 {

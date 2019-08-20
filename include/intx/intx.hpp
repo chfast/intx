@@ -969,18 +969,18 @@ constexpr uint512 operator"" _u512(const char* s) noexcept
 
 namespace le  // Conversions to/from LE bytes.
 {
-template <unsigned N>
-inline intx::uint<N> uint(const uint8_t bytes[sizeof(intx::uint<N>)]) noexcept
+template <typename IntT, unsigned M>
+inline IntT load(const uint8_t (&bytes)[M]) noexcept
 {
-    auto x = intx::uint<N>{};
+    static_assert(M == IntT::num_bits / 8,
+        "the size of source bytes must match the size of the destination uint");
+    auto x = IntT{};
     std::memcpy(&x, bytes, sizeof(x));
     return x;
 }
-constexpr auto uint256 = uint<256>;
-constexpr auto uint512 = uint<512>;
 
 template <unsigned N>
-inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
+inline void store(uint8_t (&dst)[N / 8], const intx::uint<N>& x) noexcept
 {
     std::memcpy(dst, &x, sizeof(x));
 }
@@ -990,22 +990,84 @@ inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
 
 namespace be  // Conversions to/from BE bytes.
 {
-template <unsigned N>
-inline intx::uint<N> uint(const uint8_t bytes[sizeof(intx::uint<N>)]) noexcept
+/// Loads an uint value from bytes of big-endian order.
+/// If the size of bytes is smaller than the result uint, the value is zero-extended.
+template <typename IntT, unsigned M>
+inline IntT load(const uint8_t (&bytes)[M]) noexcept
 {
-    auto x = intx::uint<N>{};
+    static_assert(M <= IntT::num_bits / 8,
+        "the size of source bytes must not exceed the size of the destination uint");
+    auto x = IntT{};
+    std::memcpy(&as_bytes(x)[IntT::num_bits / 8 - M], bytes, M);
+    return bswap(x);
+}
+
+template <typename IntT, typename T>
+inline IntT load(const T& t) noexcept
+{
+    return load<IntT>(t.bytes);
+}
+
+/// Stores an uint value in a bytes array in big-endian order.
+template <unsigned N>
+inline void store(uint8_t (&dst)[N / 8], const intx::uint<N>& x) noexcept
+{
+    const auto d = bswap(x);
+    std::memcpy(dst, &d, sizeof(d));
+}
+
+/// Stores an uint value in .bytes field of type T. The .bytes must be an array of uint8_t
+/// of the size matching the size of uint.
+template <typename T, unsigned N>
+inline T store(const intx::uint<N>& x) noexcept
+{
+    T r{};
+    store(r.bytes, x);
+    return r;
+}
+
+/// Stores the truncated value of an uint in a bytes array.
+/// Only the least significant bytes from big-endian representation of the uint
+/// are stored in the result bytes array up to array's size.
+template <unsigned M, unsigned N>
+inline void trunc(uint8_t (&dst)[M], const intx::uint<N>& x) noexcept
+{
+    static_assert(M < N / 8, "destination must be smaller than the source value");
+    const auto d = bswap(x);
+    const auto b = as_bytes(d);
+    std::memcpy(dst, &b[sizeof(d) - M], M);
+}
+
+/// Stores the truncated value of an uint in the .bytes field of an object of type T.
+template <typename T, unsigned N>
+inline T trunc(const intx::uint<N>& x) noexcept
+{
+    T r{};
+    trunc(r.bytes, x);
+    return r;
+}
+
+namespace unsafe
+{
+/// Loads an uint value from a buffer. The user must make sure
+/// that the provided buffer is big enough. Therefore marked "unsafe".
+template <typename IntT>
+inline IntT load(const uint8_t* bytes) noexcept
+{
+    auto x = IntT{};
     std::memcpy(&x, bytes, sizeof(x));
     return bswap(x);
 }
-constexpr auto uint256 = uint<256>;
-constexpr auto uint512 = uint<512>;
 
+/// Stores an uint value at the provided pointer in big-endian order. The user must make sure
+/// that the provided buffer is big enough to fit the value. Therefore marked "unsafe".
 template <unsigned N>
 inline void store(uint8_t* dst, const intx::uint<N>& x) noexcept
 {
-    auto d = bswap(x);
+    const auto d = bswap(x);
     std::memcpy(dst, &d, sizeof(d));
 }
+}  // namespace unsafe
 
 }  // namespace be
 
