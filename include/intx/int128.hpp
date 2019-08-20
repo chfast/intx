@@ -397,23 +397,19 @@ constexpr unsigned clz_generic(uint64_t x) noexcept
     return n - static_cast<unsigned>(x);
 }
 
-inline unsigned clz(uint32_t x) noexcept
+constexpr inline unsigned clz(uint32_t x) noexcept
 {
 #ifdef _MSC_VER
-    unsigned long most_significant_bit;
-    _BitScanReverse(&most_significant_bit, x);
-    return 31 ^ (unsigned)most_significant_bit;
+    return clz_generic(x);
 #else
     return x != 0 ? unsigned(__builtin_clz(x)) : 32;
 #endif
 }
 
-inline unsigned clz(uint64_t x) noexcept
+constexpr inline unsigned clz(uint64_t x) noexcept
 {
 #ifdef _MSC_VER
-    unsigned long most_significant_bit;
-    _BitScanReverse64(&most_significant_bit, x);
-    return 63 ^ (unsigned)most_significant_bit;
+    return clz_generic(x);
 #else
     return x != 0 ? unsigned(__builtin_clzll(x)) : 64;
 #endif
