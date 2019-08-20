@@ -9,6 +9,8 @@
 #include <cstring>
 #include <tuple>
 
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+
 
 #if 0
 #include <iostream>
