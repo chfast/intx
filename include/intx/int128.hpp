@@ -365,6 +365,38 @@ constexpr uint128& operator>>=(uint128& x, unsigned shift) noexcept
 /// @}
 
 
+constexpr unsigned clz_generic(uint32_t x) noexcept
+{
+    unsigned n = 32;
+    for (int i = 4; i >= 0; --i)
+    {
+        const auto s = 1 << i;
+        const auto hi = x >> s;
+        if (hi != 0)
+        {
+            n -= s;
+            x = hi;
+        }
+    }
+    return n - x;
+}
+
+constexpr unsigned clz_generic(uint64_t x) noexcept
+{
+    unsigned n = 64;
+    for (int i = 5; i >= 0; --i)
+    {
+        const auto s = 1 << i;
+        const auto hi = x >> s;
+        if (hi != 0)
+        {
+            n -= s;
+            x = hi;
+        }
+    }
+    return n - static_cast<unsigned>(x);
+}
+
 inline unsigned clz(uint32_t x) noexcept
 {
 #ifdef _MSC_VER
