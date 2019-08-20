@@ -42,8 +42,8 @@ template <typename Int>
 inline div_result<Int> udivrem(const Int& x, const Int& y) noexcept
 {
     // Skip dividend's leading zero limbs.
-    constexpr size_t x_limbs = sizeof(Int) / sizeof(mp_limb_t);
-    const size_t y_limbs = count_significant_words<mp_limb_t>(y);
+    constexpr auto x_limbs = sizeof(Int) / sizeof(mp_limb_t);
+    const auto y_limbs = static_cast<mp_size_t>(count_significant_words<mp_limb_t>(y));
 
     Int q, r;
     auto p_q = (mp_ptr)&q;
