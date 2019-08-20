@@ -370,7 +370,7 @@ constexpr unsigned clz_generic(uint32_t x) noexcept
     unsigned n = 32;
     for (int i = 4; i >= 0; --i)
     {
-        const auto s = 1 << i;
+        const auto s = unsigned{1} << i;
         const auto hi = x >> s;
         if (hi != 0)
         {
@@ -386,7 +386,7 @@ constexpr unsigned clz_generic(uint64_t x) noexcept
     unsigned n = 64;
     for (int i = 5; i >= 0; --i)
     {
-        const auto s = 1 << i;
+        const auto s = unsigned{1} << i;
         const auto hi = x >> s;
         if (hi != 0)
         {
@@ -730,47 +730,46 @@ struct numeric_limits<intx::uint<N>>
 
 namespace intx
 {
+constexpr inline int from_dec_digit(char c)
+{
+    return (c >= '0' && c <= '9') ? c - '0' :
+                                    throw std::invalid_argument{std::string{"Invalid digit: "} + c};
+}
+
+constexpr inline int from_hex_digit(char c)
+{
+    if (c >= 'a' && c <= 'f')
+        return c - ('a' - 10);
+    if (c >= 'A' && c <= 'F')
+        return c - ('A' - 10);
+    return from_dec_digit(c);
+}
+
 template <typename Int>
 constexpr Int from_string(const char* s)
 {
-    using namespace std::literals;
-
     auto x = Int{};
     int num_digits = 0;
 
     if (s[0] == '0' && s[1] == 'x')
     {
         s += 2;
-        while (auto d = *s++)
+        while (const auto c = *s++)
         {
             if (++num_digits > int{sizeof(x) * 2})
                 throw std::overflow_error{"Integer overflow"};
-
-            x <<= 4;
-            if (d >= '0' && d <= '9')
-                d -= '0';
-            else if (d >= 'a' && d <= 'f')
-                d -= 'a' - 10;
-            else if (d >= 'A' && d <= 'F')
-                d -= 'A' - 10;
-            else
-                throw std::invalid_argument{"Invalid literal character: "s + d};
-            x |= d;
+            x = (x << 4) | from_hex_digit(c);
         }
         return x;
     }
 
-    while (auto d = *s++)
+    while (const auto c = *s++)
     {
         if (num_digits++ > std::numeric_limits<Int>::digits10)
             throw std::overflow_error{"Integer overflow"};
 
-        x = constexpr_mul(x, Int{10});
-        if (d >= '0' && d <= '9')
-            d -= '0';
-        else
-            throw std::invalid_argument{"Invalid literal character: "s + d};
-        x += d;
+        const auto d = from_dec_digit(c);
+        x = constexpr_mul(x, Int{10}) + d;
         if (x < d)
             throw std::overflow_error{"Integer overflow"};
     }

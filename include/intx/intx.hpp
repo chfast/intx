@@ -364,7 +364,7 @@ inline Target narrow_cast(const Int& x) noexcept
 template <unsigned N>
 constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
 {
-    constexpr auto half_bits = sizeof(x) * 4;
+    constexpr auto half_bits = N / 2;
 
     if (shift < half_bits)
     {
