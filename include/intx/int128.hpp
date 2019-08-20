@@ -370,7 +370,7 @@ constexpr unsigned clz_generic(uint32_t x) noexcept
     unsigned n = 32;
     for (int i = 4; i >= 0; --i)
     {
-        const auto s = 1 << i;
+        const auto s = unsigned{1} << i;
         const auto hi = x >> s;
         if (hi != 0)
         {
@@ -386,7 +386,7 @@ constexpr unsigned clz_generic(uint64_t x) noexcept
     unsigned n = 64;
     for (int i = 5; i >= 0; --i)
     {
-        const auto s = 1 << i;
+        const auto s = unsigned{1} << i;
         const auto hi = x >> s;
         if (hi != 0)
         {
