@@ -16,7 +16,7 @@ struct normalized_div_args
     typename uint<N>::word_type numerator_ex;
     int num_denominator_words;
     int num_numerator_words;
-    int shift;
+    unsigned shift;
 };
 
 template <typename IntT>
