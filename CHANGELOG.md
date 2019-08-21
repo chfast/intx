@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
 
-## [0.4.0] - unreleased
+## [0.4.0] - 2019-08-21
 
 ### Added
 
@@ -35,8 +35,8 @@ and this project adheres to [Semantic Versioning].
   [[#99](https://github.com/chfast/intx/pull/99)]
 
 
-[0.4.0]: https://github.com/chfast/intx/compare/v0.3.0...master
-[0.3.0]: https://github.com/chfast/intx/releases/v0.2.0
+[0.4.0]: https://github.com/chfast/intx/releases/v0.4.0
+[0.3.0]: https://github.com/chfast/intx/releases/v0.3.0
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.0.0/
 [Semantic Versioning]: https://semver.org
