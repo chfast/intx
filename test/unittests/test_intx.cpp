@@ -254,7 +254,7 @@ class uint_test : public testing::Test
 };
 
 using types = testing::Types<uint128, uint256, uint512>;
-TYPED_TEST_CASE(uint_test, types);
+TYPED_TEST_SUITE(uint_test, types, testing::internal::DefaultNameGenerator);
 
 TYPED_TEST(uint_test, comparison)
 {

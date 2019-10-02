@@ -53,7 +53,7 @@ class uint_api : public testing::Test
 };
 
 using types = testing::Types<uint128, uint256, uint512>;
-TYPED_TEST_CASE(uint_api, types);
+TYPED_TEST_SUITE(uint_api, types, testing::internal::DefaultNameGenerator);
 
 TYPED_TEST(uint_api, constructor)
 {
