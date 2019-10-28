@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include "test_cases.hpp"
+#include "test_utils.hpp"
 
 #include <experimental/div.hpp>
 #include <intx/intx.hpp>
@@ -254,7 +255,7 @@ class uint_test : public testing::Test
 };
 
 using types = testing::Types<uint128, uint256, uint512>;
-TYPED_TEST_SUITE(uint_test, types, testing::internal::DefaultNameGenerator);
+TYPED_TEST_SUITE(uint_test, types, type_to_name);
 
 TYPED_TEST(uint_test, comparison)
 {
