@@ -131,8 +131,12 @@ inline uint128 operator--(uint128& x, int) noexcept
 /// broken during other optimizations.
 constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
 {
-#ifdef __SIZEOF_INT128__xxx
-    return (unsigned __int128){x} + (unsigned __int128){y};
+#ifdef __SIZEOF_INT128__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+    using uint128_native = unsigned __int128;
+    return uint128_native{x} + uint128_native{y};
+#pragma GCC diagnostic pop
 #else
     // Fallback to regular addition.
     return x + y;
