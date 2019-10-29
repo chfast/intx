@@ -61,8 +61,8 @@ TEST(builtins, clz32_two_ones)
 
 TEST(builtins, clz_zero)
 {
-    EXPECT_EQ(clz(uint32_t{0}), 32);
-    EXPECT_EQ(clz_generic(uint32_t{0}), 32);
-    EXPECT_EQ(clz(uint64_t{0}), 64);
-    EXPECT_EQ(clz_generic(uint64_t{0}), 64);
+    EXPECT_EQ(clz(uint32_t{0}), 32u);
+    EXPECT_EQ(clz_generic(uint32_t{0}), 32u);
+    EXPECT_EQ(clz(uint64_t{0}), 64u);
+    EXPECT_EQ(clz_generic(uint64_t{0}), 64u);
 }
