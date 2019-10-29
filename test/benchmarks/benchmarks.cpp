@@ -7,6 +7,7 @@
 
 #include <benchmark/benchmark.h>
 #include <div.hpp>
+#include <experimental/add.hpp>
 #include <experimental/div.hpp>
 #include <intx/intx.hpp>
 
@@ -186,6 +187,14 @@ inline uint256 mul_loop(const uint256& u, const uint256& v) noexcept
     return umul_loop(u, v).lo;
 }
 
+inline auto public_add(const uint256& x, const uint256& y) noexcept
+{
+    return x + y;
+}
+
+BENCHMARK_TEMPLATE(binary_op256, public_add);
+BENCHMARK_TEMPLATE(binary_op256, experimental::add_recursive);
+BENCHMARK_TEMPLATE(binary_op256, experimental::add_waterflow);
 BENCHMARK_TEMPLATE(binary_op256, mul);
 BENCHMARK_TEMPLATE(binary_op256, mul_loop);
 BENCHMARK_TEMPLATE(binary_op256, mul_loop_opt);

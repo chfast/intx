@@ -5,6 +5,7 @@
 #include "test_cases.hpp"
 #include "test_utils.hpp"
 
+#include <experimental/add.hpp>
 #include <experimental/div.hpp>
 #include <intx/intx.hpp>
 
@@ -119,6 +120,20 @@ TEST_F(Uint256Test, add_against_sub)
     }
 }
 
+TEST_F(Uint256Test, add_experimental)
+{
+    const auto n = numbers.size();
+    for (size_t i = 0; i < n; ++i)
+    {
+        const auto a = numbers[i];
+        const auto b = numbers[n - 1 - i];
+        const auto s = a + b;
+
+        EXPECT_EQ(experimental::add_recursive(a, b), s);
+        EXPECT_EQ(experimental::add_waterflow(a, b), s);
+    }
+}
+
 TEST_F(Uint256Test, simple_udiv)
 {
     const char* data_set[][4] = {
@@ -224,6 +239,8 @@ TEST(uint256, arithmetic)
     {
         EXPECT_EQ(t.x + t.y, t.sum);
         EXPECT_EQ(t.y + t.x, t.sum);
+        EXPECT_EQ(experimental::add_recursive(t.x, t.y), t.sum);
+        EXPECT_EQ(experimental::add_waterflow(t.x, t.y), t.sum);
         EXPECT_EQ(t.sum - t.x, t.y);
         EXPECT_EQ(t.sum - t.y, t.x);
         EXPECT_EQ(t.sum + -t.x, t.y);
