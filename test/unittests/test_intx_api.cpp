@@ -2,9 +2,9 @@
 // Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include <intx/intx.hpp>
-
+#include "test_utils.hpp"
 #include <gtest/gtest.h>
+#include <intx/intx.hpp>
 
 using namespace intx;
 
@@ -53,7 +53,7 @@ class uint_api : public testing::Test
 };
 
 using types = testing::Types<uint128, uint256, uint512>;
-TYPED_TEST_CASE(uint_api, types);
+TYPED_TEST_SUITE(uint_api, types, type_to_name);
 
 TYPED_TEST(uint_api, constructor)
 {

@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include "test_cases.hpp"
+#include "test_utils.hpp"
 
 #include <experimental/div.hpp>
 #include <intx/intx.hpp>
@@ -244,8 +245,8 @@ TEST(uint256, exp)
 TEST(uint256, count_significant_bytes)
 {
     auto w = count_significant_words<uint8_t>(1_u256 << 113);
-    EXPECT_EQ(w, 15);
-    EXPECT_EQ(count_significant_words<uint8_t>(0_u256), 0);
+    EXPECT_EQ(w, 15u);
+    EXPECT_EQ(count_significant_words<uint8_t>(0_u256), 0u);
 }
 
 template <typename T>
@@ -254,7 +255,7 @@ class uint_test : public testing::Test
 };
 
 using types = testing::Types<uint128, uint256, uint512>;
-TYPED_TEST_CASE(uint_test, types);
+TYPED_TEST_SUITE(uint_test, types, type_to_name);
 
 TYPED_TEST(uint_test, comparison)
 {
@@ -407,10 +408,10 @@ TYPED_TEST(uint_test, count_significant_words_32)
     constexpr auto csw = count_significant_words<uint32_t, TypeParam>;
 
     TypeParam x;
-    EXPECT_EQ(csw(x), 0);
+    EXPECT_EQ(csw(x), 0u);
 
     x = 1;
-    for (unsigned s = 0; s < sizeof(TypeParam) * 8; ++s)
+    for (size_t s = 0; s < sizeof(TypeParam) * 8; ++s)
         EXPECT_EQ(csw(x << s), s / 32 + 1);
 }
 
@@ -419,10 +420,10 @@ TYPED_TEST(uint_test, count_significant_words_64)
     constexpr auto csw = count_significant_words<uint64_t, TypeParam>;
 
     TypeParam x;
-    EXPECT_EQ(csw(x), 0);
+    EXPECT_EQ(csw(x), 0u);
 
     x = 1;
-    for (unsigned s = 0; s < sizeof(TypeParam) * 8; ++s)
+    for (size_t s = 0; s < sizeof(TypeParam) * 8; ++s)
         EXPECT_EQ(csw(x << s), s / 64 + 1);
 }
 
