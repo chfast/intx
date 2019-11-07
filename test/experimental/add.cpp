@@ -24,10 +24,49 @@ struct uint256
 };
 #endif
 
+struct uint192
+{
+    uint64_t lo;
+    uint64_t mi;
+    uint64_t hi;
+};
+
 namespace intx
 {
 namespace experimental
 {
+bool uaddo(uint64_t al, uint64_t ah, uint64_t bl, uint64_t bh, uint128* res) noexcept
+{
+    const auto ll = al + bl;
+    auto carry = ll < al;
+
+    auto s = ah + bh;
+    auto k1 = s < ah;
+    auto lh = s + carry;
+    auto k2 = lh < s;
+    carry = k1 | k2;
+
+    *res = uint128{lh, ll};
+    return carry;
+}
+
+uint192 add_waterfall(
+    uint64_t all, uint64_t alh, uint64_t ahl, uint64_t bll, uint64_t blh, uint64_t bhl) noexcept
+{
+    const auto ll = all + bll;
+    auto carry = ll < all;
+
+    auto s = alh + blh;
+    auto k1 = s < alh;
+    auto lh = s + carry;
+    auto k2 = lh < s;
+    carry = k1 | k2;
+
+    auto hl = ahl + bhl + carry;
+
+    return {hl, lh, ll};
+}
+
 uint256 add_recursive(const uint256& a, const uint256& b) noexcept
 {
     const auto ll = a.lo.lo + b.lo.lo;
