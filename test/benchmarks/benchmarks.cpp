@@ -187,12 +187,24 @@ inline uint256 mul_loop(const uint256& u, const uint256& v) noexcept
     return umul_loop(u, v).lo;
 }
 
-inline auto public_add(const uint256& x, const uint256& y) noexcept
+inline auto inline_add(const uint256& x, const uint256& y) noexcept
 {
     return x + y;
 }
 
-BENCHMARK_TEMPLATE(binary_op256, public_add);
+uint256 add(const uint256& x, const uint256& y) noexcept;
+
+inline auto inline_sub(const uint256& x, const uint256& y) noexcept
+{
+    return x - y;
+}
+
+uint256 sub(const uint256& x, const uint256& y) noexcept;
+
+BENCHMARK_TEMPLATE(binary_op256, add);
+BENCHMARK_TEMPLATE(binary_op256, inline_add);
+BENCHMARK_TEMPLATE(binary_op256, sub);
+BENCHMARK_TEMPLATE(binary_op256, inline_sub);
 BENCHMARK_TEMPLATE(binary_op256, experimental::add_recursive);
 BENCHMARK_TEMPLATE(binary_op256, experimental::add_waterflow);
 BENCHMARK_TEMPLATE(binary_op256, mul);
@@ -255,11 +267,29 @@ static void binary_op512(benchmark::State& state)
     }
 }
 
+inline auto inline_add(const uint512& x, const uint512& y) noexcept
+{
+    return x + y;
+}
+
+uint512 add(const uint512& x, const uint512& y) noexcept;
+
+inline auto inline_sub(const uint512& x, const uint512& y) noexcept
+{
+    return x - y;
+}
+
+uint512 sub(const uint512& x, const uint512& y) noexcept;
+
 inline auto public_mul(const uint512& x, const uint512& y) noexcept
 {
     return x * y;
 }
 
+BENCHMARK_TEMPLATE(binary_op512, inline_add);
+BENCHMARK_TEMPLATE(binary_op512, add);
+BENCHMARK_TEMPLATE(binary_op512, inline_sub);
+BENCHMARK_TEMPLATE(binary_op512, sub);
 BENCHMARK_TEMPLATE(binary_op512, mul);
 BENCHMARK_TEMPLATE(binary_op512, public_mul);
 BENCHMARK_TEMPLATE(binary_op512, gmp::mul);
