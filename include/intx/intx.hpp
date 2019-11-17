@@ -480,6 +480,16 @@ constexpr uint_with_carry<N> add_with_carry(const uint<N>& a, const uint<N>& b) 
     return {{hi.value, lo.value}, tt.carry || hi.carry};
 }
 
+
+template <unsigned N>
+constexpr uint_with_carry<N> sub_with_borrow(const uint<N>& a, const uint<N>& b) noexcept
+{
+    const auto lo = sub_with_borrow(a.lo, b.lo);
+    const auto tt = sub_with_borrow(a.hi, b.hi);
+    const auto hi = sub_with_borrow(tt.value, typename uint<N>::half_type{lo.carry});
+    return {{hi.value, lo.value}, tt.carry || hi.carry};
+}
+
 template <unsigned N>
 inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
 {
@@ -512,13 +522,14 @@ constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 template <unsigned N>
 constexpr uint<N> operator-(const uint<N>& x) noexcept
 {
+    // FIXME: Optimize as in uint128.
     return ~x + uint<N>{1};
 }
 
 template <unsigned N>
 constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return x + -y;
+    return sub_with_borrow(x, y).value;
 }
 
 template <unsigned N, typename T,
