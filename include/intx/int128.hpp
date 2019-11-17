@@ -69,6 +69,14 @@ struct uint<128>
 using uint128 = uint<128>;
 
 
+template <unsigned N>
+struct uint_with_carry
+{
+    uint<N> value;
+    bool carry;
+};
+
+
 /// Linear arithmetic operators.
 /// @{
 
@@ -685,6 +693,14 @@ inline uint128& operator%=(uint128& x, uint128 y) noexcept
 }
 
 /// @}
+
+constexpr uint_with_carry<128> add_with_carry(uint128 a, uint128 b) noexcept
+{
+    // FIXME: Rename add_with_carry() to add_overflow().
+    const auto s = a + b;
+    const auto k = s < a;
+    return {s, k};
+}
 
 }  // namespace intx
 

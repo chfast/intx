@@ -472,21 +472,6 @@ inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
 
 
 template <unsigned N>
-struct uint_with_carry
-{
-    uint<N> value;
-    bool carry;
-};
-
-constexpr uint_with_carry<128> add_with_carry(uint128 a, uint128 b) noexcept
-{
-    // FIXME: Rename add_with_carry() to add_overflow().
-    const auto s = a + b;
-    const auto k = s < a;
-    return {s, k};
-}
-
-template <unsigned N>
 constexpr uint_with_carry<N> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
 {
     const auto lo = add_with_carry(a.lo, b.lo);
