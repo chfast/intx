@@ -472,26 +472,21 @@ inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
 
 
 template <unsigned N>
-struct uint_with_carry
-{
-    uint<N> value;
-    bool carry;
-};
-
-constexpr uint_with_carry<128> add_with_carry(uint128 a, uint128 b) noexcept
-{
-    // FIXME: Rename add_with_carry() to add_overflow().
-    const auto s = a + b;
-    const auto k = s < a;
-    return {s, k};
-}
-
-template <unsigned N>
 constexpr uint_with_carry<N> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
 {
     const auto lo = add_with_carry(a.lo, b.lo);
     const auto tt = add_with_carry(a.hi, b.hi);
     const auto hi = add_with_carry(tt.value, typename uint<N>::half_type{lo.carry});
+    return {{hi.value, lo.value}, tt.carry || hi.carry};
+}
+
+
+template <unsigned N>
+constexpr uint_with_carry<N> sub_with_borrow(const uint<N>& a, const uint<N>& b) noexcept
+{
+    const auto lo = sub_with_borrow(a.lo, b.lo);
+    const auto tt = sub_with_borrow(a.hi, b.hi);
+    const auto hi = sub_with_borrow(tt.value, typename uint<N>::half_type{lo.carry});
     return {{hi.value, lo.value}, tt.carry || hi.carry};
 }
 
@@ -533,7 +528,7 @@ constexpr uint<N> operator-(const uint<N>& x) noexcept
 template <unsigned N>
 constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return x + -y;
+    return sub_with_borrow(x, y).value;
 }
 
 template <unsigned N, typename T,

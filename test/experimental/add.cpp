@@ -69,21 +69,37 @@ uint192 add_waterfall(
 
 uint256 add_recursive(const uint256& a, const uint256& b) noexcept
 {
-    const auto ll = a.lo.lo + b.lo.lo;
-    const auto l_carry = ll < a.lo.lo;
-    const auto lh = a.lo.hi + b.lo.hi + l_carry;
+    uint128 lo;
+    bool lo_carry;
+    {
+        const auto l = a.lo.lo + b.lo.lo;
+        const auto l_carry = l < a.lo.lo;
+        const auto t = a.lo.hi + b.lo.hi;
+        const auto carry1 = t < a.lo.hi;
+        const auto h = t + l_carry;
+        const auto carry2 = h < t;
+        lo = uint128{h, l};
+        lo_carry = carry1 || carry2;
+    }
 
-    const bool lo_carry = (lh < a.lo.hi) | ((lh == a.lo.hi) & l_carry);
+    uint128 tt;
+    {
+        const auto l = a.hi.lo + b.hi.lo;
+        const auto l_carry = l < a.hi.lo;
+        const auto t = a.hi.hi + b.hi.hi;
+        const auto h = t + l_carry;
+        tt = uint128{h, l};
+    }
 
-    const auto tl = a.hi.lo + b.hi.lo;
-    const auto t_carry = tl < a.hi.lo;
-    const auto th = a.hi.hi + b.hi.hi + t_carry;
+    uint128 hi;
+    {
+        const auto l = tt.lo + lo_carry;
+        const auto l_carry = l < tt.lo;
+        const auto h = tt.hi + l_carry;
+        hi = uint128{h, l};
+    }
 
-    const auto hl = tl + lo_carry;
-    const auto hl_carry = hl < tl;
-    const auto hh = th + hl_carry;
-
-    return {{hh, hl}, {lh, ll}};
+    return {hi, lo};
 }
 
 uint256 add_waterflow(const uint256& a, const uint256& b) noexcept

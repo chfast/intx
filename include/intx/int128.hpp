@@ -69,15 +69,31 @@ struct uint<128>
 using uint128 = uint<128>;
 
 
+template <unsigned N>
+struct uint_with_carry
+{
+    uint<N> value;
+    bool carry;
+};
+
+
 /// Linear arithmetic operators.
 /// @{
 
+constexpr uint_with_carry<128> add_with_carry(uint128 a, uint128 b) noexcept
+{
+    const auto lo = a.lo + b.lo;
+    const auto lo_carry = lo < a.lo;
+    const auto t = a.hi + b.hi;
+    const auto carry1 = t < a.hi;
+    const auto hi = t + lo_carry;
+    const auto carry2 = hi < t;
+    return {{hi, lo}, carry1 || carry2};
+}
+
 constexpr uint128 operator+(uint128 x, uint128 y) noexcept
 {
-    const auto lo = x.lo + y.lo;
-    const auto carry = x.lo > lo;
-    const auto hi = x.hi + y.hi + carry;
-    return {hi, lo};
+    return add_with_carry(x, y).value;
 }
 
 constexpr uint128 operator+(uint128 x) noexcept
@@ -85,12 +101,20 @@ constexpr uint128 operator+(uint128 x) noexcept
     return x;
 }
 
+constexpr uint_with_carry<128> sub_with_borrow(uint128 a, uint128 b) noexcept
+{
+    const auto lo = a.lo - b.lo;
+    const auto lo_borrow = lo > a.lo;
+    const auto t = a.hi - b.hi;
+    const auto borrow1 = t > a.hi;
+    const auto hi = t - lo_borrow;
+    const auto borrow2 = hi > t;
+    return {{hi, lo}, borrow1 || borrow2};
+}
+
 constexpr uint128 operator-(uint128 x, uint128 y) noexcept
 {
-    const auto lo = x.lo - y.lo;
-    const auto borrow = x.lo < lo;
-    const auto hi = x.hi - y.hi - borrow;
-    return {hi, lo};
+    return sub_with_borrow(x, y).value;
 }
 
 constexpr uint128 operator-(uint128 x) noexcept

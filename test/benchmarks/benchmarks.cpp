@@ -286,10 +286,10 @@ inline auto public_mul(const uint512& x, const uint512& y) noexcept
     return x * y;
 }
 
-BENCHMARK_TEMPLATE(binary_op512, inline_add);
 BENCHMARK_TEMPLATE(binary_op512, add);
-BENCHMARK_TEMPLATE(binary_op512, inline_sub);
+BENCHMARK_TEMPLATE(binary_op512, inline_add);
 BENCHMARK_TEMPLATE(binary_op512, sub);
+BENCHMARK_TEMPLATE(binary_op512, inline_sub);
 BENCHMARK_TEMPLATE(binary_op512, mul);
 BENCHMARK_TEMPLATE(binary_op512, public_mul);
 BENCHMARK_TEMPLATE(binary_op512, gmp::mul);
