@@ -522,7 +522,6 @@ constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 template <unsigned N>
 constexpr uint<N> operator-(const uint<N>& x) noexcept
 {
-    // FIXME: Optimize as in uint128.
     return ~x + uint<N>{1};
 }
 
