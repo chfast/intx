@@ -6,6 +6,7 @@ set(include_dir ${PROJECT_SOURCE_DIR}/include)
 
 add_library(int128 INTERFACE)
 add_library(intx::int128 ALIAS int128)
+target_compile_features(int128 INTERFACE cxx_std_14)
 target_sources(int128 INTERFACE $<BUILD_INTERFACE:${include_dir}/intx/int128.hpp>)
 target_include_directories(int128 INTERFACE $<BUILD_INTERFACE:${include_dir}>$<INSTALL_INTERFACE:include>)
 
@@ -16,6 +17,7 @@ add_library(intx STATIC
     div.hpp
 )
 add_library(intx::intx ALIAS intx)
+target_compile_features(intx PUBLIC cxx_std_14)
 target_include_directories(intx PUBLIC $<BUILD_INTERFACE:${include_dir}>$<INSTALL_INTERFACE:include>)
 target_link_libraries(intx PUBLIC intx::int128)
 
