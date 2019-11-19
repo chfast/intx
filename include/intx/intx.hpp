@@ -480,13 +480,14 @@ constexpr uint_with_carry<N> add_with_carry(const uint<N>& a, const uint<N>& b) 
     return {{hi.value, lo.value}, tt.carry || hi.carry};
 }
 
-
+/// Performs subtraction of two unsinged numbers and returns the difference
+/// and the carry bit (aka borrow, overflow).
 template <unsigned N>
-constexpr uint_with_carry<N> sub_with_borrow(const uint<N>& a, const uint<N>& b) noexcept
+constexpr uint_with_carry<N> sub_with_carry(const uint<N>& a, const uint<N>& b) noexcept
 {
-    const auto lo = sub_with_borrow(a.lo, b.lo);
-    const auto tt = sub_with_borrow(a.hi, b.hi);
-    const auto hi = sub_with_borrow(tt.value, typename uint<N>::half_type{lo.carry});
+    const auto lo = sub_with_carry(a.lo, b.lo);
+    const auto tt = sub_with_carry(a.hi, b.hi);
+    const auto hi = sub_with_carry(tt.value, typename uint<N>::half_type{lo.carry});
     return {{hi.value, lo.value}, tt.carry || hi.carry};
 }
 
@@ -528,7 +529,7 @@ constexpr uint<N> operator-(const uint<N>& x) noexcept
 template <unsigned N>
 constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return sub_with_borrow(x, y).value;
+    return sub_with_carry(x, y).value;
 }
 
 template <unsigned N, typename T,
