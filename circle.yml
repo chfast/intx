@@ -81,7 +81,7 @@ jobs:
       - run:
           name: "Upload coverage data"
           command: |
-            codecov --required --gcov-exec "$GCOV" --gcov-root ~/build
+            codecov --gcov-exec "$GCOV" --gcov-root ~/build
 
   linux-clang-asan:
     environment:
