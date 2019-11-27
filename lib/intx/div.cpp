@@ -175,7 +175,10 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
     return {q, r};
 }
 
-template div_result<uint256> udivrem(const uint256& u, const uint256& v) noexcept;
-template div_result<uint512> udivrem(const uint512& u, const uint512& v) noexcept;
+template div_result<uint<256>> udivrem(const uint<256>& u, const uint<256>& v) noexcept;
+template div_result<uint<512>> udivrem(const uint<512>& u, const uint<512>& v) noexcept;
+template div_result<uint<1024>> udivrem(const uint<1024>& u, const uint<1024>& v) noexcept;
+template div_result<uint<2048>> udivrem(const uint<2048>& u, const uint<2048>& v) noexcept;
+template div_result<uint<4096>> udivrem(const uint<4096>& u, const uint<4096>& v) noexcept;
 
 }  // namespace intx

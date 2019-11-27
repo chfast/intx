@@ -81,7 +81,7 @@ inline div_result<Int> sdivrem(const Int& x, const Int& y) noexcept
 
     mpz_tdiv_qr(q_gmp, r_gmp, x_gmp, y_gmp);
 
-    char buf[200];
+    char buf[2000];
 
     mpz_get_str(buf, 10, q_gmp);
     auto q_is_neg = buf[0] == '-';
