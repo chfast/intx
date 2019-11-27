@@ -120,32 +120,14 @@ constexpr uint32_t hi_half(uint64_t x)
     return static_cast<uint32_t>(x >> 32);
 }
 
-constexpr uint64_t lo_half(uint128 x)
+template<unsigned N>
+inline constexpr auto lo_half(const uint<N>& x) noexcept
 {
     return x.lo;
 }
 
-constexpr uint64_t hi_half(uint128 x)
-{
-    return x.hi;
-}
-
-constexpr uint128 lo_half(uint256 x)
-{
-    return x.lo;
-}
-
-constexpr uint128 hi_half(uint256 x)
-{
-    return x.hi;
-}
-
-constexpr uint256 lo_half(uint512 x)
-{
-    return x.lo;
-}
-
-constexpr uint256 hi_half(uint512 x)
+template<unsigned N>
+inline constexpr auto hi_half(const uint<N>& x) noexcept
 {
     return x.hi;
 }
