@@ -25,6 +25,11 @@ inline std::ostream& dbgs() { return std::cerr; }
 
 namespace intx
 {
+inline constexpr uint64_t join(uint32_t hi, uint32_t lo) noexcept
+{
+    return (uint64_t{hi} << 32) | lo;
+}
+
 inline div_result<uint64_t> udivrem_long(uint128 x, uint64_t y) noexcept
 {
     auto shift = clz(y);
