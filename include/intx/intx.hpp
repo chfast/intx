@@ -61,44 +61,15 @@ struct uint
 using uint256 = uint<256>;
 using uint512 = uint<512>;
 
-template <typename T>
-struct traits
-{
-};
-
-template <>
-struct traits<uint64_t>
-{
-    using double_type = uint128;
-};
-
-template <>
-struct traits<uint128>
-{
-    using double_type = uint256;
-};
-
-template <>
-struct traits<uint256>
-{
-    using double_type = uint512;
-};
-
-template <>
-struct traits<uint512>
-{
-};
-
-
 constexpr uint8_t lo_half(uint16_t x)
 {
     return static_cast<uint8_t>(x);
 }
+
 constexpr uint16_t lo_half(uint32_t x)
 {
     return static_cast<uint16_t>(x);
 }
-
 
 constexpr uint32_t lo_half(uint64_t x)
 {
@@ -120,13 +91,13 @@ constexpr uint32_t hi_half(uint64_t x)
     return static_cast<uint32_t>(x >> 32);
 }
 
-template<unsigned N>
+template <unsigned N>
 inline constexpr auto lo_half(const uint<N>& x) noexcept
 {
     return x.lo;
 }
 
-template<unsigned N>
+template <unsigned N>
 inline constexpr auto hi_half(const uint<N>& x) noexcept
 {
     return x.hi;
@@ -519,8 +490,8 @@ constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 }
 
 
-template <typename Int>
-inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexcept
+template <unsigned N>
+inline uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
     auto t0 = umul(x.lo, y.lo);
     auto t1 = umul(x.hi, y.lo);
@@ -536,8 +507,8 @@ inline typename traits<Int>::double_type umul(const Int& x, const Int& y) noexce
     return {hi, lo};
 }
 
-template <typename Int>
-constexpr typename traits<Int>::double_type constexpr_umul(const Int& x, const Int& y) noexcept
+template <unsigned N>
+constexpr uint<2 * N> constexpr_umul(const uint<N>& x, const uint<N>& y) noexcept
 {
     auto t0 = constexpr_umul(x.lo, y.lo);
     auto t1 = constexpr_umul(x.hi, y.lo);
@@ -553,8 +524,8 @@ constexpr typename traits<Int>::double_type constexpr_umul(const Int& x, const I
     return {hi, lo};
 }
 
-template <typename Int>
-inline Int mul(const Int& a, const Int& b) noexcept
+template <unsigned N>
+inline uint<N> mul(const uint<N>& a, const uint<N>& b) noexcept
 {
     // Requires 1 full mul, 2 muls and 2 adds.
     // Clang & GCC implements 128-bit multiplication this way.
@@ -575,12 +546,12 @@ constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
 }
 
 
-template <typename Int>
-inline typename traits<Int>::double_type umul_loop(const Int& x, const Int& y) noexcept
+template <unsigned N>
+inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
 {
-    constexpr int num_words = sizeof(Int) / sizeof(uint64_t);
+    constexpr int num_words = sizeof(uint<N>) / sizeof(uint64_t);
 
-    typename traits<Int>::double_type p;
+    uint<2 * N> p;
     auto pw = as_words(p);
     auto uw = as_words(x);
     auto vw = as_words(y);
@@ -599,12 +570,12 @@ inline typename traits<Int>::double_type umul_loop(const Int& x, const Int& y) n
     return p;
 }
 
-template <typename Int>
-inline Int mul_loop_opt(const Int& u, const Int& v) noexcept
+template <unsigned N>
+inline uint<N> mul_loop_opt(const uint<N>& u, const uint<N>& v) noexcept
 {
-    constexpr int num_words = sizeof(Int) / sizeof(uint64_t);
+    constexpr int num_words = sizeof(uint<N>) / sizeof(uint64_t);
 
-    Int p;
+    uint<N> p;
     auto pw = as_words(p);
     auto uw = as_words(u);
     auto vw = as_words(v);
