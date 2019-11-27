@@ -25,6 +25,11 @@ inline std::ostream& dbgs() { return std::cerr; }
 
 namespace intx
 {
+inline constexpr uint64_t join(uint32_t hi, uint32_t lo) noexcept
+{
+    return (uint64_t{hi} << 32) | lo;
+}
+
 inline div_result<uint64_t> udivrem_long(uint128 x, uint64_t y) noexcept
 {
     auto shift = clz(y);
@@ -690,7 +695,7 @@ static void udiv_knuth_internal_64(
     {
         uint128 qhat, rhat;
         uint64_t divisor = vn[n - 1];
-        uint128 dividend = join(un[j + n], un[j + n - 1]);
+        uint128 dividend = uint128{un[j + n], un[j + n - 1]};
         if (hi_half(dividend) >= divisor)  // Will overflow:
         {
             qhat = base;
@@ -704,12 +709,12 @@ static void udiv_knuth_internal_64(
         }
 
         uint64_t next_divisor = vn[n - 2];
-        uint128 pd = join(lo_half(rhat), un[j + n - 2]);
+        uint128 pd = uint128{rhat.lo, un[j + n - 2]};
         if (qhat == base || qhat * next_divisor > pd)
         {
             --qhat;
             rhat += divisor;
-            pd = join(lo_half(rhat), un[j + n - 2]);
+            pd = uint128{rhat.lo, un[j + n - 2]};
             if (rhat < base && (qhat == base || qhat * next_divisor > pd))
                 --qhat;
         }
