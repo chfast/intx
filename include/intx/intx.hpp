@@ -155,11 +155,6 @@ constexpr uint64_t join(uint32_t hi, uint32_t lo)
     return (uint64_t(hi) << 32) | lo;
 }
 
-constexpr uint128 join(uint64_t hi, uint64_t lo) noexcept
-{
-    return {hi, lo};
-}
-
 template <typename T>
 constexpr unsigned num_bits(const T&) noexcept
 {

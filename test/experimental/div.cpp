@@ -690,7 +690,7 @@ static void udiv_knuth_internal_64(
     {
         uint128 qhat, rhat;
         uint64_t divisor = vn[n - 1];
-        uint128 dividend = join(un[j + n], un[j + n - 1]);
+        uint128 dividend = uint128{un[j + n], un[j + n - 1]};
         if (hi_half(dividend) >= divisor)  // Will overflow:
         {
             qhat = base;
@@ -704,12 +704,12 @@ static void udiv_knuth_internal_64(
         }
 
         uint64_t next_divisor = vn[n - 2];
-        uint128 pd = join(lo_half(rhat), un[j + n - 2]);
+        uint128 pd = uint128{rhat.lo, un[j + n - 2]};
         if (qhat == base || qhat * next_divisor > pd)
         {
             --qhat;
             rhat += divisor;
-            pd = join(lo_half(rhat), un[j + n - 2]);
+            pd = uint128{rhat.lo, un[j + n - 2]};
             if (rhat < base && (qhat == base || qhat * next_divisor > pd))
                 --qhat;
         }
