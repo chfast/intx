@@ -190,7 +190,7 @@ constexpr bool operator==(uint128 x, uint128 y) noexcept
 
 constexpr bool operator!=(uint128 x, uint128 y) noexcept
 {
-    // Analogous to ==, but == not used directly, because that confuses GCC8.
+    // Analogous to ==, but == not used directly, because that confuses GCC 8-9.
     return (x.lo != y.lo) | (x.hi != y.hi);
 }
 
@@ -204,15 +204,12 @@ constexpr bool operator<(uint128 x, uint128 y) noexcept
 
 constexpr bool operator<=(uint128 x, uint128 y) noexcept
 {
-    // OPT: This also should be implemented by subtraction + flag check.
-    // TODO: Clang7 is not able to fully optimize
-    //       the naive implementation as (x < y) | (x == y).
-    return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo <= y.lo));
+    return !(y < x);
 }
 
 constexpr bool operator>(uint128 x, uint128 y) noexcept
 {
-    return !(x <= y);
+    return y < x;
 }
 
 constexpr bool operator>=(uint128 x, uint128 y) noexcept
