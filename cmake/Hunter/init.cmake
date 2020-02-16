@@ -1,5 +1,5 @@
 # intx: extended precision integer library.
-# Copyright 2019 Pawel Bylica.
+# Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
 # Figure out if Hunter is needed.
@@ -20,7 +20,6 @@ set(HUNTER_CACHE_SERVERS
 include(HunterGate)
 
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.23.151.tar.gz"
-    SHA1 "68657b81508c2d3c248731b5a0c2125f19866721"
-    LOCAL
+    URL "https://github.com/cpp-pm/hunter/archive/v0.23.248.tar.gz"
+    SHA1 "a637ec52a1b82beb5f55ab4aa75fac30bcee8904"
 )
