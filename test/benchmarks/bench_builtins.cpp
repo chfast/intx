@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include <benchmark/benchmark.h>
@@ -18,7 +18,8 @@ static void clz(benchmark::State& state)
         inputs[i] = s == 64 ? 0 : (uint64_t{1} << 63) >> s;
     }
 
-    for (auto _ : state)
+    benchmark::ClobberMemory();
+    while (state.KeepRunningBatch(inputs.size()))
     {
         for (auto& in : inputs)
             in = ClzFn(static_cast<T>(in));

@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include "../utils/gmp.hpp"
@@ -44,7 +44,7 @@ static void udiv(benchmark::State& state)
         while (input_x[i] <= input_y[i]);
     }
 
-    for (auto _ : state)
+    while (state.KeepRunningBatch(size))
     {
         for (size_t i = 0; i < size; ++i)
             output[i] = DivFn(input_x[i], input_y[i]);
@@ -138,7 +138,7 @@ static void mod(benchmark::State& state)
         input_y[i] = rng_y();
     }
 
-    for (auto _ : state)
+    while (state.KeepRunningBatch(size))
     {
         for (size_t i = 0; i < size; ++i)
             output[i] = Fn(input_x[i], input_y[i], input_m[i]);
@@ -169,7 +169,7 @@ static void binary_op256(benchmark::State& state)
     for (auto& y : input_y)
         y = rng();
 
-    for (auto _ : state)
+    while (state.KeepRunningBatch(size))
     {
         for (size_t i = 0; i < size; ++i)
             output[i] = BinFn(input_x[i], input_y[i]);
@@ -230,7 +230,7 @@ static void binary_op256_full(benchmark::State& state)
     for (auto& y : input_y)
         y = rng();
 
-    for (auto _ : state)
+    while (state.KeepRunningBatch(size))
     {
         for (size_t i = 0; i < size; ++i)
             output[i] = BinFn(input_x[i], input_y[i]);
@@ -259,7 +259,7 @@ static void binary_op512(benchmark::State& state)
     for (auto& y : input_y)
         y = rng();
 
-    for (auto _ : state)
+    while (state.KeepRunningBatch(size))
     {
         for (size_t i = 0; i < size; ++i)
             output[i] = BinFn(input_x[i], input_y[i]);
@@ -317,7 +317,7 @@ static void shift(benchmark::State& state)
     for (auto& y : input_y)
         y = dist_y(rng);
 
-    for (auto _ : state)
+    while (state.KeepRunningBatch(size))
     {
         for (size_t i = 0; i < size; ++i)
             output[i] = ShiftFn(input_x[i], input_y[i]);
@@ -373,7 +373,7 @@ static void to_string(benchmark::State& state)
     for (auto& x : input)
         x = rng();
 
-    for (auto _ : state)
+    while (state.KeepRunningBatch(size))
     {
         for (size_t i = 0; i < size; ++i)
         {

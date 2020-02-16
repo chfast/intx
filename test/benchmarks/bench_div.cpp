@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include <div.hpp>
@@ -71,7 +71,7 @@ static void div_unary(benchmark::State& state)
 
     benchmark::ClobberMemory();
     uint64_t x = 0;
-    for (auto _ : state)
+    while (state.KeepRunningBatch(input.size()))
     {
         for (const auto& i : input)
             x ^= Fn(i);
@@ -100,7 +100,7 @@ static void udiv64(benchmark::State& state)
     for (auto& y : input_y)
         y = dist_y(rng);
 
-    for (auto _ : state)
+    while (state.KeepRunningBatch(size))
     {
         for (size_t i = 0; i < size; ++i)
             output[i] = DivFn(input_x[i], input_y[i]);
