@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include <intx/int128.hpp>
@@ -97,10 +97,10 @@ BENCHMARK_TEMPLATE(udiv128_single_long_shift, div_gmp);
 template <typename RetT, RetT (*MulFn)(uint64_t, uint64_t)>
 static void umul128(benchmark::State& state)
 {
-    auto inputs = gen_uniform_seq(1000);
+    const auto inputs = gen_uniform_seq(1000);
     benchmark::ClobberMemory();
 
-    for (auto _ : state)
+    while (state.KeepRunningBatch(inputs.size()))
     {
         uint64_t alo = 0;
         uint64_t ahi = 0;
