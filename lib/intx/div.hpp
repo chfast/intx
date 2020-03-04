@@ -20,7 +20,7 @@ struct normalized_div_args
 };
 
 template <typename IntT>
-inline normalized_div_args<IntT::num_bits> normalize(
+[[gnu::always_inline]] inline normalized_div_args<IntT::num_bits> normalize(
     const IntT& numerator, const IntT& denominator) noexcept
 {
     // FIXME: Make the implementation type independent
