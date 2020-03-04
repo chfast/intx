@@ -161,14 +161,15 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
     auto un = as_words(na.numerator);  // Will be modified.
 
     uint<N> q;
-    uint<N> r;
-    auto rw = as_words(r);
 
     udivrem_knuth(as_words(q), &un[0], na.num_numerator_words, as_words(na.denominator),
         na.num_denominator_words);
 
-    for (int i = 0; i < na.num_denominator_words; ++i)
+    uint<N> r;
+    auto rw = as_words(r);
+    for (int i = 0; i < na.num_denominator_words - 1; ++i)
         rw[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
+    rw[na.num_denominator_words - 1] = un[na.num_denominator_words - 1] >> na.shift;
 
     return {q, r};
 }
