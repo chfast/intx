@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include "div.hpp"
@@ -158,18 +158,16 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
         return {na.numerator, r >> na.shift};
     }
 
-    const auto n = na.num_denominator_words;
-    const auto m = na.num_numerator_words;
-
     auto un = as_words(na.numerator);  // Will be modified.
 
     uint<N> q;
     uint<N> r;
     auto rw = as_words(r);
 
-    udivrem_knuth(as_words(q), &un[0], m, as_words(na.denominator), n);
+    udivrem_knuth(as_words(q), &un[0], na.num_numerator_words, as_words(na.denominator),
+        na.num_denominator_words);
 
-    for (int i = 0; i < n; ++i)
+    for (int i = 0; i < na.num_denominator_words; ++i)
         rw[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
 
     return {q, r};
