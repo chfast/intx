@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #pragma once
@@ -59,6 +59,10 @@ template <typename IntT>
         na.numerator = numerator;
         na.denominator = denominator;
     }
+
+    // Skip the highest word of numerator if not significant.
+    if (un[m] != 0 || un[m - 1] >= vn[n - 1])
+        ++m;
 
     return na;
 }

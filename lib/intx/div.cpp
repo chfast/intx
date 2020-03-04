@@ -11,17 +11,17 @@ namespace
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
 /// @param u  The array of a normalized numerator words. It will contain the quotient after
 ///           execution.
-/// @param m  The number of numerator words BEFORE normalization.
+/// @param m  The number of numerator words.
 /// @param d  The normalized denominator.
 /// @return   The remainder.
 inline uint64_t udivrem_by1(uint64_t u[], int m, uint64_t d) noexcept
 {
     const auto v = reciprocal_2by1(d);
 
-    auto r = u[m];  // Set the top word as remainder.
-    u[m] = 0;       // Reset the word being a part of the result quotient.
+    auto r = u[m - 1];  // Set the top word as remainder.
+    u[m - 1] = 0;       // Reset the word being a part of the result quotient.
 
-    for (int j = m - 1; j >= 0; --j)
+    for (int j = m - 2; j >= 0; --j)
     {
         const auto x = udivrem_2by1({r, u[j]}, d, v);
         u[j] = x.quot;
@@ -34,17 +34,17 @@ inline uint64_t udivrem_by1(uint64_t u[], int m, uint64_t d) noexcept
 /// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
 /// @param u  The array of a normalized numerator words. It will contain the quotient after
 ///           execution.
-/// @param m  The number of numerator words BEFORE normalization.
+/// @param m  The number of numerator words.
 /// @param d  The normalized denominator.
 /// @return   The remainder.
 inline uint128 udivrem_by2(uint64_t u[], int m, uint128 d) noexcept
 {
     const auto v = reciprocal_3by2(d);
 
-    auto r = uint128{u[m], u[m - 1]};  // Set the 2 top words as remainder.
-    u[m] = u[m - 1] = 0;               // Reset these words being a part of the result quotient.
+    auto r = uint128{u[m - 1], u[m - 2]};  // Set the 2 top words as remainder.
+    u[m - 1] = u[m - 2] = 0;               // Reset these words being a part of the result quotient.
 
-    for (int j = m - 2; j >= 0; --j)
+    for (int j = m - 3; j >= 0; --j)
     {
         const auto x = udivrem_3by2(r.hi, r.lo, u[j], d, v);
         u[j] = x.quot.lo;
@@ -58,7 +58,7 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
 {
     const auto divisor = uint128{vn[n - 1], vn[n - 2]};
     const auto reciprocal = reciprocal_2by1(divisor.hi);
-    for (int j = m - n; j >= 0; --j)
+    for (int j = m - n - 1; j >= 0; --j)
     {
         const auto u2 = un[j + n];
         const auto u1 = un[j + n - 1];

@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include <div.hpp>
@@ -26,7 +26,7 @@ TEST(div, normalize)
     na = normalize(u, v);
     EXPECT_EQ(na.shift, 60u);
     EXPECT_EQ(na.num_denominator_words, 5);
-    EXPECT_EQ(na.num_numerator_words, 5);
+    EXPECT_EQ(na.num_numerator_words, 6);
     EXPECT_EQ(na.numerator, u << 60);
     EXPECT_EQ(na.numerator_ex, 0);
     EXPECT_EQ(na.denominator, v << 60);
@@ -46,7 +46,7 @@ TEST(div, normalize)
     na = normalize(u, v);
     EXPECT_EQ(na.shift, 2u);
     EXPECT_EQ(na.num_denominator_words, 3);
-    EXPECT_EQ(na.num_numerator_words, 8);
+    EXPECT_EQ(na.num_numerator_words, 9);
     EXPECT_EQ(na.numerator, u << 2);
     EXPECT_EQ(na.numerator_ex, 3);
     EXPECT_EQ(na.denominator, v << 2);
