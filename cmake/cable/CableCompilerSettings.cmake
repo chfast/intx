@@ -99,6 +99,9 @@ macro(cable_configure_compiler)
             # Allow unknown pragmas, we don't want to wrap them with #ifdefs.
             add_compile_options(/wd4068)
 
+            # Allow unknown C++ attributes.
+            add_compile_options(/wd5030)
+
         endif()
 
         # Option for arch=native.
