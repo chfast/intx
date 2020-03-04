@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #pragma once
@@ -20,7 +20,7 @@ struct normalized_div_args
 };
 
 template <typename IntT>
-inline normalized_div_args<IntT::num_bits> normalize(
+[[gnu::always_inline]] inline normalized_div_args<IntT::num_bits> normalize(
     const IntT& numerator, const IntT& denominator) noexcept
 {
     // FIXME: Make the implementation type independent
@@ -59,6 +59,10 @@ inline normalized_div_args<IntT::num_bits> normalize(
         na.numerator = numerator;
         na.denominator = denominator;
     }
+
+    // Skip the highest word of numerator if not significant.
+    if (un[m] != 0 || un[m - 1] >= vn[n - 1])
+        ++m;
 
     return na;
 }
