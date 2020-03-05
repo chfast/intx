@@ -25,3 +25,8 @@ auto sub(const uint512& x, const uint512& y) noexcept
 {
     return x - y;
 }
+
+auto exp(const uint256& x, const uint256& y) noexcept
+{
+    return intx::exp(x, y);
+}

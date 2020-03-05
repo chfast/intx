@@ -201,6 +201,8 @@ inline auto inline_sub(const uint256& x, const uint256& y) noexcept
 
 uint256 sub(const uint256& x, const uint256& y) noexcept;
 
+uint256 exp(const uint256& x, const uint256& y) noexcept;
+
 BENCHMARK_TEMPLATE(binary_op256, add);
 BENCHMARK_TEMPLATE(binary_op256, inline_add);
 BENCHMARK_TEMPLATE(binary_op256, sub);
@@ -212,6 +214,7 @@ BENCHMARK_TEMPLATE(binary_op256, mul_loop);
 BENCHMARK_TEMPLATE(binary_op256, mul_loop_opt);
 BENCHMARK_TEMPLATE(binary_op256, public_mul);
 BENCHMARK_TEMPLATE(binary_op256, gmp::mul);
+BENCHMARK_TEMPLATE(binary_op256, exp);
 
 using binary_fn256_full = uint512 (*)(const uint256&, const uint256&);
 template <binary_fn256_full BinFn>
