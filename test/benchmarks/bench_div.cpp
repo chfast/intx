@@ -12,6 +12,8 @@ uint64_t nop(uint64_t x, uint64_t y) noexcept;
 uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept;
 uint64_t soft_div_unr(uint64_t x, uint64_t y) noexcept;
 
+uint64_t reciprocal_2by1_noinline(uint64_t d) noexcept;
+
 using namespace intx;
 
 inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
@@ -80,6 +82,7 @@ static void div_unary(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(div_unary, neg);
 BENCHMARK_TEMPLATE(div_unary, reciprocal_2by1);
+BENCHMARK_TEMPLATE(div_unary, reciprocal_2by1_noinline);
 BENCHMARK_TEMPLATE(div_unary, reciprocal_naive);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
