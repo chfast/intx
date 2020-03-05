@@ -490,16 +490,16 @@ constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 template <unsigned N>
 inline uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
-    auto t0 = umul(x.lo, y.lo);
-    auto t1 = umul(x.hi, y.lo);
-    auto t2 = umul(x.lo, y.hi);
-    auto t3 = umul(x.hi, y.hi);
+    const auto t0 = umul(x.lo, y.lo);
+    const auto t1 = umul(x.hi, y.lo);
+    const auto t2 = umul(x.lo, y.hi);
+    const auto t3 = umul(x.hi, y.hi);
 
-    auto u1 = t1 + t0.hi;
-    auto u2 = t2 + u1.lo;
+    const auto u1 = t1 + t0.hi;
+    const auto u2 = t2 + u1.lo;
 
-    auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
-    auto hi = t3 + u2.hi + u1.hi;
+    const auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
+    const auto hi = t3 + u2.hi + u1.hi;
 
     return {hi, lo};
 }
@@ -527,8 +527,8 @@ inline uint<N> mul(const uint<N>& a, const uint<N>& b) noexcept
     // Requires 1 full mul, 2 muls and 2 adds.
     // Clang & GCC implements 128-bit multiplication this way.
 
-    auto t = umul(a.lo, b.lo);
-    auto hi = (a.lo * b.hi) + (a.hi * b.lo) + t.hi;
+    const auto t = umul(a.lo, b.lo);
+    const auto hi = (a.lo * b.hi) + (a.hi * b.lo) + t.hi;
 
     return {hi, t.lo};
 }
