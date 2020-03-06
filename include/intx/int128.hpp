@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #pragma once
@@ -506,29 +506,20 @@ constexpr uint16_t reciprocal_table[] = {REPEAT256()};
 /// Based on Algorithm 2 from "Improved division by invariant integers".
 inline uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
-    auto d9 = uint8_t(d >> 55);
-    auto v0 = uint64_t{internal::reciprocal_table[d9]};
+    const uint64_t d9 = d >> 55;
+    const uint32_t v0 = internal::reciprocal_table[d9 - 256];
 
-    auto d40 = (d >> 24) + 1;
-    auto v1 = (v0 << 11) - (v0 * v0 * d40 >> 40) - 1;
+    const uint64_t d40 = (d >> 24) + 1;
+    const uint64_t v1 = (v0 << 11) - uint32_t(v0 * v0 * d40 >> 40) - 1;
 
-    auto v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
+    const uint64_t v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
 
-    auto d0 = d % 2;
-    auto d63 = d / 2 + d0;  // ceil(d/2)
-    auto nd0 = uint64_t(-int64_t(d0));
-    auto e = ((v2 / 2) & nd0) - v2 * d63;
-    auto mh = umul(v2, e).hi;
-    auto v3 = (v2 << 31) + (mh >> 1);
+    const uint64_t d0 = d & 1;
+    const uint64_t d63 = (d >> 1) + d0;  // ceil(d/2)
+    const uint64_t e = ((v2 >> 1) & (0 - d0)) - v2 * d63;
+    const uint64_t v3 = (umul(v2, e).hi >> 1) + (v2 << 31);
 
-    // OPT: The compiler tries a bit too much with 128 + 64 addition and ends up using subtraction.
-    //      Compare with __int128.
-    auto mf = umul(v3, d);
-    auto m = fast_add(mf, d);
-    auto v3a = m.hi + d;
-
-    auto v4 = v3 - v3a;
-
+    const uint64_t v4 = v3 - (umul(v3, d) + d).hi - d;
     return v4;
 }
 
@@ -548,7 +539,7 @@ inline uint64_t reciprocal_3by2(uint128 d) noexcept
         p -= d.hi;
     }
 
-    auto t = umul(v, d.lo);
+    const auto t = umul(v, d.lo);
 
     p += t.hi;
     if (p < t.hi)
