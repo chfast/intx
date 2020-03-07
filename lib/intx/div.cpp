@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include "div.hpp"
+#include <tuple>
 
 namespace intx
 {
@@ -52,6 +53,16 @@ inline uint128 udivrem_by2(uint64_t u[], int m, uint128 d) noexcept
     }
 
     return r;
+}
+
+/// s = x + y.
+inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
+{
+    // OPT: Add MinLen template parameter and unroll first loop iterations.
+    bool carry = false;
+    for (int i = 0; i < len; ++i)
+        std::tie(s[i], carry) = add_with_carry(x[i], y[i], carry);
+    return carry;
 }
 
 void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int n) noexcept
@@ -110,24 +121,7 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
         if (u2 < borrow)  // Too much subtracted, add back.
         {
             --qhat;
-
-            uint64_t carry = 0;
-            for (int i = 0; i < n; ++i)
-            {
-                auto s = uint128{un[i + j]} + vn[i] + carry;
-                un[i + j] = s.lo;
-                carry = s.hi;
-            }
-            un[j + n] += carry;
-
-            // TODO: Consider this alternative implementation:
-            // bool k = false;
-            // for (int i = 0; i < n; ++i) {
-            //     auto limit = std::min(un[j+i],vn[i]);
-            //     un[i + j] += vn[i] + k;
-            //     k = un[i + j] < limit || (k && un[i + j] == limit);
-            // }
-            // un[j+n] += k;
+            un[j + n] += add(&un[j], &un[j], vn, n);
         }
 
         q[j] = qhat;  // Store quotient digit.
