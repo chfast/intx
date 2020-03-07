@@ -69,18 +69,22 @@ struct uint<128>
 using uint128 = uint<128>;
 
 
-template <unsigned N>
-struct uint_with_carry
+/// Contains result of add/sub/etc with a carry flag.
+template <typename T>
+struct result_with_carry
 {
-    uint<N> value;
+    T value;
     bool carry;
+
+    /// Conversion to tuple of referecences, to allow usage with std::tie().
+    operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
 };
 
 
 /// Linear arithmetic operators.
 /// @{
 
-constexpr uint_with_carry<128> add_with_carry(uint128 a, uint128 b) noexcept
+constexpr inline result_with_carry<uint128> add_with_carry(uint128 a, uint128 b) noexcept
 {
     const auto lo = a.lo + b.lo;
     const auto lo_carry = lo < a.lo;
@@ -101,9 +105,9 @@ constexpr uint128 operator+(uint128 x) noexcept
     return x;
 }
 
-/// Performs subtraction of two unsinged numbers and returns the difference
+/// Performs subtraction of two unsigned numbers and returns the difference
 /// and the carry bit (aka borrow, overflow).
-constexpr uint_with_carry<128> sub_with_carry(uint128 a, uint128 b) noexcept
+constexpr inline result_with_carry<uint128> sub_with_carry(uint128 a, uint128 b) noexcept
 {
     const auto lo = a.lo - b.lo;
     const auto lo_borrow = lo > a.lo;

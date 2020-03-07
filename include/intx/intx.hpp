@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #pragma once
@@ -412,7 +412,7 @@ inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
 
 
 template <unsigned N>
-constexpr uint_with_carry<N> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
+constexpr result_with_carry<uint<N>> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
 {
     const auto lo = add_with_carry(a.lo, b.lo);
     const auto tt = add_with_carry(a.hi, b.hi);
@@ -420,10 +420,10 @@ constexpr uint_with_carry<N> add_with_carry(const uint<N>& a, const uint<N>& b) 
     return {{hi.value, lo.value}, tt.carry || hi.carry};
 }
 
-/// Performs subtraction of two unsinged numbers and returns the difference
+/// Performs subtraction of two unsigned numbers and returns the difference
 /// and the carry bit (aka borrow, overflow).
 template <unsigned N>
-constexpr uint_with_carry<N> sub_with_carry(const uint<N>& a, const uint<N>& b) noexcept
+constexpr result_with_carry<uint<N>> sub_with_carry(const uint<N>& a, const uint<N>& b) noexcept
 {
     const auto lo = sub_with_carry(a.lo, b.lo);
     const auto tt = sub_with_carry(a.hi, b.hi);
