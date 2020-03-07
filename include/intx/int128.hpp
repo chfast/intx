@@ -113,25 +113,31 @@ constexpr inline uint128 operator+(uint128 x) noexcept
     return x;
 }
 
+constexpr inline result_with_carry<uint64_t> sub_with_carry(
+    uint64_t x, uint64_t y, bool carry = false) noexcept
+{
+    const auto d = x - y;
+    const auto carry1 = d > x;
+    const auto e = d - carry;
+    const auto carry2 = e > d;
+    return {e, carry1 || carry2};
+}
+
 /// Performs subtraction of two unsigned numbers and returns the difference
 /// and the carry bit (aka borrow, overflow).
 constexpr inline result_with_carry<uint128> sub_with_carry(uint128 a, uint128 b) noexcept
 {
-    const auto lo = a.lo - b.lo;
-    const auto lo_borrow = lo > a.lo;
-    const auto t = a.hi - b.hi;
-    const auto borrow1 = t > a.hi;
-    const auto hi = t - lo_borrow;
-    const auto borrow2 = hi > t;
-    return {{hi, lo}, borrow1 || borrow2};
+    const auto lo = sub_with_carry(a.lo, b.lo);
+    const auto hi = sub_with_carry(a.hi, b.hi, lo.carry);
+    return {{hi.value, lo.value}, hi.carry};
 }
 
-constexpr uint128 operator-(uint128 x, uint128 y) noexcept
+constexpr inline uint128 operator-(uint128 x, uint128 y) noexcept
 {
     return sub_with_carry(x, y).value;
 }
 
-constexpr uint128 operator-(uint128 x) noexcept
+constexpr inline uint128 operator-(uint128 x) noexcept
 {
     // Implementing as subtraction is better than ~x + 1.
     // Clang9: Perfect.
