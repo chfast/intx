@@ -69,57 +69,77 @@ struct uint<128>
 using uint128 = uint<128>;
 
 
-template <unsigned N>
-struct uint_with_carry
+/// Contains result of add/sub/etc with a carry flag.
+template <typename T>
+struct result_with_carry
 {
-    uint<N> value;
+    T value;
     bool carry;
+
+    /// Conversion to tuple of referecences, to allow usage with std::tie().
+    operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
 };
 
 
 /// Linear arithmetic operators.
 /// @{
 
-constexpr uint_with_carry<128> add_with_carry(uint128 a, uint128 b) noexcept
+constexpr inline result_with_carry<uint64_t> add_with_carry(
+    uint64_t x, uint64_t y, bool carry = false) noexcept
 {
-    const auto lo = a.lo + b.lo;
-    const auto lo_carry = lo < a.lo;
-    const auto t = a.hi + b.hi;
-    const auto carry1 = t < a.hi;
-    const auto hi = t + lo_carry;
-    const auto carry2 = hi < t;
-    return {{hi, lo}, carry1 || carry2};
+    const auto s = x + y;
+    const auto carry1 = s < x;
+    const auto t = s + carry;
+    const auto carry2 = t < s;
+    return {t, carry1 || carry2};
 }
 
-constexpr uint128 operator+(uint128 x, uint128 y) noexcept
+template <unsigned N>
+constexpr result_with_carry<uint<N>> add_with_carry(
+    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
+{
+    const auto lo = add_with_carry(a.lo, b.lo, carry);
+    const auto hi = add_with_carry(a.hi, b.hi, lo.carry);
+    return {{hi.value, lo.value}, hi.carry};
+}
+
+constexpr inline uint128 operator+(uint128 x, uint128 y) noexcept
 {
     return add_with_carry(x, y).value;
 }
 
-constexpr uint128 operator+(uint128 x) noexcept
+constexpr inline uint128 operator+(uint128 x) noexcept
 {
     return x;
 }
 
-/// Performs subtraction of two unsinged numbers and returns the difference
-/// and the carry bit (aka borrow, overflow).
-constexpr uint_with_carry<128> sub_with_carry(uint128 a, uint128 b) noexcept
+constexpr inline result_with_carry<uint64_t> sub_with_carry(
+    uint64_t x, uint64_t y, bool carry = false) noexcept
 {
-    const auto lo = a.lo - b.lo;
-    const auto lo_borrow = lo > a.lo;
-    const auto t = a.hi - b.hi;
-    const auto borrow1 = t > a.hi;
-    const auto hi = t - lo_borrow;
-    const auto borrow2 = hi > t;
-    return {{hi, lo}, borrow1 || borrow2};
+    const auto d = x - y;
+    const auto carry1 = d > x;
+    const auto e = d - carry;
+    const auto carry2 = e > d;
+    return {e, carry1 || carry2};
 }
 
-constexpr uint128 operator-(uint128 x, uint128 y) noexcept
+/// Performs subtraction of two unsigned numbers and returns the difference
+/// and the carry bit (aka borrow, overflow).
+template <unsigned N>
+constexpr inline result_with_carry<uint<N>> sub_with_carry(
+    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
+{
+    const auto lo = sub_with_carry(a.lo, b.lo, carry);
+    const auto hi = sub_with_carry(a.hi, b.hi, lo.carry);
+    return {{hi.value, lo.value}, hi.carry};
+}
+
+constexpr inline uint128 operator-(uint128 x, uint128 y) noexcept
 {
     return sub_with_carry(x, y).value;
 }
 
-constexpr uint128 operator-(uint128 x) noexcept
+constexpr inline uint128 operator-(uint128 x) noexcept
 {
     // Implementing as subtraction is better than ~x + 1.
     // Clang9: Perfect.
