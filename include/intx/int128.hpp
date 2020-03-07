@@ -84,23 +84,29 @@ struct result_with_carry
 /// Linear arithmetic operators.
 /// @{
 
-constexpr inline result_with_carry<uint128> add_with_carry(uint128 a, uint128 b) noexcept
+constexpr inline result_with_carry<uint64_t> add_with_carry(
+    uint64_t x, uint64_t y, bool carry = false) noexcept
 {
-    const auto lo = a.lo + b.lo;
-    const auto lo_carry = lo < a.lo;
-    const auto t = a.hi + b.hi;
-    const auto carry1 = t < a.hi;
-    const auto hi = t + lo_carry;
-    const auto carry2 = hi < t;
-    return {{hi, lo}, carry1 || carry2};
+    const auto s = x + y;
+    const auto carry1 = s < x;
+    const auto t = s + carry;
+    const auto carry2 = t < s;
+    return {t, carry1 || carry2};
 }
 
-constexpr uint128 operator+(uint128 x, uint128 y) noexcept
+constexpr inline result_with_carry<uint128> add_with_carry(uint128 a, uint128 b) noexcept
+{
+    const auto lo = add_with_carry(a.lo, b.lo);
+    const auto hi = add_with_carry(a.hi, b.hi, lo.carry);
+    return {{hi.value, lo.value}, hi.carry};
+}
+
+constexpr inline uint128 operator+(uint128 x, uint128 y) noexcept
 {
     return add_with_carry(x, y).value;
 }
 
-constexpr uint128 operator+(uint128 x) noexcept
+constexpr inline uint128 operator+(uint128 x) noexcept
 {
     return x;
 }
