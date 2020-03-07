@@ -94,9 +94,11 @@ constexpr inline result_with_carry<uint64_t> add_with_carry(
     return {t, carry1 || carry2};
 }
 
-constexpr inline result_with_carry<uint128> add_with_carry(uint128 a, uint128 b) noexcept
+template <unsigned N>
+constexpr result_with_carry<uint<N>> add_with_carry(
+    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
 {
-    const auto lo = add_with_carry(a.lo, b.lo);
+    const auto lo = add_with_carry(a.lo, b.lo, carry);
     const auto hi = add_with_carry(a.hi, b.hi, lo.carry);
     return {{hi.value, lo.value}, hi.carry};
 }

@@ -410,16 +410,6 @@ inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
     return r;
 }
 
-
-template <unsigned N>
-constexpr result_with_carry<uint<N>> add_with_carry(const uint<N>& a, const uint<N>& b) noexcept
-{
-    const auto lo = add_with_carry(a.lo, b.lo);
-    const auto tt = add_with_carry(a.hi, b.hi);
-    const auto hi = add_with_carry(tt.value, typename uint<N>::half_type{lo.carry});
-    return {{hi.value, lo.value}, tt.carry || hi.carry};
-}
-
 /// Performs subtraction of two unsigned numbers and returns the difference
 /// and the carry bit (aka borrow, overflow).
 template <unsigned N>
