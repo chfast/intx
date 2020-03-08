@@ -65,6 +65,21 @@ inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) n
     return carry;
 }
 
+/// r = x - multiplier * y.
+inline uint64_t submul(
+    uint64_t r[], const uint64_t x[], const uint64_t y[], int len, uint64_t multiplier) noexcept
+{
+    uint64_t borrow = 0;
+    for (int i = 0; i < len; ++i)
+    {
+        const auto p = umul(multiplier, y[i]);
+        const auto s = uint128{x[i]} - borrow - p.lo;
+        r[i] = s.lo;
+        borrow = p.hi - s.hi;
+    }
+    return borrow;
+}
+
 void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int n) noexcept
 {
     const auto divisor = uint128{vn[n - 1], vn[n - 2]};
@@ -108,15 +123,7 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
         }
 
         // Multiply and subtract.
-        uint64_t borrow = 0;
-        for (int i = 0; i < n; ++i)
-        {
-            const auto p = umul(qhat, vn[i]);
-            const auto s = uint128{un[i + j]} - borrow - p.lo;
-            un[i + j] = s.lo;
-            borrow = p.hi - s.hi;
-        }
-
+        const auto borrow = submul(&un[j], &un[j], vn, n, qhat);
         un[j + n] = u2 - borrow;
         if (u2 < borrow)  // Too much subtracted, add back.
         {
