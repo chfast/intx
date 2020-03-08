@@ -101,25 +101,24 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
             rhat = dividend - uint128{divisor.hi, 0};
             rhat += divisor.hi;
 
-            // Adjustment.
-            // OPT: This is not needed but helps avoiding negative case.
+            // Adjustment (not needed for correctness, but helps avoiding "add back" case).
             if (rhat.hi == 0 && umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
                 --qhat;
         }
         else
         {
-            auto res = udivrem_2by1(dividend, divisor.hi, reciprocal);
+            const auto res = udivrem_2by1(dividend, divisor.hi, reciprocal);
             qhat = res.quot;
             rhat = res.rem;
 
-            if (umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
+            const auto p = umul(qhat, divisor.lo);
+            if (p > uint128{rhat.lo, u0})
             {
                 --qhat;
                 rhat += divisor.hi;
 
-                // Adjustment.
-                // OPT: This is not needed but helps avoiding negative case.
-                if (rhat.hi == 0 && umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
+                // Adjustment (not needed for correctness, but helps avoiding "add back" case).
+                if (rhat.hi == 0 && (p - divisor.lo) > uint128{rhat.lo, u0})
                     --qhat;
             }
         }
