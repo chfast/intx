@@ -69,13 +69,15 @@ inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) n
 inline uint64_t submul(
     uint64_t r[], const uint64_t x[], const uint64_t y[], int len, uint64_t multiplier) noexcept
 {
+    // OPT: Add MinLen template parameter and unroll first loop iterations.
     uint64_t borrow = 0;
     for (int i = 0; i < len; ++i)
     {
-        const auto p = umul(multiplier, y[i]);
-        const auto s = uint128{x[i]} - borrow - p.lo;
-        r[i] = s.lo;
-        borrow = p.hi - s.hi;
+        const auto s = sub_with_carry(x[i], borrow);
+        const auto p = umul(y[i], multiplier);
+        const auto t = sub_with_carry(s.value, p.lo);
+        r[i] = t.value;
+        borrow = p.hi + s.carry + t.carry;
     }
     return borrow;
 }
