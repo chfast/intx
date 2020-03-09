@@ -31,21 +31,23 @@ namespace intx
 namespace
 {
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
-/// @param u  The array of a normalized numerator words. It will contain the quotient after
-///           execution.
-/// @param m  The number of numerator words.
-/// @param d  The normalized denominator.
-/// @return   The remainder.
-inline uint64_t udivrem_by1(uint64_t u[], int m, uint64_t d) noexcept
+/// @param u    The array of a normalized numerator words. It will contain
+///             the quotient after execution.
+/// @param len  The number of numerator words.
+/// @param d    The normalized denominator.
+/// @return     The remainder.
+inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 {
-    const auto v = reciprocal_2by1(d);
+    REQUIRE(len >= 1);  // TODO: Make it >= 2.
 
-    auto r = u[m - 1];  // Set the top word as remainder.
-    u[m - 1] = 0;       // Reset the word being a part of the result quotient.
+    const auto reciprocal = reciprocal_2by1(d);
 
-    for (int j = m - 2; j >= 0; --j)
+    auto r = u[len - 1];  // Set the top word as remainder.
+    u[len - 1] = 0;       // Reset the word being a part of the result quotient.
+
+    for (int j = len - 2; j >= 0; --j)
     {
-        const auto x = udivrem_2by1({r, u[j]}, d, v);
+        const auto x = udivrem_2by1({r, u[j]}, d, reciprocal);
         u[j] = x.quot;
         r = x.rem;
     }
@@ -54,21 +56,23 @@ inline uint64_t udivrem_by1(uint64_t u[], int m, uint64_t d) noexcept
 }
 
 /// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
-/// @param u  The array of a normalized numerator words. It will contain the quotient after
-///           execution.
-/// @param m  The number of numerator words.
-/// @param d  The normalized denominator.
-/// @return   The remainder.
-inline uint128 udivrem_by2(uint64_t u[], int m, uint128 d) noexcept
+/// @param u    The array of a normalized numerator words. It will contain the
+///             quotient after execution.
+/// @param len  The number of numerator words.
+/// @param d    The normalized denominator.
+/// @return     The remainder.
+inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 {
-    const auto v = reciprocal_3by2(d);
+    REQUIRE(len >= 2);  // TODO: Make it >= 3.
 
-    auto r = uint128{u[m - 1], u[m - 2]};  // Set the 2 top words as remainder.
-    u[m - 1] = u[m - 2] = 0;               // Reset these words being a part of the result quotient.
+    const auto reciprocal = reciprocal_3by2(d);
 
-    for (int j = m - 3; j >= 0; --j)
+    auto r = uint128{u[len - 1], u[len - 2]};  // Set the 2 top words as remainder.
+    u[len - 1] = u[len - 2] = 0;  // Reset these words being a part of the result quotient.
+
+    for (int j = len - 3; j >= 0; --j)
     {
-        const auto x = udivrem_3by2(r.hi, r.lo, u[j], d, v);
+        const auto x = udivrem_3by2(r.hi, r.lo, u[j], d, reciprocal);
         u[j] = x.quot.lo;
         r = x.rem;
     }
@@ -107,23 +111,26 @@ inline uint64_t submul(
     return borrow;
 }
 
-void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int n) noexcept
+void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
 {
-    const auto divisor = uint128{vn[n - 1], vn[n - 2]};
+	REQUIRE(dlen >= 3);
+    REQUIRE(ulen >= dlen);
+    
+    const auto divisor = uint128{d[dlen - 1], d[dlen - 2]};
     const auto reciprocal = reciprocal_2by1(divisor.hi);
-    for (int j = m - n - 1; j >= 0; --j)
+    for (int j = ulen - dlen - 1; j >= 0; --j)
     {
-        const auto u2 = un[j + n];
-        const auto u1 = un[j + n - 1];
-        const auto u0 = un[j + n - 2];
+        const auto u2 = u[j + dlen];
+        const auto u1 = u[j + dlen - 1];
+        const auto u0 = u[j + dlen - 2];
 
         uint64_t qhat;
         uint128 rhat;
-        const auto dividend = uint128{u2, u1};
-        if (UNLIKELY(dividend.hi >= divisor.hi))  // Division overflows.
+        const auto numerator = uint128{u2, u1};
+        if (UNLIKELY(numerator.hi >= divisor.hi))  // Division overflows.
         {
             qhat = ~uint64_t{0};
-            rhat = dividend - uint128{divisor.hi, 0};
+            rhat = numerator - uint128{divisor.hi, 0};
             rhat += divisor.hi;
 
             // Adjustment (not needed for correctness, but helps avoiding "add back" case).
@@ -132,7 +139,7 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
         }
         else
         {
-            const auto res = udivrem_2by1(dividend, divisor.hi, reciprocal);
+            const auto res = udivrem_2by1(numerator, divisor.hi, reciprocal);
             qhat = res.quot;
             rhat = res.rem;
 
@@ -149,12 +156,12 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
         }
 
         // Multiply and subtract.
-        const auto borrow = submul(&un[j], &un[j], vn, n, qhat);
-        un[j + n] = u2 - borrow;
+        const auto borrow = submul(&u[j], &u[j], d, dlen, qhat);
+        u[j + dlen] = u2 - borrow;
         if (u2 < borrow)  // Too much subtracted, add back.
         {
             --qhat;
-            un[j + n] += add(&un[j], &un[j], vn, n);
+            u[j + dlen] += add(&u[j], &u[j], d, dlen);
         }
 
         q[j] = qhat;  // Store quotient digit.
