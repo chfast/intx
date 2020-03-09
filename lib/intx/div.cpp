@@ -12,6 +12,12 @@
 #define UNREACHABLE __builtin_unreachable()
 #endif
 
+#if defined(_MSC_VER)
+#define UNLIKELY(EXPR) EXPR
+#else
+#define UNLIKELY(EXPR) __builtin_expect((bool)(EXPR), false)
+#endif
+
 #if defined(NDEBUG)
 #define REQUIRE(X) \
     if (!(X))      \
@@ -114,7 +120,7 @@ void udivrem_knuth(uint64_t q[], uint64_t un[], int m, const uint64_t vn[], int 
         uint64_t qhat;
         uint128 rhat;
         const auto dividend = uint128{u2, u1};
-        if (dividend.hi >= divisor.hi)  // Will overflow:
+        if (UNLIKELY(dividend.hi >= divisor.hi))  // Division overflows.
         {
             qhat = ~uint64_t{0};
             rhat = dividend - uint128{divisor.hi, 0};
