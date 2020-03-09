@@ -38,6 +38,8 @@ namespace
 /// @return     The remainder.
 inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 {
+    REQUIRE(len >= 1);  // TODO: Make it >= 2.
+
     const auto reciprocal = reciprocal_2by1(d);
 
     auto r = u[len - 1];  // Set the top word as remainder.
@@ -61,6 +63,8 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 /// @return     The remainder.
 inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 {
+    REQUIRE(len >= 2);  // TODO: Make it >= 3.
+
     const auto reciprocal = reciprocal_3by2(d);
 
     auto r = uint128{u[len - 1], u[len - 2]};  // Set the 2 top words as remainder.
@@ -109,6 +113,9 @@ inline uint64_t submul(
 
 void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
 {
+	REQUIRE(dlen >= 3);
+    REQUIRE(ulen >= dlen);
+    
     const auto divisor = uint128{d[dlen - 1], d[dlen - 2]};
     const auto reciprocal = reciprocal_2by1(divisor.hi);
     for (int j = ulen - dlen - 1; j >= 0; --j)
