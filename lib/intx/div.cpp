@@ -3,7 +3,22 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include "div.hpp"
+#include <cassert>
 #include <tuple>
+
+#if defined(_MSC_VER)
+#define UNREACHABLE __assume(0)
+#else
+#define UNREACHABLE __builtin_unreachable()
+#endif
+
+#if defined(NDEBUG)
+#define REQUIRE(X) \
+    if (!(X))      \
+    UNREACHABLE
+#else
+#define REQUIRE assert
+#endif
 
 namespace intx
 {
@@ -59,6 +74,8 @@ inline uint128 udivrem_by2(uint64_t u[], int m, uint128 d) noexcept
 inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
+    REQUIRE(len >= 3);
+
     bool carry = false;
     for (int i = 0; i < len; ++i)
         std::tie(s[i], carry) = add_with_carry(x[i], y[i], carry);
@@ -70,6 +87,8 @@ inline uint64_t submul(
     uint64_t r[], const uint64_t x[], const uint64_t y[], int len, uint64_t multiplier) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
+    REQUIRE(len >= 3);
+
     uint64_t borrow = 0;
     for (int i = 0; i < len; ++i)
     {
