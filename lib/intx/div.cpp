@@ -113,9 +113,9 @@ inline uint64_t submul(
 
 void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
 {
-	REQUIRE(dlen >= 3);
+    REQUIRE(dlen >= 3);
     REQUIRE(ulen >= dlen);
-    
+
     const auto divisor = uint128{d[dlen - 1], d[dlen - 2]};
     const auto reciprocal = reciprocal_2by1(divisor.hi);
     for (int j = ulen - dlen - 1; j >= 0; --j)
