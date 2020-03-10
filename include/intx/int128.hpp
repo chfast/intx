@@ -595,7 +595,7 @@ inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noex
     return {q.hi, r};
 }
 
-inline div_result<uint128> udivrem_3by2(
+inline div_result<uint64_t, uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
     auto q = umul(v, u2);
