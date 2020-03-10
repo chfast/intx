@@ -10,6 +10,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 
 #ifdef _MSC_VER
@@ -76,8 +77,8 @@ struct result_with_carry
     T value;
     bool carry;
 
-    /// Conversion to tuple of referecences, to allow usage with std::tie().
-    operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
+    /// Conversion to tuple of references, to allow usage with std::tie().
+    constexpr operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
 };
 
 
@@ -487,11 +488,14 @@ inline uint128 bswap(uint128 x) noexcept
 /// Division.
 /// @{
 
-template <typename T>
+template <typename QuotT, typename RemT = QuotT>
 struct div_result
 {
-    T quot;
-    T rem;
+    QuotT quot;
+    RemT rem;
+
+    /// Conversion to tuple of references, to allow usage with std::tie().
+    constexpr operator std::tuple<QuotT&, RemT&>() noexcept { return {quot, rem}; }
 };
 
 namespace internal
@@ -595,7 +599,7 @@ inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noex
     return {q.hi, r};
 }
 
-inline div_result<uint128> udivrem_3by2(
+inline div_result<uint64_t, uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
     auto q = umul(v, u2);

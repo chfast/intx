@@ -71,11 +71,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
     u[len - 1] = u[len - 2] = 0;  // Reset these words being a part of the result quotient.
 
     for (int j = len - 3; j >= 0; --j)
-    {
-        const auto x = udivrem_3by2(r.hi, r.lo, u[j], d, reciprocal);
-        u[j] = x.quot.lo;
-        r = x.rem;
-    }
+        std::tie(u[j], r) = udivrem_3by2(r.hi, r.lo, u[j], d, reciprocal);
 
     return r;
 }
@@ -84,7 +80,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
-    REQUIRE(len >= 3);
+    REQUIRE(len >= 2);
 
     bool carry = false;
     for (int i = 0; i < len; ++i)
@@ -156,12 +152,13 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
         }
 
         // Multiply and subtract.
-        const auto borrow = submul(&u[j], &u[j], d, dlen, qhat);
-        u[j + dlen] = u2 - borrow;
-        if (u2 < borrow)  // Too much subtracted, add back.
+        bool carry;
+        const auto overflow = submul(&u[j], &u[j], d, dlen, qhat);
+        std::tie(u[j + dlen], carry) = sub_with_carry(u2, overflow);
+        if (carry)  // Too much subtracted, add back.
         {
             --qhat;
-            u[j + dlen] += add(&u[j], &u[j], d, dlen);
+            u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
         }
 
         q[j] = qhat;  // Store quotient digit.
