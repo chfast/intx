@@ -93,7 +93,7 @@ inline uint64_t submul(
     uint64_t r[], const uint64_t x[], const uint64_t y[], int len, uint64_t multiplier) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
-    REQUIRE(len >= 3);
+    REQUIRE(len >= 1);
 
     uint64_t borrow = 0;
     for (int i = 0; i < len; ++i)
@@ -129,12 +129,15 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
         }
         else
         {
-            qhat = udivrem_3by2(u2, u1, u0, divisor, reciprocal).quot;
+            uint128 rhat;
+            std::tie(qhat, rhat) = udivrem_3by2(u2, u1, u0, divisor, reciprocal);
 
             bool carry;
-            const auto overflow = submul(&u[j], &u[j], d, dlen, qhat);
-            std::tie(u[j + dlen], carry) = sub_with_carry(u2, overflow);
-            if (carry)  // Too much subtracted, add back.
+            const auto overflow = submul(&u[j], &u[j], d, dlen - 2, qhat);
+            std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat.lo, overflow);
+            std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat.hi, carry);
+
+            if (carry)
             {
                 --qhat;
                 u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
