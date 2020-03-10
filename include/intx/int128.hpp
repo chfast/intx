@@ -487,11 +487,11 @@ inline uint128 bswap(uint128 x) noexcept
 /// Division.
 /// @{
 
-template <typename T>
+template <typename QuotT, typename RemT = QuotT>
 struct div_result
 {
-    T quot;
-    T rem;
+    QuotT quot;
+    RemT rem;
 };
 
 namespace internal
