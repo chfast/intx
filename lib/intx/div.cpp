@@ -71,11 +71,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
     u[len - 1] = u[len - 2] = 0;  // Reset these words being a part of the result quotient.
 
     for (int j = len - 3; j >= 0; --j)
-    {
-        const auto x = udivrem_3by2(r.hi, r.lo, u[j], d, reciprocal);
-        u[j] = x.quot;
-        r = x.rem;
-    }
+        std::tie(u[j], r) = udivrem_3by2(r.hi, r.lo, u[j], d, reciprocal);
 
     return r;
 }

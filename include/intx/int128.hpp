@@ -10,6 +10,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 
 #ifdef _MSC_VER
@@ -76,8 +77,8 @@ struct result_with_carry
     T value;
     bool carry;
 
-    /// Conversion to tuple of referecences, to allow usage with std::tie().
-    operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
+    /// Conversion to tuple of references, to allow usage with std::tie().
+    constexpr operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
 };
 
 
@@ -492,6 +493,9 @@ struct div_result
 {
     QuotT quot;
     RemT rem;
+
+    /// Conversion to tuple of references, to allow usage with std::tie().
+    constexpr operator std::tuple<QuotT&, RemT&>() noexcept { return {quot, rem}; }
 };
 
 namespace internal
