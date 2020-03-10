@@ -156,9 +156,10 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
         }
 
         // Multiply and subtract.
-        const auto borrow = submul(&u[j], &u[j], d, dlen, qhat);
-        u[j + dlen] = u2 - borrow;
-        if (u2 < borrow)  // Too much subtracted, add back.
+        bool carry;
+        const auto overflow = submul(&u[j], &u[j], d, dlen, qhat);
+        std::tie(u[j + dlen], carry) = sub_with_carry(u2, overflow);
+        if (carry)  // Too much subtracted, add back.
         {
             --qhat;
             u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
