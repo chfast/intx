@@ -93,7 +93,7 @@ inline uint64_t submul(
     uint64_t r[], const uint64_t x[], const uint64_t y[], int len, uint64_t multiplier) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
-    REQUIRE(len >= 3);
+    REQUIRE(len >= 1);
 
     uint64_t borrow = 0;
     for (int i = 0; i < len; ++i)
@@ -113,7 +113,7 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
     REQUIRE(ulen >= dlen);
 
     const auto divisor = uint128{d[dlen - 1], d[dlen - 2]};
-    const auto reciprocal = reciprocal_2by1(divisor.hi);
+    const auto reciprocal = reciprocal_3by2(divisor);
     for (int j = ulen - dlen - 1; j >= 0; --j)
     {
         const auto u2 = u[j + dlen];
@@ -121,44 +121,27 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
         const auto u0 = u[j + dlen - 2];
 
         uint64_t qhat;
-        uint128 rhat;
-        const auto numerator = uint128{u2, u1};
-        if (UNLIKELY(numerator.hi >= divisor.hi))  // Division overflows.
+        if (uint128{u2, u1} == divisor)  // Division overflows.
         {
             qhat = ~uint64_t{0};
-            rhat = numerator - uint128{divisor.hi, 0};
-            rhat += divisor.hi;
 
-            // Adjustment (not needed for correctness, but helps avoiding "add back" case).
-            if (rhat.hi == 0 && umul(qhat, divisor.lo) > uint128{rhat.lo, u0})
-                --qhat;
+            u[j + dlen] = u2 - submul(&u[j], &u[j], d, dlen, qhat);
         }
         else
         {
-            const auto res = udivrem_2by1(numerator, divisor.hi, reciprocal);
-            qhat = res.quot;
-            rhat = res.rem;
+            uint128 rhat;
+            std::tie(qhat, rhat) = udivrem_3by2(u2, u1, u0, divisor, reciprocal);
 
-            const auto p = umul(qhat, divisor.lo);
-            if (p > uint128{rhat.lo, u0})
+            bool carry;
+            const auto overflow = submul(&u[j], &u[j], d, dlen - 2, qhat);
+            std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat.lo, overflow);
+            std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat.hi, carry);
+
+            if (carry)
             {
                 --qhat;
-                rhat += divisor.hi;
-
-                // Adjustment (not needed for correctness, but helps avoiding "add back" case).
-                if (rhat.hi == 0 && (p - divisor.lo) > uint128{rhat.lo, u0})
-                    --qhat;
+                u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
             }
-        }
-
-        // Multiply and subtract.
-        bool carry;
-        const auto overflow = submul(&u[j], &u[j], d, dlen, qhat);
-        std::tie(u[j + dlen], carry) = sub_with_carry(u2, overflow);
-        if (carry)  // Too much subtracted, add back.
-        {
-            --qhat;
-            u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
         }
 
         q[j] = qhat;  // Store quotient digit.
