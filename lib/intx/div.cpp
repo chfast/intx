@@ -84,7 +84,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
-    REQUIRE(len >= 3);
+    REQUIRE(len >= 2);
 
     bool carry = false;
     for (int i = 0; i < len; ++i)
@@ -161,7 +161,7 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
         if (u2 < borrow)  // Too much subtracted, add back.
         {
             --qhat;
-            u[j + dlen] += add(&u[j], &u[j], d, dlen);
+            u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
         }
 
         q[j] = qhat;  // Store quotient digit.
