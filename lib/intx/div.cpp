@@ -29,6 +29,8 @@
 
 namespace intx
 {
+namespace
+{
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
 /// @param u    The array of a normalized numerator words. It will contain
 ///             the quotient after execution.
@@ -60,7 +62,7 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 /// @param len  The number of numerator words.
 /// @param d    The normalized denominator.
 /// @return     The remainder.
-uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
+inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 {
     REQUIRE(len >= 2);  // TODO: Make it >= 3.
 
@@ -147,8 +149,6 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
     }
 }
 
-namespace  // FIXME: Wrap above implementations.
-{
 }  // namespace
 
 template <unsigned N>

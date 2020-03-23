@@ -6,21 +6,19 @@
 
 namespace intx
 {
-uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept;
-void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept;
-
 namespace experimental
 {
-uint128 reciprocal_4by2(uint128 d) noexcept
+inline uint128 reciprocal_4by2(uint128 d) noexcept
 {
-    uint256 n{~d, ~uint128{0}};
+    const auto reciprocal = reciprocal_3by2(d);
 
-    udivrem_by2(as_words(n), 4, d);
+    const auto x1 = udivrem_3by2(~d.hi, ~d.lo, ~uint64_t{0}, d, reciprocal);
+    const auto x2 = udivrem_3by2(x1.rem.hi, x1.rem.lo, ~uint64_t{0}, d, reciprocal);
 
-    return n.lo;
+    return {x1.quot, x2.quot};
 }
 
-div_result<uint128> udivrem_4by2(uint256 u, uint128 d, uint128 v) noexcept
+div_result<uint128> udivrem_4by2(const uint256& u, uint128 d, uint128 v) noexcept
 {
     auto q = umul(v, u.hi);
     q += u;
@@ -44,21 +42,38 @@ div_result<uint128> udivrem_4by2(uint256 u, uint128 d, uint128 v) noexcept
     return {q.hi, r};
 }
 
-div_result<uint128> udivrem_4by2(uint256 u, uint128 d) noexcept
+div_result<uint128> udivrem_4by2(const uint256& u, uint128 d) noexcept
 {
     const auto v = reciprocal_4by2(d);
     return udivrem_4by2(u, d, v);
 }
 
-uint128 reciprocal_6by4(const uint256& d) noexcept
+inline uint128 reciprocal_6by4(const uint256& d) noexcept
 {
-    const auto d1 = ~d.hi;
-    const auto d0 = ~d.lo;
-    uint64_t u[6]{~uint64_t{0}, ~uint64_t{0}, d0.lo, d0.hi, d1.lo, d1.hi};
+    auto v = reciprocal_4by2(d.hi);
+    auto p = d.hi * v;
+    p += d.lo;
+    if (p < d.lo)
+    {
+        --v;
+        if (p >= d.hi)
+        {
+            --v;
+            p -= d.hi;
+        }
+        p -= d.hi;
+    }
 
-    uint128 q;
-    udivrem_knuth(as_words(q), u, 6, as_words(d), 4);
-    return q;
+    const auto t = umul(v, d.lo);
+
+    p += t.hi;
+    if (p < t.hi)
+    {
+        --v;
+        if (uint256{p, t.lo} >= d)
+            --v;
+    }
+    return v;
 }
 
 div_result<uint128, uint256> udivrem_6by4(const uint64_t* u, const uint256& d, uint128 v) noexcept
