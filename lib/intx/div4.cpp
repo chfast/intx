@@ -7,6 +7,7 @@
 namespace intx
 {
 uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept;
+void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept;
 
 namespace experimental
 {
@@ -47,6 +48,54 @@ div_result<uint128> udivrem_4by2(uint256 u, uint128 d) noexcept
 {
     const auto v = reciprocal_4by2(d);
     return udivrem_4by2(u, d, v);
+}
+
+uint128 reciprocal_6by4(const uint256& d) noexcept
+{
+    uint64_t u[]{
+        ~uint64_t{0}, ~uint64_t{0}, ~uint64_t{0}, ~uint64_t{0}, ~uint64_t{0}, ~uint64_t{0}, 0};
+
+    uint256 q;
+    udivrem_knuth(as_words(q), u, 7, as_words(d), 4);
+    return (q - uint256{1, 0}).lo;
+}
+
+div_result<uint128, uint256> udivrem_6by4(const uint64_t* u, const uint256& d, uint128 v) noexcept
+{
+    const uint128 u2{u[5], u[4]};
+    const uint128 u1{u[3], u[2]};
+    const uint128 u0{u[1], u[0]};
+
+    auto q = umul(v, u2);
+    q += uint256{u2, u1};
+
+    auto r1 = u1 - q.hi * d.hi;
+
+    auto t = umul(d.lo, q.hi);
+
+    auto r = uint256{r1, u0} - t - d;
+    r1 = r.hi;
+
+    ++q.hi;
+
+    if (r1 >= q.lo)
+    {
+        --q.hi;
+        r += d;
+    }
+
+    if (r >= d)
+    {
+        ++q.hi;
+        r -= d;
+    }
+
+    return {q.hi, r};
+}
+
+div_result<uint128, uint256> udivrem_6by4(const uint64_t* u, const uint256& d) noexcept
+{
+    return udivrem_6by4(u, d, reciprocal_6by4(d));
 }
 
 }  // namespace experimental

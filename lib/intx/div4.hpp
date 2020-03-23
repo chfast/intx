@@ -9,5 +9,6 @@ namespace intx
 namespace experimental
 {
 div_result<uint128> udivrem_4by2(uint256 u, uint128 d) noexcept;
+div_result<uint128, uint256> udivrem_6by4(const uint64_t* u, const uint256& d) noexcept;
 }
 }  // namespace intx

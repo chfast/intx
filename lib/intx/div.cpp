@@ -75,9 +75,6 @@ uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
     return r;
 }
 
-namespace
-{
-
 /// s = x + y.
 inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
 {
@@ -150,6 +147,8 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
     }
 }
 
+namespace  // FIXME: Wrap above implementations.
+{
 }  // namespace
 
 template <unsigned N>
@@ -182,6 +181,17 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
         auto d = as_words(na.denominator);
         auto r = udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[1], d[0]});
         return {na.numerator, r >> na.shift};
+    }
+
+    if (na.num_denominator_words == 4)
+    {
+        if (na.num_numerator_words == 6)
+        {
+            const auto& dw = as_words(na.denominator);
+            const uint256 d{{dw[3], dw[2]}, {dw[1], dw[0]}};
+            const auto x = experimental::udivrem_6by4(as_words(na.numerator), d);
+            return {x.quot, x.rem >> na.shift};
+        }
     }
 
     auto un = as_words(na.numerator);  // Will be modified.
