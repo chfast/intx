@@ -185,11 +185,14 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 
     if (na.num_denominator_words == 4)
     {
-        if (na.num_numerator_words == 6)
+        if (na.num_numerator_words <= 6)
         {
+            uint64_t u_copy[6]{};
+            auto uw = as_words(na.numerator);
+            std::copy_n(uw, static_cast<size_t>(na.num_numerator_words), u_copy);
             const auto& dw = as_words(na.denominator);
             const uint256 d{{dw[3], dw[2]}, {dw[1], dw[0]}};
-            const auto x = experimental::udivrem_6by4(as_words(na.numerator), d);
+            const auto x = experimental::udivrem_6by4(u_copy, d);
             return {x.quot, x.rem >> na.shift};
         }
     }
