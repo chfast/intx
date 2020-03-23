@@ -525,7 +525,7 @@ constexpr uint16_t reciprocal_table[] = {REPEAT256()};
 #undef REPEAT256
 }  // namespace internal
 
-/// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
+/// Computes the reciprocal (2^128 - 1)/d - 2^64 === <2^64-d, 2^64-1>/d for normalized d.
 ///
 /// Based on Algorithm 2 from "Improved division by invariant integers".
 inline uint64_t reciprocal_2by1(uint64_t d) noexcept

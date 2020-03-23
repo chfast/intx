@@ -1,5 +1,5 @@
 # intx: extended precision integer library.
-# Copyright 2019 Pawel Bylica.
+# Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
 set(include_dir ${PROJECT_SOURCE_DIR}/include)
@@ -15,6 +15,8 @@ add_library(intx STATIC
     ${include_dir}/intx/intx.hpp
     div.cpp
     div.hpp
+    div4.cpp
+    div4.hpp
 )
 add_library(intx::intx ALIAS intx)
 target_compile_features(intx PUBLIC cxx_std_14)

@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include "div.hpp"
+#include "div4.hpp"
 #include <cassert>
 #include <tuple>
 
@@ -27,8 +28,6 @@
 #endif
 
 namespace intx
-{
-namespace
 {
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
 /// @param u    The array of a normalized numerator words. It will contain
@@ -61,7 +60,7 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 /// @param len  The number of numerator words.
 /// @param d    The normalized denominator.
 /// @return     The remainder.
-inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
+uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 {
     REQUIRE(len >= 2);  // TODO: Make it >= 3.
 
@@ -75,6 +74,9 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 
     return r;
 }
+
+namespace
+{
 
 /// s = x + y.
 inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
@@ -167,6 +169,16 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 
     if (na.num_denominator_words == 2)
     {
+        if (na.num_numerator_words == 4)
+        {
+            const auto& uw = as_words(na.numerator);
+            const uint256 u2{{uw[3], uw[2]}, {uw[1], uw[0]}};
+            const auto& dw = as_words(na.denominator);
+            const uint128 d{dw[1], dw[0]};
+            const auto x = experimental::udivrem_4by2(u2, d);
+            return {x.quot, x.rem >> na.shift};
+        }
+
         auto d = as_words(na.denominator);
         auto r = udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[1], d[0]});
         return {na.numerator, r >> na.shift};

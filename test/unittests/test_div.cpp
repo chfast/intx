@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include <div.hpp>
+#include <div4.hpp>
 #include <intx/intx.hpp>
 
 #include <gtest/gtest.h>
@@ -249,6 +250,18 @@ static div_test_case<uint512> div_test_cases[] = {
         0xffffffffffffffff,
         0x7effffff7fffffffffffffffffff7fffd900000000008002_u256,
     },
+    {
+        0x100000000000000000000000000000003_u256,
+        0x80000000000000000000000000000000_u128,
+        2,
+        3,
+    },
+    {
+        0x100000000000000000000000000000000000000000000003_u256,
+        0x40000000000000000000000000000000_u128,
+        0x4000000000000000,
+        3,
+    },
 };
 
 TEST(div, udivrem_512)
@@ -258,6 +271,17 @@ TEST(div, udivrem_512)
         auto res = udivrem(t.numerator, t.denominator);
         EXPECT_EQ(res.quot, t.quotient);
         EXPECT_EQ(res.rem, t.reminder);
+
+        if (t.denominator.hi == 0 && t.denominator.lo.hi == 0 &&
+            (t.denominator.lo.lo.hi & 0x8000000000000000))
+        {
+            const auto n = t.numerator.lo;
+            const auto d = t.denominator.lo.lo;
+
+            const auto xx = experimental::udivrem_4by2(n, d);
+            EXPECT_EQ(xx.quot, 2);
+            EXPECT_EQ(xx.rem, 3);
+        }
     }
 }
 
