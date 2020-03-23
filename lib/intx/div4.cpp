@@ -52,12 +52,13 @@ div_result<uint128> udivrem_4by2(uint256 u, uint128 d) noexcept
 
 uint128 reciprocal_6by4(const uint256& d) noexcept
 {
-    uint64_t u[]{
-        ~uint64_t{0}, ~uint64_t{0}, ~uint64_t{0}, ~uint64_t{0}, ~uint64_t{0}, ~uint64_t{0}, 0};
+    const auto d1 = ~d.hi;
+    const auto d0 = ~d.lo;
+    uint64_t u[6]{~uint64_t{0}, ~uint64_t{0}, d0.lo, d0.hi, d1.lo, d1.hi};
 
-    uint256 q;
-    udivrem_knuth(as_words(q), u, 7, as_words(d), 4);
-    return (q - uint256{1, 0}).lo;
+    uint128 q;
+    udivrem_knuth(as_words(q), u, 6, as_words(d), 4);
+    return q;
 }
 
 div_result<uint128, uint256> udivrem_6by4(const uint64_t* u, const uint256& d, uint128 v) noexcept
