@@ -2,16 +2,15 @@
 // Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include "../utils/gmp.hpp"
-#include "../utils/random.hpp"
-
+#include <test/utils/gmp.hpp>
+#include <test/utils/random.hpp>
 #include <benchmark/benchmark.h>
-#include <div.hpp>
 #include <experimental/add.hpp>
 #include <experimental/div.hpp>
 #include <intx/intx.hpp>
 
 using namespace intx;
+using namespace intx::test;
 
 div_result<uint128> udivrem_by_ref(const uint128& x, const uint128& y) noexcept
 {

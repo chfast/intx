@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 /// @file
@@ -8,6 +8,10 @@
 #include <algorithm>
 #include <random>
 
+namespace intx
+{
+namespace test
+{
 using seed_type = std::random_device::result_type;
 
 static seed_type get_seed()
@@ -41,7 +45,8 @@ inline std::vector<uint64_t> gen_uniform_seq(size_t num)
     std::mt19937_64 rng{get_seed()};
     std::uniform_int_distribution<uint64_t> dist;
     std::vector<uint64_t> seq;
-    std::generate_n(std::back_inserter(seq), num, [&]{ return dist(rng); });
+    std::generate_n(std::back_inserter(seq), num, [&] { return dist(rng); });
     return seq;
 }
-
+}  // namespace test
+}  // namespace intx

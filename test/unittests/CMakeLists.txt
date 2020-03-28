@@ -1,5 +1,5 @@
 # intx: extended precision integer library.
-# Copyright 2019 Pawel Bylica.
+# Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
 include(GoogleTest)
@@ -16,7 +16,7 @@ add_executable(intx-unittests
     test_intx_api.cpp
     test_utils.hpp
 )
-target_link_libraries(intx-unittests PRIVATE intx intx::experimental GTest::gtest_main)
+target_link_libraries(intx-unittests PRIVATE intx intx::experimental intx::testutils GTest::gtest_main)
 target_include_directories(intx-unittests PRIVATE ${intx_internal_include_dir})
 set_target_properties(intx-unittests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)
 
