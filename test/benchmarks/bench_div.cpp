@@ -2,10 +2,9 @@
 // Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include <div.hpp>
-
-#include "../utils/random.hpp"
 #include <benchmark/benchmark.h>
+#include <div.hpp>
+#include <test/utils/random.hpp>
 
 uint64_t udiv_native(uint64_t x, uint64_t y) noexcept;
 uint64_t nop(uint64_t x, uint64_t y) noexcept;
@@ -66,7 +65,7 @@ template <decltype(reciprocal_2by1) Fn>
 static void div_unary(benchmark::State& state)
 {
     constexpr auto top_bit = uint64_t{1} << 63;
-    auto input = gen_uniform_seq(10);
+    auto input = test::gen_uniform_seq(10);
 
     for (auto& i : input)
         i |= top_bit;
@@ -90,7 +89,7 @@ static void udiv64(benchmark::State& state)
 {
     // Pick random operands. Keep the divisor small, because this is the worst
     // case for most algorithms.
-    std::mt19937_64 rng{get_seed()};
+    std::mt19937_64 rng{test::get_seed()};
     std::uniform_int_distribution<uint64_t> dist_x;
     std::uniform_int_distribution<uint64_t> dist_y(1, 200);
 

@@ -1,5 +1,5 @@
 # intx: extended precision integer library.
-# Copyright 2019 Pawel Bylica.
+# Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
 hunter_add_package(benchmark)
@@ -15,6 +15,6 @@ add_executable(intx-bench
     noinline.cpp
     utils.cpp
 )
-target_link_libraries(intx-bench PRIVATE intx intx::experimental benchmark::benchmark GMP::gmp)
+target_link_libraries(intx-bench PRIVATE intx intx::experimental intx::testutils benchmark::benchmark GMP::gmp)
 target_include_directories(intx-bench PRIVATE ${intx_internal_include_dir})
 set_target_properties(intx-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)

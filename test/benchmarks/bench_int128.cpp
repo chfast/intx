@@ -2,11 +2,10 @@
 // Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include <intx/int128.hpp>
-
-#include "../utils/gmp.hpp"
-#include "../utils/random.hpp"
 #include <benchmark/benchmark.h>
+#include <intx/int128.hpp>
+#include <test/utils/gmp.hpp>
+#include <test/utils/random.hpp>
 
 using namespace intx;
 
@@ -97,7 +96,7 @@ BENCHMARK_TEMPLATE(udiv128_single_long_shift, div_gmp);
 template <typename RetT, RetT (*MulFn)(uint64_t, uint64_t)>
 static void umul128(benchmark::State& state)
 {
-    const auto inputs = gen_uniform_seq(1000);
+    const auto inputs = test::gen_uniform_seq(1000);
     benchmark::ClobberMemory();
 
     while (state.KeepRunningBatch(inputs.size()))

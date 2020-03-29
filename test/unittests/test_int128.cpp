@@ -1,11 +1,10 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include <intx/int128.hpp>
-
-#include "../utils/random.hpp"
 #include <gtest/gtest.h>
+#include <intx/int128.hpp>
+#include <test/utils/random.hpp>
 
 using namespace intx;
 
@@ -301,7 +300,7 @@ TEST(int128, arith_random_args)
 {
     int c = 1000000;
 
-    lcg<uint128> dist{get_seed()};
+    test::lcg<uint128> dist{test::get_seed()};
 
     while (c-- > 0)
     {
@@ -359,7 +358,7 @@ TEST(int128, to_string)
 
 TEST(int128, umul_random)
 {
-    const auto inputs = gen_uniform_seq(10000);
+    const auto inputs = test::gen_uniform_seq(10000);
 
     for (size_t i = 1; i < inputs.size(); ++i)
     {
