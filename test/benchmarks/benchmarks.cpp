@@ -2,12 +2,12 @@
 // Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include <test/utils/gmp.hpp>
-#include <test/utils/random.hpp>
 #include <benchmark/benchmark.h>
 #include <experimental/add.hpp>
 #include <experimental/div.hpp>
 #include <intx/intx.hpp>
+#include <test/utils/gmp.hpp>
+#include <test/utils/random.hpp>
 
 using namespace intx;
 using namespace intx::test;
@@ -151,30 +151,6 @@ BENCHMARK_TEMPLATE(mod, mulmod, uint64_t);
 BENCHMARK_TEMPLATE(mod, mulmod, uint128);
 BENCHMARK_TEMPLATE(mod, mulmod, uint256);
 
-using binary_fn256 = uint256 (*)(const uint256&, const uint256&);
-template <binary_fn256 BinFn>
-static void binary_op256(benchmark::State& state)
-{
-    // Pick random operands. Keep the divisor small, because this is the worst
-    // case for most algorithms.
-    lcg<uint256> rng(get_seed());
-
-    constexpr size_t size = 1000;
-    std::vector<uint256> input_x(size);
-    std::vector<uint256> input_y(size);
-    std::vector<uint256> output(size);
-    for (auto& x : input_x)
-        x = rng();
-    for (auto& y : input_y)
-        y = rng();
-
-    while (state.KeepRunningBatch(size))
-    {
-        for (size_t i = 0; i < size; ++i)
-            output[i] = BinFn(input_x[i], input_y[i]);
-        benchmark::DoNotOptimize(output.data());
-    }
-}
 
 inline auto public_mul(const uint256& x, const uint256& y) noexcept
 {
@@ -202,73 +178,6 @@ uint256 sub(const uint256& x, const uint256& y) noexcept;
 
 uint256 exp(const uint256& x, const uint256& y) noexcept;
 
-BENCHMARK_TEMPLATE(binary_op256, add);
-BENCHMARK_TEMPLATE(binary_op256, inline_add);
-BENCHMARK_TEMPLATE(binary_op256, sub);
-BENCHMARK_TEMPLATE(binary_op256, inline_sub);
-BENCHMARK_TEMPLATE(binary_op256, experimental::add_recursive);
-BENCHMARK_TEMPLATE(binary_op256, experimental::add_waterflow);
-BENCHMARK_TEMPLATE(binary_op256, mul);
-BENCHMARK_TEMPLATE(binary_op256, mul_loop);
-BENCHMARK_TEMPLATE(binary_op256, mul_loop_opt);
-BENCHMARK_TEMPLATE(binary_op256, public_mul);
-BENCHMARK_TEMPLATE(binary_op256, gmp::mul);
-BENCHMARK_TEMPLATE(binary_op256, exp);
-
-using binary_fn256_full = uint512 (*)(const uint256&, const uint256&);
-template <binary_fn256_full BinFn>
-static void binary_op256_full(benchmark::State& state)
-{
-    // Pick random operands. Keep the divisor small, because this is the worst
-    // case for most algorithms.
-    lcg<uint256> rng(get_seed());
-
-    constexpr size_t size = 1000;
-    std::vector<uint256> input_x(size);
-    std::vector<uint256> input_y(size);
-    std::vector<uint512> output(size);
-    for (auto& x : input_x)
-        x = rng();
-    for (auto& y : input_y)
-        y = rng();
-
-    while (state.KeepRunningBatch(size))
-    {
-        for (size_t i = 0; i < size; ++i)
-            output[i] = BinFn(input_x[i], input_y[i]);
-        benchmark::DoNotOptimize(output.data());
-    }
-}
-
-BENCHMARK_TEMPLATE(binary_op256_full, umul);
-BENCHMARK_TEMPLATE(binary_op256_full, umul_loop);
-BENCHMARK_TEMPLATE(binary_op256_full, gmp::mul_full);
-
-using binary_fn512 = uint512 (*)(const uint512&, const uint512&);
-template <binary_fn512 BinFn>
-static void binary_op512(benchmark::State& state)
-{
-    // Pick random operands. Keep the divisor small, because this is the worst
-    // case for most algorithms.
-    lcg<uint512> rng(get_seed());
-
-    constexpr size_t size = 1000;
-    std::vector<uint512> input_x(size);
-    std::vector<uint512> input_y(size);
-    std::vector<uint512> output(size);
-    for (auto& x : input_x)
-        x = rng();
-    for (auto& y : input_y)
-        y = rng();
-
-    while (state.KeepRunningBatch(size))
-    {
-        for (size_t i = 0; i < size; ++i)
-            output[i] = BinFn(input_x[i], input_y[i]);
-        benchmark::DoNotOptimize(output.data());
-    }
-}
-
 inline auto inline_add(const uint512& x, const uint512& y) noexcept
 {
     return x + y;
@@ -288,13 +197,45 @@ inline auto public_mul(const uint512& x, const uint512& y) noexcept
     return x * y;
 }
 
-BENCHMARK_TEMPLATE(binary_op512, add);
-BENCHMARK_TEMPLATE(binary_op512, inline_add);
-BENCHMARK_TEMPLATE(binary_op512, sub);
-BENCHMARK_TEMPLATE(binary_op512, inline_sub);
-BENCHMARK_TEMPLATE(binary_op512, mul);
-BENCHMARK_TEMPLATE(binary_op512, public_mul);
-BENCHMARK_TEMPLATE(binary_op512, gmp::mul);
+template <typename ResultT, typename ArgT, ResultT BinOp(const ArgT&, const ArgT&)>
+static void binop(benchmark::State& state)
+{
+    const auto& xs = test::get_samples<ArgT>(sizeof(ArgT) == sizeof(uint256) ? x_256 : x_512);
+    const auto& ys = test::get_samples<ArgT>(sizeof(ArgT) == sizeof(uint256) ? y_256 : y_512);
+
+    while (state.KeepRunningBatch(xs.size()))
+    {
+        for (size_t i = 0; i < xs.size(); ++i)
+        {
+            const auto _ = BinOp(xs[i], ys[i]);
+            benchmark::DoNotOptimize(_);
+        }
+    }
+}
+BENCHMARK_TEMPLATE(binop, uint256, uint256, add);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, inline_add);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, sub);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, inline_sub);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, experimental::add_recursive);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, experimental::add_waterflow);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, mul);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, mul_loop);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, mul_loop_opt);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, public_mul);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, gmp::mul);
+BENCHMARK_TEMPLATE(binop, uint256, uint256, exp);
+
+BENCHMARK_TEMPLATE(binop, uint512, uint256, umul);
+BENCHMARK_TEMPLATE(binop, uint512, uint256, umul_loop);
+BENCHMARK_TEMPLATE(binop, uint512, uint256, gmp::mul_full);
+
+BENCHMARK_TEMPLATE(binop, uint512, uint512, add);
+BENCHMARK_TEMPLATE(binop, uint512, uint512, inline_add);
+BENCHMARK_TEMPLATE(binop, uint512, uint512, sub);
+BENCHMARK_TEMPLATE(binop, uint512, uint512, inline_sub);
+BENCHMARK_TEMPLATE(binop, uint512, uint512, mul);
+BENCHMARK_TEMPLATE(binop, uint512, uint512, public_mul);
+BENCHMARK_TEMPLATE(binop, uint512, uint512, gmp::mul);
 
 template <unsigned N>
 inline intx::uint<N> shl(const intx::uint<N>& x, unsigned y) noexcept
@@ -305,25 +246,17 @@ inline intx::uint<N> shl(const intx::uint<N>& x, unsigned y) noexcept
 template <typename Int, Int ShiftFn(const Int&, unsigned)>
 static void shift(benchmark::State& state)
 {
-    lcg<Int> rng_x(get_seed());
+    const auto& xs = test::get_samples<Int>(sizeof(Int) == sizeof(uint256) ? x_256 : x_512);
 
-    std::mt19937_64 rng{get_seed()};
-    std::uniform_int_distribution<unsigned> dist_y(0, sizeof(Int) * 8);
-
-    constexpr size_t size = 1000;
-    std::vector<Int> input_x(size);
-    std::vector<unsigned> input_y(size);
-    std::vector<Int> output(size);
-    for (auto& x : input_x)
-        x = rng_x();
-    for (auto& y : input_y)
-        y = dist_y(rng);
-
-    while (state.KeepRunningBatch(size))
+    while (state.KeepRunningBatch(xs.size()))
     {
-        for (size_t i = 0; i < size; ++i)
-            output[i] = ShiftFn(input_x[i], input_y[i]);
-        benchmark::DoNotOptimize(output.data());
+        for (size_t i = 0; i < xs.size(); ++i)
+        {
+            const auto x = xs[i];
+            const auto sh = static_cast<unsigned>(x) & (Int::num_bits - 1);
+            const auto _ = ShiftFn(x, sh);
+            benchmark::DoNotOptimize(_);
+        }
     }
 }
 BENCHMARK_TEMPLATE(shift, uint256, shl);
