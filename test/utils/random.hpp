@@ -6,6 +6,7 @@
 /// Helpers for generating random inputs for benchmarks.
 
 #include <algorithm>
+#include <array>
 #include <random>
 
 namespace intx
@@ -48,5 +49,28 @@ inline std::vector<uint64_t> gen_uniform_seq(size_t num)
     std::generate_n(std::back_inserter(seq), num, [&] { return dist(rng); });
     return seq;
 }
+
+/// The number of samples in samples sets.
+/// The value is selected to stay in L1 cache, i.e. 32*1024 / (2 * 512 / 8) == 256.
+/// However, the bigger values increase execution time only slightly, so the value
+/// may be increased if that's over better samples distribution.
+constexpr size_t num_samples = 256;
+
+enum samples_set_id
+{
+    x_64,    ///< Set of random samples with ~64 (1 word) significant bits.
+    x_128,   ///< Set of random samples with ~128 (2 words) significant bits.
+    x_192,   ///< Set of random samples with ~192 (3 words) significant bits.
+    x_256,   ///< Set of random samples with ~256 (4 words) significant bits.
+    y_256,   ///< Set of random samples with ~256 (4 words) significant bits, different from x_256.
+    lt_256,  ///< Set of random samples where each lt_256[i] <= x_256[i] && lt_256[i] <= y_256[i].
+    x_512,   ///< Set of random samples with ~512 (8 words) significant bits.
+    y_512,   ///< Set of random samples with ~512 (8 words) significant bits, different from x_512.
+};
+
+template <typename T>
+const std::array<T, num_samples>& get_samples(samples_set_id id) noexcept;
+
+
 }  // namespace test
 }  // namespace intx
