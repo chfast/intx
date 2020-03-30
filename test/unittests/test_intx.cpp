@@ -1,18 +1,14 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include "test_cases.hpp"
 #include "test_utils.hpp"
-
+#include <gtest/gtest.h>
 #include <experimental/add.hpp>
-#include <experimental/div.hpp>
 #include <intx/intx.hpp>
 
-#include <gtest/gtest.h>
-
 using namespace intx;
-
 
 static_assert(!std::numeric_limits<uint256>::is_signed, "");
 static_assert(std::numeric_limits<uint256>::is_integer, "");
@@ -63,51 +59,6 @@ protected:
         }
     }
 };
-
-TEST_F(Uint256Test, udiv)
-{
-    for (auto a : numbers)
-    {
-        int i = 0;
-        for (auto d : numbers)
-        {
-            if (d == 0)
-                continue;
-
-            if (a < d)
-                continue;
-
-            if (i++ > 15)  // Limit number of tests.
-                break;
-
-            auto e = udivrem(a, d);
-
-            auto res = udiv_qr_knuth_opt_base(a, d);
-            EXPECT_EQ(res.quot, e.quot)
-                << to_string(a) << " / " << to_string(d) << " = " << to_string(res.quot);
-            EXPECT_EQ(res.rem, e.rem)
-                << to_string(a) << " % " << to_string(d) << " = " << to_string(e.rem);
-
-            res = udiv_qr_knuth_opt(a, d);
-            EXPECT_EQ(res.quot, e.quot)
-                << to_string(a) << " / " << to_string(d) << " = " << to_string(res.quot);
-            EXPECT_EQ(res.rem, e.rem)
-                << to_string(a) << " % " << to_string(d) << " = " << to_string(res.rem);
-
-            res = udiv_qr_knuth_hd_base(a, d);
-            EXPECT_EQ(res.quot, e.quot)
-                << to_string(a) << " / " << to_string(d) << " = " << to_string(res.quot);
-            EXPECT_EQ(res.rem, e.rem)
-                << to_string(a) << " % " << to_string(d) << " = " << to_string(res.rem);
-
-            res = udiv_qr_knuth_llvm_base(a, d);
-            EXPECT_EQ(res.quot, e.quot)
-                << to_string(a) << " / " << to_string(d) << " = " << to_string(res.quot);
-            EXPECT_EQ(res.rem, e.rem)
-                << to_string(a) << " % " << to_string(d) << " = " << to_string(res.rem);
-        }
-    }
-}
 
 TEST_F(Uint256Test, add_against_sub)
 {
@@ -162,31 +113,13 @@ TEST_F(Uint256Test, simple_udiv)
 
     for (size_t i = 0; i < sizeof(data_set) / sizeof(data_set[0]); ++i)
     {
-        // if (i != 5) continue;
-
         const auto& data = data_set[i];
         uint256 n = from_string<uint256>(data[0]);
         uint256 d = from_string<uint256>(data[1]);
         uint256 expected_q = from_string<uint256>(data[2]);
         uint256 expected_r = from_string<uint256>(data[3]);
 
-        auto res = udiv_qr_knuth_opt_base(n, d);
-        EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
-        EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
-
-        res = udiv_qr_knuth_opt(n, d);
-        EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
-        EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
-
-        res = udiv_qr_knuth_64(n, d);
-        EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
-        EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
-
-        res = udiv_qr_knuth_hd_base(n, d);
-        EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
-        EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
-
-        res = udiv_qr_knuth_llvm_base(n, d);
+        const auto res = udivrem(n, d);
         EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
         EXPECT_EQ(res.rem, expected_r) << "data index: " << i;
     }

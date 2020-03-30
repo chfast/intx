@@ -4,7 +4,6 @@
 
 #include <benchmark/benchmark.h>
 #include <experimental/add.hpp>
-#include <experimental/div.hpp>
 #include <intx/intx.hpp>
 #include <test/utils/gmp.hpp>
 #include <test/utils/random.hpp>
@@ -47,11 +46,6 @@ static void div(benchmark::State& state) noexcept
 }
 BENCHMARK_TEMPLATE(div, uint256, udivrem)->DenseRange(64, 256, 64);
 BENCHMARK_TEMPLATE(div, uint256, gmp::udivrem)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(div, uint256, udiv_qr_knuth_hd_base)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(div, uint256, udiv_qr_knuth_llvm_base)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(div, uint256, udiv_qr_knuth_opt_base)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(div, uint256, udiv_qr_knuth_opt)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(div, uint256, udiv_qr_knuth_64)->DenseRange(64, 256, 64);
 BENCHMARK_TEMPLATE(div, uint512, udivrem)->DenseRange(64, 256, 64);
 BENCHMARK_TEMPLATE(div, uint512, gmp::udivrem)->DenseRange(64, 256, 64);
 
