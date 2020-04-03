@@ -38,7 +38,7 @@ namespace
 /// @return     The remainder.
 inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 {
-    REQUIRE(len >= 1);  // TODO: Make it >= 2.
+    REQUIRE(len >= 2);
 
     const auto reciprocal = reciprocal_2by1(d);
 
@@ -63,7 +63,7 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 /// @return     The remainder.
 inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 {
-    REQUIRE(len >= 2);  // TODO: Make it >= 3.
+    REQUIRE(len >= 3);
 
     const auto reciprocal = reciprocal_3by2(d);
 
@@ -155,7 +155,7 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
     auto na = normalize(u, v);
 
-    if (na.num_denominator_words > na.num_numerator_words)
+    if (na.num_numerator_words <= na.num_denominator_words)
         return {0, u};
 
     if (na.num_denominator_words == 1)
