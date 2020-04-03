@@ -58,7 +58,7 @@ commands:
       - run:
           name: "Benchmark"
           working_directory: ~/build
-          command: test/intx-bench
+          command: test/intx-bench --benchmark_min_time=0.01
 
 
 jobs:
