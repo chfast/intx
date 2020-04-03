@@ -11,8 +11,15 @@ namespace test
 {
 namespace
 {
+std::array<uint64_t, num_samples> samples_64_norm;
+std::array<uint128, num_samples> samples_128_norm;
 std::array<uint256, num_samples> samples_256[lt_256 - x_64 + 1];
 std::array<uint512, num_samples> samples_512[y_512 - x_64 + 1];
+
+uint64_t* as_words(uint64_t& x) noexcept
+{
+    return &x;
+}
 
 bool init() noexcept
 {
@@ -25,6 +32,12 @@ bool init() noexcept
 
     for (size_t i = 0; i < num_samples; ++i)
     {
+        gen_int(samples_64_norm[i], 1);
+        samples_64_norm[i] |= 0x8000000000000000;
+
+        gen_int(samples_128_norm[i], 2);
+        samples_128_norm[i].hi |= 0x8000000000000000;
+
         gen_int(samples_256[x_64][i], 1);
         samples_512[x_64][i] = samples_256[x_64][i];
 
@@ -57,6 +70,22 @@ bool init() noexcept
 
 const auto _ = init();
 }  // namespace
+
+template <>
+const std::array<uint64_t, num_samples>& get_samples<uint64_t>(samples_set_id id) noexcept
+{
+    if (id != norm)
+        std::abort();
+    return samples_64_norm;
+}
+
+template <>
+const std::array<uint128, num_samples>& get_samples<uint128>(samples_set_id id) noexcept
+{
+    if (id != norm)
+        std::abort();
+    return samples_128_norm;
+}
 
 template <>
 const std::array<uint256, num_samples>& get_samples<uint256>(samples_set_id id) noexcept

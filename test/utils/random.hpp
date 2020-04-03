@@ -66,6 +66,7 @@ enum samples_set_id
     lt_256,  ///< Set of random samples where each lt_256[i] <= x_256[i] && lt_256[i] <= y_256[i].
     x_512,   ///< Set of random samples with ~512 (8 words) significant bits.
     y_512,   ///< Set of random samples with ~512 (8 words) significant bits, different from x_512.
+    norm,    ///< Set of random samples of normalized (first bit set) values.
 };
 
 template <typename T>

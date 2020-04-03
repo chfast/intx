@@ -35,3 +35,8 @@ auto reciprocal_2by1_noinline(uint64_t d) noexcept
 {
     return reciprocal_2by1(d);
 }
+
+auto reciprocal_3by2_noinline(uint128 d) noexcept
+{
+    return reciprocal_3by2(d);
+}

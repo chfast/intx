@@ -12,6 +12,7 @@ uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept;
 uint64_t soft_div_unr(uint64_t x, uint64_t y) noexcept;
 
 uint64_t reciprocal_2by1_noinline(uint64_t d) noexcept;
+uint64_t reciprocal_3by2_noinline(intx::uint128 d) noexcept;
 
 using namespace intx;
 
@@ -61,28 +62,26 @@ inline uint64_t reciprocal_naive(uint64_t d) noexcept
     return v;
 }
 
-template <decltype(reciprocal_2by1) Fn>
-static void div_unary(benchmark::State& state)
+template <typename T, uint64_t Fn(T)>
+static void reciprocal(benchmark::State& state)
 {
-    constexpr auto top_bit = uint64_t{1} << 63;
-    auto input = test::gen_uniform_seq(10);
-
-    for (auto& i : input)
-        i |= top_bit;
+    auto samples = test::get_samples<T>(test::norm);
 
     benchmark::ClobberMemory();
     uint64_t x = 0;
-    while (state.KeepRunningBatch(input.size()))
+    while (state.KeepRunningBatch(test::num_samples))
     {
-        for (const auto& i : input)
+        for (const auto& i : samples)
             x ^= Fn(i);
     }
     benchmark::DoNotOptimize(x);
 }
-BENCHMARK_TEMPLATE(div_unary, neg);
-BENCHMARK_TEMPLATE(div_unary, reciprocal_2by1);
-BENCHMARK_TEMPLATE(div_unary, reciprocal_2by1_noinline);
-BENCHMARK_TEMPLATE(div_unary, reciprocal_naive);
+BENCHMARK_TEMPLATE(reciprocal, uint64_t, neg);
+BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_naive);
+BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_2by1);
+BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_2by1_noinline);
+BENCHMARK_TEMPLATE(reciprocal, uint128, reciprocal_3by2);
+BENCHMARK_TEMPLATE(reciprocal, uint128, reciprocal_3by2_noinline);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
 static void udiv64(benchmark::State& state)
