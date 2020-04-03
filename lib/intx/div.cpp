@@ -155,7 +155,7 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
     auto na = normalize(u, v);
 
-    if (na.num_denominator_words > na.num_numerator_words)
+    if (na.num_numerator_words <= na.num_denominator_words)
         return {0, u};
 
     if (na.num_denominator_words == 1)
