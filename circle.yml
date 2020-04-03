@@ -148,7 +148,7 @@ jobs:
           working_directory: ~/build
           command: |
             mkdir -p ~/corpus
-            test/intx-fuzzer ~/corpus -use_value_profile=1 -max_len=129 -runs=1000000
+            test/intx-fuzzer ~/corpus -use_value_profile=1 -max_len=129 -runs=1000000 -jobs=4
       - save_cache:
           key: corpus-{{ epoch }}
           paths:
