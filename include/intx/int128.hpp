@@ -523,12 +523,17 @@ constexpr uint16_t reciprocal_table[] = {REPEAT256()};
 #undef REPEAT4
 #undef REPEAT32
 #undef REPEAT256
-}  // namespace internal
+
+struct reciprocal_result
+{
+    uint64_t p;
+    uint64_t v;
+};
 
 /// Computes the reciprocal v = (2^128 - 1) / d - 2^64 for normalized d.
-///
+/// Returns reciprocal v and p = d*v.
 /// Based on Algorithm 2 from "Improved division by invariant integers".
-inline uint64_t reciprocal_2by1(uint64_t d) noexcept
+inline reciprocal_result reciprocal_2by1(uint64_t d) noexcept
 {
     const uint64_t d9 = d >> 55;
     const uint32_t v0 = internal::reciprocal_table[d9 - 256];
@@ -546,16 +551,29 @@ inline uint64_t reciprocal_2by1(uint64_t d) noexcept
     const uint128 p3 = umul(v3, d);
 
     // Final adjustment is 0 or -1.
-    const uint64_t v4adjustment = (p3 + d).hi + d;
-    const uint64_t v = v3 - v4adjustment;
+    const uint64_t adjustment = (p3 + d).hi + d;
 
-    return v;
+    const uint64_t v = v3 - adjustment;
+    const uint64_t p = p3.lo + (d & adjustment);
+
+    return {p, v};
+}
+
+}  // namespace internal
+
+/// Computes the reciprocal v = (2^128 - 1) / d - 2^64 for normalized d.
+///
+/// Based on Algorithm 2 from "Improved division by invariant integers".
+inline uint64_t reciprocal_2by1(uint64_t d) noexcept
+{
+    return internal::reciprocal_2by1(d).v;
 }
 
 inline uint64_t reciprocal_3by2(uint128 d) noexcept
 {
-    auto v = reciprocal_2by1(d.hi);
-    auto p = d.hi * v;
+    const auto res = internal::reciprocal_2by1(d.hi);
+    auto v = res.v;
+    auto p = res.p;
     p += d.lo;
     if (p < d.lo)
     {
