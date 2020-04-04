@@ -525,7 +525,7 @@ constexpr uint16_t reciprocal_table[] = {REPEAT256()};
 #undef REPEAT256
 }  // namespace internal
 
-/// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
+/// Computes the reciprocal v = (2^128 - 1) / d - 2^64 for normalized d.
 ///
 /// Based on Algorithm 2 from "Improved division by invariant integers".
 inline uint64_t reciprocal_2by1(uint64_t d) noexcept
@@ -543,8 +543,13 @@ inline uint64_t reciprocal_2by1(uint64_t d) noexcept
     const uint64_t e = ((v2 >> 1) & (0 - d0)) - v2 * d63;
     const uint64_t v3 = (umul(v2, e).hi >> 1) + (v2 << 31);
 
-    const uint64_t v4 = v3 - (umul(v3, d) + d).hi - d;
-    return v4;
+    const uint128 p3 = umul(v3, d);
+
+    // Final adjustment is 0 or -1.
+    const uint64_t v4adjustment = (p3 + d).hi + d;
+    const uint64_t v = v3 - v4adjustment;
+
+    return v;
 }
 
 inline uint64_t reciprocal_3by2(uint128 d) noexcept
