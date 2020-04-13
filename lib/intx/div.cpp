@@ -34,7 +34,7 @@ namespace
 /// @param u    The array of a normalized numerator words. It will contain
 ///             the quotient after execution.
 /// @param len  The number of numerator words.
-/// @param d    The normalized denominator.
+/// @param d    The normalized divisor.
 /// @return     The remainder.
 inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 {
@@ -59,7 +59,7 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 /// @param u    The array of a normalized numerator words. It will contain the
 ///             quotient after execution.
 /// @param len  The number of numerator words.
-/// @param d    The normalized denominator.
+/// @param d    The normalized divisor.
 /// @return     The remainder.
 inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 {
@@ -155,19 +155,19 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
     auto na = normalize(u, v);
 
-    if (na.num_numerator_words <= na.num_denominator_words)
+    if (na.num_numerator_words <= na.num_divisor_words)
         return {0, u};
 
-    if (na.num_denominator_words == 1)
+    if (na.num_divisor_words == 1)
     {
         auto r = udivrem_by1(
-            as_words(na.numerator), na.num_numerator_words, as_words(na.denominator)[0]);
+            as_words(na.numerator), na.num_numerator_words, as_words(na.divisor)[0]);
         return {na.numerator, r >> na.shift};
     }
 
-    if (na.num_denominator_words == 2)
+    if (na.num_divisor_words == 2)
     {
-        auto d = as_words(na.denominator);
+        auto d = as_words(na.divisor);
         auto r = udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[1], d[0]});
         return {na.numerator, r >> na.shift};
     }
@@ -176,14 +176,14 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 
     uint<N> q;
 
-    udivrem_knuth(as_words(q), &un[0], na.num_numerator_words, as_words(na.denominator),
-        na.num_denominator_words);
+    udivrem_knuth(as_words(q), &un[0], na.num_numerator_words, as_words(na.divisor),
+        na.num_divisor_words);
 
     uint<N> r;
     auto rw = as_words(r);
-    for (int i = 0; i < na.num_denominator_words - 1; ++i)
+    for (int i = 0; i < na.num_divisor_words - 1; ++i)
         rw[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
-    rw[na.num_denominator_words - 1] = un[na.num_denominator_words - 1] >> na.shift;
+    rw[na.num_divisor_words - 1] = un[na.num_divisor_words - 1] >> na.shift;
 
     return {q, r};
 }

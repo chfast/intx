@@ -11,10 +11,10 @@ namespace intx
 template <unsigned N>
 struct normalized_div_args
 {
-    uint<N> denominator;
+    uint<N> divisor;
     uint<N> numerator;
     typename uint<N>::word_type numerator_ex;
-    int num_denominator_words;
+    int num_divisor_words;
     int num_numerator_words;
     unsigned shift;
 };
@@ -31,13 +31,13 @@ template <typename IntT>
 
     normalized_div_args<IntT::num_bits> na;
     auto* un = as_words(na.numerator);
-    auto* vn = as_words(na.denominator);
+    auto* vn = as_words(na.divisor);
 
     auto& m = na.num_numerator_words;
     for (m = num_words; m > 0 && u[m - 1] == 0; --m)
         ;
 
-    auto& n = na.num_denominator_words;
+    auto& n = na.num_divisor_words;
     for (n = num_words; n > 0 && v[n - 1] == 0; --n)
         ;
 
@@ -57,7 +57,7 @@ template <typename IntT>
     {
         na.numerator_ex = 0;
         na.numerator = numerator;
-        na.denominator = denominator;
+        na.divisor = denominator;
     }
 
     // Skip the highest word of numerator if not significant.
