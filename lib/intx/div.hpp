@@ -19,6 +19,8 @@ struct normalized_div_args
     unsigned shift;
 };
 
+std::tuple<int, unsigned> normalize_divisor(uint64_t* dn, const uint64_t* d, int n) noexcept;
+
 template <typename IntT>
 [[gnu::always_inline]] inline normalized_div_args<IntT::num_bits> normalize(
     const IntT& numerator, const IntT& denominator) noexcept
@@ -30,6 +32,9 @@ template <typename IntT>
     auto* v = as_words(denominator);
 
     normalized_div_args<IntT::num_bits> na;
+
+
+
     auto* un = as_words(na.numerator);
     auto* vn = as_words(na.divisor);
 

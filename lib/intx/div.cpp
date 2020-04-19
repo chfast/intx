@@ -28,6 +28,13 @@
 
 namespace intx
 {
+std::tuple<int, unsigned> normalize_divisor(uint64_t* dn, const uint64_t* d, int n) noexcept
+{
+    (void)dn;
+    (void)d;
+    return {n, 0};
+}
+
 namespace
 {
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
@@ -162,8 +169,8 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 
     if (na.num_divisor_words == 1)
     {
-        auto r = udivrem_by1(
-            as_words(na.numerator), na.num_numerator_words, as_words(na.divisor)[0]);
+        auto r =
+            udivrem_by1(as_words(na.numerator), na.num_numerator_words, as_words(na.divisor)[0]);
         return {na.numerator, r >> na.shift};
     }
 
@@ -178,8 +185,8 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 
     uint<N> q;
 
-    udivrem_knuth(as_words(q), &un[0], na.num_numerator_words, as_words(na.divisor),
-        na.num_divisor_words);
+    udivrem_knuth(
+        as_words(q), &un[0], na.num_numerator_words, as_words(na.divisor), na.num_divisor_words);
 
     uint<N> r;
     auto rw = as_words(r);
