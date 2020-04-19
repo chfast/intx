@@ -2,7 +2,7 @@
 # Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
-set(intx_internal_include_dir ${PROJECT_SOURCE_DIR}/lib/intx)
+set(intx_internal_include_dir ${PROJECT_SOURCE_DIR}/lib)
 
 add_subdirectory(utils)
 
