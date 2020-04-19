@@ -57,6 +57,30 @@ std::tuple<int, unsigned> normalize_divisor(uint64_t* dn, const uint64_t* d, int
     return {i + 1, shift};
 }
 
+int normalize_numerator(uint64_t* un, const uint64_t* u, int n, unsigned shift) noexcept
+{
+    int i = n - 1;
+    for (; i >= 0; --i)
+    {
+        if (u[i] != 0)
+            break;
+    }
+
+    auto hi = uint64_t{0};
+    for (int j = i; j >= 0; --j)
+    {
+        auto rshift = 64 - shift;
+        auto lo = rshift != 64 ? u[j] >> rshift : 0;
+        auto new_hi = u[j] << shift;
+        un[j + 1] = hi | lo;
+        hi = new_hi;
+    }
+    un[0] = hi;
+
+    return i + 1;
+}
+
+
 namespace
 {
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).

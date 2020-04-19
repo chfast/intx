@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <intx/intx.hpp>
 
 namespace intx
@@ -20,6 +21,8 @@ struct normalized_div_args
 };
 
 std::tuple<int, unsigned> normalize_divisor(uint64_t* dn, const uint64_t* d, int n) noexcept;
+
+int normalize_numerator(uint64_t* un, const uint64_t* u, int n, unsigned shift) noexcept;
 
 template <typename IntT>
 [[gnu::always_inline]] inline normalized_div_args<IntT::num_bits> normalize(
@@ -54,9 +57,22 @@ template <typename IntT>
         na.numerator = numerator;
     }
 
+    {
+        uint64_t _un[num_words + 1]{};
+        auto n = normalize_numerator(_un, u, num_words, na.shift);
+        assert(na.num_numerator_words == n);
+
+        for (int i = 0; i <= n; i++)
+        {
+            assert(_un[i] == as_words(na.numerator)[i]);
+        }
+    }
+
     // Skip the highest word of numerator if not significant.
-    if (un[m] != 0 || un[m - 1] >= as_words(na.divisor)[na.num_divisor_words - 1])
-        ++m;
+    if (as_words(na.numerator)[na.num_numerator_words] != 0 ||
+        as_words(na.numerator)[na.num_numerator_words - 1] >=
+            as_words(na.divisor)[na.num_divisor_words - 1])
+        ++na.num_numerator_words;
 
     return na;
 }
