@@ -25,7 +25,7 @@ std::tuple<int, unsigned> normalize_divisor(uint64_t* dn, const uint64_t* d, int
 int normalize_numerator(uint64_t* un, const uint64_t* u, int n, unsigned shift) noexcept;
 
 template <typename IntT>
-[[gnu::always_inline]] inline normalized_div_args<IntT::num_bits> normalize(
+inline normalized_div_args<IntT::num_bits> normalize(
     const IntT& numerator, const IntT& denominator) noexcept
 {
     // FIXME: Make the implementation type independent
