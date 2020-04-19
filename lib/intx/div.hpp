@@ -29,30 +29,20 @@ template <typename IntT>
     static constexpr auto num_words = IntT::num_words;
 
     auto* u = as_words(numerator);
-    auto* v = as_words(denominator);
 
     normalized_div_args<IntT::num_bits> na;
 
-
+    std::tie(na.num_divisor_words, na.shift) =
+        normalize_divisor(as_words(na.divisor), as_words(denominator), num_words);
 
     auto* un = as_words(na.numerator);
-    auto* vn = as_words(na.divisor);
 
     auto& m = na.num_numerator_words;
     for (m = num_words; m > 0 && u[m - 1] == 0; --m)
         ;
 
-    auto& n = na.num_divisor_words;
-    for (n = num_words; n > 0 && v[n - 1] == 0; --n)
-        ;
-
-    na.shift = clz(v[n - 1]);
     if (na.shift)
     {
-        for (int i = num_words - 1; i > 0; --i)
-            vn[i] = (v[i] << na.shift) | (v[i - 1] >> (64 - na.shift));
-        vn[0] = v[0] << na.shift;
-
         un[num_words] = u[num_words - 1] >> (64 - na.shift);
         for (int i = num_words - 1; i > 0; --i)
             un[i] = (u[i] << na.shift) | (u[i - 1] >> (64 - na.shift));
@@ -62,11 +52,10 @@ template <typename IntT>
     {
         na.numerator_ex = 0;
         na.numerator = numerator;
-        na.divisor = denominator;
     }
 
     // Skip the highest word of numerator if not significant.
-    if (un[m] != 0 || un[m - 1] >= vn[n - 1])
+    if (un[m] != 0 || un[m - 1] >= as_words(na.divisor)[na.num_divisor_words - 1])
         ++m;
 
     return na;

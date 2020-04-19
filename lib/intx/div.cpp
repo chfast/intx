@@ -30,9 +30,31 @@ namespace intx
 {
 std::tuple<int, unsigned> normalize_divisor(uint64_t* dn, const uint64_t* d, int n) noexcept
 {
-    (void)dn;
-    (void)d;
-    return {n, 0};
+    int i = n - 1;
+    for (; i >= 0; --i)
+    {
+        if (d[i] != 0)
+            break;
+    }
+
+    if (i < 0)
+        return {0, 0};
+
+    const auto shift = clz(d[i]);
+
+    auto hi = d[i] << shift;
+
+    for (int j = i - 1; j >= 0; --j)
+    {
+        auto rshift = 64 - shift;
+        auto lo = rshift != 64 ? d[j] >> rshift : 0;
+        auto new_hi = d[j] << shift;
+        dn[j + 1] = hi | lo;
+        hi = new_hi;
+    }
+    dn[0] = hi;
+
+    return {i + 1, shift};
 }
 
 namespace
