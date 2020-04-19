@@ -31,42 +31,16 @@ template <typename IntT>
     // FIXME: Make the implementation type independent
     static constexpr auto num_words = IntT::num_words;
 
-    auto* u = as_words(numerator);
-
     normalized_div_args<IntT::num_bits> na;
+
+    // FIXME: Not needed, but checked in tests
+    na.numerator_ex = 0;
 
     std::tie(na.num_divisor_words, na.shift) =
         normalize_divisor(as_words(na.divisor), as_words(denominator), num_words);
 
-    auto* un = as_words(na.numerator);
-
-    auto& m = na.num_numerator_words;
-    for (m = num_words; m > 0 && u[m - 1] == 0; --m)
-        ;
-
-    if (na.shift)
-    {
-        un[num_words] = u[num_words - 1] >> (64 - na.shift);
-        for (int i = num_words - 1; i > 0; --i)
-            un[i] = (u[i] << na.shift) | (u[i - 1] >> (64 - na.shift));
-        un[0] = u[0] << na.shift;
-    }
-    else
-    {
-        na.numerator_ex = 0;
-        na.numerator = numerator;
-    }
-
-    {
-        uint64_t _un[num_words + 1]{};
-        auto n = normalize_numerator(_un, u, num_words, na.shift);
-        assert(na.num_numerator_words == n);
-
-        for (int i = 0; i <= n; i++)
-        {
-            assert(_un[i] == as_words(na.numerator)[i]);
-        }
-    }
+    na.num_numerator_words =
+        normalize_numerator(as_words(na.numerator), as_words(numerator), num_words, na.shift);
 
     // Skip the highest word of numerator if not significant.
     if (as_words(na.numerator)[na.num_numerator_words] != 0 ||
