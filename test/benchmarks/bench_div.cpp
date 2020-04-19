@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include <benchmark/benchmark.h>
-#include <div.hpp>
+#include <intx/div.hpp>
 #include <test/utils/random.hpp>
 
 uint64_t udiv_native(uint64_t x, uint64_t y) noexcept;
