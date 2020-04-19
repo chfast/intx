@@ -6,6 +6,8 @@
 #include <intx/div.hpp>
 #include <test/utils/random.hpp>
 
+using namespace intx::test;
+
 uint64_t udiv_native(uint64_t x, uint64_t y) noexcept;
 uint64_t nop(uint64_t x, uint64_t y) noexcept;
 uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept;
@@ -41,6 +43,41 @@ static void div_normalize(benchmark::State& state)
     }
 }
 BENCHMARK_TEMPLATE(div_normalize, normalize);
+
+template <typename IntT>
+static void normalize_divisor(benchmark::State& state) noexcept
+{
+    const auto divison_set_id = [&state]() noexcept {
+        switch (state.range(0))
+        {
+        case 64:
+            return x_64;
+        case 128:
+            return x_128;
+        case 192:
+            return x_192;
+        case 255:
+            return lt_256;
+        case 256:
+            return x_256;
+        default:
+            state.SkipWithError("unexpected argument");
+            return x_64;
+        }
+    }();
+
+    const auto& ys = test::get_samples<IntT>(divison_set_id);
+    IntT normalized;
+
+    while (state.KeepRunningBatch(ys.size()))
+    {
+        for (size_t i = 0; i < ys.size(); ++i)
+        {
+            intx::normalize_divisor(as_words(normalized), as_words(ys[i]), IntT::num_bits / sizeof(uint64_t));
+        }
+    }
+}
+BENCHMARK_TEMPLATE(normalize_divisor, uint256)->Arg(64)->Arg(128)->Arg(192)->Arg(255)->Arg(256);
 
 constexpr uint64_t neg(uint64_t x) noexcept
 {
