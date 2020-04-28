@@ -1,5 +1,5 @@
 # intx: extended precision integer library.
-# Copyright 2019 Pawel Bylica.
+# Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
 set(include_dir ${PROJECT_SOURCE_DIR}/include)
@@ -13,6 +13,7 @@ target_include_directories(int128 INTERFACE $<BUILD_INTERFACE:${include_dir}>$<I
 
 add_library(intx STATIC
     ${include_dir}/intx/intx.hpp
+    ${include_dir}/intx/uint384.hpp
     div.cpp
     div.hpp
 )
