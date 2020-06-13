@@ -4,6 +4,7 @@
 
 #include <benchmark/benchmark.h>
 #include <div.hpp>
+#include <test/experimental/div.hpp>
 #include <test/utils/random.hpp>
 
 uint64_t udiv_native(uint64_t x, uint64_t y) noexcept;
@@ -47,21 +48,6 @@ constexpr uint64_t neg(uint64_t x) noexcept
     return ~x;
 }
 
-inline uint64_t reciprocal_naive(uint64_t d) noexcept
-{
-    const auto u = uint128{~d, ~uint64_t{0}};
-    uint64_t v;
-
-#if _MSC_VER
-    v = (u / d).lo;
-#else
-    uint64_t _;
-    asm("divq %4" : "=d"(_), "=a"(v) : "d"(u.hi), "a"(u.lo), "g"(d));
-#endif
-
-    return v;
-}
-
 template <typename T, uint64_t Fn(T)>
 static void reciprocal(benchmark::State& state)
 {
@@ -77,7 +63,9 @@ static void reciprocal(benchmark::State& state)
     benchmark::DoNotOptimize(x);
 }
 BENCHMARK_TEMPLATE(reciprocal, uint64_t, neg);
-BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_naive);
+BENCHMARK_TEMPLATE(reciprocal, uint64_t, experimental::reciprocal_naive);
+BENCHMARK_TEMPLATE(reciprocal, uint64_t, experimental::reciprocal32_naive);
+BENCHMARK_TEMPLATE(reciprocal, uint64_t, experimental::reciprocal32_asm);
 BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_2by1);
 BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_2by1_noinline);
 BENCHMARK_TEMPLATE(reciprocal, uint128, reciprocal_3by2);
