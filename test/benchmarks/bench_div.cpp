@@ -69,6 +69,7 @@ BENCHMARK_TEMPLATE(reciprocal, uint64_t, experimental::reciprocal32_asm);
 BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_2by1);
 BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_2by1_noinline);
 BENCHMARK_TEMPLATE(reciprocal, uint64_t, experimental::reciprocal_2by1_notable);
+BENCHMARK_TEMPLATE(reciprocal, uint64_t, experimental::reciprocal_2by1_notable2);
 BENCHMARK_TEMPLATE(reciprocal, uint128, reciprocal_3by2);
 BENCHMARK_TEMPLATE(reciprocal, uint128, reciprocal_3by2_noinline);
 

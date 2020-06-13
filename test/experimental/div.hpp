@@ -162,5 +162,24 @@ inline uint64_t reciprocal_2by1_notable(uint64_t d) noexcept
     return uint64(u[1], u[0]);
 }
 
+
+uint64_t reciprocal_2by1_notable2(uint64_t d) noexcept
+{
+    const uint32_t v0 = 0x7fd00 / uint32_t(d >> 55);
+
+    const uint64_t d40 = (d >> 24) + 1;
+    const uint64_t v1 = (v0 << 11) - uint32_t(v0 * v0 * d40 >> 40) - 1;
+
+    const uint64_t v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
+
+    const uint64_t d0 = d & 1;
+    const uint64_t d63 = (d >> 1) + d0;  // ceil(d/2)
+    const uint64_t e = ((v2 >> 1) & (0 - d0)) - v2 * d63;
+    const uint64_t v3 = (umul(v2, e).hi >> 1) + (v2 << 31);
+
+    const uint64_t v4 = v3 - (umul(v3, d) + d).hi - d;
+    return v4;
+}
+
 }  // namespace experimental
 }  // namespace intx
