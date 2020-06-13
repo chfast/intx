@@ -139,7 +139,7 @@ jobs:
       BUILD_PARALLEL_JOBS: 8
       TEST_PARALLEL_JOBS: 8
     macos:
-      xcode: 10.2.0
+      xcode: 11.5.0
     steps:
       - run:
           name: "Install deps"
