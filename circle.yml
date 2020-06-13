@@ -113,19 +113,12 @@ jobs:
 
   linux-32bit:
     environment:
-      - CXX: g++-8
-      - CC:  gcc-8
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Release
       - CMAKE_OPTIONS: -DTOOLCHAIN=cxx14-32bit -DINTX_BENCHMARKING=OFF
     docker:
-      - image: ethereum/cpp-build-env:11
+      - image: ethereum/cpp-build-env:14-gcc-10-multilib
     steps:
-      - run:
-          name: "Install GCC multilib"
-          command: |
-            sudo apt -q update
-            sudo apt install -qy g++-8-multilib
       - build_and_test
 
   fuzzing:
