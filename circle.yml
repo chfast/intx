@@ -65,23 +65,21 @@ jobs:
 
   linux-gcc-coverage:
     environment:
-      - CXX: g++-8
-      - CC:  gcc-8
-      - GCOV: gcov-8
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
       - CMAKE_OPTIONS: -DCOVERAGE=ON
       - TESTS_FILTER: unittests
       - TESTS_EXCLUDE: random
     docker:
-      - image: ethereum/cpp-build-env:11
+      - image: ethereum/cpp-build-env:14-gcc-10
     steps:
       - install_deps
       - build_and_test
       - run:
           name: "Upload coverage data"
           command: |
-            codecov --gcov-exec "$GCOV" --gcov-root ~/build
+            sudo pip3 install --upgrade codecov
+            codecov --gcov-root ~/build
 
   linux-clang-asan:
     environment:
