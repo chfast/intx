@@ -61,7 +61,6 @@ inline uint32_t _32_reciprocal32_asm(uint32_t d) noexcept
 }
 
 
-
 inline uint32_t hi(uint64_t x) noexcept
 {
     return static_cast<uint32_t>(x >> 32);
@@ -77,7 +76,7 @@ inline uint64_t uint64(uint32_t hi, uint32_t lo) noexcept
     return (uint64_t{hi} << 32) | lo;
 }
 
-uint32_t _32_reciprocal_3by2(uint64_t d) noexcept
+inline uint32_t _32_reciprocal_3by2(uint64_t d) noexcept
 {
     auto v = _32_reciprocal32_asm(hi(d));
     auto p = hi(d) * v;
@@ -105,20 +104,51 @@ uint32_t _32_reciprocal_3by2(uint64_t d) noexcept
     return v;
 }
 
-div_result<uint32_t, uint64_t> _32_udivrem_3by2(
-    uint32_t u2, uint32_t u1, uint32_t u0, uint64_t d, uint32_t v) noexcept;
+struct _32_res
+{
+    uint32_t u;
+    uint64_t r;
+};
 
-inline uint64_t _32_udivrem_by2(uint32_t u[], int len, uint64_t d) noexcept
+inline _32_res _32_udivrem_3by2(uint32_t u2, uint32_t u1, uint32_t u0, uint64_t d, uint32_t v) noexcept
+{
+    auto q = uint64_t{v} * u2;
+    q += uint64(u2, u1);
+    auto qh = hi(q);
+
+    auto r1 = u1 - qh * hi(d);
+
+    auto t = uint64_t{lo(d)} * qh;
+
+    auto r = uint64(r1, u0) - t - d;
+    r1 = hi(r);
+
+    ++qh;
+
+    if (r1 >= lo(q))
+    {
+        --qh;
+        r += d;
+    }
+
+    if (r >= d)
+    {
+        ++qh;
+        r -= d;
+    }
+
+    return {qh, r};
+}
+
+inline void _32_udivrem_by2(uint32_t u[], uint64_t d) noexcept
 {
     const auto reciprocal = _32_reciprocal_3by2(d);
 
-    auto r = uint64(u[len - 1], u[len - 2]);
-    u[len - 1] = u[len - 2] = 0;  // Reset these words being a part of the result quotient.
+    auto x = _32_udivrem_3by2(u[3], u[2], u[1], d, reciprocal);
+    u[1] = x.u;
 
-    for (int j = len - 3; j >= 0; --j)
-        std::tie(u[j], r) = _32_udivrem_3by2(hi(r), lo(r), u[j], d, reciprocal);
-
-    return r;
+    auto y = _32_udivrem_3by2(hi(x.r), lo(x.r), u[0], d, reciprocal);
+    u[0] = y.u;
 }
 
 
@@ -128,7 +158,8 @@ inline uint64_t reciprocal_2by1_notable(uint64_t d) noexcept
     uint32_t u[4] = {
         ~uint32_t{0}, ~uint32_t{0}, static_cast<uint32_t>(nd), static_cast<uint32_t>(nd >> 32)};
 
-    return _32_udivrem_by2(u, 4, d);
+    _32_udivrem_by2(u, d);
+    return uint64(u[1], u[0]);
 }
 
 }  // namespace experimental

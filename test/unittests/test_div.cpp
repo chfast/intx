@@ -6,6 +6,7 @@
 #include <intx/intx.hpp>
 
 #include <gtest/gtest.h>
+#include <test/experimental/div.hpp>
 
 using namespace intx;
 
@@ -350,14 +351,18 @@ TEST(div, reciprocal)
     constexpr auto d_start = uint64_t{1} << 63;
     for (uint64_t d = d_start; d < d_start + n; ++d)
     {
-        auto v = reciprocal_2by1(d);
-        EXPECT_EQ(v, reciprocal_naive(d)) << d;
+        const auto v = reciprocal_2by1(d);
+        const auto expected = reciprocal_naive(d);
+        EXPECT_EQ(v, expected) << d;
+        EXPECT_EQ(experimental::reciprocal_2by1_notable(d), expected) << d;
     }
 
     constexpr auto d_end = ~uint64_t{0};
     for (uint64_t d = d_end; d > d_end - n; --d)
     {
-        auto v = reciprocal_2by1(d);
-        EXPECT_EQ(v, reciprocal_naive(d)) << d;
+        const auto v = reciprocal_2by1(d);
+        const auto expected = reciprocal_naive(d);
+        EXPECT_EQ(v, expected) << d;
+        EXPECT_EQ(experimental::reciprocal_2by1_notable(d), expected) << d;
     }
 }
