@@ -1,10 +1,5 @@
 version: 2.1
 
-executors:
-  linux:
-    docker:
-      - image: ethereum/cpp-build-env:11
-
 commands:
   install_deps:
     description: "Install dependencies"
@@ -65,47 +60,40 @@ jobs:
 
   linux-gcc-coverage:
     environment:
-      - CXX: g++-8
-      - CC:  gcc-8
-      - GCOV: gcov-8
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
       - CMAKE_OPTIONS: -DCOVERAGE=ON
       - TESTS_FILTER: unittests
       - TESTS_EXCLUDE: random
     docker:
-      - image: ethereum/cpp-build-env:11
+      - image: ethereum/cpp-build-env:14-gcc-10
     steps:
       - install_deps
       - build_and_test
       - run:
           name: "Upload coverage data"
           command: |
-            codecov --gcov-exec "$GCOV" --gcov-root ~/build
+            sudo pip3 install --upgrade codecov
+            codecov --gcov-root ~/build
 
   linux-clang-asan:
     environment:
-      - CXX: clang++-8
-      - CC:  clang-8
-      - GCOV: gcov-8
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
       - CMAKE_OPTIONS: -DSANITIZE=address
     docker:
-      - image: ethereum/cpp-build-env:11
+      - image: ethereum/cpp-build-env:14-clang-10
     steps:
       - install_deps
       - build_and_test
 
   linux-clang-ubsan:
     environment:
-      - CXX: clang++-8
-      - CC:  clang-8
       - BUILD_PARALLEL_JOBS: 4
       - CMAKE_OPTIONS: -DSANITIZE=undefined,implicit-conversion,nullability
       - UBSAN_OPTIONS: halt_on_error=1
     docker:
-      - image: ethereum/cpp-build-env:11
+      - image: ethereum/cpp-build-env:14-clang-10
     steps:
       - install_deps
       - build_and_test
@@ -113,29 +101,20 @@ jobs:
 
   linux-32bit:
     environment:
-      - CXX: g++-8
-      - CC:  gcc-8
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Release
       - CMAKE_OPTIONS: -DTOOLCHAIN=cxx14-32bit -DINTX_BENCHMARKING=OFF
     docker:
-      - image: ethereum/cpp-build-env:11
+      - image: ethereum/cpp-build-env:14-gcc-10-multilib
     steps:
-      - run:
-          name: "Install GCC multilib"
-          command: |
-            sudo apt -q update
-            sudo apt install -qy g++-8-multilib
       - build_and_test
 
   fuzzing:
     environment:
-      - CXX: clang++-8
-      - CC:  clang-8
       - BUILD_PARALLEL_JOBS: 4
       - CMAKE_OPTIONS: -DINTX_FUZZING=ON
     docker:
-      - image: ethereum/cpp-build-env:11
+      - image: ethereum/cpp-build-env:14-clang-10
     steps:
       - install_deps
       - build_and_test
@@ -160,7 +139,7 @@ jobs:
       BUILD_PARALLEL_JOBS: 8
       TEST_PARALLEL_JOBS: 8
     macos:
-      xcode: 10.2.0
+      xcode: 11.5.0
     steps:
       - run:
           name: "Install deps"
