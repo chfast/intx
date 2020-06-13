@@ -569,8 +569,11 @@ inline uint64_t reciprocal_3by2(uint128 d) noexcept
     if (p < t.hi)
     {
         --v;
-        if (uint128{p, t.lo} >= d)
-            --v;
+        if (p >= d.hi)
+        {
+            if (p > d.hi || t.lo >= d.lo)
+                --v;
+        }
     }
     return v;
 }
