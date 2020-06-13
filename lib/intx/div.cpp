@@ -42,17 +42,16 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 
     const auto reciprocal = reciprocal_2by1(d);
 
-    auto r = u[len - 1];  // Set the top word as remainder.
-    u[len - 1] = 0;       // Reset the word being a part of the result quotient.
+    auto rem = u[len - 1];  // Set the top word as remainder.
+    u[len - 1] = 0;         // Reset the word being a part of the result quotient.
 
-    for (int j = len - 2; j >= 0; --j)
+    auto it = &u[len - 2];
+    do
     {
-        const auto x = udivrem_2by1({r, u[j]}, d, reciprocal);
-        u[j] = x.quot;
-        r = x.rem;
-    }
+        std::tie(*it, rem) = udivrem_2by1({rem, *it}, d, reciprocal);
+    } while (it-- != &u[0]);
 
-    return r;
+    return rem;
 }
 
 /// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
