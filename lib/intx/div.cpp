@@ -42,17 +42,16 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 
     const auto reciprocal = reciprocal_2by1(d);
 
-    auto r = u[len - 1];  // Set the top word as remainder.
-    u[len - 1] = 0;       // Reset the word being a part of the result quotient.
+    auto rem = u[len - 1];  // Set the top word as remainder.
+    u[len - 1] = 0;         // Reset the word being a part of the result quotient.
 
-    for (int j = len - 2; j >= 0; --j)
+    auto it = &u[len - 2];
+    do
     {
-        const auto x = udivrem_2by1({r, u[j]}, d, reciprocal);
-        u[j] = x.quot;
-        r = x.rem;
-    }
+        std::tie(*it, rem) = udivrem_2by1({rem, *it}, d, reciprocal);
+    } while (it-- != &u[0]);
 
-    return r;
+    return rem;
 }
 
 /// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
@@ -67,13 +66,16 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 
     const auto reciprocal = reciprocal_3by2(d);
 
-    auto r = uint128{u[len - 1], u[len - 2]};  // Set the 2 top words as remainder.
+    auto rem = uint128{u[len - 1], u[len - 2]};  // Set the 2 top words as remainder.
     u[len - 1] = u[len - 2] = 0;  // Reset these words being a part of the result quotient.
 
-    for (int j = len - 3; j >= 0; --j)
-        std::tie(u[j], r) = udivrem_3by2(r.hi, r.lo, u[j], d, reciprocal);
+    auto it = &u[len - 3];
+    do
+    {
+        std::tie(*it, rem) = udivrem_3by2(rem.hi, rem.lo, *it, d, reciprocal);
+    } while (it-- != &u[0]);
 
-    return r;
+    return rem;
 }
 
 /// s = x + y.
