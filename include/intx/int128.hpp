@@ -554,14 +554,13 @@ inline uint64_t reciprocal_3by2(uint128 d) noexcept
     p += d.lo;
     if (p < d.lo)
     {
-        --v;
-        const auto p0 = p;
-        p -= d.hi;
-        if (p <= p0)  // Subtraction without borrow.
+        if (p >= d.hi)
         {
-            --v;
             p -= d.hi;
+            --v;
         }
+        p -= d.hi;
+        --v;
     }
 
     const auto t = umul(v, d.lo);
