@@ -162,7 +162,6 @@ BENCHMARK_TEMPLATE(binop, uint256, uint256, mul_loop);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, mul_loop_opt);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, public_mul);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, gmp::mul);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, exp);
 
 BENCHMARK_TEMPLATE(binop, uint512, uint256, umul);
 BENCHMARK_TEMPLATE(binop, uint512, uint256, umul_loop);
@@ -203,6 +202,52 @@ BENCHMARK_TEMPLATE(shift, uint256, shl_loop);
 BENCHMARK_TEMPLATE(shift, uint512, shl);
 BENCHMARK_TEMPLATE(shift, uint512, shl_loop);
 // BENCHMARK_TEMPLATE(shift_512, lsr);
+
+static void exponentiation(benchmark::State& state)
+{
+    const auto exponent_set_id = [&state]() noexcept {
+        switch (state.range(0))
+        {
+        case 64:
+            return x_64;
+        case 128:
+            return x_128;
+        case 192:
+            return x_192;
+        case 256:
+            return x_256;
+        default:
+            state.SkipWithError("unexpected argument");
+            return x_64;
+        }
+    }();
+
+    const auto& bs = test::get_samples<uint256>(x_256);
+    const auto& es = test::get_samples<uint256>(exponent_set_id);
+
+    while (state.KeepRunningBatch(bs.size()))
+    {
+        for (size_t i = 0; i < bs.size(); ++i)
+        {
+            const auto _ = exp(bs[i], es[i]);
+            benchmark::DoNotOptimize(_);
+        }
+    }
+}
+BENCHMARK(exponentiation)->DenseRange(64, 256, 64);
+
+static void exponentiation2(benchmark::State& state)
+{
+    const auto base = uint256{2};
+    const auto exponent = static_cast<unsigned>(state.range(0));
+
+    for (auto _ : state)
+    {
+        const auto e = exp(base, exponent);
+        benchmark::DoNotOptimize(e);
+    }
+}
+BENCHMARK(exponentiation2)->Arg(0)->RangeMultiplier(2)->Range(64, 512);
 
 static void count_sigificant_words32_256_loop(benchmark::State& state)
 {
