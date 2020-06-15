@@ -185,6 +185,14 @@ TEST(uint256, arithmetic)
 
 TEST(uint256, exp)
 {
+    EXPECT_EQ(exp(2_u256, 0_u256), 1);
+    EXPECT_EQ(exp(2_u256, 1_u256), 2);
+    EXPECT_EQ(exp(2_u256, 2_u256), 4);
+    EXPECT_EQ(exp(2_u256, 10_u256), 1024);
+    EXPECT_EQ(exp(2_u256, 255_u256),
+        0x8000000000000000000000000000000000000000000000000000000000000000_u256);
+    EXPECT_EQ(exp(2_u256, 256_u256), 0);
+
     EXPECT_EQ(exp(3_u256, 0_u256), 1);
     EXPECT_EQ(exp(3_u256, 1_u256), 3);
     EXPECT_EQ(exp(3_u256, 2_u256), 9);
