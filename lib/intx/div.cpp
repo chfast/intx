@@ -123,7 +123,7 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
         const auto u0 = u[j + dlen - 2];
 
         uint64_t qhat;
-        if (uint128{u2, u1} == divisor)  // Division overflows.
+        if (UNLIKELY(uint128(u2, u1) == divisor))  // Division overflows.
         {
             qhat = ~uint64_t{0};
 
@@ -139,7 +139,7 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
             std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat.lo, overflow);
             std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat.hi, carry);
 
-            if (carry)
+            if (UNLIKELY(carry))
             {
                 --qhat;
                 u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
