@@ -593,6 +593,9 @@ template <unsigned N>
 constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 {
     auto result = uint<N>{1};
+    if (base == 2)
+        return result << exponent;
+
     while (exponent != 0)
     {
         if ((exponent & 1) != 0)
