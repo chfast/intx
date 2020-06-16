@@ -76,6 +76,36 @@ jobs:
             sudo pip3 install --upgrade codecov
             codecov --gcov-root ~/build
 
+  linux-clang-coverage:
+    environment:
+      - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: Debug
+      - CMAKE_OPTIONS: -DCOVERAGE=ON
+      - TESTS_FILTER: unittests
+      - TESTS_EXCLUDE: random
+    docker:
+      - image: ethereum/cpp-build-env:14-clang-10
+    steps:
+      - install_deps
+      - build_and_test
+      - run:
+          name: "Coverage"
+          working_directory: ~/build
+          command: |
+            mkdir coverage
+            find -name '*.profraw'
+            llvm-profdata merge *.profraw -o intx.profdata
+            llvm-cov report -use-color -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests
+            llvm-cov report -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests > coverage/report.txt
+            llvm-cov show -format=html -instr-profile intx.profdata -Xdemangler llvm-cxxfilt -region-coverage-lt=100 test/intx-unittests > coverage/missing.html
+            llvm-cov show -format=html -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests > coverage/full.html
+            llvm-cov export -instr-profile intx.profdata -format=lcov test/intx-unittests > intx.lcov
+            genhtml intx.lcov -o coverage -t intx
+      - store_artifacts:
+          path: ~/build/coverage
+          destination: coverage
+
+
   linux-clang-asan:
     environment:
       - BUILD_PARALLEL_JOBS: 4
@@ -154,6 +184,7 @@ workflows:
   intx:
     jobs:
       - linux-gcc-coverage
+      - linux-clang-coverage
       - linux-clang-asan
       - linux-clang-ubsan
       - linux-32bit
