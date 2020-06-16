@@ -285,6 +285,24 @@ static div_test_case<uint512> div_test_cases[] = {
         0x307c7456554d945ce57749fd52bfdb7f_u128,
         0x1491254b5a0b84a32c_u128,
     },
+    {
+        0x7effffff8000000000000000000000000000000000150000d900000000000001_u256,
+        0x7effffff8000000000000000000000000000000000f9e101_u256,
+        0xffffffffffffffff,
+        0x7effffff7fffffffffffffffff1b1effd900000000f9e102_u256,
+    },
+    {
+        0xffffffff0100000000000000000000000000ffff0000ffffffff0100000000_u256,
+        0xffffffff010000000000000000000000ffff0000ffffff_u256,
+        0xffffffffffffffff,
+        0xffffffff00ffffff0001fffe00010100fffe0100ffffff_u256,
+    },
+    {
+        0xabfffff0000ffffffffff36363636363636363636d00500000000ffffffffffffe90000ff00000000000000000000ffff0000000000_u512,
+        0xabfffff0000ffffffffff36363636363636363636d00500000000ffffffffffffe9ff001f_u512,
+        0xffffffffffffffffffffffffffffffffff_u256,
+        0xabfffff0000ffffffffff36363636363537371636d00500000001000000fffeffe9ff001f_u512,
+    },
 };
 
 TEST(div, udivrem_512)
