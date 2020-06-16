@@ -58,11 +58,10 @@ commands:
 
 jobs:
 
-  linux-gcc-coverage:
+  linux-gcc-debug:
     environment:
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
-      - CMAKE_OPTIONS: -DCOVERAGE=ON
       - TESTS_FILTER: unittests
       - TESTS_EXCLUDE: random
     docker:
@@ -70,11 +69,6 @@ jobs:
     steps:
       - install_deps
       - build_and_test
-      - run:
-          name: "Upload coverage data"
-          command: |
-            sudo pip3 install --upgrade codecov
-            codecov --gcov-root ~/build
 
   linux-clang-coverage:
     environment:
@@ -104,6 +98,13 @@ jobs:
       - store_artifacts:
           path: ~/build/coverage
           destination: coverage
+      - run:
+          name: "Upload to Codecov"
+          command: |
+            sudo pip3 install --upgrade --quiet --no-cache-dir codecov
+            # Convert to relative paths
+            sed -i 's|$(pwd)/||' ~/build/intx.lcov
+            codecov --required --file ~/build/intx.lcov -X gcov
 
 
   linux-clang-asan:
@@ -183,7 +184,7 @@ workflows:
   version: 2
   intx:
     jobs:
-      - linux-gcc-coverage
+      - linux-gcc-debug
       - linux-clang-coverage
       - linux-clang-asan
       - linux-clang-ubsan
