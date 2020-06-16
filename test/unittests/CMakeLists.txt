@@ -20,4 +20,13 @@ target_link_libraries(intx-unittests PRIVATE intx intx::experimental intx::testu
 target_include_directories(intx-unittests PRIVATE ${intx_internal_include_dir})
 set_target_properties(intx-unittests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)
 
-gtest_add_tests(TARGET intx-unittests TEST_PREFIX ${PROJECT_NAME}/unittests/)
+gtest_add_tests(
+    TARGET intx-unittests
+    TEST_PREFIX ${PROJECT_NAME}/unittests/
+    TEST_LIST unittests
+    PROPERTIES
+)
+set_tests_properties(
+    ${unittests} PROPERTIES
+    ENVIRONMENT LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/unittests-%p.profraw
+)

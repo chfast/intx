@@ -58,11 +58,10 @@ commands:
 
 jobs:
 
-  linux-gcc-coverage:
+  linux-gcc-debug:
     environment:
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Debug
-      - CMAKE_OPTIONS: -DCOVERAGE=ON
       - TESTS_FILTER: unittests
       - TESTS_EXCLUDE: random
     docker:
@@ -70,11 +69,43 @@ jobs:
     steps:
       - install_deps
       - build_and_test
+
+  linux-clang-coverage:
+    environment:
+      - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: Debug
+      - CMAKE_OPTIONS: -DCOVERAGE=ON
+      - TESTS_FILTER: unittests
+      - TESTS_EXCLUDE: random
+    docker:
+      - image: ethereum/cpp-build-env:14-clang-10
+    steps:
+      - install_deps
+      - build_and_test
       - run:
-          name: "Upload coverage data"
+          name: "Coverage"
+          working_directory: ~/build
           command: |
-            sudo pip3 install --upgrade codecov
-            codecov --gcov-root ~/build
+            mkdir coverage
+            find -name '*.profraw'
+            llvm-profdata merge *.profraw -o intx.profdata
+            llvm-cov report -use-color -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests
+            llvm-cov report -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests > coverage/report.txt
+            llvm-cov show -format=html -instr-profile intx.profdata -Xdemangler llvm-cxxfilt -region-coverage-lt=100 test/intx-unittests > coverage/missing.html
+            llvm-cov show -format=html -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests > coverage/full.html
+            llvm-cov export -instr-profile intx.profdata -format=lcov test/intx-unittests > intx.lcov
+            genhtml intx.lcov -o coverage -t intx
+      - store_artifacts:
+          path: ~/build/coverage
+          destination: coverage
+      - run:
+          name: "Upload to Codecov"
+          command: |
+            sudo pip3 install --upgrade --quiet --no-cache-dir codecov
+            # Convert to relative paths
+            sed -i 's|$(pwd)/||' ~/build/intx.lcov
+            codecov --required --file ~/build/intx.lcov -X gcov
+
 
   linux-clang-asan:
     environment:
@@ -153,7 +184,8 @@ workflows:
   version: 2
   intx:
     jobs:
-      - linux-gcc-coverage
+      - linux-gcc-debug
+      - linux-clang-coverage
       - linux-clang-asan
       - linux-clang-ubsan
       - linux-32bit
