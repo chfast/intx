@@ -49,14 +49,12 @@ target_compile_features(int128 INTERFACE cxx_std_14)
 target_sources(int128 INTERFACE $<BUILD_INTERFACE:${INTX_INCLUDE_DIR}/intx/int128.hpp>)
 target_include_directories(int128 INTERFACE $<BUILD_INTERFACE:${INTX_INCLUDE_DIR}>$<INSTALL_INTERFACE:include>)
 
-add_library(intx STATIC
-    ${INTX_INCLUDE_DIR}/intx/intx.hpp
-    lib/intx/impl.cpp
-    )
+add_library(intx INTERFACE)
 add_library(intx::intx ALIAS intx)
-target_compile_features(intx PUBLIC cxx_std_14)
-target_include_directories(intx PUBLIC $<BUILD_INTERFACE:${INTX_INCLUDE_DIR}>$<INSTALL_INTERFACE:include>)
-target_link_libraries(intx PUBLIC intx::int128)
+target_compile_features(intx INTERFACE cxx_std_14)
+target_sources(intx INTERFACE $<BUILD_INTERFACE:${INTX_INCLUDE_DIR}/intx/intx.hpp>)
+target_include_directories(intx INTERFACE $<BUILD_INTERFACE:${INTX_INCLUDE_DIR}>$<INSTALL_INTERFACE:include>)
+target_link_libraries(intx INTERFACE intx::int128)
 
 
 if(INTX_TESTING)
