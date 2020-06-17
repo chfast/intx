@@ -180,6 +180,15 @@ jobs:
       - benchmark
 
 
+  cmake-min:
+    docker:
+      - image: circleci/buildpack-deps:xenial
+    steps:
+      - run:
+          name: "Install default CMake"
+          command: sudo apt -q update && sudo apt -qy install cmake
+      - build_and_test
+
 workflows:
   version: 2
   intx:
@@ -191,3 +200,4 @@ workflows:
       - linux-32bit
       - fuzzing
       - macos
+      - cmake-min
