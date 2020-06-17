@@ -1,14 +1,12 @@
 # intx: extended precision integer library.
-# Copyright 2019 Pawel Bylica.
+# Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
 # This example shows how to use intx CMake package.
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
-project(use_evmc_in_cmake LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_EXTENSIONS OFF)
+project(use_intx_cmake_package LANGUAGES CXX)
 
 find_package(intx CONFIG REQUIRED)
 
