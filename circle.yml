@@ -25,9 +25,6 @@ commands:
             cmake --version
       - checkout
       - run:
-          name: "Update submodules"
-          command: git submodule update --init --recursive
-      - run:
           name: "Configure"
           working_directory: ~/build
           command: cmake ../project -DCMAKE_INSTALL_PREFIX=~/install -DCMAKE_BUILD_TYPE=$BUILD_TYPE $CMAKE_OPTIONS
@@ -57,6 +54,21 @@ commands:
 
 
 jobs:
+
+  build-minimal:
+    docker:
+      - image: ethereum/cpp-build-env:14-gcc-10
+    steps:
+      - checkout
+      - run:
+          name: "Build package"
+          working_directory: ~/build
+          command: |
+            cmake ../project -DINTX_TESTING=OFF
+            cmake --build . --target package
+      - run:
+          name: "Inspect package"
+          command: tar tvf ~/build/intx*.tar.gz
 
   linux-gcc-debug:
     environment:
@@ -193,6 +205,7 @@ workflows:
   version: 2
   intx:
     jobs:
+      - build-minimal
       - linux-gcc-debug
       - linux-clang-coverage
       - linux-clang-asan
