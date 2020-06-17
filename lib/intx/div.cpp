@@ -2,7 +2,7 @@
 // Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include "div.hpp"
+#include <intx/intx.hpp>
 #include <tuple>
 
 namespace intx

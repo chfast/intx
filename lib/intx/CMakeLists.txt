@@ -14,7 +14,7 @@ target_include_directories(int128 INTERFACE $<BUILD_INTERFACE:${include_dir}>$<I
 add_library(intx STATIC
     ${include_dir}/intx/intx.hpp
     div.cpp
-    div.hpp
+    impl.cpp
 )
 add_library(intx::intx ALIAS intx)
 target_compile_features(intx PUBLIC cxx_std_14)
