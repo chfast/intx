@@ -134,7 +134,7 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
 template <unsigned N>
 div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
-    auto na = normalize(u, v);
+    auto na = internal::normalize(u, v);
 
     if (na.num_numerator_words <= na.num_divisor_words)
         return {0, u};

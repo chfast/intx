@@ -27,7 +27,7 @@ inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 }
 
 
-template <decltype(normalize<uint512>) NormalizeFn>
+template <decltype(internal::normalize<uint512>) NormalizeFn>
 static void div_normalize(benchmark::State& state)
 {
     auto u = uint512{{48882153453, 100324254353}, {4343242153453, 1324254353}};
@@ -40,7 +40,7 @@ static void div_normalize(benchmark::State& state)
         benchmark::DoNotOptimize(x);
     }
 }
-BENCHMARK_TEMPLATE(div_normalize, normalize);
+BENCHMARK_TEMPLATE(div_normalize, internal::normalize);
 
 constexpr uint64_t neg(uint64_t x) noexcept
 {
