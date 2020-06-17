@@ -182,7 +182,7 @@ jobs:
 
   cmake-min:
     docker:
-      - image: circleci/buildpack-deps:xenial
+      - image: circleci/buildpack-deps:bionic
     steps:
       - run:
           name: "Install default CMake"
