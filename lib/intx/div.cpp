@@ -3,28 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include "div.hpp"
-#include <cassert>
 #include <tuple>
-
-#if defined(_MSC_VER)
-    #define UNREACHABLE __assume(0)
-#else
-    #define UNREACHABLE __builtin_unreachable()
-#endif
-
-#if defined(_MSC_VER)
-    #define UNLIKELY(EXPR) EXPR
-#else
-    #define UNLIKELY(EXPR) __builtin_expect((bool)(EXPR), false)
-#endif
-
-#if defined(NDEBUG)
-    #define REQUIRE(X) \
-        if (!(X))      \
-        UNREACHABLE
-#else
-    #define REQUIRE assert
-#endif
 
 namespace intx
 {
@@ -38,7 +17,7 @@ namespace
 /// @return     The remainder.
 inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 {
-    REQUIRE(len >= 2);
+    INTX_REQUIRE(len >= 2);
 
     const auto reciprocal = reciprocal_2by1(d);
 
@@ -62,7 +41,7 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 /// @return     The remainder.
 inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 {
-    REQUIRE(len >= 3);
+    INTX_REQUIRE(len >= 3);
 
     const auto reciprocal = reciprocal_3by2(d);
 
@@ -82,7 +61,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
-    REQUIRE(len >= 2);
+    INTX_REQUIRE(len >= 2);
 
     bool carry = false;
     for (int i = 0; i < len; ++i)
@@ -95,7 +74,7 @@ inline uint64_t submul(
     uint64_t r[], const uint64_t x[], const uint64_t y[], int len, uint64_t multiplier) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
-    REQUIRE(len >= 1);
+    INTX_REQUIRE(len >= 1);
 
     uint64_t borrow = 0;
     for (int i = 0; i < len; ++i)
@@ -111,8 +90,8 @@ inline uint64_t submul(
 
 void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
 {
-    REQUIRE(dlen >= 3);
-    REQUIRE(ulen >= dlen);
+    INTX_REQUIRE(dlen >= 3);
+    INTX_REQUIRE(ulen >= dlen);
 
     const auto divisor = uint128{d[dlen - 1], d[dlen - 2]};
     const auto reciprocal = reciprocal_3by2(divisor);
@@ -123,7 +102,7 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
         const auto u0 = u[j + dlen - 2];
 
         uint64_t qhat;
-        if (UNLIKELY(uint128(u2, u1) == divisor))  // Division overflows.
+        if (INTX_UNLIKELY(uint128(u2, u1) == divisor))  // Division overflows.
         {
             qhat = ~uint64_t{0};
 
@@ -139,7 +118,7 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
             std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat.lo, overflow);
             std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat.hi, carry);
 
-            if (UNLIKELY(carry))
+            if (INTX_UNLIKELY(carry))
             {
                 --qhat;
                 u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
