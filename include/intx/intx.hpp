@@ -512,6 +512,17 @@ inline uint<N> mul(const uint<N>& a, const uint<N>& b) noexcept
     return {hi, t.lo};
 }
 
+template <unsigned N>
+inline uint<N> sqr(const uint<N>& a) noexcept
+{
+    // Based on mul() implementation.
+
+    const auto t = umul(a.lo, a.lo);
+    const auto hi = 2 * (a.lo * a.hi) + t.hi;
+
+    return {hi, t.lo};
+}
+
 
 template <unsigned N>
 constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
@@ -600,7 +611,7 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
     {
         if ((exponent & 1) != 0)
             result *= base;
-        base *= base;
+        base = sqr(base);
         exponent >>= 1;
     }
     return result;
