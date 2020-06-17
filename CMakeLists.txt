@@ -40,6 +40,16 @@ if(INTX_FUZZING)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${fuzzing_flags}")
 endif()
 
+
+set(INTX_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+
+add_library(int128 INTERFACE)
+add_library(intx::int128 ALIAS int128)
+target_compile_features(int128 INTERFACE cxx_std_14)
+target_sources(int128 INTERFACE $<BUILD_INTERFACE:${INTX_INCLUDE_DIR}/intx/int128.hpp>)
+target_include_directories(int128 INTERFACE $<BUILD_INTERFACE:${INTX_INCLUDE_DIR}>$<INSTALL_INTERFACE:include>)
+
+
 add_subdirectory(lib/intx)
 
 if(INTX_TESTING)
@@ -55,6 +65,13 @@ configure_package_config_file(
     cmake/Config.cmake.in
     intxConfig.cmake
     INSTALL_DESTINATION ${config_dir}
+)
+
+install(
+    TARGETS int128
+    EXPORT intxTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(
