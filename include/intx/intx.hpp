@@ -25,9 +25,7 @@
 #endif
 
 #ifdef NDEBUG
-    #define INTX_REQUIRE(X) \
-        if (!(X))           \
-        INTX_UNREACHABLE
+    #define INTX_REQUIRE(X) (X) ? (void)0 : INTX_UNREACHABLE
 #else
     #include <cassert>
     #define INTX_REQUIRE assert
