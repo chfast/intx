@@ -88,7 +88,8 @@ inline uint64_t submul(
     return borrow;
 }
 
-void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
+inline void udivrem_knuth(
+    uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
 {
     INTX_REQUIRE(dlen >= 3);
     INTX_REQUIRE(ulen >= dlen);
