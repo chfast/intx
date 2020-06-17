@@ -5,7 +5,6 @@
 #pragma once
 
 #include <intx/int128.hpp>
-
 #include <algorithm>
 #include <array>
 #include <cstdint>

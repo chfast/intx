@@ -21,7 +21,7 @@ BreakBeforeBraces: Custom
 BreakBeforeTernaryOperators: false
 ColumnLimit:     100
 ConstructorInitializerIndentWidth: 2
-IncludeBlocks: Preserve
+IncludeBlocks: Merge
 IncludeCategories:
   - Regex:           '^".*'
     Priority:        1
