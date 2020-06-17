@@ -11,6 +11,8 @@ include(CableCompilerSettings)
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
+set(INTX_DEPS_DOWNLOAD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/download)
+
 option(INTX_TESTING "Build intx with tests" ON)
 option(INTX_BENCHMARKING "Build intx with benchmark tools" ON)
 option(INTX_FUZZING "Build intx fuzzers" OFF)
