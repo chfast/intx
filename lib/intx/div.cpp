@@ -7,23 +7,23 @@
 #include <tuple>
 
 #if defined(_MSC_VER)
-#define UNREACHABLE __assume(0)
+    #define UNREACHABLE __assume(0)
 #else
-#define UNREACHABLE __builtin_unreachable()
+    #define UNREACHABLE __builtin_unreachable()
 #endif
 
 #if defined(_MSC_VER)
-#define UNLIKELY(EXPR) EXPR
+    #define UNLIKELY(EXPR) EXPR
 #else
-#define UNLIKELY(EXPR) __builtin_expect((bool)(EXPR), false)
+    #define UNLIKELY(EXPR) __builtin_expect((bool)(EXPR), false)
 #endif
 
 #if defined(NDEBUG)
-#define REQUIRE(X) \
-    if (!(X))      \
-    UNREACHABLE
+    #define REQUIRE(X) \
+        if (!(X))      \
+        UNREACHABLE
 #else
-#define REQUIRE assert
+    #define REQUIRE assert
 #endif
 
 namespace intx
@@ -162,8 +162,8 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 
     if (na.num_divisor_words == 1)
     {
-        auto r = udivrem_by1(
-            as_words(na.numerator), na.num_numerator_words, as_words(na.divisor)[0]);
+        auto r =
+            udivrem_by1(as_words(na.numerator), na.num_numerator_words, as_words(na.divisor)[0]);
         return {na.numerator, r >> na.shift};
     }
 
@@ -178,8 +178,8 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 
     uint<N> q;
 
-    udivrem_knuth(as_words(q), &un[0], na.num_numerator_words, as_words(na.divisor),
-        na.num_divisor_words);
+    udivrem_knuth(
+        as_words(q), &un[0], na.num_numerator_words, as_words(na.divisor), na.num_divisor_words);
 
     uint<N> r;
     auto rw = as_words(r);
