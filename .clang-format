@@ -34,6 +34,7 @@ IncludeCategories:
   - Regex:           '.*'
     Priority:        4
 IndentCaseLabels: false
+IndentPPDirectives: BeforeHash
 IndentWidth:     4
 MaxEmptyLinesToKeep: 2
 PenaltyBreakAssignment: 1

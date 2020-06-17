@@ -14,7 +14,7 @@
 #include <type_traits>
 
 #ifdef _MSC_VER
-#include <intrin.h>
+    #include <intrin.h>
 #endif
 
 namespace intx
@@ -44,8 +44,8 @@ struct uint<128>
     {}
 
 #ifdef __SIZEOF_INT128__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wpedantic"
     constexpr uint(unsigned __int128 x) noexcept  // NOLINT
       : lo{uint64_t(x)}, hi{uint64_t(x >> 64)}
     {}
@@ -54,7 +54,7 @@ struct uint<128>
     {
         return (static_cast<unsigned __int128>(hi) << 64) | lo;
     }
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #endif
 
     constexpr explicit operator bool() const noexcept { return hi | lo; }
@@ -179,11 +179,11 @@ inline uint128 operator--(uint128& x, int) noexcept
 constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
 {
 #ifdef __SIZEOF_INT128__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wpedantic"
     using uint128_native = unsigned __int128;
     return uint128_native{x} + uint128_native{y};
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #else
     // Fallback to regular addition.
     return x + y;
@@ -336,11 +336,11 @@ constexpr uint128 constexpr_umul(uint64_t x, uint64_t y) noexcept
 inline uint128 umul(uint64_t x, uint64_t y) noexcept
 {
 #if defined(__SIZEOF_INT128__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wpedantic"
     const auto p = static_cast<unsigned __int128>(x) * y;
     return {uint64_t(p >> 64), uint64_t(p)};
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #elif defined(_MSC_VER)
     unsigned __int64 hi;
     const auto lo = _umul128(x, y, &hi);
