@@ -17,9 +17,14 @@ set(HUNTER_CACHE_SERVERS
     "https://github.com/ethereum/hunter-cache"
     CACHE STRING "Hunter cache servers")
 
-include(HunterGate)
+file(
+    DOWNLOAD https://raw.githubusercontent.com/cpp-pm/gate/v0.9.2/cmake/HunterGate.cmake
+    ${INTX_DEPS_DOWNLOAD_DIR}/HunterGate.cmake
+    EXPECTED_HASH SHA256=08d57ca550856c2f647c4863a25fa386e0d30e905e096a8eaeec336513b14ed1
+)
+include(${INTX_DEPS_DOWNLOAD_DIR}/HunterGate.cmake)
 
 HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.23.248.tar.gz"
-    SHA1 "a637ec52a1b82beb5f55ab4aa75fac30bcee8904"
+    URL https://github.com/cpp-pm/hunter/archive/v0.23.239.tar.gz
+    SHA1 135567a8493ab3499187bce1f2a8df9b449febf3
 )

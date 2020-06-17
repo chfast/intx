@@ -1,5 +1,5 @@
 # intx: extended precision integer library.
-# Copyright 2019 Pawel Bylica.
+# Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
 set(install_dir ${CMAKE_CURRENT_BINARY_DIR}/install)
@@ -12,8 +12,7 @@ add_test(
     NAME ${PROJECT_NAME}/cmake_package/configure
     COMMAND
         ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
-        ${PROJECT_SOURCE_DIR} -DCMAKE_INSTALL_PREFIX=${install_dir}
-        -DINTX_TESTING=OFF -DINTX_BENCHMARKING=OFF -DINTX_FUZZING=OFF
+        ${PROJECT_SOURCE_DIR} -DCMAKE_INSTALL_PREFIX=${install_dir} -DINTX_TESTING=OFF
     WORKING_DIRECTORY ${build_dir}
 )
 

@@ -8,27 +8,31 @@ include(cmake/cable/bootstrap.cmake)
 
 include(CableBuildType)
 include(CableCompilerSettings)
-include(CableToolchains)
+include(CMakeDependentOption)
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
-option(INTX_TESTING "Build intx with tests" ON)
-option(INTX_BENCHMARKING "Build intx with benchmark tools" ON)
-option(INTX_FUZZING "Build intx fuzzers" OFF)
+set(INTX_DEPS_DOWNLOAD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/download)
 
-cable_configure_toolchain(DEFAULT cxx14)
+get_directory_property(has_parent PARENT_DIRECTORY)
+if(NOT has_parent)
+    set(is_main_project TRUE)
+endif()
+
+option(INTX_TESTING "Enable intx testing" ${is_main_project})
+cmake_dependent_option(INTX_BENCHMARKING "Build intx with benchmark tools" ON "INTX_TESTING" OFF)
+cmake_dependent_option(INTX_FUZZING "Build intx fuzzers" OFF "INTX_TESTING" OFF)
+
 cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Release;Debug)
 
-include(Hunter/init)
+if(INTX_TESTING)
+    include(Hunter/init)
+endif()
 
 project(intx LANGUAGES CXX)
 set(PROJECT_VERSION 0.5.0-dev)
 
 cable_configure_compiler(NO_STACK_PROTECTION)
-
-if(INTX_TESTING)
-    enable_testing()
-endif()
 
 if(INTX_FUZZING)
     set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined,address)
@@ -37,7 +41,11 @@ if(INTX_FUZZING)
 endif()
 
 add_subdirectory(lib/intx)
-add_subdirectory(test)
+
+if(INTX_TESTING)
+    enable_testing()
+    add_subdirectory(test)
+endif()
 
 write_basic_package_version_file(intxConfigVersion.cmake COMPATIBILITY ExactVersion)
 
