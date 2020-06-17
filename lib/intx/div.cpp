@@ -7,7 +7,7 @@
 
 namespace intx
 {
-namespace
+namespace internal
 {
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
 /// @param u    The array of a normalized numerator words. It will contain
@@ -88,7 +88,8 @@ inline uint64_t submul(
     return borrow;
 }
 
-void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
+inline void udivrem_knuth(
+    uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
 {
     INTX_REQUIRE(dlen >= 3);
     INTX_REQUIRE(ulen >= dlen);
@@ -129,35 +130,35 @@ void udivrem_knuth(uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int
     }
 }
 
-}  // namespace
+}  // namespace internal
 
 template <unsigned N>
 div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
-    auto na = normalize(u, v);
+    auto na = internal::normalize(u, v);
 
     if (na.num_numerator_words <= na.num_divisor_words)
         return {0, u};
 
     if (na.num_divisor_words == 1)
     {
-        auto r =
-            udivrem_by1(as_words(na.numerator), na.num_numerator_words, as_words(na.divisor)[0]);
+        const auto r = internal::udivrem_by1(
+            as_words(na.numerator), na.num_numerator_words, as_words(na.divisor)[0]);
         return {na.numerator, r >> na.shift};
     }
 
     if (na.num_divisor_words == 2)
     {
-        auto d = as_words(na.divisor);
-        auto r = udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[1], d[0]});
+        const auto d = as_words(na.divisor);
+        const auto r =
+            internal::udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[1], d[0]});
         return {na.numerator, r >> na.shift};
     }
 
     auto un = as_words(na.numerator);  // Will be modified.
 
     uint<N> q;
-
-    udivrem_knuth(
+    internal::udivrem_knuth(
         as_words(q), &un[0], na.num_numerator_words, as_words(na.divisor), na.num_divisor_words);
 
     uint<N> r;

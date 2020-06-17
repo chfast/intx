@@ -8,6 +8,8 @@
 
 namespace intx
 {
+namespace internal
+{
 template <unsigned N>
 struct normalized_div_args
 {
@@ -67,4 +69,5 @@ template <typename IntT>
     return na;
 }
 
+}  // namespace internal
 }  // namespace intx
