@@ -6,7 +6,6 @@ cmake_minimum_required(VERSION 3.10)
 
 include(cmake/cable/bootstrap.cmake)
 
-include(CableBuildType)
 include(CableCompilerSettings)
 include(CMakeDependentOption)
 
@@ -20,8 +19,6 @@ endif()
 option(INTX_TESTING "Enable intx testing" ${is_main_project})
 cmake_dependent_option(INTX_BENCHMARKING "Build intx with benchmark tools" ON "INTX_TESTING" OFF)
 cmake_dependent_option(INTX_FUZZING "Build intx fuzzers" OFF "INTX_TESTING" OFF)
-
-cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Release;Debug)
 
 if(INTX_TESTING)
     include(Hunter/init)
