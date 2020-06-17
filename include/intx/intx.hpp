@@ -12,6 +12,29 @@
 #include <limits>
 #include <type_traits>
 
+
+#if defined(_MSC_VER)
+    #define UNREACHABLE __assume(0)
+#else
+    #define UNREACHABLE __builtin_unreachable()
+#endif
+
+#if defined(_MSC_VER)
+    #define UNLIKELY(EXPR) EXPR
+#else
+    #define UNLIKELY(EXPR) __builtin_expect((bool)(EXPR), false)
+#endif
+
+#if defined(NDEBUG)
+    #define REQUIRE(X) \
+        if (!(X))      \
+        UNREACHABLE
+#else
+    #include <cassert>
+    #define REQUIRE assert
+#endif
+
+
 namespace intx
 {
 template <unsigned N>

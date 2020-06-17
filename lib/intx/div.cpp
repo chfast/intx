@@ -3,28 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include "div.hpp"
-#include <cassert>
 #include <tuple>
-
-#if defined(_MSC_VER)
-    #define UNREACHABLE __assume(0)
-#else
-    #define UNREACHABLE __builtin_unreachable()
-#endif
-
-#if defined(_MSC_VER)
-    #define UNLIKELY(EXPR) EXPR
-#else
-    #define UNLIKELY(EXPR) __builtin_expect((bool)(EXPR), false)
-#endif
-
-#if defined(NDEBUG)
-    #define REQUIRE(X) \
-        if (!(X))      \
-        UNREACHABLE
-#else
-    #define REQUIRE assert
-#endif
 
 namespace intx
 {
