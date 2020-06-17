@@ -20,6 +20,6 @@ set(HUNTER_CACHE_SERVERS
 include(HunterGate)
 
 HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.23.248.tar.gz"
-    SHA1 "a637ec52a1b82beb5f55ab4aa75fac30bcee8904"
+    URL https://github.com/cpp-pm/hunter/archive/v0.23.239.tar.gz
+    SHA1 135567a8493ab3499187bce1f2a8df9b449febf3
 )
