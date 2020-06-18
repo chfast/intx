@@ -2,8 +2,6 @@
 # Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
-set(intx_internal_include_dir ${PROJECT_SOURCE_DIR}/lib/intx)
-
 add_subdirectory(experimental)
 add_subdirectory(utils)
 add_subdirectory(integration)
