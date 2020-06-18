@@ -337,12 +337,17 @@ TEST(div, sdivrem_256)
 
 TEST(div, sdivrem_512)
 {
-    auto n = -13_u512;
-    auto d = -3_u512;
+    const auto n = 13_u512;
+    const auto d = 3_u512;
 
-    auto res1 = sdivrem(n, d);
-    EXPECT_EQ(res1.quot, 4_u512);
-    EXPECT_EQ(res1.rem, -1_u512);
+    EXPECT_EQ(sdivrem(n, d).quot, 4_u512);
+    EXPECT_EQ(sdivrem(n, d).rem, 1_u512);
+    EXPECT_EQ(sdivrem(-n, -d).quot, 4_u512);
+    EXPECT_EQ(sdivrem(-n, -d).rem, -1_u512);
+    EXPECT_EQ(sdivrem(-n, d).quot, -4_u512);
+    EXPECT_EQ(sdivrem(-n, d).rem, -1_u512);
+    EXPECT_EQ(sdivrem(n, -d).quot, -4_u512);
+    EXPECT_EQ(sdivrem(n, -d).rem, 1_u512);
 }
 
 inline uint64_t reciprocal_naive(uint64_t d) noexcept

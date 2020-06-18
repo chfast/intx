@@ -111,89 +111,89 @@ constexpr div_test_case div_test_cases[] = {
 };
 }  // namespace
 
-void static_test_comparison()
+namespace static_test_comparison
 {
-    constexpr uint128 zero;
-    constexpr uint128 zer0 = 0;
-    constexpr uint128 one = 1;
+constexpr uint128 zero;
+constexpr uint128 zer0 = 0;
+constexpr uint128 one = 1;
 
-    static_assert(zero == 0, "");
-    static_assert(zero != 1, "");
-    static_assert(one > 0, "");
-    static_assert(one >= 0, "");
-    static_assert(zero >= 0, "");
-    static_assert(zero < 1, "");
-    static_assert(zero <= 1, "");
-    static_assert(zero <= 0, "");
+static_assert(zero == 0, "");
+static_assert(zero != 1, "");
+static_assert(one > 0, "");
+static_assert(one >= 0, "");
+static_assert(zero >= 0, "");
+static_assert(zero < 1, "");
+static_assert(zero <= 1, "");
+static_assert(zero <= 0, "");
 
-    static_assert(zero == zer0, "");
-    static_assert(zero != one, "");
-    static_assert(one > zero, "");
-    static_assert(one >= zero, "");
-    static_assert(zero >= zer0, "");
-    static_assert(zero < one, "");
-    static_assert(zero <= one, "");
-    static_assert(zero <= zer0, "");
+static_assert(zero == zer0, "");
+static_assert(zero != one, "");
+static_assert(one > zero, "");
+static_assert(one >= zero, "");
+static_assert(zero >= zer0, "");
+static_assert(zero < one, "");
+static_assert(zero <= one, "");
+static_assert(zero <= zer0, "");
 
-    constexpr auto zero_one = uint128{0, 1};
-    constexpr auto one_zero = uint128{1, 0};
+constexpr auto zero_one = uint128{0, 1};
+constexpr auto one_zero = uint128{1, 0};
 
-    static_assert(!(zero_one == one_zero), "");
-    static_assert(zero_one != one_zero, "");
-    static_assert(zero_one < one_zero, "");
-    static_assert(zero_one <= one_zero, "");
-    static_assert(!(zero_one > one_zero), "");
-    static_assert(!(zero_one >= one_zero), "");
-}
+static_assert(!(zero_one == one_zero), "");
+static_assert(zero_one != one_zero, "");
+static_assert(zero_one < one_zero, "");
+static_assert(zero_one <= one_zero, "");
+static_assert(!(zero_one > one_zero), "");
+static_assert(!(zero_one >= one_zero), "");
+}  // namespace static_test_comparison
 
-void static_test_bitwise_operators()
+namespace static_test_bitwise_operators
 {
-    constexpr uint128 x{0x5555555555555555, 0x5555555555555555};
-    constexpr uint128 y{0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa};
-    constexpr uint128 one = 1;
-    constexpr uint128 zero = 0;
+constexpr uint128 x{0x5555555555555555, 0x5555555555555555};
+constexpr uint128 y{0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa};
+constexpr uint128 one = 1;
+constexpr uint128 zero = 0;
 
-    static_assert((x | one) == x, "");
-    static_assert((y | one) == uint128{0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaab}, "");
+static_assert((x | one) == x, "");
+static_assert((y | one) == uint128{0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaab}, "");
 
-    static_assert((x & one) == one, "");
-    static_assert((y & one) == zero, "");
+static_assert((x & one) == one, "");
+static_assert((y & one) == zero, "");
 
-    static_assert((x ^ zero) == x, "");
-    static_assert((x ^ one) == uint128{0x5555555555555555, 0x5555555555555554}, "");
+static_assert((x ^ zero) == x, "");
+static_assert((x ^ one) == uint128{0x5555555555555555, 0x5555555555555554}, "");
 
-    static_assert(~x == y, "");
-}
+static_assert(~x == y, "");
+}  // namespace static_test_bitwise_operators
 
-void static_test_explicit_conversion_to_bool()
+namespace static_test_explicit_conversion_to_bool
 {
-    static_assert(uint128{1, 0}, "");
-    static_assert(uint128{0, 1}, "");
-    static_assert(uint128{1, 1}, "");
-    static_assert(!uint128{0, 0}, "");
-    static_assert(!static_cast<bool>(uint128{0, 0}), "");
-}
+static_assert(uint128{1, 0}, "");
+static_assert(uint128{0, 1}, "");
+static_assert(uint128{1, 1}, "");
+static_assert(!uint128{0, 0}, "");
+static_assert(!static_cast<bool>(uint128{0, 0}), "");
+}  // namespace static_test_explicit_conversion_to_bool
 
 #ifndef _MSC_VER
 // FIXME: Investigate "integer constant overflow" issue on MSVC.
-void static_test_arith()
+namespace static_test_arith
 {
-    constexpr auto a = uint128{0x8000000000000000};
-    constexpr auto s = a + a;
-    static_assert(s == uint128{1, 0}, "");
-    static_assert(s - a == a, "");
-    static_assert(s - 0 == s, "");
-    static_assert(s + 0 == s, "");
-    static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff}, "");
-    static_assert(0 - uint128(2) == uint128{0xffffffffffffffff, 0xfffffffffffffffe}, "");
-    static_assert(uint128(13) - 17 == uint128{0xffffffffffffffff, 0xfffffffffffffffc}, "");
+constexpr auto a = uint128{0x8000000000000000};
+constexpr auto s = a + a;
+static_assert(s == uint128{1, 0}, "");
+static_assert(s - a == a, "");
+static_assert(s - 0 == s, "");
+static_assert(s + 0 == s, "");
+static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff}, "");
+static_assert(0 - uint128(2) == uint128{0xffffffffffffffff, 0xfffffffffffffffe}, "");
+static_assert(uint128(13) - 17 == uint128{0xffffffffffffffff, 0xfffffffffffffffc}, "");
 
-    static_assert(-a == (~a + 1), "");
-    static_assert(+a == a, "");
-}
+static_assert(-a == (~a + 1), "");
+static_assert(+a == a, "");
+}  // namespace static_test_arith
 #endif
 
-void static_test_numeric_limits()
+TEST(int128, numeric_limits)
 {
     static_assert(!std::numeric_limits<uint128>::is_signed, "");
     static_assert(std::numeric_limits<uint128>::is_integer, "");
@@ -203,6 +203,9 @@ void static_test_numeric_limits()
     static_assert(std::numeric_limits<uint128>::digits10 == 38, "");
     static_assert(std::numeric_limits<uint128>::min() == 0, "");
     static_assert(std::numeric_limits<uint128>::max() == uint128{0} - 1, "");
+
+    EXPECT_EQ(std::numeric_limits<uint128>::min(), 0);
+    EXPECT_EQ(std::numeric_limits<uint128>::max(), uint128{0} - 1);
 }
 
 TEST(int128, add)
@@ -259,18 +262,48 @@ TEST(int128, shl)
     for (unsigned s = 0; s < 127; ++s)
         EXPECT_EQ(clz(x << s), 127 - s);
 
+    unsigned sh = 128;
+    EXPECT_EQ(x << sh, 0);
+    auto y = x;
+    EXPECT_EQ(y << sh, 0);
+    y = ~uint128{0};
+    EXPECT_EQ(y << sh, 0);
+
     static_assert((x << 128) == 0, "");
     static_assert((uint128(3) << 63) == uint128(1, uint64_t(1) << 63), "");
+
+    auto z = uint128{2};
+    EXPECT_EQ(z <<= 63, uint128(1, 0));
+    EXPECT_EQ(z, uint128(1, 0));
 }
 
 TEST(int128, shr)
 {
     constexpr uint128 x = uint128(1) << 127;
     for (unsigned s = 0; s < 127; ++s)
-        EXPECT_EQ(clz(x >> s), s);
+    {
+        const auto result = x >> s;
+        EXPECT_EQ(clz(result), s);
+        EXPECT_EQ(x >> uint128{s}, result);
+    }
+
+    unsigned sh = 128;
+    EXPECT_EQ(x >> sh, 0);
+    EXPECT_EQ(x >> uint128{sh}, 0);
+    auto y = x;
+    EXPECT_EQ(y >> sh, 0);
+    EXPECT_EQ(y >> uint128{sh}, 0);
+    y = ~uint128{0};
+    EXPECT_EQ(y >> sh, 0);
+    EXPECT_EQ(y >> uint128{sh}, 0);
+    EXPECT_EQ(y >> uint128(1, 0), 0);
 
     static_assert((x >> 128) == 0, "");
     static_assert((uint128(3, 0) >> 1) == uint128(1, uint64_t(1) << 63), "");
+
+    auto z = uint128{1, 0};
+    EXPECT_EQ(z >>= 63, 2);
+    EXPECT_EQ(z, 2);
 }
 
 TEST(int128, div)
@@ -292,8 +325,29 @@ TEST(int128, div)
     }
 }
 
+TEST(int128, sdivrem)
+{
+    const auto x = 0x83017fa6deecda0063b1977_u128;
+    const auto y = 0x1bc83504ea8f7_u128;
+
+    EXPECT_EQ(-x, 0xfffffffff7cfe8059211325ff9c4e689_u128);
+    EXPECT_EQ(-y, 0xfffffffffffffffffffe437cafb15709_u128);
+
+    EXPECT_EQ(sdivrem(x, y).quot, 0x4b729f5338f);
+    EXPECT_EQ(sdivrem(x, y).rem, 0x13e5e3b3e827e);
+
+    EXPECT_EQ(sdivrem(-x, -y).quot, 0x4b729f5338f);
+    EXPECT_EQ(sdivrem(-x, -y).rem, 0xfffffffffffffffffffec1a1c4c17d82_u128);
+
+    EXPECT_EQ(sdivrem(-x, y).quot, 0xfffffffffffffffffffffb48d60acc71_u128);
+    EXPECT_EQ(sdivrem(-x, y).rem, 0xfffffffffffffffffffec1a1c4c17d82_u128);
+
+    EXPECT_EQ(sdivrem(x, -y).quot, 0xfffffffffffffffffffffb48d60acc71_u128);
+    EXPECT_EQ(sdivrem(x, -y).rem, 0x13e5e3b3e827e);
+}
+
 #ifdef __SIZEOF_INT128__
-#pragma GCC diagnostic ignored "-Wpedantic"
+    #pragma GCC diagnostic ignored "-Wpedantic"
 using uint128_ty = unsigned __int128;
 
 TEST(int128, arith_random_args)
@@ -381,4 +435,12 @@ TEST(int128, clz)
         const auto input = (intx::uint128{1} << (intx::uint128::num_bits - 1)) >> i;
         EXPECT_EQ(clz(input), i);
     }
+}
+
+TEST(int128, unary_plus)
+{
+    const auto x = uint128{1};
+    const auto& y = +x;
+    EXPECT_EQ(x, y);
+    EXPECT_NE(&x, &y);
 }
