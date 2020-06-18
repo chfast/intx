@@ -132,6 +132,7 @@ jobs:
   linux-clang-ubsan:
     environment:
       - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: RelWithDebInfo
       - CMAKE_OPTIONS: -DSANITIZE=undefined,implicit-conversion,nullability
       - UBSAN_OPTIONS: halt_on_error=1
     docker:
@@ -154,6 +155,7 @@ jobs:
   fuzzing:
     environment:
       - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: Release
       - CMAKE_OPTIONS: -DINTX_FUZZING=ON
     docker:
       - image: ethereum/cpp-build-env:14-clang-10
