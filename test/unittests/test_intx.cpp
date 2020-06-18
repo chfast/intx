@@ -4,23 +4,11 @@
 
 #include "test_cases.hpp"
 #include "test_utils.hpp"
-#include <gtest/gtest.h>
 #include <experimental/add.hpp>
+#include <gtest/gtest.h>
 #include <intx/intx.hpp>
 
 using namespace intx;
-
-static_assert(!std::numeric_limits<uint256>::is_signed, "");
-static_assert(std::numeric_limits<uint256>::is_integer, "");
-static_assert(std::numeric_limits<uint256>::is_exact, "");
-static_assert(std::numeric_limits<uint256>::radix == 2, "");
-
-static_assert(std::numeric_limits<uint256>::min() == 0, "");
-static_assert(std::numeric_limits<uint256>::max() == uint256{0} - 1, "");
-
-static_assert(std::numeric_limits<uint256>::digits10 == 77, "");
-static_assert(std::numeric_limits<uint512>::digits10 == 154, "");
-
 
 constexpr uint64_t minimal[] = {
     0x0000000000000000,
@@ -214,6 +202,23 @@ class uint_test : public testing::Test
 
 using types = testing::Types<uint128, uint256, uint512>;
 TYPED_TEST_SUITE(uint_test, types, type_to_name);
+
+TYPED_TEST(uint_test, numeric_limits)
+{
+    static_assert(std::numeric_limits<uint256>::digits10 == 77, "");
+    static_assert(std::numeric_limits<uint512>::digits10 == 154, "");
+
+    static_assert(!std::numeric_limits<TypeParam>::is_signed, "");
+    static_assert(std::numeric_limits<TypeParam>::is_integer, "");
+    static_assert(std::numeric_limits<TypeParam>::is_exact, "");
+    static_assert(std::numeric_limits<TypeParam>::radix == 2, "");
+
+    static_assert(std::numeric_limits<TypeParam>::min() == 0, "");
+    static_assert(std::numeric_limits<TypeParam>::max() == TypeParam{0} - 1, "");
+
+    EXPECT_EQ(std::numeric_limits<TypeParam>::min(), 0);
+    EXPECT_EQ(std::numeric_limits<TypeParam>::max(), TypeParam{0} - 1);
+}
 
 TYPED_TEST(uint_test, comparison)
 {

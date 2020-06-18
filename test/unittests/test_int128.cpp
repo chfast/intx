@@ -193,7 +193,7 @@ void static_test_arith()
 }
 #endif
 
-void static_test_numeric_limits()
+TEST(int128, numeric_limits)
 {
     static_assert(!std::numeric_limits<uint128>::is_signed, "");
     static_assert(std::numeric_limits<uint128>::is_integer, "");
@@ -203,6 +203,9 @@ void static_test_numeric_limits()
     static_assert(std::numeric_limits<uint128>::digits10 == 38, "");
     static_assert(std::numeric_limits<uint128>::min() == 0, "");
     static_assert(std::numeric_limits<uint128>::max() == uint128{0} - 1, "");
+
+    EXPECT_EQ(std::numeric_limits<uint128>::min(), 0);
+    EXPECT_EQ(std::numeric_limits<uint128>::max(), uint128{0} - 1);
 }
 
 TEST(int128, add)
