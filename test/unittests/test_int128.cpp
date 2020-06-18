@@ -322,6 +322,27 @@ TEST(int128, div)
     }
 }
 
+TEST(int128, sdivrem)
+{
+    const auto x = 0x83017fa6deecda0063b1977_u128;
+    const auto y = 0x1bc83504ea8f7_u128;
+
+    EXPECT_EQ(-x, 0xfffffffff7cfe8059211325ff9c4e689_u128);
+    EXPECT_EQ(-y, 0xfffffffffffffffffffe437cafb15709_u128);
+
+    EXPECT_EQ(sdivrem(x, y).quot, 0x4b729f5338f);
+    EXPECT_EQ(sdivrem(x, y).rem, 0x13e5e3b3e827e);
+
+    EXPECT_EQ(sdivrem(-x, -y).quot, 0x4b729f5338f);
+    EXPECT_EQ(sdivrem(-x, -y).rem, 0xfffffffffffffffffffec1a1c4c17d82_u128);
+
+    EXPECT_EQ(sdivrem(-x, y).quot, 0xfffffffffffffffffffffb48d60acc71_u128);
+    EXPECT_EQ(sdivrem(-x, y).rem, 0xfffffffffffffffffffec1a1c4c17d82_u128);
+
+    EXPECT_EQ(sdivrem(x, -y).quot, 0xfffffffffffffffffffffb48d60acc71_u128);
+    EXPECT_EQ(sdivrem(x, -y).rem, 0x13e5e3b3e827e);
+}
+
 #ifdef __SIZEOF_INT128__
     #pragma GCC diagnostic ignored "-Wpedantic"
 using uint128_ty = unsigned __int128;
