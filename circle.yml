@@ -85,8 +85,7 @@ jobs:
   linux-clang-coverage:
     environment:
       - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: Debug
-      - CMAKE_OPTIONS: -DCOVERAGE=ON
+      - BUILD_TYPE: Coverage
       - TESTS_FILTER: unittests
       - TESTS_EXCLUDE: random
     docker:
