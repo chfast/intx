@@ -111,86 +111,86 @@ constexpr div_test_case div_test_cases[] = {
 };
 }  // namespace
 
-void static_test_comparison()
+namespace static_test_comparison
 {
-    constexpr uint128 zero;
-    constexpr uint128 zer0 = 0;
-    constexpr uint128 one = 1;
+constexpr uint128 zero;
+constexpr uint128 zer0 = 0;
+constexpr uint128 one = 1;
 
-    static_assert(zero == 0, "");
-    static_assert(zero != 1, "");
-    static_assert(one > 0, "");
-    static_assert(one >= 0, "");
-    static_assert(zero >= 0, "");
-    static_assert(zero < 1, "");
-    static_assert(zero <= 1, "");
-    static_assert(zero <= 0, "");
+static_assert(zero == 0, "");
+static_assert(zero != 1, "");
+static_assert(one > 0, "");
+static_assert(one >= 0, "");
+static_assert(zero >= 0, "");
+static_assert(zero < 1, "");
+static_assert(zero <= 1, "");
+static_assert(zero <= 0, "");
 
-    static_assert(zero == zer0, "");
-    static_assert(zero != one, "");
-    static_assert(one > zero, "");
-    static_assert(one >= zero, "");
-    static_assert(zero >= zer0, "");
-    static_assert(zero < one, "");
-    static_assert(zero <= one, "");
-    static_assert(zero <= zer0, "");
+static_assert(zero == zer0, "");
+static_assert(zero != one, "");
+static_assert(one > zero, "");
+static_assert(one >= zero, "");
+static_assert(zero >= zer0, "");
+static_assert(zero < one, "");
+static_assert(zero <= one, "");
+static_assert(zero <= zer0, "");
 
-    constexpr auto zero_one = uint128{0, 1};
-    constexpr auto one_zero = uint128{1, 0};
+constexpr auto zero_one = uint128{0, 1};
+constexpr auto one_zero = uint128{1, 0};
 
-    static_assert(!(zero_one == one_zero), "");
-    static_assert(zero_one != one_zero, "");
-    static_assert(zero_one < one_zero, "");
-    static_assert(zero_one <= one_zero, "");
-    static_assert(!(zero_one > one_zero), "");
-    static_assert(!(zero_one >= one_zero), "");
-}
+static_assert(!(zero_one == one_zero), "");
+static_assert(zero_one != one_zero, "");
+static_assert(zero_one < one_zero, "");
+static_assert(zero_one <= one_zero, "");
+static_assert(!(zero_one > one_zero), "");
+static_assert(!(zero_one >= one_zero), "");
+}  // namespace static_test_comparison
 
-void static_test_bitwise_operators()
+namespace static_test_bitwise_operators
 {
-    constexpr uint128 x{0x5555555555555555, 0x5555555555555555};
-    constexpr uint128 y{0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa};
-    constexpr uint128 one = 1;
-    constexpr uint128 zero = 0;
+constexpr uint128 x{0x5555555555555555, 0x5555555555555555};
+constexpr uint128 y{0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa};
+constexpr uint128 one = 1;
+constexpr uint128 zero = 0;
 
-    static_assert((x | one) == x, "");
-    static_assert((y | one) == uint128{0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaab}, "");
+static_assert((x | one) == x, "");
+static_assert((y | one) == uint128{0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaab}, "");
 
-    static_assert((x & one) == one, "");
-    static_assert((y & one) == zero, "");
+static_assert((x & one) == one, "");
+static_assert((y & one) == zero, "");
 
-    static_assert((x ^ zero) == x, "");
-    static_assert((x ^ one) == uint128{0x5555555555555555, 0x5555555555555554}, "");
+static_assert((x ^ zero) == x, "");
+static_assert((x ^ one) == uint128{0x5555555555555555, 0x5555555555555554}, "");
 
-    static_assert(~x == y, "");
-}
+static_assert(~x == y, "");
+}  // namespace static_test_bitwise_operators
 
-void static_test_explicit_conversion_to_bool()
+namespace static_test_explicit_conversion_to_bool
 {
-    static_assert(uint128{1, 0}, "");
-    static_assert(uint128{0, 1}, "");
-    static_assert(uint128{1, 1}, "");
-    static_assert(!uint128{0, 0}, "");
-    static_assert(!static_cast<bool>(uint128{0, 0}), "");
-}
+static_assert(uint128{1, 0}, "");
+static_assert(uint128{0, 1}, "");
+static_assert(uint128{1, 1}, "");
+static_assert(!uint128{0, 0}, "");
+static_assert(!static_cast<bool>(uint128{0, 0}), "");
+}  // namespace static_test_explicit_conversion_to_bool
 
 #ifndef _MSC_VER
 // FIXME: Investigate "integer constant overflow" issue on MSVC.
-void static_test_arith()
+namespace static_test_arith
 {
-    constexpr auto a = uint128{0x8000000000000000};
-    constexpr auto s = a + a;
-    static_assert(s == uint128{1, 0}, "");
-    static_assert(s - a == a, "");
-    static_assert(s - 0 == s, "");
-    static_assert(s + 0 == s, "");
-    static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff}, "");
-    static_assert(0 - uint128(2) == uint128{0xffffffffffffffff, 0xfffffffffffffffe}, "");
-    static_assert(uint128(13) - 17 == uint128{0xffffffffffffffff, 0xfffffffffffffffc}, "");
+constexpr auto a = uint128{0x8000000000000000};
+constexpr auto s = a + a;
+static_assert(s == uint128{1, 0}, "");
+static_assert(s - a == a, "");
+static_assert(s - 0 == s, "");
+static_assert(s + 0 == s, "");
+static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff}, "");
+static_assert(0 - uint128(2) == uint128{0xffffffffffffffff, 0xfffffffffffffffe}, "");
+static_assert(uint128(13) - 17 == uint128{0xffffffffffffffff, 0xfffffffffffffffc}, "");
 
-    static_assert(-a == (~a + 1), "");
-    static_assert(+a == a, "");
-}
+static_assert(-a == (~a + 1), "");
+static_assert(+a == a, "");
+}  // namespace static_test_arith
 #endif
 
 TEST(int128, numeric_limits)
