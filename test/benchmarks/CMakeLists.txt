@@ -5,8 +5,6 @@
 hunter_add_package(benchmark)
 find_package(benchmark CONFIG REQUIRED)
 
-find_package(GMP REQUIRED)
-
 add_executable(intx-bench
     bench_builtins.cpp
     bench_div.cpp

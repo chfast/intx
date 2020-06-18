@@ -2,6 +2,10 @@
 # Copyright 2019-2020 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
 
+if(INTX_BENCHMARKING OR INTX_FUZZING)
+    find_package(GMP REQUIRED)
+endif()
+
 add_subdirectory(experimental)
 add_subdirectory(utils)
 add_subdirectory(integration)
