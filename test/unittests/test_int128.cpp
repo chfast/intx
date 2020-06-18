@@ -293,7 +293,7 @@ TEST(int128, div)
 }
 
 #ifdef __SIZEOF_INT128__
-#pragma GCC diagnostic ignored "-Wpedantic"
+    #pragma GCC diagnostic ignored "-Wpedantic"
 using uint128_ty = unsigned __int128;
 
 TEST(int128, arith_random_args)
@@ -381,4 +381,12 @@ TEST(int128, clz)
         const auto input = (intx::uint128{1} << (intx::uint128::num_bits - 1)) >> i;
         EXPECT_EQ(clz(input), i);
     }
+}
+
+TEST(int128, unary_plus)
+{
+    const auto x = uint128{1};
+    const auto& y = +x;
+    EXPECT_EQ(x, y);
+    EXPECT_NE(&x, &y);
 }
