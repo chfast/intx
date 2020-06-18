@@ -259,18 +259,48 @@ TEST(int128, shl)
     for (unsigned s = 0; s < 127; ++s)
         EXPECT_EQ(clz(x << s), 127 - s);
 
+    unsigned sh = 128;
+    EXPECT_EQ(x << sh, 0);
+    auto y = x;
+    EXPECT_EQ(y << sh, 0);
+    y = ~uint128{0};
+    EXPECT_EQ(y << sh, 0);
+
     static_assert((x << 128) == 0, "");
     static_assert((uint128(3) << 63) == uint128(1, uint64_t(1) << 63), "");
+
+    auto z = uint128{2};
+    EXPECT_EQ(z <<= 63, uint128(1, 0));
+    EXPECT_EQ(z, uint128(1, 0));
 }
 
 TEST(int128, shr)
 {
     constexpr uint128 x = uint128(1) << 127;
     for (unsigned s = 0; s < 127; ++s)
-        EXPECT_EQ(clz(x >> s), s);
+    {
+        const auto result = x >> s;
+        EXPECT_EQ(clz(result), s);
+        EXPECT_EQ(x >> uint128{s}, result);
+    }
+
+    unsigned sh = 128;
+    EXPECT_EQ(x >> sh, 0);
+    EXPECT_EQ(x >> uint128{sh}, 0);
+    auto y = x;
+    EXPECT_EQ(y >> sh, 0);
+    EXPECT_EQ(y >> uint128{sh}, 0);
+    y = ~uint128{0};
+    EXPECT_EQ(y >> sh, 0);
+    EXPECT_EQ(y >> uint128{sh}, 0);
+    EXPECT_EQ(y >> uint128(1, 0), 0);
 
     static_assert((x >> 128) == 0, "");
     static_assert((uint128(3, 0) >> 1) == uint128(1, uint64_t(1) << 63), "");
+
+    auto z = uint128{1, 0};
+    EXPECT_EQ(z >>= 63, 2);
+    EXPECT_EQ(z, 2);
 }
 
 TEST(int128, div)
