@@ -145,7 +145,7 @@ jobs:
     environment:
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Release
-      - CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/cable/toolchains/cxx14-32bit.cmake -DINTX_BENCHMARKING=OFF
+      - CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_BENCHMARKING=OFF
     docker:
       - image: ethereum/cpp-build-env:14-gcc-10-multilib
     steps:
