@@ -85,8 +85,7 @@ jobs:
   linux-clang-coverage:
     environment:
       - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: Debug
-      - CMAKE_OPTIONS: -DCOVERAGE=ON
+      - BUILD_TYPE: Coverage
       - TESTS_FILTER: unittests
       - TESTS_EXCLUDE: random
     docker:
@@ -133,6 +132,7 @@ jobs:
   linux-clang-ubsan:
     environment:
       - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: RelWithDebInfo
       - CMAKE_OPTIONS: -DSANITIZE=undefined,implicit-conversion,nullability
       - UBSAN_OPTIONS: halt_on_error=1
     docker:
@@ -146,7 +146,7 @@ jobs:
     environment:
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Release
-      - CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/cable/toolchains/cxx14-32bit.cmake -DINTX_BENCHMARKING=OFF
+      - CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_BENCHMARKING=OFF
     docker:
       - image: ethereum/cpp-build-env:14-gcc-10-multilib
     steps:
@@ -155,6 +155,7 @@ jobs:
   fuzzing:
     environment:
       - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: Release
       - CMAKE_OPTIONS: -DINTX_FUZZING=ON
     docker:
       - image: ethereum/cpp-build-env:14-clang-10
