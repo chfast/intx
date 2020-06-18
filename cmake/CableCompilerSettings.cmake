@@ -9,6 +9,9 @@
 #
 # CHANGELOG
 #
+# 1.1.0 - 2020-06-18
+# - Allow unknown C++ attributes in MSVC compiler
+#
 # 1.0.1 - 2020-01-30
 # - Do not explicitly set -mtune=generic, this is default anyway.
 #
@@ -126,6 +129,9 @@ macro(cable_configure_compiler)
 
             # Allow unknown pragmas, we don't want to wrap them with #ifdefs.
             add_compile_options(/wd4068)
+
+            # Allow unknown C++ attributes.
+            add_compile_options(/wd5030)
 
         endif()
 
