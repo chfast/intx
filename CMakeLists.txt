@@ -16,6 +16,8 @@ if(NOT has_parent)
     set(is_main_project TRUE)
 endif()
 
+option(INTX_INSTALL "Enable intx install target" ${is_main_project})
+
 option(INTX_TESTING "Enable intx testing" ${is_main_project})
 cmake_dependent_option(INTX_BENCHMARKING "Build intx with benchmark tools" ON "INTX_TESTING" OFF)
 cmake_dependent_option(INTX_FUZZING "Build intx fuzzers" OFF "INTX_TESTING" OFF)
@@ -59,48 +61,50 @@ if(INTX_TESTING)
     add_subdirectory(test)
 endif()
 
-write_basic_package_version_file(intxConfigVersion.cmake COMPATIBILITY ExactVersion)
+if(INTX_INSTALL)
+    write_basic_package_version_file(intxConfigVersion.cmake COMPATIBILITY ExactVersion)
 
-set(config_dir ${CMAKE_INSTALL_LIBDIR}/cmake/intx)
+    set(config_dir ${CMAKE_INSTALL_LIBDIR}/cmake/intx)
 
-configure_package_config_file(
-    cmake/Config.cmake.in
-    intxConfig.cmake
-    INSTALL_DESTINATION ${config_dir}
-)
+    configure_package_config_file(
+        cmake/Config.cmake.in
+        intxConfig.cmake
+        INSTALL_DESTINATION ${config_dir}
+    )
 
-install(
-    TARGETS int128 intx
-    EXPORT intxTargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
+    install(
+        TARGETS int128 intx
+        EXPORT intxTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
 
-install(
-    EXPORT intxTargets
-    NAMESPACE intx::
-    DESTINATION ${config_dir}
-)
+    install(
+        EXPORT intxTargets
+        NAMESPACE intx::
+        DESTINATION ${config_dir}
+    )
 
-install(
-    FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/intxConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/intxConfigVersion.cmake
-    DESTINATION ${config_dir}
-)
+    install(
+        FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/intxConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/intxConfigVersion.cmake
+        DESTINATION ${config_dir}
+    )
 
-install(
-    DIRECTORY
-    ${INTX_INCLUDE_DIR}/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+    install(
+        DIRECTORY
+        ${INTX_INCLUDE_DIR}/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 
-if(WIN32)
-    set(CPACK_GENERATOR ZIP)
-else()
-    set(CPACK_GENERATOR TGZ)
+    if(WIN32)
+        set(CPACK_GENERATOR ZIP)
+    else()
+        set(CPACK_GENERATOR TGZ)
+    endif()
+    set(CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION})
+    set(CPACK_PACKAGE_CHECKSUM SHA256)
+    set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY FALSE)
+    include(CPack)
 endif()
-set(CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION})
-set(CPACK_PACKAGE_CHECKSUM SHA256)
-set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY FALSE)
-include(CPack)
