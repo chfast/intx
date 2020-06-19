@@ -336,6 +336,16 @@ TYPED_TEST(uint_test, shift_loop_one_bit)
     }
 }
 
+TYPED_TEST(uint_test, shift_overflow)
+{
+    unsigned sh = sizeof(TypeParam) * 8;
+    const auto value = ~TypeParam{};
+    EXPECT_EQ(value >> sh, 0);
+    EXPECT_EQ(value >> TypeParam{sh}, 0);
+    EXPECT_EQ(value << sh, 0);
+    EXPECT_EQ(value << TypeParam{sh}, 0);
+}
+
 TYPED_TEST(uint_test, not_of_zero)
 {
     auto ones = ~TypeParam{};
