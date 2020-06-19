@@ -231,6 +231,9 @@ TEST(int128, mul)
     {
         EXPECT_EQ(t.x * t.y, t.product);
         EXPECT_EQ(t.y * t.x, t.product);
+        auto z = t.x;
+        EXPECT_EQ(z *= t.y, t.product);
+        EXPECT_EQ(z, t.product);
     }
 }
 
