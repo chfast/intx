@@ -301,7 +301,7 @@ static div_test_case<uint512> div_test_cases[] = {
         0xffffffffffffffffffffffffffffffffff_u256,
         0xabfffff0000ffffffffff36363636363537371636d00500000001000000fffeffe9ff001f_u512,
     },
-        {
+    {
         0xff00ffffffffffffffcaffffffff0100_u128,
         0x0100000000000000ff800000000000ff_u128,
         0xff,
@@ -393,4 +393,12 @@ TEST(div, reciprocal)
         auto v = reciprocal_2by1(d);
         EXPECT_EQ(v, reciprocal_naive(d)) << d;
     }
+}
+
+TEST(div, reciprocal_table)
+{
+    uint8_t d = 0;
+    EXPECT_EQ(internal::reciprocal_table_item(d), 2045);
+    d = 0xff;
+    EXPECT_EQ(internal::reciprocal_table_item(d), 1024);
 }
