@@ -560,8 +560,8 @@ TYPED_TEST(uint_test, string_conversions)
 TYPED_TEST(uint_test, to_string_base)
 {
     auto x = TypeParam{1024};
-    EXPECT_THROW(to_string(x, 1), std::invalid_argument);
-    EXPECT_THROW(to_string(x, 37), std::invalid_argument);
+    EXPECT_THROW_MESSAGE(to_string(x, 1), std::invalid_argument, "invalid base");
+    EXPECT_THROW_MESSAGE(to_string(x, 37), std::invalid_argument, "invalid base");
     EXPECT_EQ(to_string(x, 10), "1024");
     EXPECT_EQ(to_string(x, 16), "400");
     EXPECT_EQ(to_string(x, 36), "sg");
