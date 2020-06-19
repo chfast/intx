@@ -798,10 +798,17 @@ struct numeric_limits<intx::uint<N>>
 
 namespace intx
 {
+template <typename T>
+[[noreturn]] inline void throw_(const char* what)
+{
+    throw T{what};
+}
+
 constexpr inline int from_dec_digit(char c)
 {
-    return (c >= '0' && c <= '9') ? c - '0' :
-                                    throw std::invalid_argument{std::string{"Invalid digit: "} + c};
+    if (c < '0' || c > '9')
+        throw_<std::invalid_argument>("invalid digit");
+    return c - '0';
 }
 
 constexpr inline int from_hex_digit(char c)
@@ -814,8 +821,9 @@ constexpr inline int from_hex_digit(char c)
 }
 
 template <typename Int>
-constexpr Int from_string(const char* s)
+constexpr Int from_string(const char* str)
 {
+    auto s = str;
     auto x = Int{};
     int num_digits = 0;
 
@@ -825,7 +833,7 @@ constexpr Int from_string(const char* s)
         while (const auto c = *s++)
         {
             if (++num_digits > int{sizeof(x) * 2})
-                throw std::overflow_error{"Integer overflow"};
+                throw_<std::out_of_range>(str);
             x = (x << 4) | from_hex_digit(c);
         }
         return x;
@@ -834,12 +842,12 @@ constexpr Int from_string(const char* s)
     while (const auto c = *s++)
     {
         if (num_digits++ > std::numeric_limits<Int>::digits10)
-            throw std::overflow_error{"Integer overflow"};
+            throw_<std::out_of_range>(str);
 
         const auto d = from_dec_digit(c);
         x = constexpr_mul(x, Int{10}) + d;
         if (x < d)
-            throw std::overflow_error{"Integer overflow"};
+            throw_<std::out_of_range>(str);
     }
     return x;
 }
@@ -859,7 +867,7 @@ template <unsigned N>
 inline std::string to_string(uint<N> x, int base = 10)
 {
     if (base < 2 || base > 36)
-        throw std::invalid_argument{"invalid base: " + std::to_string(base)};
+        throw_<std::invalid_argument>("invalid base");
 
     if (x == 0)
         return "0";
