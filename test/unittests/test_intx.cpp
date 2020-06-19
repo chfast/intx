@@ -195,6 +195,29 @@ TEST(uint256, count_significant_bytes)
     EXPECT_EQ(count_significant_words<uint8_t>(0_u256), 0u);
 }
 
+TEST(uint256, addmod)
+{
+    const auto x = 0xab0f4afc4c78548d4c30e1ab3449e3_u128;
+    const auto y = 0xf0a4485af15508e448cdddb0d1301664_u128;
+    const auto mod = 0xf0f9d0006f7b450e8f73f621a6ca3b56_u128;
+    EXPECT_EQ(addmod(x, y, mod), 0x5587a57e263c2a46a61870d59a24f1_u128);
+    const auto a = 0xdce049946eccbbf77ed1e8e2a3c89e15a8e897df2194150700f5096dea864cdb_u256;
+    const auto b = 0x397dd0df188eaffbf5216c6be56fe49002fbdc23b95a58a60f69e56f6f87f424_u256;
+    EXPECT_EQ(addmod(a, b, mod), 0x7533da49e8c499530049fbf08733976b_u128);
+}
+
+TEST(uint256, mulmod)
+{
+    const auto x = 0xab0f4afc4c78548d4c30e1ab3449e3_u128;
+    const auto y = 0xf0a4485af15508e448cdddb0d1301664_u128;
+    const auto mod = 0xf0f9d0006f7b450e8f73f621a6ca3b56_u128;
+    EXPECT_EQ(mulmod(x, y, mod), 0x6c5c6c6fb72967583930f380c2a5269c_u128);
+    const auto a = 0x4028c97ce32bf74a3a3137956b07a5a699ca8422bdf672f547_u256;
+    const auto b = 0x8c9f09b6227ba6542a97343c679e1d11d8bfa29228c18615c2_u256;
+    EXPECT_EQ(mulmod(a, b, mod), 0xca283039a2ad0dbd3d60fbadb29e9c7a_u128);
+}
+
+
 template <typename T>
 class uint_test : public testing::Test
 {
