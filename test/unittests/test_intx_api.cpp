@@ -1,10 +1,12 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include "test_utils.hpp"
 #include <gtest/gtest.h>
 #include <intx/intx.hpp>
+
+#pragma warning(disable : 4307)
 
 using namespace intx;
 
@@ -13,11 +15,8 @@ static_assert(uint256{2} + uint256{2} == 4, "");
 static_assert(uint512{2} + uint512{2} == 4, "");
 
 static_assert(uint128{2} - uint128{1} == 1, "");
-#ifndef _MSC_VER
-// FIXME: Investigate "integer constant overflow" issue on MSVC.
 static_assert(uint256{2} - uint256{1} == 1, "");
 static_assert(uint512{2} - uint512{1} == 1, "");
-#endif
 
 static_assert(constexpr_mul(uint128{2}, uint128{2}) == 4, "");
 static_assert(constexpr_mul(uint256{2}, uint256{2}) == 4, "");
