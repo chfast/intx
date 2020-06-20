@@ -9,8 +9,10 @@
 #
 # CHANGELOG
 #
-# 1.1.0 - 2020-06-18
-# - Allow unknown C++ attributes in MSVC compiler
+# 1.1.0 - 2020-06-20
+# - Allow unknown C++ attributes in MSVC compiler.
+# - Option -DEXCEPTIONS=OFF to disable C++ exceptions support (GCC, clang).
+# - Option -DRTTI=OFF to disable RTTI support (GCC, clang).
 #
 # 1.0.1 - 2020-01-30
 # - Do not explicitly set -mtune=generic, this is default anyway.
@@ -133,6 +135,16 @@ macro(cable_configure_compiler)
             # Allow unknown C++ attributes.
             add_compile_options(/wd5030)
 
+        endif()
+
+        option(EXCEPTIONS "Build with exceptions support" ON)
+        if(NOT EXCEPTIONS)
+            add_compile_options(-fno-exceptions)
+        endif()
+
+        option(RTTI "Build with RTTI support" ON)
+        if(NOT RTTI)
+            add_compile_options(-fno-rtti)
         endif()
 
         # Option for arch=native.
