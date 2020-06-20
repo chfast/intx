@@ -142,6 +142,17 @@ jobs:
       - build_and_test
       - benchmark
 
+  no-exceptions:
+    environment:
+      - BUILD_TYPE: Release
+      - CMAKE_OPTIONS: -DEXCEPTIONS=OFF -DRTTI=OFF
+    docker:
+      - image: ethereum/cpp-build-env:14-gcc-10
+    steps:
+      - install_deps
+      - build_and_test
+      - benchmark
+
   linux-32bit:
     environment:
       - BUILD_PARALLEL_JOBS: 4
@@ -211,6 +222,7 @@ workflows:
       - linux-clang-coverage
       - linux-clang-asan
       - linux-clang-ubsan
+      - no-exceptions
       - linux-32bit
       - fuzzing
       - macos
