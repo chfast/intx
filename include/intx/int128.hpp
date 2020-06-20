@@ -801,7 +801,12 @@ namespace intx
 template <typename T>
 [[noreturn]] inline void throw_(const char* what)
 {
+#if __cpp_exceptions
     throw T{what};
+#else
+    std::fputs(what, stderr);
+    std::abort();
+#endif
 }
 
 constexpr inline int from_dec_digit(char c)
