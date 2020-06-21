@@ -17,6 +17,25 @@
     #include <intrin.h>
 #endif
 
+#ifdef _MSC_VER
+    #define INTX_UNREACHABLE __assume(0)
+#else
+    #define INTX_UNREACHABLE __builtin_unreachable()
+#endif
+
+#ifdef _MSC_VER
+    #define INTX_UNLIKELY(EXPR) (bool{EXPR})
+#else
+    #define INTX_UNLIKELY(EXPR) __builtin_expect(bool{EXPR}, false)
+#endif
+
+#ifdef NDEBUG
+    #define INTX_REQUIRE(X) (X) ? (void)0 : INTX_UNREACHABLE
+#else
+    #include <cassert>
+    #define INTX_REQUIRE assert
+#endif
+
 namespace intx
 {
 template <unsigned N>
@@ -530,6 +549,8 @@ constexpr uint16_t reciprocal_table[] = {REPEAT256()};
 /// Based on Algorithm 2 from "Improved division by invariant integers".
 inline uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
+    INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
+
     const uint64_t d9 = d >> 55;
     const uint32_t v0 = internal::reciprocal_table[d9 - 256];
 
@@ -636,6 +657,8 @@ inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 {
     if (y.hi == 0)
     {
+        INTX_REQUIRE(y.lo != 0);  // Division by 0.
+
         uint64_t xn_ex, xn_hi, xn_lo, yn;
 
         auto lsh = clz(y.lo);
