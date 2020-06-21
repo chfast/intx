@@ -349,42 +349,6 @@ TEST(int128, sdivrem)
     EXPECT_EQ(sdivrem(x, -y).rem, 0x13e5e3b3e827e);
 }
 
-#ifdef __SIZEOF_INT128__
-    #pragma GCC diagnostic ignored "-Wpedantic"
-using uint128_ty = unsigned __int128;
-
-TEST(int128, arith_random_args)
-{
-    int c = 1000000;
-
-    test::lcg<uint128> dist{test::get_seed()};
-
-    while (c-- > 0)
-    {
-        auto x = dist();
-        auto y = dist();
-
-        auto s = x + y;
-        auto d = x - y;
-        auto p = x * y;
-        auto q = x / y;
-        auto r = x % y;
-
-        auto expected_s = uint128{uint128_ty{x} + uint128_ty{y}};
-        auto expected_d = uint128{uint128_ty{x} - uint128_ty{y}};
-        auto expected_p = uint128{uint128_ty{x} * uint128_ty{y}};
-        auto expected_q = uint128{uint128_ty{x} / uint128_ty{y}};
-        auto expected_r = uint128{uint128_ty{x} % uint128_ty{y}};
-
-        EXPECT_EQ(s, expected_s) << c;
-        EXPECT_EQ(d, expected_d) << c;
-        EXPECT_EQ(p, expected_p) << c;
-        EXPECT_EQ(q, expected_q) << c;
-        EXPECT_EQ(r, expected_r) << c;
-    }
-}
-#endif
-
 TEST(int128, literals)
 {
     auto a = 340282366920938463463374607431768211455_u128;
