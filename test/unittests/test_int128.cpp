@@ -209,7 +209,7 @@ TEST(int128, numeric_limits)
 
 TEST(int128, add)
 {
-    for (auto& t : arith_test_cases)
+    for (const auto& t : arith_test_cases)
     {
         EXPECT_EQ(t.x + t.y, t.sum);
         EXPECT_EQ(t.y + t.x, t.sum);
@@ -218,7 +218,7 @@ TEST(int128, add)
 
 TEST(int128, sub)
 {
-    for (auto& t : arith_test_cases)
+    for (const auto& t : arith_test_cases)
     {
         EXPECT_EQ(t.x - t.y, t.difference);
     }
@@ -226,7 +226,7 @@ TEST(int128, sub)
 
 TEST(int128, mul)
 {
-    for (auto& t : arith_test_cases)
+    for (const auto& t : arith_test_cases)
     {
         EXPECT_EQ(t.x * t.y, t.product);
         EXPECT_EQ(t.y * t.x, t.product);
@@ -311,7 +311,7 @@ TEST(int128, shr)
 TEST(int128, div)
 {
     int index = 0;
-    for (auto& t : div_test_cases)
+    for (const auto& t : div_test_cases)
     {
         auto q = t.x / t.y;
         auto r = t.x % t.y;
