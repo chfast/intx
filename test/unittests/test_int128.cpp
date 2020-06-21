@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 #include <intx/int128.hpp>
 
+#pragma warning(disable : 4307)
+
 using namespace intx;
 
 namespace
