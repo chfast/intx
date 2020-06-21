@@ -12,25 +12,6 @@
 #include <limits>
 #include <type_traits>
 
-#ifdef _MSC_VER
-    #define INTX_UNREACHABLE __assume(0)
-#else
-    #define INTX_UNREACHABLE __builtin_unreachable()
-#endif
-
-#ifdef _MSC_VER
-    #define INTX_UNLIKELY(EXPR) (bool{EXPR})
-#else
-    #define INTX_UNLIKELY(EXPR) __builtin_expect(bool{EXPR}, false)
-#endif
-
-#ifdef NDEBUG
-    #define INTX_REQUIRE(X) (X) ? (void)0 : INTX_UNREACHABLE
-#else
-    #include <cassert>
-    #define INTX_REQUIRE assert
-#endif
-
 namespace intx
 {
 template <unsigned N>
