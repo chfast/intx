@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 #pragma once
 
-#include <intx/intx.hpp>
+#include <intx/int128.hpp>
 
 struct type_to_name
 {
@@ -12,19 +12,19 @@ struct type_to_name
 };
 
 template <>
-inline std::string type_to_name::GetName<intx::uint128>(int)
+inline std::string type_to_name::GetName<intx::uint<128>>(int)
 {
     return "uint128";
 }
 
 template <>
-inline std::string type_to_name::GetName<intx::uint256>(int)
+inline std::string type_to_name::GetName<intx::uint<256>>(int)
 {
     return "uint256";
 }
 
 template <>
-inline std::string type_to_name::GetName<intx::uint512>(int)
+inline std::string type_to_name::GetName<intx::uint<512>>(int)
 {
     return "uint512";
 }

@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 #include <intx/int128.hpp>
-#include <test/utils/random.hpp>
 
 using namespace intx;
 
