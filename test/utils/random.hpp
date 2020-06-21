@@ -15,10 +15,9 @@ namespace test
 {
 using seed_type = std::random_device::result_type;
 
-static seed_type get_seed()
+inline seed_type get_seed()
 {
-    static const auto seed = std::random_device{}();
-    return seed;
+    return 2358091149;
 }
 
 /// Linear congruential generator for any integer type.
@@ -27,7 +26,7 @@ struct lcg
 {
     Int state = 0;
 
-    explicit lcg(seed_type seed) : state(seed)
+    explicit lcg(seed_type seed) : state{seed}
     {
         // Run for some time to fill the state.
         for (int i = 0; i < 97; ++i)
@@ -36,7 +35,7 @@ struct lcg
 
     Int operator()()
     {
-        return state = static_cast<Int>(Int(0x5851f42d4c957f2d) * state + Int(0x14057b7ef767814f));
+        return state = static_cast<Int>(Int{0x5851f42d4c957f2d} * state + Int{0x14057b7ef767814f});
     }
 };
 
