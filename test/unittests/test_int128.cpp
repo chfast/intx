@@ -377,20 +377,22 @@ TEST(int128, to_string)
     EXPECT_EQ(hex(uint128{7 * 16 + 1}), "71");
 }
 
-TEST(int128, umul_random)
+TEST(int128, umul)
 {
-    const auto inputs = test::gen_uniform_seq(10000);
+    constexpr uint64_t inputs[] = {12243, 12503, 53501, 62950, 682017770, 1164206252, 1693374163,
+        2079516117, 7043980147839196358, 12005172997151200154u, 15099684930315651455u,
+        17254606825257761760u};
 
-    for (size_t i = 1; i < inputs.size(); ++i)
+    for (size_t i = 1; i < (sizeof(inputs) / sizeof(inputs[0])); ++i)
     {
-        auto x = inputs[i - 1];
-        auto y = inputs[i];
+        const auto x = inputs[i - 1];
+        const auto y = inputs[i];
 
-        auto generic = intx::constexpr_umul(x, y);
-        auto best = intx::umul(x, y);
+        const auto generic = intx::constexpr_umul(x, y);
+        const auto best = intx::umul(x, y);
 
-        EXPECT_EQ(generic.hi, best.hi) << x << " x " << y;
-        EXPECT_EQ(generic.lo, best.lo) << x << " x " << y;
+        EXPECT_EQ(generic, best) << x << " x " << y;
+        EXPECT_EQ(generic.lo, x * y);
     }
 }
 
