@@ -1,9 +1,8 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include <intx/int128.hpp>
-
 #include <cstdint>
 #include <cstring>
 
@@ -21,7 +20,8 @@ uint64_t nop(uint64_t x, uint64_t y) noexcept
 
 intx::uint128 div_gcc(intx::uint128 x, intx::uint128 y) noexcept
 {
-    unsigned __int128 u, v;
+    unsigned __int128 u;
+    unsigned __int128 v;
     std::memcpy(&u, &x, sizeof(u));
     std::memcpy(&v, &y, sizeof(v));
     auto q = u / v;
@@ -36,6 +36,8 @@ inline uint64_t umulh(uint64_t x, uint64_t y)
 
 uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept
 {
+    INTX_REQUIRE(y != 0);
+
     // decent start
     uint64_t z = uint64_t(1) << intx::clz(y);
 
@@ -56,7 +58,7 @@ uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept
 
         if (r >= y)
         {
-            r -= y;
+            // r -= y;
             q += 1;
         }
     }
@@ -65,6 +67,8 @@ uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept
 
 uint64_t soft_div_unr(uint64_t x, uint64_t y) noexcept
 {
+    INTX_REQUIRE(y != 0);
+
     // decent start
     uint64_t z = uint64_t(1) << intx::clz(y);
 
@@ -88,7 +92,7 @@ uint64_t soft_div_unr(uint64_t x, uint64_t y) noexcept
         q = q + 1;
         if (r >= y)
         {
-            r = r - y;
+            // r = r - y;
             q = q + 1;
         }
     }
