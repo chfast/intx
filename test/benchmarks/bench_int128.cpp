@@ -10,87 +10,48 @@
 using namespace intx;
 
 uint128 div_gcc(uint128 x, uint128 y) noexcept;
-
-inline uint128 div_uint128(uint128 x, uint128 y) noexcept
+inline div_result<uint128> _gcc(uint128 x, uint128 y) noexcept
 {
-    return x / y;
+    return {div_gcc(x, y), 0};
 }
 
-inline uint128 div_gmp(uint128 x, uint128 y) noexcept
+inline div_result<uint128> _gmp(uint128 x, uint128 y) noexcept
 {
-    return gmp::udivrem(x, y).quot;
+    return gmp::udivrem(x, y);
 }
 
-template <decltype(div_gcc) DivFn>
+[[gnu::noinline]] static auto _intx(uint128 x, uint128 y) noexcept
+{
+    return intx::udivrem(x, y);
+}
+
+template <decltype(_intx) DivFn>
 static void udiv128(benchmark::State& state)
 {
-    uint128 x = {0x537e3fbc5318dbc0, 0xe7e47d96b32ef2d5};
-    uint128 y = {0x395df916dfd1b5e, 0x38ae7c47ce8a620f};
+    const uint128 inputs[][2] = {
+        {0x537e3fbc5318dbc0e7e47d96b32ef2d5_u128, 0x395df916dfd1b5e38ae7c47ce8a620f_u128},
+        {0xee657725ff64cd48b8fe188a09dc4f78_u128, 3},                   // worst shift
+        {0x0e657725ff64cd48b8fe188a09dc4f78_u128, 0xe7e47d96b32ef2d5},  // single long normalized
+        {0x0e657725ff64cd48b8fe188a09dc4f78_u128, 0x77e47d96b32ef2d5},  // single long
+    };
+    benchmark::DoNotOptimize(inputs);
+    benchmark::ClobberMemory();
+
+    const auto idx = static_cast<size_t>(state.range(0));
+    const uint128 x = inputs[idx][0];
+    const uint128 y = inputs[idx][1];
+    benchmark::DoNotOptimize(x);
+    benchmark::DoNotOptimize(y);
 
     for (auto _ : state)
     {
-        benchmark::ClobberMemory();
         auto q = DivFn(x, y);
         benchmark::DoNotOptimize(q);
     }
 }
-BENCHMARK_TEMPLATE(udiv128, div_gcc);
-BENCHMARK_TEMPLATE(udiv128, div_uint128);
-BENCHMARK_TEMPLATE(udiv128, div_gmp);
-
-
-template <decltype(div_gcc) DivFn>
-static void udiv128_worst_shift(benchmark::State& state)
-{
-    uint128 x = {0xee657725ff64cd48, 0xb8fe188a09dc4f78};
-    uint128 y = 3;
-
-    for (auto _ : state)
-    {
-        benchmark::ClobberMemory();
-        auto q = DivFn(x, y);
-        benchmark::DoNotOptimize(q);
-    }
-}
-BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gcc);
-BENCHMARK_TEMPLATE(udiv128_worst_shift, div_uint128);
-BENCHMARK_TEMPLATE(udiv128_worst_shift, div_gmp);
-
-
-template <decltype(div_gcc) DivFn>
-static void udiv128_single_long(benchmark::State& state)
-{
-    uint128 x = {0x0e657725ff64cd48, 0xb8fe188a09dc4f78};
-    uint128 y = 0xe7e47d96b32ef2d5;
-
-    for (auto _ : state)
-    {
-        benchmark::ClobberMemory();
-        auto q = DivFn(x, y);
-        benchmark::DoNotOptimize(q);
-    }
-}
-BENCHMARK_TEMPLATE(udiv128_single_long, div_gcc);
-BENCHMARK_TEMPLATE(udiv128_single_long, div_uint128);
-BENCHMARK_TEMPLATE(udiv128_single_long, div_gmp);
-
-
-template <decltype(div_gcc) DivFn>
-static void udiv128_single_long_shift(benchmark::State& state)
-{
-    uint128 x = {0x0e657725ff64cd48, 0xb8fe188a09dc4f78};
-    uint128 y = 0x77e47d96b32ef2d5;
-
-    for (auto _ : state)
-    {
-        benchmark::ClobberMemory();
-        auto q = DivFn(x, y);
-        benchmark::DoNotOptimize(q);
-    }
-}
-BENCHMARK_TEMPLATE(udiv128_single_long_shift, div_gcc);
-BENCHMARK_TEMPLATE(udiv128_single_long_shift, div_uint128);
-BENCHMARK_TEMPLATE(udiv128_single_long_shift, div_gmp);
+BENCHMARK_TEMPLATE(udiv128, _gcc)->DenseRange(0, 3);
+BENCHMARK_TEMPLATE(udiv128, _intx)->DenseRange(0, 3);
+BENCHMARK_TEMPLATE(udiv128, _gmp)->DenseRange(0, 3);
 
 
 template <typename RetT, RetT (*MulFn)(uint64_t, uint64_t)>
