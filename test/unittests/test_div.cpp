@@ -313,6 +313,19 @@ static div_test_case<uint512> div_test_cases[] = {
         1,
         0x1000ffffffffff803fcafffffffe8180_u128,
     },
+    {
+        // Very special case for reciprocal_3by2().
+        uint128{9223372036855824384u, 9223374235880128514u},
+        uint128{9223372036855824384u, 9223374235880128513u},
+        1,
+        1,
+    },
+    {
+        0x6e2d23924d38f0ab643864e9b2a328a54914f48533114fae3475168bfd74a61ae91e676b4a4f33a5b3b6cc189536ccb4afc46d02b061d6daaf0298c993376ab4_u512,
+        uint128{9223372036855824384u, 9223374235880128513u},
+        0xdc5a47249a56560d078334729ffb61da211f5d2ec622c22f88bc3b4ebae1abdac6b03621554ef71070bc1e0dc5c301bc_u512,
+        0x6dc100ea02272bdcf68a4a5b95f468f8_u128,
+    },
 };
 
 TEST(div, udivrem_512)
