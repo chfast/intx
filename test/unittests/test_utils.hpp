@@ -5,6 +5,23 @@
 
 #include <intx/int128.hpp>
 
+#if __cpp_exceptions
+    #define EXPECT_THROW_MESSAGE(stmt, ex_type, expected)                                        \
+        try                                                                                      \
+        {                                                                                        \
+            stmt;                                                                                \
+            ADD_FAILURE() << "Exception of type " #ex_type " is expected, but none was thrown."; \
+        }                                                                                        \
+        catch (const ex_type& exception)                                                         \
+        {                                                                                        \
+            EXPECT_STREQ(exception.what(), expected);                                            \
+        }                                                                                        \
+        (void)0
+#else
+    #define EXPECT_THROW_MESSAGE(stmt, ex_type, expected) EXPECT_DEATH(stmt, expected)
+#endif
+
+
 struct type_to_name
 {
     template <typename T>

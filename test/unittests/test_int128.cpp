@@ -2,6 +2,7 @@
 // Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
+#include "test_utils.hpp"
 #include <gtest/gtest.h>
 #include <intx/int128.hpp>
 
@@ -355,21 +356,48 @@ TEST(int128, literals)
     auto a = 340282366920938463463374607431768211455_u128;
     EXPECT_EQ(a, (uint128{0xffffffffffffffff, 0xffffffffffffffff}));
 
-    EXPECT_THROW(340282366920938463463374607431768211456_u128, std::overflow_error);
-    EXPECT_THROW(3402823669209384634633746074317682114550_u128, std::overflow_error);
-
     a = 0xffffffffffffffffffffffffffffffff_u128;
     EXPECT_EQ(a, (uint128{0xffffffffffffffff, 0xffffffffffffffff}));
 
-    EXPECT_THROW(0x100000000000000000000000000000000_u128, std::overflow_error);
+    EXPECT_EQ(0xaBc123eFd_u128, 0xAbC123EfD_u128);
+}
+
+TEST(int128, from_string)
+{
+    constexpr auto ka = from_string<uint128>("18446744073709551617");
+    static_assert(ka == uint128{1, 1}, "");
+    const auto sa = "18446744073709551617";
+    const auto a = from_string<uint128>(sa);
+    EXPECT_EQ(a, uint128(1, 1));
+
+    constexpr auto kb = from_string<uint128>("0x300aabbccddeeff99");
+    static_assert(kb == uint128{3, 0xaabbccddeeff99}, "");
+    const auto sb = "0x300aabbccddeeff99";
+    EXPECT_EQ(from_string<uint128>(sb), uint128(3, 0xaabbccddeeff99));
+}
+
+TEST(int128, literals_exceptions)
+{
+    EXPECT_THROW_MESSAGE(340282366920938463463374607431768211456_u128, std::out_of_range,
+        "340282366920938463463374607431768211456");
+    EXPECT_THROW_MESSAGE(3402823669209384634633746074317682114550_u128, std::out_of_range,
+        "3402823669209384634633746074317682114550");
+
+    EXPECT_THROW_MESSAGE(0x100000000000000000000000000000000_u128, std::out_of_range,
+        "0x100000000000000000000000000000000");
 
     // Binary literals 0xb... are not supported yet.
-    EXPECT_THROW(operator""_u128("0b1"), std::invalid_argument);
+    EXPECT_THROW_MESSAGE(operator""_u128("0b1"), std::invalid_argument, "invalid digit");
+    EXPECT_THROW_MESSAGE(0b1010_u128, std::invalid_argument, "invalid digit");
 
-    EXPECT_THROW(operator""_u128("123x456"), std::invalid_argument);
-    EXPECT_THROW(operator""_u128("0xabcxdef"), std::invalid_argument);
+    EXPECT_THROW_MESSAGE(operator""_u128("123x456"), std::invalid_argument, "invalid digit");
+    EXPECT_THROW_MESSAGE(operator""_u128("0xabcxdef"), std::invalid_argument, "invalid digit");
+}
 
-    EXPECT_EQ(0xaBc123eFd_u128, 0xAbC123EfD_u128);
+TEST(int128, from_string_exceptions)
+{
+    EXPECT_THROW_MESSAGE(from_string<uint128>("123a"), std::invalid_argument, "invalid digit");
+    EXPECT_THROW_MESSAGE(from_string<uint128>("0xcdefg"), std::invalid_argument, "invalid digit");
 }
 
 TEST(int128, to_string)
