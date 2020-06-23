@@ -30,6 +30,7 @@ static void udiv128(benchmark::State& state)
 {
     const uint128 inputs[][2] = {
         {0x537e3fbc5318dbc0e7e47d96b32ef2d5_u128, 0x395df916dfd1b5e38ae7c47ce8a620f_u128},
+        {0x837e3fbc5318dbc0e7e47d96b32ef2d5_u128, 0x895df916dfd1b5e38ae7c47ce8a620f_u128},
         {0xee657725ff64cd48b8fe188a09dc4f78_u128, 3},                   // worst shift
         {0x0e657725ff64cd48b8fe188a09dc4f78_u128, 0xe7e47d96b32ef2d5},  // single long normalized
         {0x0e657725ff64cd48b8fe188a09dc4f78_u128, 0x77e47d96b32ef2d5},  // single long

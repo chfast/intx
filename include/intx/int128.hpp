@@ -659,55 +659,41 @@ inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     {
         INTX_REQUIRE(y.lo != 0);  // Division by 0.
 
-        uint64_t xn_ex, xn_hi, xn_lo, yn;
+        const auto lsh = clz(y.lo);
+        const auto rsh = (64 - lsh) % 64;
+        const auto rsh_mask = uint64_t{lsh == 0} - 1;
 
-        auto lsh = clz(y.lo);
-        if (lsh != 0)
-        {
-            auto rsh = 64 - lsh;
-            xn_ex = x.hi >> rsh;
-            xn_hi = (x.lo >> rsh) | (x.hi << lsh);
-            xn_lo = x.lo << lsh;
-            yn = y.lo << lsh;
-        }
-        else
-        {
-            xn_ex = 0;
-            xn_hi = x.hi;
-            xn_lo = x.lo;
-            yn = y.lo;
-        }
+        const auto yn = y.lo << lsh;
+        const auto xn_lo = x.lo << lsh;
+        const auto xn_hi = (x.hi << lsh) | ((x.lo >> rsh) & rsh_mask);
+        const auto xn_ex = (x.hi >> rsh) & rsh_mask;
 
-        auto v = reciprocal_2by1(yn);
-
-        auto res = udivrem_2by1({xn_ex, xn_hi}, yn, v);
-        auto q1 = res.quot;
-
-        res = udivrem_2by1({res.rem, xn_lo}, yn, v);
-
-        return {{q1, res.quot}, res.rem >> lsh};
+        const auto v = reciprocal_2by1(yn);
+        const auto res1 = udivrem_2by1({xn_ex, xn_hi}, yn, v);
+        const auto res2 = udivrem_2by1({res1.rem, xn_lo}, yn, v);
+        return {{res1.quot, res2.quot}, res2.rem >> lsh};
     }
 
     if (y.hi > x.hi)
         return {0, x};
 
-    auto lsh = clz(y.hi);
+    const auto lsh = clz(y.hi);
     if (lsh == 0)
     {
         const auto q = unsigned{y.hi < x.hi} | unsigned{y.lo <= x.lo};
         return {q, x - (q ? y : 0)};
     }
 
-    auto rsh = 64 - lsh;
+    const auto rsh = 64 - lsh;
 
-    auto yn_lo = y.lo << lsh;
-    auto yn_hi = (y.lo >> rsh) | (y.hi << lsh);
-    auto xn_ex = x.hi >> rsh;
-    auto xn_hi = (x.lo >> rsh) | (x.hi << lsh);
-    auto xn_lo = x.lo << lsh;
+    const auto yn_lo = y.lo << lsh;
+    const auto yn_hi = (y.hi << lsh) | (y.lo >> rsh);
+    const auto xn_lo = x.lo << lsh;
+    const auto xn_hi = (x.hi << lsh) | (x.lo >> rsh);
+    const auto xn_ex = x.hi >> rsh;
 
-    auto v = reciprocal_3by2({yn_hi, yn_lo});
-    auto res = udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_hi, yn_lo}, v);
+    const auto v = reciprocal_3by2({yn_hi, yn_lo});
+    const auto res = udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_hi, yn_lo}, v);
 
     return {res.quot, res.rem >> lsh};
 }
