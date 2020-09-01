@@ -115,7 +115,13 @@ jobs:
             sudo pip3 install --upgrade --quiet --no-cache-dir codecov
             # Convert to relative paths
             sed -i 's|$(pwd)/||' ~/build/intx.lcov
-            codecov --required --file ~/build/intx.lcov -X gcov
+
+            counter=1
+            until codecov --required --file ~/build/intx.lcov -X gcov || [ $counter = 5 ]; do
+              counter=$((counter+1))
+              sleep 1
+              echo "Try #$counter..."
+            done
 
 
   linux-clang-sanitizers:
