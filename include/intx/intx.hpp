@@ -672,6 +672,17 @@ inline typename std::enable_if<sizeof(Word) < sizeof(Int), unsigned>::type count
 
 namespace internal
 {
+/// Counts the number of zero leading bits in nonzero argument x.
+constexpr inline unsigned clz_nonzero(uint64_t x) noexcept
+{
+    INTX_REQUIRE(x != 0);
+#ifdef _MSC_VER
+    return clz_generic(x);
+#else
+    return unsigned(__builtin_clzll(x));
+#endif
+}
+
 template <unsigned N>
 struct normalized_div_args
 {
@@ -705,7 +716,7 @@ template <typename IntT>
     for (n = num_words; n > 0 && v[n - 1] == 0; --n)
         ;
 
-    na.shift = clz(v[n - 1]);
+    na.shift = clz_nonzero(v[n - 1]);  // Use clz_nonzero() to avoid clang analyzer's warning.
     if (na.shift)
     {
         for (int i = num_words - 1; i > 0; --i)
