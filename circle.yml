@@ -137,6 +137,20 @@ jobs:
       - build_and_test
       - benchmark
 
+  linux-gcc-sanitizers:
+    environment:
+      - BUILD_PARALLEL_JOBS: 4
+      - BUILD_TYPE: RelWithDebInfo
+      - CMAKE_OPTIONS: -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined
+      - ASAN_OPTIONS: detect_invalid_pointer_pairs=2
+      - UBSAN_OPTIONS: halt_on_error=1
+    docker:
+      - image: ethereum/cpp-build-env:14-gcc-10
+    steps:
+      - install_deps
+      - build_and_test
+      - benchmark
+
   no-exceptions:
     environment:
       - BUILD_TYPE: Release
@@ -216,6 +230,7 @@ workflows:
       - linux-gcc-debug
       - linux-clang-coverage
       - linux-clang-sanitizers
+      - linux-gcc-sanitizers
       - no-exceptions
       - linux-32bit
       - fuzzing
