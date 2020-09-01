@@ -115,28 +115,37 @@ jobs:
             sudo pip3 install --upgrade --quiet --no-cache-dir codecov
             # Convert to relative paths
             sed -i 's|$(pwd)/||' ~/build/intx.lcov
-            codecov --required --file ~/build/intx.lcov -X gcov
+
+            counter=1
+            until codecov --required --file ~/build/intx.lcov -X gcov || [ $counter = 5 ]; do
+              counter=$((counter+1))
+              sleep 1
+              echo "Try #$counter..."
+            done
 
 
-  linux-clang-asan:
+  linux-clang-sanitizers:
     environment:
       - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: Debug
-      - CMAKE_OPTIONS: -DSANITIZE=address
+      - BUILD_TYPE: RelWithDebInfo
+      - CMAKE_OPTIONS: -DSANITIZE=address,undefined,implicit-conversion,nullability -DCMAKE_CXX_CLANG_TIDY=clang-tidy
+      - UBSAN_OPTIONS: halt_on_error=1
     docker:
       - image: ethereum/cpp-build-env:14-clang-10
     steps:
       - install_deps
       - build_and_test
+      - benchmark
 
-  linux-clang-ubsan:
+  linux-gcc-sanitizers:
     environment:
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: RelWithDebInfo
-      - CMAKE_OPTIONS: -DSANITIZE=undefined,implicit-conversion,nullability
+      - CMAKE_OPTIONS: -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined
+      - ASAN_OPTIONS: detect_invalid_pointer_pairs=2
       - UBSAN_OPTIONS: halt_on_error=1
     docker:
-      - image: ethereum/cpp-build-env:14-clang-10
+      - image: ethereum/cpp-build-env:14-gcc-10
     steps:
       - install_deps
       - build_and_test
@@ -220,8 +229,8 @@ workflows:
       - build-minimal
       - linux-gcc-debug
       - linux-clang-coverage
-      - linux-clang-asan
-      - linux-clang-ubsan
+      - linux-clang-sanitizers
+      - linux-gcc-sanitizers
       - no-exceptions
       - linux-32bit
       - fuzzing
