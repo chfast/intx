@@ -118,22 +118,11 @@ jobs:
             codecov --required --file ~/build/intx.lcov -X gcov
 
 
-  linux-clang-asan:
-    environment:
-      - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: Debug
-      - CMAKE_OPTIONS: -DSANITIZE=address
-    docker:
-      - image: ethereum/cpp-build-env:14-clang-10
-    steps:
-      - install_deps
-      - build_and_test
-
-  linux-clang-ubsan:
+  linux-clang-sanitizers:
     environment:
       - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: RelWithDebInfo
-      - CMAKE_OPTIONS: -DSANITIZE=undefined,implicit-conversion,nullability
+      - CMAKE_OPTIONS: -DSANITIZE=address,undefined,implicit-conversion,nullability -DCMAKE_CXX_CLANG_TIDY=clang-tidy
       - UBSAN_OPTIONS: halt_on_error=1
     docker:
       - image: ethereum/cpp-build-env:14-clang-10
@@ -220,8 +209,7 @@ workflows:
       - build-minimal
       - linux-gcc-debug
       - linux-clang-coverage
-      - linux-clang-asan
-      - linux-clang-ubsan
+      - linux-clang-sanitizers
       - no-exceptions
       - linux-32bit
       - fuzzing
