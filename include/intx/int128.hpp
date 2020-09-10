@@ -234,6 +234,11 @@ constexpr bool operator!=(uint128 x, uint128 y) noexcept
     return (x.lo != y.lo) | (x.hi != y.hi);
 }
 
+constexpr bool is_zero(uint128 x) noexcept
+{
+    return (x.lo | x.hi) == 0;
+}
+
 constexpr bool operator<(uint128 x, uint128 y) noexcept
 {
     // OPT: This should be implemented by checking the borrow of x - y,

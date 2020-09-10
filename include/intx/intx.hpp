@@ -149,6 +149,11 @@ constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
     return uint<N>(x) != y;
 }
 
+template <unsigned N>
+constexpr bool is_zero(const uint<N>& x) noexcept
+{
+    return is_zero(x.lo) & is_zero(x.hi);
+}
 
 template <unsigned N>
 constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept

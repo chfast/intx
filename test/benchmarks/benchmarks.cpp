@@ -305,4 +305,34 @@ BENCHMARK_TEMPLATE(to_string, uint128);
 BENCHMARK_TEMPLATE(to_string, uint256);
 BENCHMARK_TEMPLATE(to_string, uint512);
 
+template <typename ResultT, typename ArgT, ResultT UnOp(const ArgT&)>
+static void unary_op(benchmark::State& state)
+{
+    const auto& xs = test::get_samples<ArgT>(sizeof(ArgT) == sizeof(uint256) ? x_256 : x_512);
+
+    while (state.KeepRunningBatch(xs.size()))
+    {
+        for (size_t i = 0; i < xs.size(); ++i)
+        {
+            const auto _ = UnOp(xs[i]);
+            benchmark::DoNotOptimize(_);
+        }
+    }
+}
+
+inline bool op_eq_0(const uint256& x) noexcept
+{
+    return x == 0;
+}
+
+inline bool op_eq_0(const uint512& x) noexcept
+{
+    return x == 0;
+}
+
+BENCHMARK_TEMPLATE(unary_op, bool, uint256, op_eq_0);
+BENCHMARK_TEMPLATE(unary_op, bool, uint256, is_zero);
+BENCHMARK_TEMPLATE(unary_op, bool, uint512, op_eq_0);
+BENCHMARK_TEMPLATE(unary_op, bool, uint512, is_zero);
+
 BENCHMARK_MAIN();
