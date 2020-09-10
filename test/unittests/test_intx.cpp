@@ -297,6 +297,11 @@ TYPED_TEST(uint_test, comparison)
     EXPECT_GE(z10, z10);
     EXPECT_GE(z11, z10);
     EXPECT_GE(z11, z11);
+
+    EXPECT_TRUE(is_zero(z00));
+    EXPECT_FALSE(is_zero(z01));
+    EXPECT_FALSE(is_zero(z10));
+    EXPECT_FALSE(is_zero(z11));
 }
 
 TYPED_TEST(uint_test, bitwise)
