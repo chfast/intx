@@ -71,7 +71,8 @@ struct uint<128>
 
     constexpr explicit operator unsigned __int128() const noexcept
     {
-        return (static_cast<unsigned __int128>(hi) << 64) | lo;
+        using builtin_uint128 = unsigned __int128;
+        return (builtin_uint128{hi} << 64) | lo;
     }
     #pragma GCC diagnostic pop
 #endif
