@@ -483,7 +483,7 @@ inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 }
 
 template <unsigned N>
-inline uint<N> mul(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr uint<N> mul(const uint<N>& a, const uint<N>& b) noexcept
 {
     // Requires 1 full mul, 2 muls and 2 adds.
     // Clang & GCC implements 128-bit multiplication this way.
@@ -495,7 +495,7 @@ inline uint<N> mul(const uint<N>& a, const uint<N>& b) noexcept
 }
 
 template <unsigned N>
-inline uint<N> sqr(const uint<N>& a) noexcept
+inline constexpr uint<N> sqr(const uint<N>& a) noexcept
 {
     // Based on mul() implementation.
 
@@ -504,16 +504,6 @@ inline uint<N> sqr(const uint<N>& a) noexcept
 
     return {hi, t.lo};
 }
-
-
-template <unsigned N>
-constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
-{
-    auto t = umul(a.lo, b.lo);
-    auto hi = constexpr_mul(a.lo, b.hi) + constexpr_mul(a.hi, b.lo) + t.hi;
-    return {hi, t.lo};
-}
-
 
 template <unsigned N>
 inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
@@ -563,14 +553,17 @@ inline uint<N> mul_loop_opt(const uint<N>& u, const uint<N>& v) noexcept
     return p;
 }
 
-inline uint256 operator*(const uint256& x, const uint256& y) noexcept
+inline constexpr uint256 operator*(const uint256& x, const uint256& y) noexcept
 {
     return mul(x, y);
 }
 
 template <unsigned N>
-inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
 {
+    if (is_constant_evaluated())
+        return mul(x, y);
+
     return mul_loop_opt(x, y);
 }
 

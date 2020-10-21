@@ -377,14 +377,7 @@ inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 #endif
 }
 
-inline uint128 operator*(uint128 x, uint128 y) noexcept
-{
-    auto p = umul(x.lo, y.lo);
-    p.hi += (x.lo * y.hi) + (x.hi * y.lo);
-    return {p.hi, p.lo};
-}
-
-constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator*(uint128 x, uint128 y) noexcept
 {
     auto p = umul(x.lo, y.lo);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
@@ -844,7 +837,7 @@ constexpr Int from_string(const char* str)
             throw_<std::out_of_range>(str);
 
         const auto d = from_dec_digit(c);
-        x = constexpr_mul(x, Int{10}) + d;
+        x = x * Int{10} + d;
         if (x < d)
             throw_<std::out_of_range>(str);
     }
