@@ -372,7 +372,8 @@ inline uint128 umul(uint64_t x, uint64_t y) noexcept
 #if defined(__SIZEOF_INT128__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wpedantic"
-    const auto p = static_cast<unsigned __int128>(x) * y;
+    using builtin_uint128 = unsigned __int128;
+    const auto p = builtin_uint128{x} * y;
     return {uint64_t(p >> 64), uint64_t(p)};
     #pragma GCC diagnostic pop
 #elif defined(_MSC_VER)
