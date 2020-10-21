@@ -345,9 +345,23 @@ constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
 /// Multiplication
 /// @{
 
-/// Portable full unsigned multiplication 64 x 64 -> 128.
-constexpr uint128 constexpr_umul(uint64_t x, uint64_t y) noexcept
+
+/// Full unsigned multiplication 64 x 64 -> 128.
+inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 {
+#if defined(__SIZEOF_INT128__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wpedantic"
+    if (!is_constant_evaluated())
+    {
+        using builtin_uint128 = unsigned __int128;
+        const auto p = builtin_uint128{x} * y;
+        return {uint64_t(p >> 64), uint64_t(p)};
+    }
+    #pragma GCC diagnostic pop
+#endif
+
+    // Portable full unsigned multiplication 64 x 64 -> 128.
     uint64_t xl = x & 0xffffffff;
     uint64_t xh = x >> 32;
     uint64_t yl = y & 0xffffffff;
@@ -366,25 +380,6 @@ constexpr uint128 constexpr_umul(uint64_t x, uint64_t y) noexcept
     return {hi, lo};
 }
 
-/// Full unsigned multiplication 64 x 64 -> 128.
-inline uint128 umul(uint64_t x, uint64_t y) noexcept
-{
-#if defined(__SIZEOF_INT128__)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wpedantic"
-    using builtin_uint128 = unsigned __int128;
-    const auto p = builtin_uint128{x} * y;
-    return {uint64_t(p >> 64), uint64_t(p)};
-    #pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-    unsigned __int64 hi;
-    const auto lo = _umul128(x, y, &hi);
-    return {hi, lo};
-#else
-    return constexpr_umul(x, y);
-#endif
-}
-
 inline uint128 operator*(uint128 x, uint128 y) noexcept
 {
     auto p = umul(x.lo, y.lo);
@@ -394,7 +389,7 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
 
 constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
 {
-    auto p = constexpr_umul(x.lo, y.lo);
+    auto p = umul(x.lo, y.lo);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
     return {p.hi, p.lo};
 }
