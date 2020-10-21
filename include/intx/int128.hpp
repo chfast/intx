@@ -352,15 +352,11 @@ inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 #if defined(__SIZEOF_INT128__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wpedantic"
-    if (!is_constant_evaluated())
-    {
-        using builtin_uint128 = unsigned __int128;
-        const auto p = builtin_uint128{x} * y;
-        return {uint64_t(p >> 64), uint64_t(p)};
-    }
+    using builtin_uint128 = unsigned __int128;
+    const auto p = builtin_uint128{x} * y;
+    return {uint64_t(p >> 64), uint64_t(p)};
     #pragma GCC diagnostic pop
-#endif
-
+#else
     // Portable full unsigned multiplication 64 x 64 -> 128.
     uint64_t xl = x & 0xffffffff;
     uint64_t xh = x >> 32;
@@ -378,6 +374,7 @@ inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
     uint64_t lo = (u2 << 32) | (t0 & 0xffffffff);
     uint64_t hi = t3 + (u2 >> 32) + (u1 >> 32);
     return {hi, lo};
+#endif
 }
 
 inline uint128 operator*(uint128 x, uint128 y) noexcept
