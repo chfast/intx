@@ -13,6 +13,10 @@
 #include <tuple>
 #include <type_traits>
 
+#ifndef __has_builtin
+    #define __has_builtin(NAME) 0
+#endif
+
 #ifdef _MSC_VER
     #include <intrin.h>
 #endif
@@ -88,6 +92,16 @@ struct uint<128>
 };
 
 using uint128 = uint<128>;
+
+
+inline constexpr bool is_constant_evaluated() noexcept
+{
+#if __has_builtin(__builtin_is_constant_evaluated)
+    return __builtin_is_constant_evaluated();
+#else
+    return false;
+#endif
+}
 
 
 /// Contains result of add/sub/etc with a carry flag.
