@@ -353,12 +353,12 @@ inline uint<N>& operator>>=(uint<N>& x, unsigned shift) noexcept
 
 constexpr uint64_t* as_words(uint128& x) noexcept
 {
-    return &x.lo;
+    return x.words;
 }
 
 constexpr const uint64_t* as_words(const uint128& x) noexcept
 {
-    return &x.lo;
+    return x.words;
 }
 
 template <unsigned N>

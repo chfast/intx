@@ -50,8 +50,19 @@ struct uint<128>
 {
     static constexpr unsigned num_bits = 128;
 
-    uint64_t lo = 0;
-    uint64_t hi = 0;
+    union
+    {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+        struct
+        {
+            uint64_t lo = 0;
+            uint64_t hi = 0;
+        };
+#pragma GCC diagnostic pop
+
+        uint64_t words[2];
+    };
 
     constexpr uint() noexcept = default;
 
