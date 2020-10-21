@@ -65,3 +65,31 @@ TEST(builtins, clz_zero)
     EXPECT_EQ(clz(uint64_t{0}), 64u);
     EXPECT_EQ(clz_generic(uint64_t{0}), 64u);
 }
+
+namespace
+{
+constexpr int func() noexcept
+{
+    return is_constant_evaluated() ? 1 : 2;
+}
+}  // namespace
+
+TEST(builtins, is_constant_evaluated)
+{
+    constexpr auto is_constexpr_true = is_constant_evaluated();
+    EXPECT_TRUE(is_constexpr_true);
+    constexpr auto constexpr_func_res = func();
+    EXPECT_EQ(constexpr_func_res, 1);
+
+    auto is_constexpr_false = is_constant_evaluated();
+    auto nonconstexpr_func_res = func();
+
+#if (defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 9) || \
+    (defined(_MSC_VER) && _MSC_VER >= 1925)
+    EXPECT_FALSE(is_constexpr_false);
+    EXPECT_EQ(nonconstexpr_func_res, 2);
+#else
+    EXPECT_TRUE(is_constexpr_false);
+    EXPECT_EQ(nonconstexpr_func_res, 1);
+#endif
+}
