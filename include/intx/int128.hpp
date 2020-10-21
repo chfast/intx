@@ -99,7 +99,7 @@ inline constexpr bool is_constant_evaluated() noexcept
 #if __has_builtin(__builtin_is_constant_evaluated)
     return __builtin_is_constant_evaluated();
 #else
-    return false;
+    return true;
 #endif
 }
 
