@@ -5,6 +5,16 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.5.1] — 2020-12-14
+
+### Changed
+
+- The utility macros (e.g. `INTX_UNREACHABLE()`) have been redefined.
+  [#182](https://github.com/chfast/intx/pull/182)
+- Test and benchmarks improvements.
+  [#175](https://github.com/chfast/intx/pull/175)
+
+
 ## [0.5.0] — 2020-06-23
 
 ### Added
@@ -72,6 +82,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.5.1]: https://github.com/chfast/intx/releases/v0.5.1
 [0.5.0]: https://github.com/chfast/intx/releases/v0.5.0
 [0.4.0]: https://github.com/chfast/intx/releases/v0.4.0
 [0.3.0]: https://github.com/chfast/intx/releases/v0.3.0
