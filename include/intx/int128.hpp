@@ -5,6 +5,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <climits>
 #include <cstdint>
 #include <limits>
@@ -17,23 +18,35 @@
     #include <intrin.h>
 #endif
 
-#ifdef _MSC_VER
-    #define INTX_UNREACHABLE __assume(0)
-#else
-    #define INTX_UNREACHABLE __builtin_unreachable()
+#if !defined(__has_builtin)
+    #define __has_builtin(NAME) 0
 #endif
 
-#ifdef _MSC_VER
-    #define INTX_UNLIKELY(EXPR) (bool{EXPR})
+#if !defined(__has_feature)
+    #define __has_feature(NAME) 0
+#endif
+
+#if !defined(NDEBUG)
+    #define INTX_UNREACHABLE() assert(false)
+#elif __has_builtin(__builtin_unreachable)
+    #define INTX_UNREACHABLE() __builtin_unreachable()
+#elif defined(_MSC_VER)
+    #define INTX_UNREACHABLE() __assume(0)
 #else
+    #define INTX_UNREACHABLE() (void)0
+#endif
+
+
+#if __has_builtin(__builtin_expect)
     #define INTX_UNLIKELY(EXPR) __builtin_expect(bool{EXPR}, false)
+#else
+    #define INTX_UNLIKELY(EXPR) (bool{EXPR})
 #endif
 
-#ifdef NDEBUG
-    #define INTX_REQUIRE(X) (X) ? (void)0 : INTX_UNREACHABLE
-#else
-    #include <cassert>
+#if !defined(NDEBUG)
     #define INTX_REQUIRE assert
+#else
+    #define INTX_REQUIRE(X) (X) ? (void)0 : INTX_UNREACHABLE()
 #endif
 
 namespace intx
