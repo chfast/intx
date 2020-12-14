@@ -408,6 +408,26 @@ TEST(div, reciprocal)
     }
 }
 
+TEST(div, reciprocal_3by2)
+{
+    // Basic inputs for reciprocal_3by2() to make porting to other languages easier.
+
+    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0x0000000000000000}), 0xffffffffffffffffu);
+    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0x0000000000000001}), 0xffffffffffffffffu);
+    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0x8000000000000000}), 0xfffffffffffffffeu);
+    EXPECT_EQ(reciprocal_3by2({0x8000000000000001, 0x0000000000000000}), 0xfffffffffffffffcu);
+    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0xffffffffffffffff}), 0xfffffffffffffffcu);
+    EXPECT_EQ(reciprocal_3by2({0xc000000000000000, 0x0000000000000000}), 0x5555555555555555u);
+    EXPECT_EQ(reciprocal_3by2({0xc000000000000000, 0x0000000000000001}), 0x5555555555555555u);
+    EXPECT_EQ(reciprocal_3by2({0xc000000000000000, 0xffffffffffffffff}), 0x5555555555555553u);
+    EXPECT_EQ(reciprocal_3by2({0xfffffffffffffffe, 0x0000000000000000}), 2u);
+    EXPECT_EQ(reciprocal_3by2({0xfffffffffffffffe, 0x0000000000000001}), 2u);
+    EXPECT_EQ(reciprocal_3by2({0xfffffffffffffffe, 0xffffffffffffffff}), 1u);
+    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0x0000000000000000}), 1u);
+    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0x0000000000000001}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xffffffffffffffff}), 0u);
+}
+
 TEST(div, reciprocal_table)
 {
     uint8_t d = 0;
