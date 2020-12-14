@@ -84,10 +84,6 @@ static void mod(benchmark::State& state)
     }
 }
 BENCHMARK_TEMPLATE(mod, addmod)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(mod, addmod)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(mod, addmod)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(mod, mulmod)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(mod, mulmod)->DenseRange(64, 256, 64);
 BENCHMARK_TEMPLATE(mod, mulmod)->DenseRange(64, 256, 64);
 
 
