@@ -36,7 +36,7 @@ bool init() noexcept
         samples_64_norm[i] |= 0x8000000000000000;
 
         gen_int(samples_128_norm[i], 2);
-        samples_128_norm[i].hi |= 0x8000000000000000;
+        samples_128_norm[i].words[1] |= 0x8000000000000000;
 
         gen_int(samples_256[x_64][i], 1);
         samples_512[x_64][i] = samples_256[x_64][i];

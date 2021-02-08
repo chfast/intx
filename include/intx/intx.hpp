@@ -350,15 +350,14 @@ inline uint<N>& operator>>=(uint<N>& x, unsigned shift) noexcept
     return x = x >> shift;
 }
 
-
 constexpr uint64_t* as_words(uint128& x) noexcept
 {
-    return &x.lo;
+    return x.words;
 }
 
 constexpr const uint64_t* as_words(const uint128& x) noexcept
 {
-    return &x.lo;
+    return x.words;
 }
 
 template <unsigned N>
@@ -468,35 +467,35 @@ constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 template <unsigned N>
 inline uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
-    const auto t0 = umul(x.lo, y.lo);
-    const auto t1 = umul(x.hi, y.lo);
-    const auto t2 = umul(x.lo, y.hi);
-    const auto t3 = umul(x.hi, y.hi);
+    const auto t0 = umul(lo_half(x), lo_half(y));
+    const auto t1 = umul(hi_half(x), lo_half(y));
+    const auto t2 = umul(lo_half(x), hi_half(y));
+    const auto t3 = umul(hi_half(x), hi_half(y));
 
-    const auto u1 = t1 + t0.hi;
-    const auto u2 = t2 + u1.lo;
+    const auto u1 = t1 + hi_half(t0);
+    const auto u2 = t2 + lo_half(u1);
 
-    const auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
-    const auto hi = t3 + u2.hi + u1.hi;
+    const auto l = (u2 << (num_bits(x) / 2)) | lo_half(t0);
+    const auto h = t3 + hi_half(u2) + hi_half(u1);
 
-    return {hi, lo};
+    return {h, l};
 }
 
 template <unsigned N>
 constexpr uint<2 * N> constexpr_umul(const uint<N>& x, const uint<N>& y) noexcept
 {
-    auto t0 = constexpr_umul(x.lo, y.lo);
-    auto t1 = constexpr_umul(x.hi, y.lo);
-    auto t2 = constexpr_umul(x.lo, y.hi);
-    auto t3 = constexpr_umul(x.hi, y.hi);
+    auto t0 = constexpr_umul(lo_half(x), lo_half(y));
+    auto t1 = constexpr_umul(hi_half(x), lo_half(y));
+    auto t2 = constexpr_umul(lo_half(x), hi_half(y));
+    auto t3 = constexpr_umul(hi_half(x), hi_half(y));
 
-    auto u1 = t1 + t0.hi;
-    auto u2 = t2 + u1.lo;
+    auto u1 = t1 + hi_half(t0);
+    auto u2 = t2 + lo_half(u1);
 
-    auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
-    auto hi = t3 + u2.hi + u1.hi;
+    auto l = (u2 << (num_bits(x) / 2)) | lo_half(t0);
+    auto h = t3 + hi_half(u2) + hi_half(u1);
 
-    return {hi, lo};
+    return {h, l};
 }
 
 template <unsigned N>
@@ -548,8 +547,8 @@ inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
         for (int i = 0; i < num_words; ++i)
         {
             auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
-            pw[i + j] = t.lo;
-            k = t.hi;
+            pw[i + j] = lo_half(t);
+            k = hi_half(t);
         }
         pw[j + num_words] = k;
     }
@@ -572,8 +571,8 @@ inline uint<N> mul_loop_opt(const uint<N>& u, const uint<N>& v) noexcept
         for (int i = 0; i < (num_words - j - 1); i++)
         {
             auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
-            pw[i + j] = t.lo;
-            k = t.hi;
+            pw[i + j] = lo_half(t);
+            k = hi_half(t);
         }
         pw[num_words - 1] += uw[num_words - j - 1] * vw[j] + k;
     }
@@ -784,7 +783,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
     auto it = &u[len - 3];
     do
     {
-        std::tie(*it, rem) = udivrem_3by2(rem.hi, rem.lo, *it, d, reciprocal);
+        std::tie(*it, rem) = udivrem_3by2(rem.words[1], rem.words[0], *it, d, reciprocal);
     } while (it-- != &u[0]);
 
     return rem;
@@ -814,9 +813,9 @@ inline uint64_t submul(
     {
         const auto s = sub_with_carry(x[i], borrow);
         const auto p = umul(y[i], multiplier);
-        const auto t = sub_with_carry(s.value, p.lo);
+        const auto t = sub_with_carry(s.value, p.words[0]);
         r[i] = t.value;
-        borrow = p.hi + s.carry + t.carry;
+        borrow = p.words[1] + s.carry + t.carry;
     }
     return borrow;
 }
@@ -849,13 +848,13 @@ inline void udivrem_knuth(
 
             bool carry;
             const auto overflow = submul(&u[j], &u[j], d, dlen - 2, qhat);
-            std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat.lo, overflow);
-            std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat.hi, carry);
+            std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat.words[0], overflow);
+            std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat.words[1], carry);
 
             if (INTX_UNLIKELY(carry))
             {
                 --qhat;
-                u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
+                u[j + dlen - 1] += divisor.words[1] + add(&u[j], &u[j], d, dlen - 1);
             }
         }
 

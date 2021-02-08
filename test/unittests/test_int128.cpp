@@ -202,6 +202,7 @@ TEST(int128, numeric_limits)
     static_assert(std::numeric_limits<uint128>::is_exact, "");
     static_assert(std::numeric_limits<uint128>::radix == 2, "");
 
+    static_assert(std::numeric_limits<uint128>::digits == 128, "");
     static_assert(std::numeric_limits<uint128>::digits10 == 38, "");
     static_assert(std::numeric_limits<uint128>::min() == 0, "");
     static_assert(std::numeric_limits<uint128>::max() == uint128{0} - 1, "");
@@ -421,7 +422,7 @@ TEST(int128, umul)
         const auto best = intx::umul(x, y);
 
         EXPECT_EQ(generic, best) << x << " x " << y;
-        EXPECT_EQ(generic.lo, x * y);
+        EXPECT_EQ(generic.words[0], x * y);
     }
 }
 
