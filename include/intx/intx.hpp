@@ -55,6 +55,16 @@ struct uint
     {
         return static_cast<Int>(lo);
     }
+
+    inline constexpr uint64_t& word(size_t i) noexcept
+    {
+        return (i >= num_words / 2) ? hi.word(i - num_words / 2) : lo.word(i);
+    }
+
+    inline constexpr const uint64_t& word(size_t i) const noexcept
+    {
+        return (i >= num_words / 2) ? hi.word(i - num_words / 2) : lo.word(i);
+    }
 };
 
 using uint256 = uint<256>;

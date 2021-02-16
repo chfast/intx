@@ -98,6 +98,10 @@ struct uint<128>
     {
         return static_cast<Int>(lo);
     }
+
+    inline constexpr uint64_t& word(size_t i) noexcept { return (i == 0) ? lo : hi; }
+
+    inline constexpr const uint64_t& word(size_t i) const noexcept { return (i == 0) ? lo : hi; }
 };
 
 using uint128 = uint<128>;
