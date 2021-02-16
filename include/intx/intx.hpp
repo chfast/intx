@@ -70,6 +70,33 @@ struct uint
 using uint256 = uint<256>;
 using uint512 = uint<512>;
 
+template <unsigned N>
+struct uintw
+{
+    static constexpr std::size_t num_words = N / (sizeof(uint64_t) * 8);
+
+    uint64_t words[num_words]{};
+
+    uintw() = default;
+
+    inline constexpr explicit uintw(const uint<N>& o) noexcept
+    {
+        for (size_t i = 0; i < num_words; ++i)
+            words[i] = o.word(i);
+    }
+
+    inline constexpr operator uint<N>() noexcept
+    {
+        uint<N> r;
+        for (size_t i = 0; i < num_words; ++i)
+            r.word(i) = words[i];
+        return r;
+    }
+
+    inline constexpr uint64_t& operator[](std::size_t i) noexcept { return words[i]; }
+    inline constexpr const uint64_t& operator[](std::size_t i) const noexcept { return words[i]; }
+};
+
 constexpr uint8_t lo_half(uint16_t x)
 {
     return static_cast<uint8_t>(x);
