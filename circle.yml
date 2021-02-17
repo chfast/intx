@@ -21,6 +21,15 @@ commands:
             sudo apt -q update
             sudo apt install -qy libgmp-dev
 
+  check_code_format:
+    steps:
+      - run:
+          name: "Check code format"
+          command: |
+            clang-format --version
+            git ls-files '*.hpp' '*.cpp' '*.h' '*.c' | xargs clang-format -i
+            git diff --color --exit-code
+
   build_and_test:
     description: "Build & Test"
     steps:
@@ -65,6 +74,12 @@ commands:
 
 
 jobs:
+
+  lint:
+    executor: linux-clang-latest
+    steps:
+      - checkout
+      - check_code_format
 
   build-minimal:
     executor: linux-gcc-latest
@@ -229,6 +244,7 @@ workflows:
   version: 2
   intx:
     jobs:
+      - lint
       - build-minimal
       - linux-gcc-debug
       - linux-clang-coverage
