@@ -28,7 +28,7 @@ protected:
 
     Uint256Test()
     {
-        const auto & parts_set = minimal;
+        const auto& parts_set = minimal;
         for (auto a : parts_set)
         {
             for (auto b : parts_set)
