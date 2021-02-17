@@ -155,20 +155,11 @@ constexpr inline result_with_carry<uint64_t> sub_with_carry(
     return {e, carry1 || carry2};
 }
 
-/// Performs subtraction of two unsigned numbers and returns the difference
-/// and the carry bit (aka borrow, overflow).
-template <unsigned N>
-constexpr inline result_with_carry<uint<N>> sub_with_carry(
-    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
-{
-    const auto lo = sub_with_carry(a.lo, b.lo, carry);
-    const auto hi = sub_with_carry(a.hi, b.hi, lo.carry);
-    return {{hi.value, lo.value}, hi.carry};
-}
-
 constexpr inline uint128 operator-(uint128 x, uint128 y) noexcept
 {
-    return sub_with_carry(x, y).value;
+    const auto lo = sub_with_carry(x.lo, y.lo);
+    const auto hi = sub_with_carry(x.hi, y.hi, lo.carry);
+    return {hi.value, lo.value};
 }
 
 constexpr inline uint128 operator-(uint128 x) noexcept

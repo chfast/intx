@@ -475,6 +475,17 @@ constexpr uint<N> operator-(const uint<N>& x) noexcept
     return ~x + uint<N>{1};
 }
 
+/// Performs subtraction of two unsigned numbers and returns the difference
+/// and the carry bit (aka borrow, overflow).
+template <unsigned N>
+constexpr inline result_with_carry<uint<N>> sub_with_carry(
+    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
+{
+    const auto lo = sub_with_carry(a.lo, b.lo, carry);
+    const auto hi = sub_with_carry(a.hi, b.hi, lo.carry);
+    return {{hi.value, lo.value}, hi.carry};
+}
+
 template <unsigned N>
 constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
