@@ -2,9 +2,8 @@
 // Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include <intx/int128.hpp>
-
 #include <gtest/gtest.h>
+#include <intx/int128.hpp>
 
 using namespace intx;
 

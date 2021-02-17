@@ -2,7 +2,6 @@ Checks: >
   bugprone-*,
   cert-*,
   -cert-err58-cpp,
-  -cert-msc32-c,
   clang-analyzer-*,
   google-global-names-in-headers,
   google-runtime-int,

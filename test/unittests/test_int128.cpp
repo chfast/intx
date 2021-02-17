@@ -366,13 +366,13 @@ TEST(int128, from_string)
 {
     constexpr auto ka = from_string<uint128>("18446744073709551617");
     static_assert(ka == uint128{1, 1}, "");
-    const auto *const sa = "18446744073709551617";
+    const auto* const sa = "18446744073709551617";
     const auto a = from_string<uint128>(sa);
     EXPECT_EQ(a, uint128(1, 1));
 
     constexpr auto kb = from_string<uint128>("0x300aabbccddeeff99");
     static_assert(kb == uint128{3, 0xaabbccddeeff99}, "");
-    const auto *const sb = "0x300aabbccddeeff99";
+    const auto* const sb = "0x300aabbccddeeff99";
     EXPECT_EQ(from_string<uint128>(sb), uint128(3, 0xaabbccddeeff99));
 }
 

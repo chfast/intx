@@ -3,8 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include <benchmark/benchmark.h>
-#include <array>
 #include <intx/int128.hpp>
+#include <array>
 
 
 template <typename T, unsigned ClzFn(T)>

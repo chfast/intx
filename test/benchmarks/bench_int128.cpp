@@ -10,22 +10,22 @@
 using namespace intx;
 
 uint128 div_gcc(uint128 x, uint128 y) noexcept;
-inline div_result<uint128> _gcc(uint128 x, uint128 y) noexcept
+inline div_result<uint128> gcc_(uint128 x, uint128 y) noexcept
 {
     return {div_gcc(x, y), 0};
 }
 
-inline div_result<uint128> _gmp(uint128 x, uint128 y) noexcept
+inline div_result<uint128> gmp_(uint128 x, uint128 y) noexcept
 {
     return gmp::udivrem(x, y);
 }
 
-[[gnu::noinline]] static auto _intx(uint128 x, uint128 y) noexcept
+[[gnu::noinline]] static auto intx_(uint128 x, uint128 y) noexcept
 {
     return intx::udivrem(x, y);
 }
 
-template <decltype(_intx) DivFn>
+template <decltype(intx_) DivFn>
 static void udiv128(benchmark::State& state)
 {
     const uint128 inputs[][2] = {
@@ -50,9 +50,9 @@ static void udiv128(benchmark::State& state)
         benchmark::DoNotOptimize(q);
     }
 }
-BENCHMARK_TEMPLATE(udiv128, _gcc)->DenseRange(0, 3);
-BENCHMARK_TEMPLATE(udiv128, _intx)->DenseRange(0, 3);
-BENCHMARK_TEMPLATE(udiv128, _gmp)->DenseRange(0, 3);
+BENCHMARK_TEMPLATE(udiv128, gcc_)->DenseRange(0, 3);
+BENCHMARK_TEMPLATE(udiv128, intx_)->DenseRange(0, 3);
+BENCHMARK_TEMPLATE(udiv128, gmp_)->DenseRange(0, 3);
 
 
 template <typename RetT, RetT (*MulFn)(uint64_t, uint64_t)>

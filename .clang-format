@@ -1,4 +1,6 @@
+---
 Language:     Cpp
+Standard:     Cpp11
 BasedOnStyle: Chromium
 
 AccessModifierOffset: -4
@@ -33,6 +35,7 @@ IncludeCategories:
     Priority:        99
   - Regex:           '.*'
     Priority:        4
+IncludeIsMainRegex: '(Test)?$'
 IndentCaseLabels: false
 IndentPPDirectives: BeforeHash
 IndentWidth:     4
@@ -40,3 +43,4 @@ MaxEmptyLinesToKeep: 2
 PenaltyBreakAssignment: 1
 PenaltyBreakComment: 50
 TabWidth:        4
+...
