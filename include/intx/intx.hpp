@@ -479,11 +479,19 @@ constexpr uint<N> operator-(const uint<N>& x) noexcept
 /// and the carry bit (aka borrow, overflow).
 template <unsigned N>
 constexpr inline result_with_carry<uint<N>> sub_with_carry(
-    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
+    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
-    const auto lo = sub_with_carry(a.lo, b.lo, carry);
-    const auto hi = sub_with_carry(a.hi, b.hi, lo.carry);
-    return {{hi.value, lo.value}, hi.carry};
+    const uintw<N> u{x};
+    const uintw<N> v{y};
+
+    uintw<N> s;
+    for (size_t i = 0; i < u.num_words; ++i)
+    {
+        const auto r = sub_with_carry(u[i], v[i], carry);
+        s[i] = r.value;
+        carry = r.carry;
+    }
+    return {s, carry};
 }
 
 template <unsigned N>
