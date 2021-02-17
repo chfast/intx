@@ -447,26 +447,20 @@ inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
 }
 
 template <unsigned N>
-inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
+constexpr result_with_carry<uint<N>> add_with_carry(
+    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
-    static constexpr auto num_words = sizeof(a) / sizeof(uint64_t);
+    const uintw<N> u{x};
+    const uintw<N> v{y};
 
-    auto x = as_words(a);
-    auto y = as_words(b);
-
-    uint<N> s;
-    auto z = as_words(s);
-
-    bool k = false;
-    for (size_t i = 0; i < num_words; ++i)
+    uintw<N> s;
+    for (size_t i = 0; i < u.num_words; ++i)
     {
-        z[i] = x[i] + y[i];
-        auto k1 = z[i] < x[i];
-        z[i] += k;
-        k = (z[i] < k) || k1;
+        const auto r = add_with_carry(u[i], v[i], carry);
+        s[i] = r.value;
+        carry = r.carry;
     }
-
-    return s;
+    return {s, carry};
 }
 
 template <unsigned N>

@@ -132,18 +132,12 @@ constexpr inline result_with_carry<uint64_t> add_with_carry(
     return {t, carry1 || carry2};
 }
 
-template <unsigned N>
-constexpr result_with_carry<uint<N>> add_with_carry(
-    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
-{
-    const auto lo = add_with_carry(a.lo, b.lo, carry);
-    const auto hi = add_with_carry(a.hi, b.hi, lo.carry);
-    return {{hi.value, lo.value}, hi.carry};
-}
-
 constexpr inline uint128 operator+(uint128 x, uint128 y) noexcept
 {
-    return add_with_carry(x, y).value;
+    // FIXME: Remove later.
+    const auto lo = add_with_carry(x.lo, y.lo);
+    const auto hi = add_with_carry(x.hi, y.hi, lo.carry);
+    return {hi.value, lo.value};
 }
 
 constexpr inline uint128 operator+(uint128 x) noexcept
