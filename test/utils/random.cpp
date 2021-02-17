@@ -23,7 +23,7 @@ uint64_t* as_words(uint64_t& x) noexcept
 
 bool init() noexcept
 {
-    std::mt19937_64 rng{0};  // NOLINT(cert-msc51-cpp)
+    std::mt19937_64 rng{0};  // NOLINT(cert-msc51-cpp,cert-msc32-c)
 
     const auto gen_int = [&rng](auto& out, int num_significant_words) noexcept {
         std::generate_n(as_words(out), num_significant_words,
