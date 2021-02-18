@@ -151,9 +151,9 @@ constexpr inline result_with_carry<uint64_t> sub_with_carry(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
     const auto d = x - y;
-    const auto carry1 = d > x;
+    const auto carry1 = x < y;
     const auto e = d - carry;
-    const auto carry2 = e > d;
+    const auto carry2 = d < uint64_t{carry};
     return {e, carry1 || carry2};
 }
 
