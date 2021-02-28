@@ -15,7 +15,7 @@ using namespace intx::test;
 template <typename ArgT, div_result<ArgT> DivFn(const ArgT&, const ArgT&)>
 static void div(benchmark::State& state) noexcept
 {
-    const auto divison_set_id = [&state]() noexcept {
+    const auto division_set_id = [&state]() noexcept {
         switch (state.range(0))
         {
         case 64:
@@ -33,7 +33,7 @@ static void div(benchmark::State& state) noexcept
     }();
 
     const auto& xs = test::get_samples<ArgT>(sizeof(ArgT) == sizeof(uint256) ? x_256 : x_512);
-    const auto& ys = test::get_samples<ArgT>(divison_set_id);
+    const auto& ys = test::get_samples<ArgT>(division_set_id);
 
     while (state.KeepRunningBatch(xs.size()))
     {
