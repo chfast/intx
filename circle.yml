@@ -97,10 +97,7 @@ jobs:
 
   linux-gcc-debug:
     environment:
-      - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: Debug
-      - TESTS_FILTER: unittests
-      - TESTS_EXCLUDE: random
+      BUILD_TYPE: Debug
     executor: linux-gcc-latest
     steps:
       - install_deps
@@ -108,10 +105,9 @@ jobs:
 
   linux-clang-coverage:
     environment:
-      - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: Coverage
-      - TESTS_FILTER: unittests
-      - TESTS_EXCLUDE: random
+      BUILD_TYPE: Coverage
+      TESTS_FILTER: unittests
+      TESTS_EXCLUDE: random
     executor: linux-clang-latest
     steps:
       - install_deps
@@ -149,10 +145,9 @@ jobs:
 
   linux-clang-sanitizers:
     environment:
-      - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: RelWithDebInfo
-      - CMAKE_OPTIONS: -DSANITIZE=address,undefined,implicit-conversion,nullability -DCMAKE_CXX_CLANG_TIDY=clang-tidy
-      - UBSAN_OPTIONS: halt_on_error=1
+      BUILD_TYPE: RelWithDebInfo
+      CMAKE_OPTIONS: -DSANITIZE=address,undefined,implicit-conversion,nullability -DCMAKE_CXX_CLANG_TIDY=clang-tidy
+      UBSAN_OPTIONS: halt_on_error=1
     executor: linux-clang-latest
     steps:
       - install_deps
@@ -161,11 +156,10 @@ jobs:
 
   linux-gcc-sanitizers:
     environment:
-      - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: RelWithDebInfo
-      - CMAKE_OPTIONS: -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined
-      - ASAN_OPTIONS: detect_invalid_pointer_pairs=2
-      - UBSAN_OPTIONS: halt_on_error=1
+      BUILD_TYPE: RelWithDebInfo
+      CMAKE_OPTIONS: -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined
+      ASAN_OPTIONS: detect_invalid_pointer_pairs=2
+      UBSAN_OPTIONS: halt_on_error=1
     executor: linux-gcc-latest
     steps:
       - install_deps
@@ -174,8 +168,8 @@ jobs:
 
   no-exceptions:
     environment:
-      - BUILD_TYPE: Release
-      - CMAKE_OPTIONS: -DEXCEPTIONS=OFF -DRTTI=OFF
+      BUILD_TYPE: Release
+      CMAKE_OPTIONS: -DEXCEPTIONS=OFF -DRTTI=OFF
     executor: linux-gcc-latest
     steps:
       - install_deps
@@ -184,9 +178,8 @@ jobs:
 
   linux-32bit:
     environment:
-      - BUILD_PARALLEL_JOBS: 4
-      - BUILD_TYPE: Release
-      - CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_BENCHMARKING=OFF
+      BUILD_TYPE: Release
+      CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_BENCHMARKING=OFF
     docker:
       - image: ethereum/cpp-build-env:15-gcc-10-multilib
     steps:
@@ -194,7 +187,6 @@ jobs:
 
   fuzzing:
     environment:
-      - BUILD_PARALLEL_JOBS: 4
       - BUILD_TYPE: Release
       - CMAKE_OPTIONS: -DINTX_FUZZING=ON
     executor: linux-clang-latest
@@ -219,8 +211,6 @@ jobs:
   macos:
     environment:
       BUILD_TYPE: Release
-      BUILD_PARALLEL_JOBS: 8
-      TEST_PARALLEL_JOBS: 8
     executor: macos
     steps:
       - run:
