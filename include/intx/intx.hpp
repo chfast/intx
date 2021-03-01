@@ -582,11 +582,6 @@ inline uint<N> mul_loop_opt(const uint<N>& x, const uint<N>& y) noexcept
     return p;
 }
 
-inline uint256 operator*(const uint256& x, const uint256& y) noexcept
-{
-    return mul(x, y);
-}
-
 template <unsigned N>
 inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
 {
