@@ -535,19 +535,19 @@ constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
 template <unsigned N>
 inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
 {
-    constexpr int num_words = sizeof(uint<N>) / sizeof(uint64_t);
+    constexpr auto num_words = sizeof(uint<N>) / sizeof(uint64_t);
 
     uint<2 * N> p;
     auto pw = as_words(p);
-    auto uw = as_words(x);
-    auto vw = as_words(y);
+    const auto xw = as_words(x);
+    const auto yw = as_words(y);
 
-    for (int j = 0; j < num_words; ++j)
+    for (size_t j = 0; j < num_words; ++j)
     {
         uint64_t k = 0;
-        for (int i = 0; i < num_words; ++i)
+        for (size_t i = 0; i < num_words; ++i)
         {
-            auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
+            const auto t = umul(xw[i], yw[j]) + pw[i + j] + k;
             pw[i + j] = t.lo;
             k = t.hi;
         }
@@ -556,33 +556,30 @@ inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
     return p;
 }
 
+/// Multiplication implementation using word access
+/// and discarding the high part of the result product.
 template <unsigned N>
-inline uint<N> mul_loop_opt(const uint<N>& u, const uint<N>& v) noexcept
+inline uint<N> mul_loop_opt(const uint<N>& x, const uint<N>& y) noexcept
 {
-    constexpr int num_words = sizeof(uint<N>) / sizeof(uint64_t);
+    constexpr auto num_words = sizeof(uint<N>) / sizeof(uint64_t);
 
     uint<N> p;
     auto pw = as_words(p);
-    auto uw = as_words(u);
-    auto vw = as_words(v);
+    const auto xw = as_words(x);
+    const auto yw = as_words(y);
 
-    for (int j = 0; j < num_words; j++)
+    for (size_t j = 0; j < num_words; j++)
     {
         uint64_t k = 0;
-        for (int i = 0; i < (num_words - j - 1); i++)
+        for (size_t i = 0; i < (num_words - j - 1); i++)
         {
-            auto t = umul(uw[i], vw[j]) + pw[i + j] + k;
+            const auto t = umul(xw[i], yw[j]) + pw[i + j] + k;
             pw[i + j] = t.lo;
             k = t.hi;
         }
-        pw[num_words - 1] += uw[num_words - j - 1] * vw[j] + k;
+        pw[num_words - 1] += xw[num_words - j - 1] * yw[j] + k;
     }
     return p;
-}
-
-inline uint256 operator*(const uint256& x, const uint256& y) noexcept
-{
-    return mul(x, y);
 }
 
 template <unsigned N>
