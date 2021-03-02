@@ -499,22 +499,11 @@ constexpr uint<2 * N> constexpr_umul(const uint<N>& x, const uint<N>& y) noexcep
     return {hi, lo};
 }
 
-template <unsigned N>
-inline uint<N> mul(const uint<N>& a, const uint<N>& b) noexcept
-{
-    // Requires 1 full mul, 2 muls and 2 adds.
-    // Clang & GCC implements 128-bit multiplication this way.
-
-    const auto t = umul(a.lo, b.lo);
-    const auto hi = (a.lo * b.hi) + (a.hi * b.lo) + t.hi;
-
-    return {hi, t.lo};
-}
 
 template <unsigned N>
 inline uint<N> sqr(const uint<N>& a) noexcept
 {
-    // Based on mul() implementation.
+    // Based on recursive multiplication implementation.
 
     const auto t = umul(a.lo, a.lo);
     const auto hi = 2 * (a.lo * a.hi) + t.hi;
@@ -559,7 +548,7 @@ inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
 /// Multiplication implementation using word access
 /// and discarding the high part of the result product.
 template <unsigned N>
-inline uint<N> mul_loop_opt(const uint<N>& x, const uint<N>& y) noexcept
+inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
 {
     constexpr auto num_words = sizeof(uint<N>) / sizeof(uint64_t);
 
@@ -580,12 +569,6 @@ inline uint<N> mul_loop_opt(const uint<N>& x, const uint<N>& y) noexcept
         pw[num_words - 1] += xw[num_words - j - 1] * yw[j] + k;
     }
     return p;
-}
-
-template <unsigned N>
-inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return mul_loop_opt(x, y);
 }
 
 
