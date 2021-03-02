@@ -6,8 +6,6 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma GCC diagnostic ignored "-Wpedantic"
-
 uint64_t udiv_native(uint64_t x, uint64_t y) noexcept
 {
     return x / y;
@@ -20,17 +18,12 @@ uint64_t nop(uint64_t x, uint64_t y) noexcept
 
 intx::uint128 div_gcc(intx::uint128 x, intx::uint128 y) noexcept
 {
-    unsigned __int128 u;
-    unsigned __int128 v;
-    std::memcpy(&u, &x, sizeof(u));
-    std::memcpy(&v, &y, sizeof(v));
-    auto q = u / v;
-    return {uint64_t(q >> 64), uint64_t(q)};
+    return intx::builtin_uint128{x} / intx::builtin_uint128{y};
 }
 
 inline uint64_t umulh(uint64_t x, uint64_t y)
 {
-    unsigned __int128 p = static_cast<unsigned __int128>(x) * y;
+    const auto p = intx::builtin_uint128{x} * intx::builtin_uint128{y};
     return static_cast<uint64_t>(p >> 64);
 }
 
