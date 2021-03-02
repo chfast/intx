@@ -53,8 +53,27 @@
     #define INTX_REQUIRE(X) (X) ? (void)0 : INTX_UNREACHABLE()
 #endif
 
+
+// Detect compiler support for 128-bit integer __int128
+#if defined(__SIZEOF_INT128__)
+    #define INTX_HAS_BUILTIN_INT128 1
+#else
+    #define INTX_HAS_BUILTIN_INT128 0
+#endif
+
+
 namespace intx
 {
+#if INTX_HAS_BUILTIN_INT128
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wpedantic"  // Usage of __int128 triggers a pedantic warning.
+
+/// Alias for the compiler supported unsigned __int128 type.
+using builtin_uint128 = unsigned __int128;
+
+    #pragma GCC diagnostic pop
+#endif
+
 template <unsigned N>
 struct uint;
 
@@ -79,19 +98,15 @@ struct uint<128>
     constexpr uint(T x) noexcept : lo(static_cast<uint64_t>(x))  // NOLINT
     {}
 
-#ifdef __SIZEOF_INT128__
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wpedantic"
-    constexpr uint(unsigned __int128 x) noexcept  // NOLINT
+#if INTX_HAS_BUILTIN_INT128
+    constexpr uint(builtin_uint128 x) noexcept  // NOLINT
       : lo{uint64_t(x)}, hi{uint64_t(x >> 64)}
     {}
 
-    constexpr explicit operator unsigned __int128() const noexcept
+    constexpr explicit operator builtin_uint128() const noexcept
     {
-        using builtin_uint128 = unsigned __int128;
         return (builtin_uint128{hi} << 64) | lo;
     }
-    #pragma GCC diagnostic pop
 #endif
 
     constexpr explicit operator bool() const noexcept { return hi | lo; }
@@ -223,17 +238,12 @@ inline uint128 operator--(uint128& x, int) noexcept
 ///
 /// This keeps the multiprecision addition until CodeGen so the pattern is not
 /// broken during other optimizations.
-constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
+inline constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
 {
-#ifdef __SIZEOF_INT128__
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wpedantic"
-    using uint128_native = unsigned __int128;
-    return uint128_native{x} + uint128_native{y};
-    #pragma GCC diagnostic pop
+#if INTX_HAS_BUILTIN_INT128
+    return builtin_uint128{x} + builtin_uint128{y};
 #else
-    // Fallback to regular addition.
-    return x + y;
+    return x + y;  // Fallback to generic addition.
 #endif
 }
 
@@ -382,13 +392,9 @@ constexpr uint128 constexpr_umul(uint64_t x, uint64_t y) noexcept
 /// Full unsigned multiplication 64 x 64 -> 128.
 inline uint128 umul(uint64_t x, uint64_t y) noexcept
 {
-#if defined(__SIZEOF_INT128__)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wpedantic"
-    using builtin_uint128 = unsigned __int128;
-    const auto p = builtin_uint128{x} * y;
+#if INTX_HAS_BUILTIN_INT128
+    const auto p = builtin_uint128{x} * builtin_uint128{y};
     return {uint64_t(p >> 64), uint64_t(p)};
-    #pragma GCC diagnostic pop
 #elif defined(_MSC_VER)
     unsigned __int64 hi;
     const auto lo = _umul128(x, y, &hi);
