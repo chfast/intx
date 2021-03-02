@@ -94,22 +94,10 @@ template <unsigned N>
 }
 
 template <unsigned N>
-[[gnu::noinline]] static intx::uint<N> mul_(const intx::uint<N>& x, const intx::uint<N>& y) noexcept
-{
-    return intx::mul(x, y);
-}
-
-template <unsigned N>
 [[gnu::noinline]] static intx::uint<N> mul_loop_(
     const intx::uint<N>& x, const intx::uint<N>& y) noexcept
 {
     return intx::umul_loop(x, y).lo;
-}
-
-template <unsigned N>
-[[gnu::noinline]] static auto mul_loop_opt_(const intx::uint<N>& x, const intx::uint<N>& y) noexcept
-{
-    return intx::mul_loop_opt(x, y);
 }
 
 template <unsigned N>
@@ -176,9 +164,7 @@ BENCHMARK_TEMPLATE(binop, uint256, uint256, sub);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, inline_sub);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, experimental::add_recursive);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, experimental::add_waterflow);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, mul_);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, mul_loop_);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, mul_loop_opt_);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, public_mul);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, gmp::mul);
 
@@ -190,9 +176,7 @@ BENCHMARK_TEMPLATE(binop, uint512, uint512, add);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, inline_add);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, sub);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, inline_sub);
-BENCHMARK_TEMPLATE(binop, uint512, uint512, mul_);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, mul_loop_);
-BENCHMARK_TEMPLATE(binop, uint512, uint512, mul_loop_opt_);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, public_mul);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, gmp::mul);
 
