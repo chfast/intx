@@ -181,7 +181,13 @@ BENCHMARK_TEMPLATE(binop, uint512, uint512, public_mul);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, gmp::mul);
 
 template <unsigned N>
-inline intx::uint<N> shl(const intx::uint<N>& x, unsigned y) noexcept
+[[gnu::noinline]] static intx::uint<N> shl_(const intx::uint<N>& x, unsigned y) noexcept
+{
+    return x << y;
+}
+
+template <unsigned N>
+[[gnu::noinline]] static intx::uint<N> shl_loop_(const intx::uint<N>& x, unsigned y) noexcept
 {
     return x << y;
 }
@@ -202,11 +208,10 @@ static void shift(benchmark::State& state)
         }
     }
 }
-BENCHMARK_TEMPLATE(shift, uint256, shl);
-BENCHMARK_TEMPLATE(shift, uint256, shl_loop);
-BENCHMARK_TEMPLATE(shift, uint512, shl);
-BENCHMARK_TEMPLATE(shift, uint512, shl_loop);
-// BENCHMARK_TEMPLATE(shift_512, lsr);
+BENCHMARK_TEMPLATE(shift, uint256, shl_);
+BENCHMARK_TEMPLATE(shift, uint256, shl_loop_);
+BENCHMARK_TEMPLATE(shift, uint512, shl_);
+BENCHMARK_TEMPLATE(shift, uint512, shl_loop_);
 
 static void exponentiation(benchmark::State& state)
 {
