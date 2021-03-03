@@ -60,32 +60,32 @@ struct uint
 using uint256 = uint<256>;
 using uint512 = uint<512>;
 
-constexpr uint8_t lo_half(uint16_t x)
+inline constexpr uint8_t lo_half(uint16_t x)
 {
     return static_cast<uint8_t>(x);
 }
 
-constexpr uint16_t lo_half(uint32_t x)
+inline constexpr uint16_t lo_half(uint32_t x)
 {
     return static_cast<uint16_t>(x);
 }
 
-constexpr uint32_t lo_half(uint64_t x)
+inline constexpr uint32_t lo_half(uint64_t x)
 {
     return static_cast<uint32_t>(x);
 }
 
-constexpr uint8_t hi_half(uint16_t x)
+inline constexpr uint8_t hi_half(uint16_t x)
 {
     return static_cast<uint8_t>(x >> 8);
 }
 
-constexpr uint16_t hi_half(uint32_t x)
+inline constexpr uint16_t hi_half(uint32_t x)
 {
     return static_cast<uint16_t>(x >> 16);
 }
 
-constexpr uint32_t hi_half(uint64_t x)
+inline constexpr uint32_t hi_half(uint64_t x)
 {
     return static_cast<uint32_t>(x >> 32);
 }
@@ -103,55 +103,55 @@ inline constexpr auto hi_half(const uint<N>& x) noexcept
 }
 
 template <typename T>
-constexpr unsigned num_bits(const T&) noexcept
+inline constexpr unsigned num_bits(const T&) noexcept
 {
     return sizeof(T) * 8;
 }
 
 template <unsigned N>
-constexpr bool operator==(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator==(const uint<N>& a, const uint<N>& b) noexcept
 {
     return (a.lo == b.lo) & (a.hi == b.hi);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator==(const uint<N>& x, const T& y) noexcept
+inline constexpr bool operator==(const uint<N>& x, const T& y) noexcept
 {
     return x == uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator==(const T& x, const uint<N>& y) noexcept
+inline constexpr bool operator==(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(y) == x;
 }
 
 
 template <unsigned N>
-constexpr bool operator!=(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator!=(const uint<N>& a, const uint<N>& b) noexcept
 {
     return !(a == b);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator!=(const uint<N>& x, const T& y) noexcept
+inline constexpr bool operator!=(const uint<N>& x, const T& y) noexcept
 {
     return x != uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
+inline constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) != y;
 }
 
 
 template <unsigned N>
-constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept
 {
     // Bitwise operators are used to implement logic here to avoid branching.
     // It also should make the function smaller, but no proper benchmark has
@@ -161,107 +161,107 @@ constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator<(const uint<N>& x, const T& y) noexcept
+inline constexpr bool operator<(const uint<N>& x, const T& y) noexcept
 {
     return x < uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator<(const T& x, const uint<N>& y) noexcept
+inline constexpr bool operator<(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) < y;
 }
 
 
 template <unsigned N>
-constexpr bool operator>(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator>(const uint<N>& a, const uint<N>& b) noexcept
 {
     return b < a;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator>(const uint<N>& x, const T& y) noexcept
+inline constexpr bool operator>(const uint<N>& x, const T& y) noexcept
 {
     return x > uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator>(const T& x, const uint<N>& y) noexcept
+inline constexpr bool operator>(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) > y;
 }
 
 
 template <unsigned N>
-constexpr bool operator>=(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator>=(const uint<N>& a, const uint<N>& b) noexcept
 {
     return !(a < b);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator>=(const uint<N>& x, const T& y) noexcept
+inline constexpr bool operator>=(const uint<N>& x, const T& y) noexcept
 {
     return x >= uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator>=(const T& x, const uint<N>& y) noexcept
+inline constexpr bool operator>=(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) >= y;
 }
 
 
 template <unsigned N>
-constexpr bool operator<=(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator<=(const uint<N>& a, const uint<N>& b) noexcept
 {
     return !(b < a);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator<=(const uint<N>& x, const T& y) noexcept
+inline constexpr bool operator<=(const uint<N>& x, const T& y) noexcept
 {
     return x <= uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr bool operator<=(const T& x, const uint<N>& y) noexcept
+inline constexpr bool operator<=(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) <= y;
 }
 
 template <unsigned N>
-constexpr uint<N> operator|(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator|(const uint<N>& x, const uint<N>& y) noexcept
 {
     return {x.hi | y.hi, x.lo | y.lo};
 }
 
 template <unsigned N>
-constexpr uint<N> operator&(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator&(const uint<N>& x, const uint<N>& y) noexcept
 {
     return {x.hi & y.hi, x.lo & y.lo};
 }
 
 template <unsigned N>
-constexpr uint<N> operator^(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator^(const uint<N>& x, const uint<N>& y) noexcept
 {
     return {x.hi ^ y.hi, x.lo ^ y.lo};
 }
 
 template <unsigned N>
-constexpr uint<N> operator~(const uint<N>& x) noexcept
+inline constexpr uint<N> operator~(const uint<N>& x) noexcept
 {
     return {~x.hi, ~x.lo};
 }
 
 template <unsigned N>
-constexpr uint<N> operator<<(const uint<N>& x, unsigned shift) noexcept
+inline constexpr uint<N> operator<<(const uint<N>& x, unsigned shift) noexcept
 {
     constexpr auto num_bits = N;
     constexpr auto half_bits = num_bits / 2;
@@ -301,7 +301,7 @@ inline Target narrow_cast(const Int& x) noexcept
 }
 
 template <unsigned N>
-constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
+inline constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
 {
     constexpr auto half_bits = N / 2;
 
@@ -328,7 +328,7 @@ constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator<<(const uint<N>& x, const T& shift) noexcept
+inline constexpr uint<N> operator<<(const uint<N>& x, const T& shift) noexcept
 {
     if (shift < T{sizeof(x) * 8})
         return x << static_cast<unsigned>(shift);
@@ -337,7 +337,7 @@ constexpr uint<N> operator<<(const uint<N>& x, const T& shift) noexcept
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator>>(const uint<N>& x, const T& shift) noexcept
+inline constexpr uint<N> operator>>(const uint<N>& x, const T& shift) noexcept
 {
     if (shift < T{sizeof(x) * 8})
         return x >> static_cast<unsigned>(shift);
@@ -345,30 +345,30 @@ constexpr uint<N> operator>>(const uint<N>& x, const T& shift) noexcept
 }
 
 template <unsigned N>
-inline uint<N>& operator>>=(uint<N>& x, unsigned shift) noexcept
+inline constexpr uint<N>& operator>>=(uint<N>& x, unsigned shift) noexcept
 {
     return x = x >> shift;
 }
 
 
-constexpr uint64_t* as_words(uint128& x) noexcept
+inline constexpr uint64_t* as_words(uint128& x) noexcept
 {
     return &x.lo;
 }
 
-constexpr const uint64_t* as_words(const uint128& x) noexcept
+inline constexpr const uint64_t* as_words(const uint128& x) noexcept
 {
     return &x.lo;
 }
 
 template <unsigned N>
-constexpr uint64_t* as_words(uint<N>& x) noexcept
+inline constexpr uint64_t* as_words(uint<N>& x) noexcept
 {
     return as_words(x.lo);
 }
 
 template <unsigned N>
-constexpr const uint64_t* as_words(const uint<N>& x) noexcept
+inline constexpr const uint64_t* as_words(const uint<N>& x) noexcept
 {
     return as_words(x.lo);
 }
@@ -433,33 +433,33 @@ inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
 }
 
 template <unsigned N>
-constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
     return add_with_carry(x, y).value;
 }
 
 template <unsigned N>
-constexpr uint<N> operator-(const uint<N>& x) noexcept
+inline constexpr uint<N> operator-(const uint<N>& x) noexcept
 {
     return ~x + uint<N>{1};
 }
 
 template <unsigned N>
-constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
     return sub_with_carry(x, y).value;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator+=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator+=(uint<N>& x, const T& y) noexcept
 {
     return x = x + y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 {
     return x = x - y;
 }
@@ -483,7 +483,7 @@ inline uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 }
 
 template <unsigned N>
-constexpr uint<2 * N> constexpr_umul(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<2 * N> constexpr_umul(const uint<N>& x, const uint<N>& y) noexcept
 {
     auto t0 = constexpr_umul(x.lo, y.lo);
     auto t1 = constexpr_umul(x.hi, y.lo);
@@ -513,7 +513,7 @@ inline uint<N> sqr(const uint<N>& a) noexcept
 
 
 template <unsigned N>
-constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
 {
     auto t = constexpr_umul(a.lo, b.lo);
     auto hi = constexpr_mul(a.lo, b.hi) + constexpr_mul(a.hi, b.lo) + t.hi;
@@ -574,13 +574,13 @@ inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator*=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator*=(uint<N>& x, const T& y) noexcept
 {
     return x = x * y;
 }
 
 template <unsigned N>
-constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
+inline constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 {
     auto result = uint<N>{1};
     if (base == 2)
@@ -597,7 +597,7 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 }
 
 template <unsigned N>
-constexpr unsigned clz(const uint<N>& x) noexcept
+inline constexpr unsigned clz(const uint<N>& x) noexcept
 {
     const auto half_bits = num_bits(x) / 2;
 
@@ -653,7 +653,7 @@ inline typename std::enable_if<sizeof(Word) < sizeof(Int), unsigned>::type count
 namespace internal
 {
 /// Counts the number of zero leading bits in nonzero argument x.
-constexpr inline unsigned clz_nonzero(uint64_t x) noexcept
+inline constexpr unsigned clz_nonzero(uint64_t x) noexcept
 {
     INTX_REQUIRE(x != 0);
 #ifdef _MSC_VER
@@ -884,7 +884,7 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
 }
 
 template <unsigned N>
-constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
+inline constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
     const auto sign_mask = uint<N>{1} << (sizeof(u) * 8 - 1);
     auto u_is_neg = (u & sign_mask) != 0;
@@ -901,27 +901,27 @@ constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexce
 }
 
 template <unsigned N>
-constexpr uint<N> operator/(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator/(const uint<N>& x, const uint<N>& y) noexcept
 {
     return udivrem(x, y).quot;
 }
 
 template <unsigned N>
-constexpr uint<N> operator%(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator%(const uint<N>& x, const uint<N>& y) noexcept
 {
     return udivrem(x, y).rem;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator/=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator/=(uint<N>& x, const T& y) noexcept
 {
     return x = x / y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator%=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator%=(uint<N>& x, const T& y) noexcept
 {
     return x = x % y;
 }
@@ -937,147 +937,147 @@ inline uint<N> bswap(const uint<N>& x) noexcept
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator+(const uint<N>& x, const T& y) noexcept
+inline constexpr uint<N> operator+(const uint<N>& x, const T& y) noexcept
 {
     return x + uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator+(const T& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator+(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) + y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator-(const uint<N>& x, const T& y) noexcept
+inline constexpr uint<N> operator-(const uint<N>& x, const T& y) noexcept
 {
     return x - uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator-(const T& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator-(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) - y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator*(const uint<N>& x, const T& y) noexcept
+inline constexpr uint<N> operator*(const uint<N>& x, const T& y) noexcept
 {
     return x * uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator*(const T& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator*(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) * y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator/(const uint<N>& x, const T& y) noexcept
+inline constexpr uint<N> operator/(const uint<N>& x, const T& y) noexcept
 {
     return x / uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator/(const T& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator/(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) / y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator%(const uint<N>& x, const T& y) noexcept
+inline constexpr uint<N> operator%(const uint<N>& x, const T& y) noexcept
 {
     return x % uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator%(const T& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator%(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) % y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator|(const uint<N>& x, const T& y) noexcept
+inline constexpr uint<N> operator|(const uint<N>& x, const T& y) noexcept
 {
     return x | uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator|(const T& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator|(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) | y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator&(const uint<N>& x, const T& y) noexcept
+inline constexpr uint<N> operator&(const uint<N>& x, const T& y) noexcept
 {
     return x & uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator&(const T& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator&(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) & y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator^(const uint<N>& x, const T& y) noexcept
+inline constexpr uint<N> operator^(const uint<N>& x, const T& y) noexcept
 {
     return x ^ uint<N>(y);
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N> operator^(const T& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator^(const T& x, const uint<N>& y) noexcept
 {
     return uint<N>(x) ^ y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator|=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator|=(uint<N>& x, const T& y) noexcept
 {
     return x = x | y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator&=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator&=(uint<N>& x, const T& y) noexcept
 {
     return x = x & y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator^=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator^=(uint<N>& x, const T& y) noexcept
 {
     return x = x ^ y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator<<=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator<<=(uint<N>& x, const T& y) noexcept
 {
     return x = x << y;
 }
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
+inline constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
 {
     return x = x >> y;
 }
@@ -1095,12 +1095,12 @@ inline uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) no
 }
 
 
-constexpr uint256 operator"" _u256(const char* s) noexcept
+inline constexpr uint256 operator"" _u256(const char* s) noexcept
 {
     return from_string<uint256>(s);
 }
 
-constexpr uint512 operator"" _u512(const char* s) noexcept
+inline constexpr uint512 operator"" _u512(const char* s) noexcept
 {
     return from_string<uint512>(s);
 }
