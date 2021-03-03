@@ -147,7 +147,7 @@ struct result_with_carry
 /// Linear arithmetic operators.
 /// @{
 
-constexpr inline result_with_carry<uint64_t> add_with_carry(
+inline constexpr result_with_carry<uint64_t> add_with_carry(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
     const auto s = x + y;
@@ -158,7 +158,7 @@ constexpr inline result_with_carry<uint64_t> add_with_carry(
 }
 
 template <unsigned N>
-constexpr result_with_carry<uint<N>> add_with_carry(
+inline constexpr result_with_carry<uint<N>> add_with_carry(
     const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
 {
     const auto lo = add_with_carry(a.lo, b.lo, carry);
@@ -166,17 +166,17 @@ constexpr result_with_carry<uint<N>> add_with_carry(
     return {{hi.value, lo.value}, hi.carry};
 }
 
-constexpr inline uint128 operator+(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator+(uint128 x, uint128 y) noexcept
 {
     return add_with_carry(x, y).value;
 }
 
-constexpr inline uint128 operator+(uint128 x) noexcept
+inline constexpr uint128 operator+(uint128 x) noexcept
 {
     return x;
 }
 
-constexpr inline result_with_carry<uint64_t> sub_with_carry(
+inline constexpr result_with_carry<uint64_t> sub_with_carry(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
     const auto d = x - y;
@@ -189,7 +189,7 @@ constexpr inline result_with_carry<uint64_t> sub_with_carry(
 /// Performs subtraction of two unsigned numbers and returns the difference
 /// and the carry bit (aka borrow, overflow).
 template <unsigned N>
-constexpr inline result_with_carry<uint<N>> sub_with_carry(
+inline constexpr result_with_carry<uint<N>> sub_with_carry(
     const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
 {
     const auto lo = sub_with_carry(a.lo, b.lo, carry);
@@ -197,12 +197,12 @@ constexpr inline result_with_carry<uint<N>> sub_with_carry(
     return {{hi.value, lo.value}, hi.carry};
 }
 
-constexpr inline uint128 operator-(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator-(uint128 x, uint128 y) noexcept
 {
     return sub_with_carry(x, y).value;
 }
 
-constexpr inline uint128 operator-(uint128 x) noexcept
+inline constexpr uint128 operator-(uint128 x) noexcept
 {
     // Implementing as subtraction is better than ~x + 1.
     // Clang9: Perfect.
@@ -257,7 +257,7 @@ inline constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
 ///
 /// @{
 
-constexpr bool operator==(uint128 x, uint128 y) noexcept
+inline constexpr bool operator==(uint128 x, uint128 y) noexcept
 {
     // Clang7: generates perfect xor based code,
     //         much better than __int128 where it uses vector instructions.
@@ -266,13 +266,13 @@ constexpr bool operator==(uint128 x, uint128 y) noexcept
     return (x.lo == y.lo) & (x.hi == y.hi);
 }
 
-constexpr bool operator!=(uint128 x, uint128 y) noexcept
+inline constexpr bool operator!=(uint128 x, uint128 y) noexcept
 {
     // Analogous to ==, but == not used directly, because that confuses GCC 8-9.
     return (x.lo != y.lo) | (x.hi != y.hi);
 }
 
-constexpr bool operator<(uint128 x, uint128 y) noexcept
+inline constexpr bool operator<(uint128 x, uint128 y) noexcept
 {
     // OPT: This should be implemented by checking the borrow of x - y,
     //      but compilers (GCC8, Clang7)
@@ -280,17 +280,17 @@ constexpr bool operator<(uint128 x, uint128 y) noexcept
     return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo < y.lo));
 }
 
-constexpr bool operator<=(uint128 x, uint128 y) noexcept
+inline constexpr bool operator<=(uint128 x, uint128 y) noexcept
 {
     return !(y < x);
 }
 
-constexpr bool operator>(uint128 x, uint128 y) noexcept
+inline constexpr bool operator>(uint128 x, uint128 y) noexcept
 {
     return y < x;
 }
 
-constexpr bool operator>=(uint128 x, uint128 y) noexcept
+inline constexpr bool operator>=(uint128 x, uint128 y) noexcept
 {
     return !(x < y);
 }
@@ -301,29 +301,29 @@ constexpr bool operator>=(uint128 x, uint128 y) noexcept
 /// Bitwise operators.
 /// @{
 
-constexpr uint128 operator~(uint128 x) noexcept
+inline constexpr uint128 operator~(uint128 x) noexcept
 {
     return {~x.hi, ~x.lo};
 }
 
-constexpr uint128 operator|(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator|(uint128 x, uint128 y) noexcept
 {
     // Clang7: perfect.
     // GCC8: stupidly uses a vector instruction in all bitwise operators.
     return {x.hi | y.hi, x.lo | y.lo};
 }
 
-constexpr uint128 operator&(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator&(uint128 x, uint128 y) noexcept
 {
     return {x.hi & y.hi, x.lo & y.lo};
 }
 
-constexpr uint128 operator^(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator^(uint128 x, uint128 y) noexcept
 {
     return {x.hi ^ y.hi, x.lo ^ y.lo};
 }
 
-constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
+inline constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
 {
     return (shift < 64) ?
                // Find the part moved from lo to hi.
@@ -335,14 +335,14 @@ constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
                (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
 }
 
-constexpr uint128 operator<<(uint128 x, uint128 shift) noexcept
+inline constexpr uint128 operator<<(uint128 x, uint128 shift) noexcept
 {
     if (shift < 128)
         return x << unsigned(shift);
     return 0;
 }
 
-constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
+inline constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
 {
     return (shift < 64) ?
                // Find the part moved from lo to hi.
@@ -354,7 +354,7 @@ constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
                (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
 }
 
-constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
+inline constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
 {
     if (shift < 128)
         return x >> unsigned(shift);
@@ -369,7 +369,7 @@ constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
 /// @{
 
 /// Portable full unsigned multiplication 64 x 64 -> 128.
-constexpr uint128 constexpr_umul(uint64_t x, uint64_t y) noexcept
+inline constexpr uint128 constexpr_umul(uint64_t x, uint64_t y) noexcept
 {
     uint64_t xl = x & 0xffffffff;
     uint64_t xh = x >> 32;
@@ -411,7 +411,7 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
     return {p.hi, p.lo};
 }
 
-constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
+inline constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
 {
     auto p = constexpr_umul(x.lo, y.lo);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
@@ -424,12 +424,12 @@ constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
 /// Assignment operators.
 /// @{
 
-constexpr uint128& operator+=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator+=(uint128& x, uint128 y) noexcept
 {
     return x = x + y;
 }
 
-constexpr uint128& operator-=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator-=(uint128& x, uint128 y) noexcept
 {
     return x = x - y;
 }
@@ -439,27 +439,27 @@ inline uint128& operator*=(uint128& x, uint128 y) noexcept
     return x = x * y;
 }
 
-constexpr uint128& operator|=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator|=(uint128& x, uint128 y) noexcept
 {
     return x = x | y;
 }
 
-constexpr uint128& operator&=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator&=(uint128& x, uint128 y) noexcept
 {
     return x = x & y;
 }
 
-constexpr uint128& operator^=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator^=(uint128& x, uint128 y) noexcept
 {
     return x = x ^ y;
 }
 
-constexpr uint128& operator<<=(uint128& x, unsigned shift) noexcept
+inline constexpr uint128& operator<<=(uint128& x, unsigned shift) noexcept
 {
     return x = x << shift;
 }
 
-constexpr uint128& operator>>=(uint128& x, unsigned shift) noexcept
+inline constexpr uint128& operator>>=(uint128& x, unsigned shift) noexcept
 {
     return x = x >> shift;
 }
@@ -467,7 +467,7 @@ constexpr uint128& operator>>=(uint128& x, unsigned shift) noexcept
 /// @}
 
 
-constexpr unsigned clz_generic(uint32_t x) noexcept
+inline constexpr unsigned clz_generic(uint32_t x) noexcept
 {
     unsigned n = 32;
     for (int i = 4; i >= 0; --i)
@@ -483,7 +483,7 @@ constexpr unsigned clz_generic(uint32_t x) noexcept
     return n - x;
 }
 
-constexpr unsigned clz_generic(uint64_t x) noexcept
+inline constexpr unsigned clz_generic(uint64_t x) noexcept
 {
     unsigned n = 64;
     for (int i = 5; i >= 0; --i)
@@ -499,7 +499,7 @@ constexpr unsigned clz_generic(uint64_t x) noexcept
     return n - static_cast<unsigned>(x);
 }
 
-constexpr inline unsigned clz(uint32_t x) noexcept
+inline constexpr unsigned clz(uint32_t x) noexcept
 {
 #ifdef _MSC_VER
     return clz_generic(x);
@@ -508,7 +508,7 @@ constexpr inline unsigned clz(uint32_t x) noexcept
 #endif
 }
 
-constexpr inline unsigned clz(uint64_t x) noexcept
+inline constexpr unsigned clz(uint64_t x) noexcept
 {
 #ifdef _MSC_VER
     return clz_generic(x);
@@ -517,7 +517,7 @@ constexpr inline unsigned clz(uint64_t x) noexcept
 #endif
 }
 
-constexpr inline unsigned clz(uint128 x) noexcept
+inline constexpr unsigned clz(uint128 x) noexcept
 {
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
     return x.hi == 0 ? clz(x.lo) + 64 : clz(x.hi);
@@ -554,7 +554,7 @@ struct div_result
 
 namespace internal
 {
-constexpr uint16_t reciprocal_table_item(uint8_t d9) noexcept
+inline constexpr uint16_t reciprocal_table_item(uint8_t d9) noexcept
 {
     return uint16_t(0x7fd00 / (0x100 | d9));
 }
@@ -830,14 +830,14 @@ template <typename T>
 #endif
 }
 
-constexpr inline int from_dec_digit(char c)
+inline constexpr int from_dec_digit(char c)
 {
     if (c < '0' || c > '9')
         throw_<std::invalid_argument>("invalid digit");
     return c - '0';
 }
 
-constexpr inline int from_hex_digit(char c)
+inline constexpr int from_hex_digit(char c)
 {
     if (c >= 'a' && c <= 'f')
         return c - ('a' - 10);
@@ -847,7 +847,7 @@ constexpr inline int from_hex_digit(char c)
 }
 
 template <typename Int>
-constexpr Int from_string(const char* str)
+inline constexpr Int from_string(const char* str)
 {
     auto s = str;
     auto x = Int{};
@@ -879,12 +879,12 @@ constexpr Int from_string(const char* str)
 }
 
 template <typename Int>
-constexpr Int from_string(const std::string& s)
+inline constexpr Int from_string(const std::string& s)
 {
     return from_string<Int>(s.c_str());
 }
 
-constexpr uint128 operator""_u128(const char* s)
+inline constexpr uint128 operator""_u128(const char* s)
 {
     return from_string<uint128>(s);
 }
