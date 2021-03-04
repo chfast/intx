@@ -170,8 +170,6 @@ jobs:
       - store_artifacts:
           path: ~/build/coverage
           destination: coverage
-      - upload_coverage:
-          flags: clang
 
 
   linux-clang-sanitizers:
