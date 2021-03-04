@@ -341,21 +341,31 @@ TYPED_TEST(uint_test, shift_one_bit)
 {
     for (unsigned shift = 0; shift < sizeof(TypeParam) * 8; ++shift)
     {
-        auto x = TypeParam{1};
-        auto y = x << shift;
-        auto z = y >> shift;
-        EXPECT_EQ(x, z) << "shift: " << shift;
+        SCOPED_TRACE(shift);
+        constexpr auto x = TypeParam{1};
+
+        const auto a = x << shift;
+        const auto b = shl_loop(x, shift);
+        EXPECT_EQ(b, a);
+
+        EXPECT_EQ(x, a >> shift);
     }
 }
 
-TYPED_TEST(uint_test, shift_loop_one_bit)
+TYPED_TEST(uint_test, shift_left_overflow)
 {
-    for (unsigned shift = 0; shift < sizeof(TypeParam) * 8; ++shift)
+    const auto x = ~TypeParam{};
+
+    for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
     {
-        auto x = TypeParam{1};
-        auto y = shl_loop(x, shift);
-        auto z = y >> shift;
-        EXPECT_EQ(x, z) << "shift: " << shift;
+        const auto sh = x >> n;
+        EXPECT_EQ(x << sh, 0) << "n=" << n;
+    }
+
+    for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
+    {
+        const auto sh = TypeParam{sizeof(TypeParam) * 8} << n;
+        EXPECT_EQ(x << sh, 0) << "n=" << n;
     }
 }
 
@@ -367,6 +377,7 @@ TYPED_TEST(uint_test, shift_overflow)
     EXPECT_EQ(value >> TypeParam{sh}, 0);
     EXPECT_EQ(value << sh, 0);
     EXPECT_EQ(value << TypeParam{sh}, 0);
+    EXPECT_EQ(shl_loop(value, sh), 0);
 }
 
 TYPED_TEST(uint_test, not_of_zero)
