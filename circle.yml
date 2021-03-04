@@ -132,13 +132,18 @@ jobs:
           name: "Inspect package"
           command: tar tvf ~/build/intx*.tar.gz
 
-  linux-gcc-debug:
+  linux-gcc-coverage:
     environment:
-      BUILD_TYPE: Debug
+      BUILD_TYPE: Coverage
+      TESTS_FILTER: unittests
+      TESTS_EXCLUDE: random
     executor: linux-gcc-latest
     steps:
       - install_deps
       - build_and_test
+      - collect_coverage_gcc
+      - upload_coverage:
+          flags: gcc
 
   linux-clang-coverage:
     environment:
@@ -276,7 +281,7 @@ workflows:
     jobs:
       - lint
       - build-minimal
-      - linux-gcc-debug
+      - linux-gcc-coverage
       - linux-clang-coverage
       - linux-clang-sanitizers
       - linux-gcc-sanitizers
