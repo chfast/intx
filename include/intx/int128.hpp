@@ -323,7 +323,7 @@ inline constexpr uint128 operator^(uint128 x, uint128 y) noexcept
     return {x.hi ^ y.hi, x.lo ^ y.lo};
 }
 
-inline constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
+inline constexpr uint128 operator<<(uint128 x, uint64_t shift) noexcept
 {
     return (shift < 64) ?
                // Find the part moved from lo to hi.
@@ -338,11 +338,11 @@ inline constexpr uint128 operator<<(uint128 x, unsigned shift) noexcept
 inline constexpr uint128 operator<<(uint128 x, uint128 shift) noexcept
 {
     if (shift < 128)
-        return x << unsigned(shift);
+        return x << static_cast<uint64_t>(shift);
     return 0;
 }
 
-inline constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
+inline constexpr uint128 operator>>(uint128 x, uint64_t shift) noexcept
 {
     return (shift < 64) ?
                // Find the part moved from lo to hi.
@@ -357,7 +357,7 @@ inline constexpr uint128 operator>>(uint128 x, unsigned shift) noexcept
 inline constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
 {
     if (shift < 128)
-        return x >> unsigned(shift);
+        return x >> static_cast<uint64_t>(shift);
     return 0;
 }
 
@@ -452,12 +452,12 @@ inline constexpr uint128& operator^=(uint128& x, uint128 y) noexcept
     return x = x ^ y;
 }
 
-inline constexpr uint128& operator<<=(uint128& x, unsigned shift) noexcept
+inline constexpr uint128& operator<<=(uint128& x, uint64_t shift) noexcept
 {
     return x = x << shift;
 }
 
-inline constexpr uint128& operator>>=(uint128& x, unsigned shift) noexcept
+inline constexpr uint128& operator>>=(uint128& x, uint64_t shift) noexcept
 {
     return x = x >> shift;
 }

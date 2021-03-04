@@ -261,7 +261,7 @@ inline constexpr uint<N> operator~(const uint<N>& x) noexcept
 }
 
 template <unsigned N>
-inline constexpr uint<N> operator<<(const uint<N>& x, unsigned shift) noexcept
+inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
 {
     constexpr auto num_bits = N;
     constexpr auto half_bits = num_bits / 2;
@@ -301,25 +301,26 @@ inline Target narrow_cast(const Int& x) noexcept
 }
 
 template <unsigned N>
-inline constexpr uint<N> operator>>(const uint<N>& x, unsigned shift) noexcept
+inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
 {
-    constexpr auto half_bits = N / 2;
+    constexpr auto num_bits = N;
+    constexpr auto half_bits = num_bits / 2;
 
     if (shift < half_bits)
     {
-        auto hi = x.hi >> shift;
+        const auto hi = x.hi >> shift;
 
         // Find the part moved from hi to lo.
         // To avoid invalid shift left,
         // split them into 2 valid shifts by (lshift - 1) and 1.
-        unsigned lshift = half_bits - shift;
-        auto hi_overflow = (x.hi << (lshift - 1)) << 1;
-        auto lo_part = x.lo >> shift;
-        auto lo = lo_part | hi_overflow;
+        const auto lshift = half_bits - shift;
+        const auto hi_overflow = (x.hi << (lshift - 1)) << 1;
+        const auto lo_part = x.lo >> shift;
+        const auto lo = lo_part | hi_overflow;
         return {hi, lo};
     }
 
-    if (shift < num_bits(x))
+    if (shift < num_bits)
         return {0, x.hi >> (shift - half_bits)};
 
     return 0;
@@ -331,7 +332,7 @@ template <unsigned N, typename T,
 inline constexpr uint<N> operator<<(const uint<N>& x, const T& shift) noexcept
 {
     if (shift < T{sizeof(x) * 8})
-        return x << static_cast<unsigned>(shift);
+        return x << static_cast<uint64_t>(shift);
     return 0;
 }
 
@@ -340,12 +341,12 @@ template <unsigned N, typename T,
 inline constexpr uint<N> operator>>(const uint<N>& x, const T& shift) noexcept
 {
     if (shift < T{sizeof(x) * 8})
-        return x >> static_cast<unsigned>(shift);
+        return x >> static_cast<uint64_t>(shift);
     return 0;
 }
 
 template <unsigned N>
-inline constexpr uint<N>& operator>>=(uint<N>& x, unsigned shift) noexcept
+inline constexpr uint<N>& operator>>=(uint<N>& x, uint64_t shift) noexcept
 {
     return x = x >> shift;
 }
@@ -388,15 +389,15 @@ inline const uint8_t* as_bytes(const uint<N>& x) noexcept
 /// Implementation of shift left as a loop.
 /// This one is slower than the one using "split" strategy.
 template <unsigned N>
-inline uint<N> shl_loop(const uint<N>& x, unsigned shift)
+inline uint<N> shl_loop(const uint<N>& x, uint64_t shift)
 {
     auto r = uint<N>{};
     constexpr unsigned word_bits = sizeof(uint64_t) * 8;
     constexpr size_t num_words = sizeof(uint<N>) / sizeof(uint64_t);
     auto rw = as_words(r);
     auto words = as_words(x);
-    unsigned s = shift % word_bits;
-    unsigned skip = shift / word_bits;
+    const auto s = shift % word_bits;
+    const auto skip = shift / word_bits;
 
     uint64_t carry = 0;
     for (size_t i = 0; i < (num_words - skip); ++i)
