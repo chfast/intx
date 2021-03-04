@@ -4,6 +4,7 @@
 
 #include <benchmark/benchmark.h>
 #include <experimental/add.hpp>
+#include <experimental/shift.hpp>
 #include <intx/intx.hpp>
 #include <test/utils/gmp.hpp>
 #include <test/utils/random.hpp>
@@ -211,6 +212,7 @@ static void shift(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(shift, uint256, shl_);
 BENCHMARK_TEMPLATE(shift, uint256, shl_loop_);
+BENCHMARK_TEMPLATE(shift, uint256, experimental::shl);
 #if INTX_HAS_EXTINT
 BENCHMARK_TEMPLATE(shift, uint256, shl_llvm);
 #endif
