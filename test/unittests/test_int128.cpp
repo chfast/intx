@@ -411,13 +411,26 @@ TEST(int128, umul)
     constexpr uint64_t inputs[] = {12243, 12503, 53501, 62950, 682017770, 1164206252, 1693374163,
         2079516117, 7043980147839196358, 12005172997151200154u, 15099684930315651455u,
         17254606825257761760u};
+    constexpr uint128 outputs[] = {
+        intx::umul(inputs[0], inputs[1]),
+        intx::umul(inputs[1], inputs[2]),
+        intx::umul(inputs[2], inputs[3]),
+        intx::umul(inputs[3], inputs[4]),
+        intx::umul(inputs[4], inputs[5]),
+        intx::umul(inputs[5], inputs[6]),
+        intx::umul(inputs[6], inputs[7]),
+        intx::umul(inputs[7], inputs[8]),
+        intx::umul(inputs[8], inputs[9]),
+        intx::umul(inputs[9], inputs[10]),
+        intx::umul(inputs[10], inputs[11]),
+    };
 
     for (size_t i = 1; i < (sizeof(inputs) / sizeof(inputs[0])); ++i)
     {
         const auto x = inputs[i - 1];
         const auto y = inputs[i];
 
-        const auto generic = intx::constexpr_umul(x, y);
+        const auto generic = outputs[i - 1];
         const auto best = intx::umul(x, y);
 
         EXPECT_EQ(generic, best) << x << " x " << y;

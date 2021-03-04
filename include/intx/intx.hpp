@@ -466,7 +466,7 @@ inline constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 
 
 template <unsigned N>
-inline uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
     const auto t0 = umul(x.lo, y.lo);
     const auto t1 = umul(x.hi, y.lo);
@@ -483,24 +483,6 @@ inline uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 }
 
 template <unsigned N>
-inline constexpr uint<2 * N> constexpr_umul(const uint<N>& x, const uint<N>& y) noexcept
-{
-    auto t0 = constexpr_umul(x.lo, y.lo);
-    auto t1 = constexpr_umul(x.hi, y.lo);
-    auto t2 = constexpr_umul(x.lo, y.hi);
-    auto t3 = constexpr_umul(x.hi, y.hi);
-
-    auto u1 = t1 + t0.hi;
-    auto u2 = t2 + u1.lo;
-
-    auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
-    auto hi = t3 + u2.hi + u1.hi;
-
-    return {hi, lo};
-}
-
-
-template <unsigned N>
 inline uint<N> sqr(const uint<N>& a) noexcept
 {
     // Based on recursive multiplication implementation.
@@ -515,7 +497,7 @@ inline uint<N> sqr(const uint<N>& a) noexcept
 template <unsigned N>
 inline constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
 {
-    auto t = constexpr_umul(a.lo, b.lo);
+    auto t = umul(a.lo, b.lo);
     auto hi = constexpr_mul(a.lo, b.hi) + constexpr_mul(a.hi, b.lo) + t.hi;
     return {hi, t.lo};
 }
