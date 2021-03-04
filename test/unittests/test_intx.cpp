@@ -371,7 +371,7 @@ TYPED_TEST(uint_test, shift_left_overflow)
 
 TYPED_TEST(uint_test, shift_overflow)
 {
-    unsigned sh = sizeof(TypeParam) * 8;
+    const uint64_t sh = sizeof(TypeParam) * 8;
     const auto value = ~TypeParam{};
     EXPECT_EQ(value >> sh, 0);
     EXPECT_EQ(value >> TypeParam{sh}, 0);
