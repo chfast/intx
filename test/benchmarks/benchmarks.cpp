@@ -8,6 +8,12 @@
 #include <test/utils/gmp.hpp>
 #include <test/utils/random.hpp>
 
+#if __clang_major__ >= 11 && !defined(__apple_build_version__)
+    #define INTX_HAS_EXTINT 1
+#else
+    #define INTX_HAS_EXTINT 0
+#endif
+
 using namespace intx;
 using namespace intx::test;
 
@@ -181,18 +187,31 @@ BENCHMARK_TEMPLATE(binop, uint512, uint512, public_mul);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, gmp::mul);
 
 template <unsigned N>
-[[gnu::noinline]] static intx::uint<N> shl_(const intx::uint<N>& x, unsigned y) noexcept
+[[gnu::noinline]] static intx::uint<N> shl_(const intx::uint<N>& x, uint64_t y) noexcept
 {
     return x << y;
 }
 
 template <unsigned N>
-[[gnu::noinline]] static intx::uint<N> shl_loop_(const intx::uint<N>& x, unsigned y) noexcept
+[[gnu::noinline]] static intx::uint<N> shl_loop_(const intx::uint<N>& x, uint64_t y) noexcept
 {
     return x << y;
 }
 
-template <typename Int, Int ShiftFn(const Int&, unsigned)>
+#if INTX_HAS_EXTINT
+[[gnu::noinline]] static intx::uint256 shl_llvm(const intx::uint256& x, uint64_t y) noexcept
+{
+    unsigned _ExtInt(256) a;
+    std::memcpy(&a, &x, sizeof(a));
+    const auto b = a << y;
+    uint256 r;
+    std::memcpy(&r, &b, sizeof(r));
+    return r;
+}
+#endif
+
+
+template <typename Int, Int ShiftFn(const Int&, uint64_t)>
 static void shift(benchmark::State& state)
 {
     const auto& xs = test::get_samples<Int>(sizeof(Int) == sizeof(uint256) ? x_256 : x_512);
@@ -202,7 +221,7 @@ static void shift(benchmark::State& state)
         for (size_t i = 0; i < xs.size(); ++i)
         {
             const auto x = xs[i];
-            const auto sh = static_cast<unsigned>(x) & (Int::num_bits - 1);
+            const auto sh = static_cast<uint64_t>(x) & (Int::num_bits - 1);
             const auto _ = ShiftFn(x, sh);
             benchmark::DoNotOptimize(_);
         }
@@ -210,6 +229,9 @@ static void shift(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(shift, uint256, shl_);
 BENCHMARK_TEMPLATE(shift, uint256, shl_loop_);
+#if INTX_HAS_EXTINT
+BENCHMARK_TEMPLATE(shift, uint256, shl_llvm);
+#endif
 BENCHMARK_TEMPLATE(shift, uint512, shl_);
 BENCHMARK_TEMPLATE(shift, uint512, shl_loop_);
 
