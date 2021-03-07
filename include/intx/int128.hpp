@@ -402,7 +402,7 @@ inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
     return {hi, lo};
 }
 
-inline uint128 operator*(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator*(uint128 x, uint128 y) noexcept
 {
     auto p = umul(x.lo, y.lo);
     p.hi += (x.lo * y.hi) + (x.hi * y.lo);
@@ -411,9 +411,8 @@ inline uint128 operator*(uint128 x, uint128 y) noexcept
 
 inline constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
 {
-    auto p = umul(x.lo, y.lo);
-    p.hi += (x.lo * y.hi) + (x.hi * y.lo);
-    return {p.hi, p.lo};
+    // FIXME: Remove this function.
+    return x * y;
 }
 
 /// @}
