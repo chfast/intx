@@ -125,5 +125,24 @@ inline Int sub(const Int& x, const Int& y) noexcept
     mpn_sub_n(p_s, p_x, p_y, gmp_limbs);
     return s;
 }
+
+template <typename Int>
+inline Int addmod(const Int& x, const Int& y, const Int& mod) noexcept
+{
+    constexpr size_t gmp_limbs = sizeof(Int) / sizeof(mp_limb_t);
+    const auto mod_limbs = static_cast<mp_size_t>(count_significant_words<mp_limb_t>(mod));
+
+    auto p_x = (mp_srcptr)&x;
+    auto p_y = (mp_srcptr)&y;
+
+    mp_limb_t sum[gmp_limbs + 1];
+    sum[gmp_limbs] = mpn_add_n(sum, p_x, p_y, gmp_limbs);
+
+    mp_limb_t quot[gmp_limbs + 1];
+    Int rem;
+    mpn_tdiv_qr(quot, (mp_ptr)&rem, 0, sum, gmp_limbs + 1, (mp_srcptr)&mod, mod_limbs);
+    return rem;
+}
+
 }  // namespace gmp
 }  // namespace intx
