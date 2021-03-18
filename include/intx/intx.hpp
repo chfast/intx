@@ -60,44 +60,44 @@ struct uint
 using uint256 = uint<256>;
 using uint512 = uint<512>;
 
-inline constexpr uint8_t lo_half(uint16_t x)
+inline constexpr uint8_t lo(uint16_t x)
 {
     return static_cast<uint8_t>(x);
 }
 
-inline constexpr uint16_t lo_half(uint32_t x)
+inline constexpr uint16_t lo(uint32_t x)
 {
     return static_cast<uint16_t>(x);
 }
 
-inline constexpr uint32_t lo_half(uint64_t x)
+inline constexpr uint32_t lo(uint64_t x)
 {
     return static_cast<uint32_t>(x);
 }
 
-inline constexpr uint8_t hi_half(uint16_t x)
+inline constexpr uint8_t hi(uint16_t x)
 {
     return static_cast<uint8_t>(x >> 8);
 }
 
-inline constexpr uint16_t hi_half(uint32_t x)
+inline constexpr uint16_t hi(uint32_t x)
 {
     return static_cast<uint16_t>(x >> 16);
 }
 
-inline constexpr uint32_t hi_half(uint64_t x)
+inline constexpr uint32_t hi(uint64_t x)
 {
     return static_cast<uint32_t>(x >> 32);
 }
 
 template <unsigned N>
-inline constexpr auto lo_half(const uint<N>& x) noexcept
+inline constexpr auto lo(const uint<N>& x) noexcept
 {
     return x.lo;
 }
 
 template <unsigned N>
-inline constexpr auto hi_half(const uint<N>& x) noexcept
+inline constexpr auto hi(const uint<N>& x) noexcept
 {
     return x.hi;
 }
@@ -627,8 +627,8 @@ inline typename std::enable_if<sizeof(Word) < sizeof(Int), unsigned>::type count
     const Int& x) noexcept
 {
     constexpr auto num_words = static_cast<unsigned>(sizeof(x) / sizeof(Word));
-    auto h = count_significant_words<Word>(hi_half(x));
-    auto l = count_significant_words<Word>(lo_half(x));
+    auto h = count_significant_words<Word>(hi(x));
+    auto l = count_significant_words<Word>(lo(x));
     return h != 0 ? h + (num_words / 2) : l;
 }
 
