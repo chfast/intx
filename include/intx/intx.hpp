@@ -498,25 +498,21 @@ inline constexpr uint<N> sqr(const uint<N>& x) noexcept
 
 
 template <unsigned N>
-inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
 {
-    constexpr auto num_words = sizeof(uint<N>) / sizeof(uint64_t);
+    constexpr auto num_words = uint<N>::num_words;
 
     uint<2 * N> p;
-    auto pw = as_words(p);
-    const auto xw = as_words(x);
-    const auto yw = as_words(y);
-
     for (size_t j = 0; j < num_words; ++j)
     {
         uint64_t k = 0;
         for (size_t i = 0; i < num_words; ++i)
         {
-            const auto t = umul(xw[i], yw[j]) + pw[i + j] + k;
-            pw[i + j] = lo(t);
-            k = hi(t);
+            const auto t = umul(x[i], y[j]) + p[i + j] + k;
+            p[i + j] = t[0];
+            k = t[1];
         }
-        pw[j + num_words] = k;
+        p[j + num_words] = k;
     }
     return p;
 }
