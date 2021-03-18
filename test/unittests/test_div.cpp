@@ -381,9 +381,9 @@ inline uint64_t reciprocal_naive(uint64_t d) noexcept
 
 #if __x86_64__
     uint64_t _;
-    asm("divq %4" : "=d"(_), "=a"(v) : "d"(u.hi), "a"(u.lo), "g"(d));
+    asm("divq %4" : "=d"(_), "=a"(v) : "d"(u[1]), "a"(u[0]), "g"(d));
 #else
-    v = (u / d).lo;
+    v = (u / d)[0];
 #endif
 
     return v;

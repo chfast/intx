@@ -434,7 +434,7 @@ TEST(int128, umul)
         const auto best = intx::umul(x, y);
 
         EXPECT_EQ(generic, best) << x << " x " << y;
-        EXPECT_EQ(generic.lo, x * y);
+        EXPECT_EQ(generic[0], x * y);
     }
 }
 

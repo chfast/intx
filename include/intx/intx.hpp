@@ -354,12 +354,12 @@ inline constexpr uint<N>& operator>>=(uint<N>& x, uint64_t shift) noexcept
 
 inline constexpr uint64_t* as_words(uint128& x) noexcept
 {
-    return &x.lo;
+    return &x[0];
 }
 
 inline constexpr const uint64_t* as_words(const uint128& x) noexcept
 {
-    return &x.lo;
+    return &x[0];
 }
 
 template <unsigned N>
@@ -747,7 +747,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
     auto it = &u[len - 3];
     do
     {
-        std::tie(*it, rem) = udivrem_3by2(rem.hi, rem.lo, *it, d, reciprocal);
+        std::tie(*it, rem) = udivrem_3by2(rem[1], rem[0], *it, d, reciprocal);
     } while (it-- != &u[0]);
 
     return rem;
@@ -777,9 +777,9 @@ inline uint64_t submul(
     {
         const auto s = sub_with_carry(x[i], borrow);
         const auto p = umul(y[i], multiplier);
-        const auto t = sub_with_carry(s.value, p.lo);
+        const auto t = sub_with_carry(s.value, p[0]);
         r[i] = t.value;
-        borrow = p.hi + s.carry + t.carry;
+        borrow = p[1] + s.carry + t.carry;
     }
     return borrow;
 }
@@ -812,13 +812,13 @@ inline void udivrem_knuth(
 
             bool carry;
             const auto overflow = submul(&u[j], &u[j], d, dlen - 2, qhat);
-            std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat.lo, overflow);
-            std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat.hi, carry);
+            std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat[0], overflow);
+            std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat[1], carry);
 
             if (INTX_UNLIKELY(carry))
             {
                 --qhat;
-                u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
+                u[j + dlen - 1] += divisor[1] + add(&u[j], &u[j], d, dlen - 1);
             }
         }
 

@@ -74,10 +74,10 @@ uint256 add_recursive(const uint256& a, const uint256& b) noexcept
     uint128 lo;
     bool lo_carry;
     {
-        const auto l = a.lo.lo + b.lo.lo;
-        const auto l_carry = l < a.lo.lo;
-        const auto t = a.lo.hi + b.lo.hi;
-        const auto carry1 = t < a.lo.hi;
+        const auto l = a.lo[0] + b.lo[0];
+        const auto l_carry = l < a.lo[0];
+        const auto t = a.lo[1] + b.lo[1];
+        const auto carry1 = t < a.lo[1];
         const auto h = t + l_carry;
         const auto carry2 = h < t;
         lo = uint128{h, l};
@@ -86,18 +86,18 @@ uint256 add_recursive(const uint256& a, const uint256& b) noexcept
 
     uint128 tt;
     {
-        const auto l = a.hi.lo + b.hi.lo;
-        const auto l_carry = l < a.hi.lo;
-        const auto t = a.hi.hi + b.hi.hi;
+        const auto l = a.hi[0] + b.hi[0];
+        const auto l_carry = l < a.hi[0];
+        const auto t = a.hi[1] + b.hi[1];
         const auto h = t + l_carry;
         tt = uint128{h, l};
     }
 
     uint128 hi;
     {
-        const auto l = tt.lo + lo_carry;
-        const auto l_carry = l < tt.lo;
-        const auto h = tt.hi + l_carry;
+        const auto l = tt[0] + lo_carry;
+        const auto l_carry = l < tt[0];
+        const auto h = tt[1] + l_carry;
         hi = uint128{h, l};
     }
 
@@ -106,22 +106,22 @@ uint256 add_recursive(const uint256& a, const uint256& b) noexcept
 
 uint256 add_waterflow(const uint256& a, const uint256& b) noexcept
 {
-    const auto ll = a.lo.lo + b.lo.lo;
-    auto carry = ll < a.lo.lo;
+    const auto ll = a.lo[0] + b.lo[0];
+    auto carry = ll < a.lo[0];
 
-    auto lh = a.lo.hi + b.lo.hi;
-    auto k1 = lh < a.lo.hi;
+    auto lh = a.lo[1] + b.lo[1];
+    auto k1 = lh < a.lo[1];
     lh += carry;
     auto k2 = lh < uint64_t{carry};
     carry = k1 | k2;
 
-    auto hl = a.hi.lo + b.hi.lo;
-    k1 = hl < a.hi.lo;
+    auto hl = a.hi[0] + b.hi[0];
+    k1 = hl < a.hi[0];
     hl += carry;
     k2 = hl < uint64_t{carry};
     carry = k1 | k2;
 
-    auto hh = a.hi.hi + b.hi.hi;
+    auto hh = a.hi[1] + b.hi[1];
     hh += carry;
 
     return {{hh, hl}, {lh, ll}};
