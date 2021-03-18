@@ -248,25 +248,37 @@ inline constexpr bool operator<=(const T& x, const uint<N>& y) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator|(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return {x.hi | y.hi, x.lo | y.lo};
+    uint<N> z;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        z[i] = x[i] | y[i];
+    return z;
 }
 
 template <unsigned N>
 inline constexpr uint<N> operator&(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return {x.hi & y.hi, x.lo & y.lo};
+    uint<N> z;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        z[i] = x[i] & y[i];
+    return z;
 }
 
 template <unsigned N>
 inline constexpr uint<N> operator^(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return {x.hi ^ y.hi, x.lo ^ y.lo};
+    uint<N> z;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        z[i] = x[i] ^ y[i];
+    return z;
 }
 
 template <unsigned N>
 inline constexpr uint<N> operator~(const uint<N>& x) noexcept
 {
-    return {~x.hi, ~x.lo};
+    uint<N> z;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        z[i] = ~x[i];
+    return z;
 }
 
 template <unsigned N>
