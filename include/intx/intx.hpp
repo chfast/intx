@@ -467,24 +467,6 @@ inline constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
     return x = x - y;
 }
 
-
-template <unsigned N>
-inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
-{
-    const auto t0 = umul(lo(x), lo(y));
-    const auto t1 = umul(hi(x), lo(y));
-    const auto t2 = umul(lo(x), hi(y));
-    const auto t3 = umul(hi(x), hi(y));
-
-    const auto u1 = t1 + hi(t0);
-    const auto u2 = t2 + lo(u1);
-
-    const auto l = (u2 << (num_bits(x) / 2)) | lo(t0);
-    const auto h = t3 + hi(u2) + hi(u1);
-
-    return {h, l};
-}
-
 template <unsigned N>
 inline constexpr uint<N> sqr(const uint<N>& x) noexcept
 {
@@ -498,7 +480,7 @@ inline constexpr uint<N> sqr(const uint<N>& x) noexcept
 
 
 template <unsigned N>
-inline constexpr uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
     constexpr auto num_words = uint<N>::num_words;
 
