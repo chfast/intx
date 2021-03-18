@@ -44,6 +44,18 @@ struct uint
     constexpr uint(T x) noexcept : lo(x)  // NOLINT
     {}
 
+    constexpr uint64_t& operator[](size_t i) noexcept
+    {
+        constexpr auto half_words = num_words / 2;
+        return (i < half_words) ? this->lo[i] : this->hi[i - half_words];
+    }
+
+    constexpr const uint64_t& operator[](size_t i) const noexcept
+    {
+        constexpr auto half_words = num_words / 2;
+        return (i < half_words) ? this->lo[i] : this->hi[i - half_words];
+    }
+
     constexpr explicit operator bool() const noexcept
     {
         return static_cast<bool>(lo) | static_cast<bool>(hi);
@@ -397,25 +409,17 @@ inline uint<N> shl_loop(const uint<N>& x, uint64_t shift)
 }
 
 template <unsigned N>
-inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr uint<N> add_loop(const uint<N>& x, const uint<N>& y) noexcept
 {
-    static constexpr auto num_words = sizeof(a) / sizeof(uint64_t);
-
-    auto x = as_words(a);
-    auto y = as_words(b);
-
     uint<N> s;
-    auto z = as_words(s);
-
     bool k = false;
-    for (size_t i = 0; i < num_words; ++i)
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
     {
-        z[i] = x[i] + y[i];
-        auto k1 = z[i] < x[i];
-        z[i] += k;
-        k = (z[i] < k) || k1;
+        s[i] = x[i] + y[i];
+        auto k1 = s[i] < x[i];
+        s[i] += k;
+        k = (s[i] < k) || k1;
     }
-
     return s;
 }
 
