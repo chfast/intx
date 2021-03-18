@@ -121,6 +121,14 @@ struct uint<128>
 
 using uint128 = uint<128>;
 
+inline constexpr uint64_t hi(uint128 x) noexcept
+{
+    return x.hi;
+}
+inline constexpr uint64_t lo(uint128 x) noexcept
+{
+    return x.lo;
+}
 
 inline constexpr bool is_constant_evaluated() noexcept
 {
@@ -159,11 +167,11 @@ inline constexpr result_with_carry<uint64_t> add_with_carry(
 
 template <unsigned N>
 inline constexpr result_with_carry<uint<N>> add_with_carry(
-    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
+    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
-    const auto lo = add_with_carry(a.lo, b.lo, carry);
-    const auto hi = add_with_carry(a.hi, b.hi, lo.carry);
-    return {{hi.value, lo.value}, hi.carry};
+    const auto l = add_with_carry(lo(x), lo(y), carry);
+    const auto h = add_with_carry(hi(x), hi(y), l.carry);
+    return {{h.value, l.value}, h.carry};
 }
 
 inline constexpr uint128 operator+(uint128 x, uint128 y) noexcept
@@ -190,11 +198,11 @@ inline constexpr result_with_carry<uint64_t> sub_with_carry(
 /// and the carry bit (aka borrow, overflow).
 template <unsigned N>
 inline constexpr result_with_carry<uint<N>> sub_with_carry(
-    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
+    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
-    const auto lo = sub_with_carry(a.lo, b.lo, carry);
-    const auto hi = sub_with_carry(a.hi, b.hi, lo.carry);
-    return {{hi.value, lo.value}, hi.carry};
+    const auto l = sub_with_carry(lo(x), lo(y), carry);
+    const auto h = sub_with_carry(hi(x), hi(y), l.carry);
+    return {{h.value, l.value}, h.carry};
 }
 
 inline constexpr uint128 operator-(uint128 x, uint128 y) noexcept

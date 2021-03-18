@@ -469,18 +469,18 @@ inline constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 template <unsigned N>
 inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
-    const auto t0 = umul(x.lo, y.lo);
-    const auto t1 = umul(x.hi, y.lo);
-    const auto t2 = umul(x.lo, y.hi);
-    const auto t3 = umul(x.hi, y.hi);
+    const auto t0 = umul(lo(x), lo(y));
+    const auto t1 = umul(hi(x), lo(y));
+    const auto t2 = umul(lo(x), hi(y));
+    const auto t3 = umul(hi(x), hi(y));
 
-    const auto u1 = t1 + t0.hi;
-    const auto u2 = t2 + u1.lo;
+    const auto u1 = t1 + hi(t0);
+    const auto u2 = t2 + lo(u1);
 
-    const auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
-    const auto hi = t3 + u2.hi + u1.hi;
+    const auto l = (u2 << (num_bits(x) / 2)) | lo(t0);
+    const auto h = t3 + hi(u2) + hi(u1);
 
-    return {hi, lo};
+    return {h, l};
 }
 
 template <unsigned N>
@@ -520,8 +520,8 @@ inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
         for (size_t i = 0; i < num_words; ++i)
         {
             const auto t = umul(xw[i], yw[j]) + pw[i + j] + k;
-            pw[i + j] = t.lo;
-            k = t.hi;
+            pw[i + j] = lo(t);
+            k = hi(t);
         }
         pw[j + num_words] = k;
     }
@@ -546,8 +546,8 @@ inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
         for (size_t i = 0; i < (num_words - j - 1); i++)
         {
             const auto t = umul(xw[i], yw[j]) + pw[i + j] + k;
-            pw[i + j] = t.lo;
-            k = t.hi;
+            pw[i + j] = lo(t);
+            k = hi(t);
         }
         pw[num_words - 1] += xw[num_words - j - 1] * yw[j] + k;
     }
