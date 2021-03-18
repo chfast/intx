@@ -421,12 +421,6 @@ inline constexpr uint128 operator*(uint128 x, uint128 y) noexcept
     return {p[1], p[0]};
 }
 
-inline constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
-{
-    // FIXME: Remove this function.
-    return x * y;
-}
-
 /// @}
 
 
@@ -880,7 +874,7 @@ inline constexpr Int from_string(const char* str)
             throw_<std::out_of_range>(str);
 
         const auto d = from_dec_digit(c);
-        x = constexpr_mul(x, Int{10}) + d;
+        x = x * Int{10} + d;
         if (x < d)
             throw_<std::out_of_range>(str);
     }

@@ -19,8 +19,8 @@ static_assert(uint256{2} - uint256{1} == 1, "");
 static_assert(uint512{2} - uint512{1} == 1, "");
 
 static_assert(uint128{2} * uint128{2} == 4, "");
-static_assert(constexpr_mul(uint256{2}, uint256{2}) == 4, "");
-static_assert(constexpr_mul(uint512{2}, uint512{2}) == 4, "");
+static_assert(uint256{2} * uint256{2} == 4, "");
+static_assert(uint512{2} * uint512{2} == 4, "");
 
 static_assert(umul(uint256{2}, uint256{3}) == 6, "");
 
