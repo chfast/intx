@@ -68,8 +68,8 @@ static void umul128(benchmark::State& state)
         for (size_t i = 0; i < inputs.size() - 1; ++i)
         {
             auto p = MulFn(inputs[i], inputs[i + 1]);
-            alo ^= p.lo;
-            ahi ^= p.hi;
+            alo ^= p[0];
+            ahi ^= p[1];
         }
         benchmark::DoNotOptimize(alo);
         benchmark::DoNotOptimize(ahi);

@@ -109,6 +109,9 @@ struct uint<128>
     }
 #endif
 
+    constexpr uint64_t& operator[](size_t i) noexcept { return (i == 0) ? lo : hi; }
+    constexpr const uint64_t& operator[](size_t i) const noexcept { return (i == 0) ? lo : hi; }
+
     constexpr explicit operator bool() const noexcept { return hi | lo; }
 
     /// Explicit converting operator for all builtin integral types.
@@ -121,6 +124,14 @@ struct uint<128>
 
 using uint128 = uint<128>;
 
+inline constexpr uint64_t hi(uint128 x) noexcept
+{
+    return x[1];
+}
+inline constexpr uint64_t lo(uint128 x) noexcept
+{
+    return x[0];
+}
 
 inline constexpr bool is_constant_evaluated() noexcept
 {
@@ -159,11 +170,11 @@ inline constexpr result_with_carry<uint64_t> add_with_carry(
 
 template <unsigned N>
 inline constexpr result_with_carry<uint<N>> add_with_carry(
-    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
+    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
-    const auto lo = add_with_carry(a.lo, b.lo, carry);
-    const auto hi = add_with_carry(a.hi, b.hi, lo.carry);
-    return {{hi.value, lo.value}, hi.carry};
+    const auto l = add_with_carry(lo(x), lo(y), carry);
+    const auto h = add_with_carry(hi(x), hi(y), l.carry);
+    return {{h.value, l.value}, h.carry};
 }
 
 inline constexpr uint128 operator+(uint128 x, uint128 y) noexcept
@@ -190,11 +201,11 @@ inline constexpr result_with_carry<uint64_t> sub_with_carry(
 /// and the carry bit (aka borrow, overflow).
 template <unsigned N>
 inline constexpr result_with_carry<uint<N>> sub_with_carry(
-    const uint<N>& a, const uint<N>& b, bool carry = false) noexcept
+    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
-    const auto lo = sub_with_carry(a.lo, b.lo, carry);
-    const auto hi = sub_with_carry(a.hi, b.hi, lo.carry);
-    return {{hi.value, lo.value}, hi.carry};
+    const auto l = sub_with_carry(lo(x), lo(y), carry);
+    const auto h = sub_with_carry(hi(x), hi(y), l.carry);
+    return {{h.value, l.value}, h.carry};
 }
 
 inline constexpr uint128 operator-(uint128 x, uint128 y) noexcept
@@ -263,13 +274,13 @@ inline constexpr bool operator==(uint128 x, uint128 y) noexcept
     //         much better than __int128 where it uses vector instructions.
     // GCC8: generates a bit worse cmp based code
     //       although it generates the xor based one for __int128.
-    return (x.lo == y.lo) & (x.hi == y.hi);
+    return (x[0] == y[0]) & (x[1] == y[1]);
 }
 
 inline constexpr bool operator!=(uint128 x, uint128 y) noexcept
 {
     // Analogous to ==, but == not used directly, because that confuses GCC 8-9.
-    return (x.lo != y.lo) | (x.hi != y.hi);
+    return (x[0] != y[0]) | (x[1] != y[1]);
 }
 
 inline constexpr bool operator<(uint128 x, uint128 y) noexcept
@@ -277,7 +288,7 @@ inline constexpr bool operator<(uint128 x, uint128 y) noexcept
     // OPT: This should be implemented by checking the borrow of x - y,
     //      but compilers (GCC8, Clang7)
     //      have problem with properly optimizing subtraction.
-    return (x.hi < y.hi) | ((x.hi == y.hi) & (x.lo < y.lo));
+    return (x[1] < y[1]) | ((x[1] == y[1]) & (x[0] < y[0]));
 }
 
 inline constexpr bool operator<=(uint128 x, uint128 y) noexcept
@@ -303,24 +314,24 @@ inline constexpr bool operator>=(uint128 x, uint128 y) noexcept
 
 inline constexpr uint128 operator~(uint128 x) noexcept
 {
-    return {~x.hi, ~x.lo};
+    return {~x[1], ~x[0]};
 }
 
 inline constexpr uint128 operator|(uint128 x, uint128 y) noexcept
 {
     // Clang7: perfect.
     // GCC8: stupidly uses a vector instruction in all bitwise operators.
-    return {x.hi | y.hi, x.lo | y.lo};
+    return {x[1] | y[1], x[0] | y[0]};
 }
 
 inline constexpr uint128 operator&(uint128 x, uint128 y) noexcept
 {
-    return {x.hi & y.hi, x.lo & y.lo};
+    return {x[1] & y[1], x[0] & y[0]};
 }
 
 inline constexpr uint128 operator^(uint128 x, uint128 y) noexcept
 {
-    return {x.hi ^ y.hi, x.lo ^ y.lo};
+    return {x[1] ^ y[1], x[0] ^ y[0]};
 }
 
 inline constexpr uint128 operator<<(uint128 x, uint64_t shift) noexcept
@@ -329,10 +340,10 @@ inline constexpr uint128 operator<<(uint128 x, uint64_t shift) noexcept
                // Find the part moved from lo to hi.
                // For shift == 0 right shift by (64 - shift) is invalid so
                // split it into 2 shifts by 1 and (63 - shift).
-               uint128{(x.hi << shift) | ((x.lo >> 1) >> (63 - shift)), x.lo << shift} :
+               uint128{(x[1] << shift) | ((x[0] >> 1) >> (63 - shift)), x[0] << shift} :
 
                // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{x.lo << (shift - 64), 0} : 0;
+               (shift < 128) ? uint128{x[0] << (shift - 64), 0} : 0;
 }
 
 inline constexpr uint128 operator<<(uint128 x, uint128 shift) noexcept
@@ -348,10 +359,10 @@ inline constexpr uint128 operator>>(uint128 x, uint64_t shift) noexcept
                // Find the part moved from lo to hi.
                // For shift == 0 left shift by (64 - shift) is invalid so
                // split it into 2 shifts by 1 and (63 - shift).
-               uint128{x.hi >> shift, (x.lo >> shift) | ((x.hi << 1) << (63 - shift))} :
+               uint128{x[1] >> shift, (x[0] >> shift) | ((x[1] << 1) << (63 - shift))} :
 
                // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{0, x.hi >> (shift - 64)} : 0;
+               (shift < 128) ? uint128{0, x[1] >> (shift - 64)} : 0;
 }
 
 inline constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
@@ -404,9 +415,9 @@ inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 
 inline constexpr uint128 operator*(uint128 x, uint128 y) noexcept
 {
-    auto p = umul(x.lo, y.lo);
-    p.hi += (x.lo * y.hi) + (x.hi * y.lo);
-    return {p.hi, p.lo};
+    auto p = umul(x[0], y[0]);
+    p[1] += (x[0] * y[1]) + (x[1] * y[0]);
+    return {p[1], p[0]};
 }
 
 inline constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
@@ -517,7 +528,7 @@ inline constexpr unsigned clz(uint64_t x) noexcept
 inline constexpr unsigned clz(uint128 x) noexcept
 {
     // In this order `h == 0` we get less instructions than in case of `h != 0`.
-    return x.hi == 0 ? clz(x.lo) + 64 : clz(x.hi);
+    return x[1] == 0 ? clz(x[0]) + 64 : clz(x[1]);
 }
 
 
@@ -532,7 +543,7 @@ inline uint64_t bswap(uint64_t x) noexcept
 
 inline uint128 bswap(uint128 x) noexcept
 {
-    return {bswap(x.lo), bswap(x.hi)};
+    return {bswap(x[0]), bswap(x[1])};
 }
 
 
@@ -594,37 +605,37 @@ inline uint64_t reciprocal_2by1(uint64_t d) noexcept
     const uint64_t d0 = d & 1;
     const uint64_t d63 = (d >> 1) + d0;  // ceil(d/2)
     const uint64_t e = ((v2 >> 1) & (0 - d0)) - v2 * d63;
-    const uint64_t v3 = (umul(v2, e).hi >> 1) + (v2 << 31);
+    const uint64_t v3 = (umul(v2, e)[1] >> 1) + (v2 << 31);
 
-    const uint64_t v4 = v3 - (umul(v3, d) + d).hi - d;
+    const uint64_t v4 = v3 - (umul(v3, d) + d)[1] - d;
     return v4;
 }
 
 inline uint64_t reciprocal_3by2(uint128 d) noexcept
 {
-    auto v = reciprocal_2by1(d.hi);
-    auto p = d.hi * v;
-    p += d.lo;
-    if (p < d.lo)
+    auto v = reciprocal_2by1(d[1]);
+    auto p = d[1] * v;
+    p += d[0];
+    if (p < d[0])
     {
         --v;
-        if (p >= d.hi)
+        if (p >= d[1])
         {
             --v;
-            p -= d.hi;
+            p -= d[1];
         }
-        p -= d.hi;
+        p -= d[1];
     }
 
-    const auto t = umul(v, d.lo);
+    const auto t = umul(v, d[0]);
 
-    p += t.hi;
-    if (p < t.hi)
+    p += t[1];
+    if (p < t[1])
     {
         --v;
-        if (p >= d.hi)
+        if (p >= d[1])
         {
-            if (p > d.hi || t.lo >= d.lo)
+            if (p > d[1] || t[0] >= d[0])
                 --v;
         }
     }
@@ -633,26 +644,26 @@ inline uint64_t reciprocal_3by2(uint128 d) noexcept
 
 inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
-    auto q = umul(v, u.hi);
+    auto q = umul(v, u[1]);
     q = fast_add(q, u);
 
-    ++q.hi;
+    ++q[1];
 
-    auto r = u.lo - q.hi * d;
+    auto r = u[0] - q[1] * d;
 
-    if (r > q.lo)
+    if (r > q[0])
     {
-        --q.hi;
+        --q[1];
         r += d;
     }
 
     if (r >= d)
     {
-        ++q.hi;
+        ++q[1];
         r -= d;
     }
 
-    return {q.hi, r};
+    return {q[1], r};
 }
 
 inline div_result<uint64_t, uint128> udivrem_3by2(
@@ -661,44 +672,44 @@ inline div_result<uint64_t, uint128> udivrem_3by2(
     auto q = umul(v, u2);
     q = fast_add(q, {u2, u1});
 
-    auto r1 = u1 - q.hi * d.hi;
+    auto r1 = u1 - q[1] * d[1];
 
-    auto t = umul(d.lo, q.hi);
+    auto t = umul(d[0], q[1]);
 
     auto r = uint128{r1, u0} - t - d;
-    r1 = r.hi;
+    r1 = r[1];
 
-    ++q.hi;
+    ++q[1];
 
-    if (r1 >= q.lo)
+    if (r1 >= q[0])
     {
-        --q.hi;
+        --q[1];
         r += d;
     }
 
     if (r >= d)
     {
-        ++q.hi;
+        ++q[1];
         r -= d;
     }
 
-    return {q.hi, r};
+    return {q[1], r};
 }
 
 inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 {
-    if (y.hi == 0)
+    if (y[1] == 0)
     {
-        INTX_REQUIRE(y.lo != 0);  // Division by 0.
+        INTX_REQUIRE(y[0] != 0);  // Division by 0.
 
-        const auto lsh = clz(y.lo);
+        const auto lsh = clz(y[0]);
         const auto rsh = (64 - lsh) % 64;
         const auto rsh_mask = uint64_t{lsh == 0} - 1;
 
-        const auto yn = y.lo << lsh;
-        const auto xn_lo = x.lo << lsh;
-        const auto xn_hi = (x.hi << lsh) | ((x.lo >> rsh) & rsh_mask);
-        const auto xn_ex = (x.hi >> rsh) & rsh_mask;
+        const auto yn = y[0] << lsh;
+        const auto xn_lo = x[0] << lsh;
+        const auto xn_hi = (x[1] << lsh) | ((x[0] >> rsh) & rsh_mask);
+        const auto xn_ex = (x[1] >> rsh) & rsh_mask;
 
         const auto v = reciprocal_2by1(yn);
         const auto res1 = udivrem_2by1({xn_ex, xn_hi}, yn, v);
@@ -706,23 +717,23 @@ inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
         return {{res1.quot, res2.quot}, res2.rem >> lsh};
     }
 
-    if (y.hi > x.hi)
+    if (y[1] > x[1])
         return {0, x};
 
-    const auto lsh = clz(y.hi);
+    const auto lsh = clz(y[1]);
     if (lsh == 0)
     {
-        const auto q = unsigned{y.hi < x.hi} | unsigned{y.lo <= x.lo};
+        const auto q = unsigned{y[1] < x[1]} | unsigned{y[0] <= x[0]};
         return {q, x - (q ? y : 0)};
     }
 
     const auto rsh = 64 - lsh;
 
-    const auto yn_lo = y.lo << lsh;
-    const auto yn_hi = (y.hi << lsh) | (y.lo >> rsh);
-    const auto xn_lo = x.lo << lsh;
-    const auto xn_hi = (x.hi << lsh) | (x.lo >> rsh);
-    const auto xn_ex = x.hi >> rsh;
+    const auto yn_lo = y[0] << lsh;
+    const auto yn_hi = (y[1] << lsh) | (y[0] >> rsh);
+    const auto xn_lo = x[0] << lsh;
+    const auto xn_hi = (x[1] << lsh) | (x[0] >> rsh);
+    const auto xn_ex = x[1] >> rsh;
 
     const auto v = reciprocal_3by2({yn_hi, yn_lo});
     const auto res = udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_hi, yn_lo}, v);

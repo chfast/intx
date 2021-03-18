@@ -60,44 +60,44 @@ struct uint
 using uint256 = uint<256>;
 using uint512 = uint<512>;
 
-inline constexpr uint8_t lo_half(uint16_t x)
+inline constexpr uint8_t lo(uint16_t x)
 {
     return static_cast<uint8_t>(x);
 }
 
-inline constexpr uint16_t lo_half(uint32_t x)
+inline constexpr uint16_t lo(uint32_t x)
 {
     return static_cast<uint16_t>(x);
 }
 
-inline constexpr uint32_t lo_half(uint64_t x)
+inline constexpr uint32_t lo(uint64_t x)
 {
     return static_cast<uint32_t>(x);
 }
 
-inline constexpr uint8_t hi_half(uint16_t x)
+inline constexpr uint8_t hi(uint16_t x)
 {
     return static_cast<uint8_t>(x >> 8);
 }
 
-inline constexpr uint16_t hi_half(uint32_t x)
+inline constexpr uint16_t hi(uint32_t x)
 {
     return static_cast<uint16_t>(x >> 16);
 }
 
-inline constexpr uint32_t hi_half(uint64_t x)
+inline constexpr uint32_t hi(uint64_t x)
 {
     return static_cast<uint32_t>(x >> 32);
 }
 
 template <unsigned N>
-inline constexpr auto lo_half(const uint<N>& x) noexcept
+inline constexpr auto lo(const uint<N>& x) noexcept
 {
     return x.lo;
 }
 
 template <unsigned N>
-inline constexpr auto hi_half(const uint<N>& x) noexcept
+inline constexpr auto hi(const uint<N>& x) noexcept
 {
     return x.hi;
 }
@@ -354,12 +354,12 @@ inline constexpr uint<N>& operator>>=(uint<N>& x, uint64_t shift) noexcept
 
 inline constexpr uint64_t* as_words(uint128& x) noexcept
 {
-    return &x.lo;
+    return &x[0];
 }
 
 inline constexpr const uint64_t* as_words(const uint128& x) noexcept
 {
-    return &x.lo;
+    return &x[0];
 }
 
 template <unsigned N>
@@ -469,18 +469,18 @@ inline constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 template <unsigned N>
 inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
-    const auto t0 = umul(x.lo, y.lo);
-    const auto t1 = umul(x.hi, y.lo);
-    const auto t2 = umul(x.lo, y.hi);
-    const auto t3 = umul(x.hi, y.hi);
+    const auto t0 = umul(lo(x), lo(y));
+    const auto t1 = umul(hi(x), lo(y));
+    const auto t2 = umul(lo(x), hi(y));
+    const auto t3 = umul(hi(x), hi(y));
 
-    const auto u1 = t1 + t0.hi;
-    const auto u2 = t2 + u1.lo;
+    const auto u1 = t1 + hi(t0);
+    const auto u2 = t2 + lo(u1);
 
-    const auto lo = (u2 << (num_bits(x) / 2)) | t0.lo;
-    const auto hi = t3 + u2.hi + u1.hi;
+    const auto l = (u2 << (num_bits(x) / 2)) | lo(t0);
+    const auto h = t3 + hi(u2) + hi(u1);
 
-    return {hi, lo};
+    return {h, l};
 }
 
 template <unsigned N>
@@ -520,8 +520,8 @@ inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
         for (size_t i = 0; i < num_words; ++i)
         {
             const auto t = umul(xw[i], yw[j]) + pw[i + j] + k;
-            pw[i + j] = t.lo;
-            k = t.hi;
+            pw[i + j] = lo(t);
+            k = hi(t);
         }
         pw[j + num_words] = k;
     }
@@ -546,8 +546,8 @@ inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
         for (size_t i = 0; i < (num_words - j - 1); i++)
         {
             const auto t = umul(xw[i], yw[j]) + pw[i + j] + k;
-            pw[i + j] = t.lo;
-            k = t.hi;
+            pw[i + j] = lo(t);
+            k = hi(t);
         }
         pw[num_words - 1] += xw[num_words - j - 1] * yw[j] + k;
     }
@@ -627,8 +627,8 @@ inline typename std::enable_if<sizeof(Word) < sizeof(Int), unsigned>::type count
     const Int& x) noexcept
 {
     constexpr auto num_words = static_cast<unsigned>(sizeof(x) / sizeof(Word));
-    auto h = count_significant_words<Word>(hi_half(x));
-    auto l = count_significant_words<Word>(lo_half(x));
+    auto h = count_significant_words<Word>(hi(x));
+    auto l = count_significant_words<Word>(lo(x));
     return h != 0 ? h + (num_words / 2) : l;
 }
 
@@ -747,7 +747,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
     auto it = &u[len - 3];
     do
     {
-        std::tie(*it, rem) = udivrem_3by2(rem.hi, rem.lo, *it, d, reciprocal);
+        std::tie(*it, rem) = udivrem_3by2(rem[1], rem[0], *it, d, reciprocal);
     } while (it-- != &u[0]);
 
     return rem;
@@ -777,9 +777,9 @@ inline uint64_t submul(
     {
         const auto s = sub_with_carry(x[i], borrow);
         const auto p = umul(y[i], multiplier);
-        const auto t = sub_with_carry(s.value, p.lo);
+        const auto t = sub_with_carry(s.value, p[0]);
         r[i] = t.value;
-        borrow = p.hi + s.carry + t.carry;
+        borrow = p[1] + s.carry + t.carry;
     }
     return borrow;
 }
@@ -812,13 +812,13 @@ inline void udivrem_knuth(
 
             bool carry;
             const auto overflow = submul(&u[j], &u[j], d, dlen - 2, qhat);
-            std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat.lo, overflow);
-            std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat.hi, carry);
+            std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat[0], overflow);
+            std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat[1], carry);
 
             if (INTX_UNLIKELY(carry))
             {
                 --qhat;
-                u[j + dlen - 1] += divisor.hi + add(&u[j], &u[j], d, dlen - 1);
+                u[j + dlen - 1] += divisor[1] + add(&u[j], &u[j], d, dlen - 1);
             }
         }
 
