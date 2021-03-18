@@ -470,14 +470,14 @@ inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 }
 
 template <unsigned N>
-inline uint<N> sqr(const uint<N>& a) noexcept
+inline constexpr uint<N> sqr(const uint<N>& x) noexcept
 {
     // Based on recursive multiplication implementation.
 
-    const auto t = umul(a.lo, a.lo);
-    const auto hi = 2 * (a.lo * a.hi) + t.hi;
+    const auto t = umul(lo(x), lo(x));
+    const auto h = ((lo(x) * hi(x)) << 1) + hi(t);
 
-    return {hi, t.lo};
+    return {h, lo(t)};
 }
 
 
