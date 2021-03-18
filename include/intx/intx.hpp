@@ -288,17 +288,6 @@ inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
     return 0;
 }
 
-template <typename Target>
-inline Target narrow_cast(uint64_t x) noexcept
-{
-    return static_cast<Target>(x);
-}
-
-template <typename Target, typename Int>
-inline Target narrow_cast(const Int& x) noexcept
-{
-    return narrow_cast<Target>(x.lo);
-}
 
 template <unsigned N>
 inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
