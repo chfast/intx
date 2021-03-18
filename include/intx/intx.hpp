@@ -901,14 +901,11 @@ inline constexpr uint<N>& operator%=(uint<N>& x, const T& y) noexcept
 template <unsigned N>
 inline uint<N> bswap(const uint<N>& x) noexcept
 {
-    static constexpr auto num_words = uint<N>::num_words;
-    auto xw = as_words(x);
-    uint<N> result;
-    auto rw = as_words(result);
+    constexpr auto num_words = uint<N>::num_words;
+    uint<N> z;
     for (size_t i = 0; i < num_words; ++i)
-        rw[num_words - 1 - i] = bswap(xw[i]);
-
-    return result;
+        z[num_words - 1 - i] = bswap(x[i]);
+    return z;
 }
 
 
