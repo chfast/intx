@@ -511,17 +511,11 @@ inline constexpr unsigned count_significant_words(const uint<N>& x) noexcept
 template <unsigned N>
 inline constexpr unsigned clz(const uint<N>& x) noexcept
 {
-    const auto half_bits = num_bits(x) / 2;
-
-    // TODO: Try:
-    // bool take_hi = h != 0;
-    // bool take_lo = !take_hi;
-    // unsigned clz_hi = take_hi * clz(h);
-    // unsigned clz_lo = take_lo * (clz(l) | half_bits);
-    // return clz_hi | clz_lo;
-
-    // In this order `h == 0` we get less instructions than in case of `h != 0`.
-    return x.hi == 0 ? clz(x.lo) + half_bits : clz(x.hi);
+    constexpr unsigned num_words = uint<N>::num_words;
+    const auto s = count_significant_words(x);
+    if (s == 0)
+        return num_words * 64;
+    return clz(x[s - 1]) + (num_words - s) * 64;
 }
 
 template <typename Word, typename Int>

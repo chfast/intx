@@ -387,6 +387,13 @@ TYPED_TEST(uint_test, clz_one_bit)
     }
 }
 
+TYPED_TEST(uint_test, clz_extremes)
+{
+    constexpr auto num_bits = TypeParam::num_bits;
+    EXPECT_EQ(clz(TypeParam{}), num_bits);
+    EXPECT_EQ(clz(~TypeParam{}), 0u);
+}
+
 TYPED_TEST(uint_test, shift_against_mul)
 {
     auto a = TypeParam{0xaaaaaaa};
