@@ -121,9 +121,12 @@ inline constexpr unsigned num_bits(const T&) noexcept
 }
 
 template <unsigned N>
-inline constexpr bool operator==(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator==(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return (a.lo == b.lo) & (a.hi == b.hi);
+    bool result = true;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        result &= (x[i] == y[i]);
+    return result;
 }
 
 template <unsigned N, typename T,
@@ -142,9 +145,9 @@ inline constexpr bool operator==(const T& x, const uint<N>& y) noexcept
 
 
 template <unsigned N>
-inline constexpr bool operator!=(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator!=(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return !(a == b);
+    return !(x == y);
 }
 
 template <unsigned N, typename T,
@@ -966,12 +969,12 @@ inline constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
 inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     const auto s = add_with_carry(x, y);
-    return (uint512{s.carry, s.value} % mod).lo;
+    return lo(uint512{s.carry, s.value} % mod);
 }
 
 inline uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
-    return (umul(x, y) % mod).lo;
+    return lo(umul(x, y) % mod);
 }
 
 
