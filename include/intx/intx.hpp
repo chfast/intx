@@ -521,14 +521,6 @@ inline constexpr unsigned clz(const uint<N>& x) noexcept
     return clz(x[s - 1]) + (num_words - s) * 64;
 }
 
-template <typename Word, typename Int>
-std::array<Word, sizeof(Int) / sizeof(Word)> to_words(Int x) noexcept
-{
-    std::array<Word, sizeof(Int) / sizeof(Word)> words;
-    std::memcpy(&words, &x, sizeof(x));
-    return words;
-}
-
 namespace internal
 {
 /// Counts the number of zero leading bits in nonzero argument x.
