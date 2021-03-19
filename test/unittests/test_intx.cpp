@@ -343,11 +343,7 @@ TYPED_TEST(uint_test, shift_one_bit)
     {
         SCOPED_TRACE(shift);
         constexpr auto x = TypeParam{1};
-
         const auto a = x << shift;
-        const auto b = shl_loop(x, shift);
-        EXPECT_EQ(b, a);
-
         EXPECT_EQ(x, a >> shift);
     }
 }
@@ -377,7 +373,6 @@ TYPED_TEST(uint_test, shift_overflow)
     EXPECT_EQ(value >> TypeParam{sh}, 0);
     EXPECT_EQ(value << sh, 0);
     EXPECT_EQ(value << TypeParam{sh}, 0);
-    EXPECT_EQ(shl_loop(value, sh), 0);
 }
 
 TYPED_TEST(uint_test, not_of_zero)

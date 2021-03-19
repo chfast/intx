@@ -284,29 +284,19 @@ inline constexpr uint<N> operator~(const uint<N>& x) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
 {
-    constexpr auto num_bits = N;
-    constexpr auto half_bits = num_bits / 2;
+    constexpr auto word_bits = sizeof(uint64_t) * 8;
 
-    if (shift < half_bits)
+    const auto s = shift % word_bits;
+    const auto skip = static_cast<size_t>(shift / word_bits);
+
+    uint<N> r;
+    uint64_t carry = 0;
+    for (size_t i = 0; i < (uint<N>::num_words - skip); ++i)
     {
-        const auto lo = x.lo << shift;
-
-        // Find the part moved from lo to hi.
-        // The shift right here can be invalid:
-        // for shift == 0 => lshift == half_bits.
-        // Split it into 2 valid shifts by (rshift - 1) and 1.
-        const auto rshift = half_bits - shift;
-        const auto lo_overflow = (x.lo >> (rshift - 1)) >> 1;
-        const auto hi = (x.hi << shift) | lo_overflow;
-        return {hi, lo};
+        r[i + skip] = (x[i] << s) | carry;
+        carry = (x[i] >> (word_bits - s - 1)) >> 1;
     }
-
-    // This check is only needed if we want "defined" behavior for shifts
-    // larger than size of the Int.
-    if (shift < num_bits)
-        return {x.lo << (shift - half_bits), 0};
-
-    return 0;
+    return r;
 }
 
 
@@ -394,30 +384,6 @@ template <unsigned N>
 inline const uint8_t* as_bytes(const uint<N>& x) noexcept
 {
     return reinterpret_cast<const uint8_t*>(as_words(x));
-}
-
-/// Implementation of shift left as a loop.
-/// This one is slower than the one using "split" strategy.
-template <unsigned N>
-inline uint<N> shl_loop(const uint<N>& x, uint64_t shift)
-{
-    auto r = uint<N>{};
-    constexpr unsigned word_bits = sizeof(uint64_t) * 8;
-    constexpr size_t num_words = sizeof(uint<N>) / sizeof(uint64_t);
-    auto rw = as_words(r);
-    auto words = as_words(x);
-    const auto s = shift % word_bits;
-    const auto skip = shift / word_bits;
-
-    uint64_t carry = 0;
-    for (size_t i = 0; i < (num_words - skip); ++i)
-    {
-        auto w = words[i];
-        auto v = (w << s) | carry;
-        carry = (w >> (word_bits - s - 1)) >> 1;
-        rw[i + skip] = v;
-    }
-    return r;
 }
 
 template <unsigned N>
