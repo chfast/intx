@@ -173,9 +173,16 @@ template <unsigned N>
 inline constexpr result_with_carry<uint<N>> add_with_carry(
     const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
-    const auto l = add_with_carry(lo(x), lo(y), carry);
-    const auto h = add_with_carry(hi(x), hi(y), l.carry);
-    return {{h.value, l.value}, h.carry};
+    uint<N> s;
+    bool k = carry;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+    {
+        s[i] = x[i] + y[i];
+        const auto k1 = s[i] < x[i];
+        s[i] += k;
+        k = (s[i] < uint64_t{k}) || k1;
+    }
+    return {s, k};
 }
 
 inline constexpr uint128 operator+(uint128 x, uint128 y) noexcept
@@ -204,9 +211,17 @@ template <unsigned N>
 inline constexpr result_with_carry<uint<N>> sub_with_carry(
     const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
-    const auto l = sub_with_carry(lo(x), lo(y), carry);
-    const auto h = sub_with_carry(hi(x), hi(y), l.carry);
-    return {{h.value, l.value}, h.carry};
+    uint<N> z;
+    bool k = carry;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+    {
+        z[i] = x[i] - y[i];
+        const auto k1 = x[i] < y[i];
+        const auto k2 = z[i] < uint64_t{k};
+        z[i] -= k;
+        k = k1 || k2;
+    }
+    return {z, k};
 }
 
 inline constexpr uint128 operator-(uint128 x, uint128 y) noexcept
@@ -419,12 +434,6 @@ inline constexpr uint128 operator*(uint128 x, uint128 y) noexcept
     auto p = umul(x[0], y[0]);
     p[1] += (x[0] * y[1]) + (x[1] * y[0]);
     return {p[1], p[0]};
-}
-
-inline constexpr uint128 constexpr_mul(uint128 x, uint128 y) noexcept
-{
-    // FIXME: Remove this function.
-    return x * y;
 }
 
 /// @}
@@ -880,7 +889,7 @@ inline constexpr Int from_string(const char* str)
             throw_<std::out_of_range>(str);
 
         const auto d = from_dec_digit(c);
-        x = constexpr_mul(x, Int{10}) + d;
+        x = x * Int{10} + d;
         if (x < d)
             throw_<std::out_of_range>(str);
     }

@@ -188,13 +188,6 @@ TEST(uint256, exp)
         83674153047243082998136072363356897816464308069321161820168341056719375264851_u256);
 }
 
-TEST(uint256, count_significant_bytes)
-{
-    auto w = count_significant_words<uint8_t>(1_u256 << 113);
-    EXPECT_EQ(w, 15u);
-    EXPECT_EQ(count_significant_words<uint8_t>(0_u256), 0u);
-}
-
 TEST(uint256, addmod)
 {
     const auto x = 0xab0f4afc4c78548d4c30e1ab3449e3_u128;
@@ -343,11 +336,7 @@ TYPED_TEST(uint_test, shift_one_bit)
     {
         SCOPED_TRACE(shift);
         constexpr auto x = TypeParam{1};
-
         const auto a = x << shift;
-        const auto b = shl_loop(x, shift);
-        EXPECT_EQ(b, a);
-
         EXPECT_EQ(x, a >> shift);
     }
 }
@@ -377,7 +366,6 @@ TYPED_TEST(uint_test, shift_overflow)
     EXPECT_EQ(value >> TypeParam{sh}, 0);
     EXPECT_EQ(value << sh, 0);
     EXPECT_EQ(value << TypeParam{sh}, 0);
-    EXPECT_EQ(shl_loop(value, sh), 0);
 }
 
 TYPED_TEST(uint_test, not_of_zero)
@@ -399,6 +387,13 @@ TYPED_TEST(uint_test, clz_one_bit)
     }
 }
 
+TYPED_TEST(uint_test, clz_extremes)
+{
+    constexpr auto num_bits = TypeParam::num_bits;
+    EXPECT_EQ(clz(TypeParam{}), num_bits);
+    EXPECT_EQ(clz(~TypeParam{}), 0u);
+}
+
 TYPED_TEST(uint_test, shift_against_mul)
 {
     auto a = TypeParam{0xaaaaaaa};
@@ -410,28 +405,14 @@ TYPED_TEST(uint_test, shift_against_mul)
     EXPECT_EQ(x, y);
 }
 
-TYPED_TEST(uint_test, count_significant_words_32)
-{
-    constexpr auto csw = count_significant_words<uint32_t, TypeParam>;
-
-    TypeParam x;
-    EXPECT_EQ(csw(x), 0u);
-
-    x = 1;
-    for (size_t s = 0; s < sizeof(TypeParam) * 8; ++s)
-        EXPECT_EQ(csw(x << s), s / 32 + 1);
-}
-
 TYPED_TEST(uint_test, count_significant_words_64)
 {
-    constexpr auto csw = count_significant_words<uint64_t, TypeParam>;
-
     TypeParam x;
-    EXPECT_EQ(csw(x), 0u);
+    EXPECT_EQ(count_significant_words(x), 0u);
 
     x = 1;
     for (size_t s = 0; s < sizeof(TypeParam) * 8; ++s)
-        EXPECT_EQ(csw(x << s), s / 64 + 1);
+        EXPECT_EQ(count_significant_words(x << s), s / 64 + 1);
 }
 
 TYPED_TEST(uint_test, bswap)

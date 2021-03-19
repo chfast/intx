@@ -100,22 +100,9 @@ template <unsigned N>
 }
 
 template <unsigned N>
-[[gnu::noinline]] static intx::uint<N> mul_loop_(
-    const intx::uint<N>& x, const intx::uint<N>& y) noexcept
-{
-    return intx::umul_loop(x, y).lo;
-}
-
-template <unsigned N>
 [[gnu::noinline]] static auto umul_(const intx::uint<N>& x, const intx::uint<N>& y) noexcept
 {
     return intx::umul(x, y);
-}
-
-template <unsigned N>
-[[gnu::noinline]] static auto umul_loop_(const intx::uint<N>& x, const intx::uint<N>& y) noexcept
-{
-    return intx::umul_loop(x, y);
 }
 
 inline auto inline_add(const uint256& x, const uint256& y) noexcept
@@ -170,19 +157,16 @@ BENCHMARK_TEMPLATE(binop, uint256, uint256, sub);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, inline_sub);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, experimental::add_recursive);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, experimental::add_waterflow);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, mul_loop_);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, public_mul);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, gmp::mul);
 
 BENCHMARK_TEMPLATE(binop, uint512, uint256, umul_);
-BENCHMARK_TEMPLATE(binop, uint512, uint256, umul_loop_);
 BENCHMARK_TEMPLATE(binop, uint512, uint256, gmp::mul_full);
 
 BENCHMARK_TEMPLATE(binop, uint512, uint512, add);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, inline_add);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, sub);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, inline_sub);
-BENCHMARK_TEMPLATE(binop, uint512, uint512, mul_loop_);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, public_mul);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, gmp::mul);
 
@@ -281,22 +265,7 @@ static void exponentiation2(benchmark::State& state)
 }
 BENCHMARK(exponentiation2)->Arg(0)->RangeMultiplier(2)->Range(64, 512);
 
-static void count_sigificant_words32_256_loop(benchmark::State& state)
-{
-    auto s = static_cast<unsigned>(state.range(0));
-    auto x = s != 0 ? uint256(0xff) << (s * 32 - 17) : uint256(0);
-    benchmark::DoNotOptimize(x);
-
-    for (auto _ : state)
-    {
-        benchmark::ClobberMemory();
-        auto w = count_significant_words_loop<uint32_t>(x);
-        benchmark::DoNotOptimize(w);
-    }
-}
-BENCHMARK(count_sigificant_words32_256_loop)->DenseRange(0, 8);
-
-static void count_sigificant_words32_256(benchmark::State& state)
+static void count_sigificant_words_256(benchmark::State& state)
 {
     auto s = static_cast<unsigned>(state.range(0));
     auto x = s != 0 ? uint256(0xff) << (s * 32 - 17) : uint256(0);
@@ -306,11 +275,11 @@ static void count_sigificant_words32_256(benchmark::State& state)
     for (auto _ : state)
     {
         benchmark::ClobberMemory();
-        auto w = count_significant_words<uint32_t>(x);
+        auto w = count_significant_words(x);
         benchmark::DoNotOptimize(w);
     }
 }
-BENCHMARK(count_sigificant_words32_256)->DenseRange(0, 8);
+BENCHMARK(count_sigificant_words_256)->DenseRange(0, 8);
 
 template <typename Int>
 static void to_string(benchmark::State& state)

@@ -44,6 +44,18 @@ struct uint
     constexpr uint(T x) noexcept : lo(x)  // NOLINT
     {}
 
+    constexpr uint64_t& operator[](size_t i) noexcept
+    {
+        constexpr auto half_words = num_words / 2;
+        return (i < half_words) ? this->lo[i] : this->hi[i - half_words];
+    }
+
+    constexpr const uint64_t& operator[](size_t i) const noexcept
+    {
+        constexpr auto half_words = num_words / 2;
+        return (i < half_words) ? this->lo[i] : this->hi[i - half_words];
+    }
+
     constexpr explicit operator bool() const noexcept
     {
         return static_cast<bool>(lo) | static_cast<bool>(hi);
@@ -109,9 +121,12 @@ inline constexpr unsigned num_bits(const T&) noexcept
 }
 
 template <unsigned N>
-inline constexpr bool operator==(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator==(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return (a.lo == b.lo) & (a.hi == b.hi);
+    bool result = true;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        result &= (x[i] == y[i]);
+    return result;
 }
 
 template <unsigned N, typename T,
@@ -130,9 +145,9 @@ inline constexpr bool operator==(const T& x, const uint<N>& y) noexcept
 
 
 template <unsigned N>
-inline constexpr bool operator!=(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator!=(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return !(a == b);
+    return !(x == y);
 }
 
 template <unsigned N, typename T,
@@ -236,53 +251,55 @@ inline constexpr bool operator<=(const T& x, const uint<N>& y) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator|(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return {x.hi | y.hi, x.lo | y.lo};
+    uint<N> z;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        z[i] = x[i] | y[i];
+    return z;
 }
 
 template <unsigned N>
 inline constexpr uint<N> operator&(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return {x.hi & y.hi, x.lo & y.lo};
+    uint<N> z;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        z[i] = x[i] & y[i];
+    return z;
 }
 
 template <unsigned N>
 inline constexpr uint<N> operator^(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return {x.hi ^ y.hi, x.lo ^ y.lo};
+    uint<N> z;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        z[i] = x[i] ^ y[i];
+    return z;
 }
 
 template <unsigned N>
 inline constexpr uint<N> operator~(const uint<N>& x) noexcept
 {
-    return {~x.hi, ~x.lo};
+    uint<N> z;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        z[i] = ~x[i];
+    return z;
 }
 
 template <unsigned N>
 inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
 {
-    constexpr auto num_bits = N;
-    constexpr auto half_bits = num_bits / 2;
+    constexpr auto word_bits = sizeof(uint64_t) * 8;
 
-    if (shift < half_bits)
+    const auto s = shift % word_bits;
+    const auto skip = static_cast<size_t>(shift / word_bits);
+
+    uint<N> r;
+    uint64_t carry = 0;
+    for (size_t i = 0; i < (uint<N>::num_words - skip); ++i)
     {
-        const auto lo = x.lo << shift;
-
-        // Find the part moved from lo to hi.
-        // The shift right here can be invalid:
-        // for shift == 0 => lshift == half_bits.
-        // Split it into 2 valid shifts by (rshift - 1) and 1.
-        const auto rshift = half_bits - shift;
-        const auto lo_overflow = (x.lo >> (rshift - 1)) >> 1;
-        const auto hi = (x.hi << shift) | lo_overflow;
-        return {hi, lo};
+        r[i + skip] = (x[i] << s) | carry;
+        carry = (x[i] >> (word_bits - s - 1)) >> 1;
     }
-
-    // This check is only needed if we want "defined" behavior for shifts
-    // larger than size of the Int.
-    if (shift < num_bits)
-        return {x.lo << (shift - half_bits), 0};
-
-    return 0;
+    return r;
 }
 
 
@@ -294,20 +311,20 @@ inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
 
     if (shift < half_bits)
     {
-        const auto hi = x.hi >> shift;
+        const auto h = hi(x) >> shift;
 
         // Find the part moved from hi to lo.
         // To avoid invalid shift left,
         // split them into 2 valid shifts by (lshift - 1) and 1.
         const auto lshift = half_bits - shift;
-        const auto hi_overflow = (x.hi << (lshift - 1)) << 1;
-        const auto lo_part = x.lo >> shift;
-        const auto lo = lo_part | hi_overflow;
-        return {hi, lo};
+        const auto h_overflow = (hi(x) << (lshift - 1)) << 1;
+        const auto l_part = lo(x) >> shift;
+        const auto l = l_part | h_overflow;
+        return {h, l};
     }
 
     if (shift < num_bits)
-        return {0, x.hi >> (shift - half_bits)};
+        return {0, hi(x) >> (shift - half_bits)};
 
     return 0;
 }
@@ -372,53 +389,6 @@ inline const uint8_t* as_bytes(const uint<N>& x) noexcept
     return reinterpret_cast<const uint8_t*>(as_words(x));
 }
 
-/// Implementation of shift left as a loop.
-/// This one is slower than the one using "split" strategy.
-template <unsigned N>
-inline uint<N> shl_loop(const uint<N>& x, uint64_t shift)
-{
-    auto r = uint<N>{};
-    constexpr unsigned word_bits = sizeof(uint64_t) * 8;
-    constexpr size_t num_words = sizeof(uint<N>) / sizeof(uint64_t);
-    auto rw = as_words(r);
-    auto words = as_words(x);
-    const auto s = shift % word_bits;
-    const auto skip = shift / word_bits;
-
-    uint64_t carry = 0;
-    for (size_t i = 0; i < (num_words - skip); ++i)
-    {
-        auto w = words[i];
-        auto v = (w << s) | carry;
-        carry = (w >> (word_bits - s - 1)) >> 1;
-        rw[i + skip] = v;
-    }
-    return r;
-}
-
-template <unsigned N>
-inline uint<N> add_loop(const uint<N>& a, const uint<N>& b) noexcept
-{
-    static constexpr auto num_words = sizeof(a) / sizeof(uint64_t);
-
-    auto x = as_words(a);
-    auto y = as_words(b);
-
-    uint<N> s;
-    auto z = as_words(s);
-
-    bool k = false;
-    for (size_t i = 0; i < num_words; ++i)
-    {
-        z[i] = x[i] + y[i];
-        auto k1 = z[i] < x[i];
-        z[i] += k;
-        k = (z[i] < k) || k1;
-    }
-
-    return s;
-}
-
 template <unsigned N>
 inline constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
@@ -451,24 +421,6 @@ inline constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
     return x = x - y;
 }
 
-
-template <unsigned N>
-inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
-{
-    const auto t0 = umul(lo(x), lo(y));
-    const auto t1 = umul(hi(x), lo(y));
-    const auto t2 = umul(lo(x), hi(y));
-    const auto t3 = umul(hi(x), hi(y));
-
-    const auto u1 = t1 + hi(t0);
-    const auto u2 = t2 + lo(u1);
-
-    const auto l = (u2 << (num_bits(x) / 2)) | lo(t0);
-    const auto h = t3 + hi(u2) + hi(u1);
-
-    return {h, l};
-}
-
 template <unsigned N>
 inline constexpr uint<N> sqr(const uint<N>& x) noexcept
 {
@@ -482,34 +434,21 @@ inline constexpr uint<N> sqr(const uint<N>& x) noexcept
 
 
 template <unsigned N>
-inline constexpr uint<N> constexpr_mul(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
-    auto t = umul(a.lo, b.lo);
-    auto hi = constexpr_mul(a.lo, b.hi) + constexpr_mul(a.hi, b.lo) + t.hi;
-    return {hi, t.lo};
-}
-
-
-template <unsigned N>
-inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
-{
-    constexpr auto num_words = sizeof(uint<N>) / sizeof(uint64_t);
+    constexpr auto num_words = uint<N>::num_words;
 
     uint<2 * N> p;
-    auto pw = as_words(p);
-    const auto xw = as_words(x);
-    const auto yw = as_words(y);
-
     for (size_t j = 0; j < num_words; ++j)
     {
         uint64_t k = 0;
         for (size_t i = 0; i < num_words; ++i)
         {
-            const auto t = umul(xw[i], yw[j]) + pw[i + j] + k;
-            pw[i + j] = lo(t);
-            k = hi(t);
+            const auto t = umul(x[i], y[j]) + p[i + j] + k;
+            p[i + j] = t[0];
+            k = t[1];
         }
-        pw[j + num_words] = k;
+        p[j + num_words] = k;
     }
     return p;
 }
@@ -517,25 +456,21 @@ inline uint<2 * N> umul_loop(const uint<N>& x, const uint<N>& y) noexcept
 /// Multiplication implementation using word access
 /// and discarding the high part of the result product.
 template <unsigned N>
-inline uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
 {
-    constexpr auto num_words = sizeof(uint<N>) / sizeof(uint64_t);
+    constexpr auto num_words = uint<N>::num_words;
 
     uint<N> p;
-    auto pw = as_words(p);
-    const auto xw = as_words(x);
-    const auto yw = as_words(y);
-
     for (size_t j = 0; j < num_words; j++)
     {
         uint64_t k = 0;
         for (size_t i = 0; i < (num_words - j - 1); i++)
         {
-            const auto t = umul(xw[i], yw[j]) + pw[i + j] + k;
-            pw[i + j] = lo(t);
+            const auto t = umul(x[i], y[j]) + p[i + j] + k;
+            p[i + j] = lo(t);
             k = hi(t);
         }
-        pw[num_words - 1] += xw[num_words - j - 1] * yw[j] + k;
+        p[num_words - 1] += x[num_words - j - 1] * y[j] + k;
     }
     return p;
 }
@@ -566,58 +501,25 @@ inline constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 }
 
 template <unsigned N>
-inline constexpr unsigned clz(const uint<N>& x) noexcept
+inline constexpr unsigned count_significant_words(const uint<N>& x) noexcept
 {
-    const auto half_bits = num_bits(x) / 2;
-
-    // TODO: Try:
-    // bool take_hi = h != 0;
-    // bool take_lo = !take_hi;
-    // unsigned clz_hi = take_hi * clz(h);
-    // unsigned clz_lo = take_lo * (clz(l) | half_bits);
-    // return clz_hi | clz_lo;
-
-    // In this order `h == 0` we get less instructions than in case of `h != 0`.
-    return x.hi == 0 ? clz(x.lo) + half_bits : clz(x.hi);
-}
-
-template <typename Word, typename Int>
-std::array<Word, sizeof(Int) / sizeof(Word)> to_words(Int x) noexcept
-{
-    std::array<Word, sizeof(Int) / sizeof(Word)> words;
-    std::memcpy(&words, &x, sizeof(x));
-    return words;
-}
-
-template <typename Word>
-unsigned count_significant_words_loop(uint256 x) noexcept
-{
-    auto words = to_words<Word>(x);
-    for (size_t i = words.size(); i > 0; --i)
+    for (size_t i = uint<N>::num_words; i > 0; --i)
     {
-        if (words[i - 1] != 0)
+        if (x[i - 1] != 0)
             return static_cast<unsigned>(i);
     }
     return 0;
 }
 
-template <typename Word, typename Int>
-inline typename std::enable_if<sizeof(Word) == sizeof(Int), unsigned>::type count_significant_words(
-    const Int& x) noexcept
+template <unsigned N>
+inline constexpr unsigned clz(const uint<N>& x) noexcept
 {
-    return x != 0 ? 1 : 0;
+    constexpr unsigned num_words = uint<N>::num_words;
+    const auto s = count_significant_words(x);
+    if (s == 0)
+        return num_words * 64;
+    return clz(x[s - 1]) + (num_words - s) * 64;
 }
-
-template <typename Word, typename Int>
-inline typename std::enable_if<sizeof(Word) < sizeof(Int), unsigned>::type count_significant_words(
-    const Int& x) noexcept
-{
-    constexpr auto num_words = static_cast<unsigned>(sizeof(x) / sizeof(Word));
-    auto h = count_significant_words<Word>(hi(x));
-    auto l = count_significant_words<Word>(lo(x));
-    return h != 0 ? h + (num_words / 2) : l;
-}
-
 
 namespace internal
 {
@@ -898,14 +800,11 @@ inline constexpr uint<N>& operator%=(uint<N>& x, const T& y) noexcept
 template <unsigned N>
 inline uint<N> bswap(const uint<N>& x) noexcept
 {
-    static constexpr auto num_words = uint<N>::num_words;
-    auto xw = as_words(x);
-    uint<N> result;
-    auto rw = as_words(result);
+    constexpr auto num_words = uint<N>::num_words;
+    uint<N> z;
     for (size_t i = 0; i < num_words; ++i)
-        rw[num_words - 1 - i] = bswap(xw[i]);
-
-    return result;
+        z[num_words - 1 - i] = bswap(x[i]);
+    return z;
 }
 
 
@@ -1062,12 +961,12 @@ inline constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
 inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     const auto s = add_with_carry(x, y);
-    return (uint512{s.carry, s.value} % mod).lo;
+    return lo(uint512{s.carry, s.value} % mod);
 }
 
 inline uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
-    return (umul(x, y) % mod).lo;
+    return lo(umul(x, y) % mod);
 }
 
 
