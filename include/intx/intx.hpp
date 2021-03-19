@@ -28,44 +28,49 @@ struct uint
     static constexpr auto num_bits = N;
     static constexpr auto num_words = N / 8 / sizeof(word_type);
 
-    half_type lo = 0;
-    half_type hi = 0;
+private:
+    uint64_t words_[num_words]{};
 
+public:
     constexpr uint() noexcept = default;
 
-    constexpr uint(half_type high, half_type low) noexcept : lo(low), hi(high) {}
+    constexpr uint(half_type high, half_type low) noexcept
+    {
+        for (size_t i = 0; i < num_words / 2; ++i)
+            words_[i] = low[i];
+        for (size_t i = 0; i < num_words / 2; ++i)
+            words_[num_words / 2 + i] = high[i];
+    }
 
     /// Implicit converting constructor for the half type.
-    constexpr uint(half_type x) noexcept : lo(x) {}  // NOLINT
+    constexpr uint(half_type x) noexcept  // NOLINT
+    {
+        for (size_t i = 0; i < num_words / 2; ++i)
+            words_[i] = x[i];
+    }
 
     /// Implicit converting constructor for types convertible to the half type.
     template <typename T,
         typename = typename std::enable_if<std::is_convertible<T, half_type>::value>::type>
-    constexpr uint(T x) noexcept : lo(x)  // NOLINT
-    {}
-
-    constexpr uint64_t& operator[](size_t i) noexcept
+    constexpr uint(T x) noexcept  // NOLINT
     {
-        constexpr auto half_words = num_words / 2;
-        return (i < half_words) ? this->lo[i] : this->hi[i - half_words];
+        half_type l{x};
+        for (size_t i = 0; i < num_words / 2; ++i)
+            words_[i] = l[i];
     }
 
-    constexpr const uint64_t& operator[](size_t i) const noexcept
-    {
-        constexpr auto half_words = num_words / 2;
-        return (i < half_words) ? this->lo[i] : this->hi[i - half_words];
-    }
+    constexpr uint64_t& operator[](size_t i) noexcept { return words_[i]; }
 
-    constexpr explicit operator bool() const noexcept
-    {
-        return static_cast<bool>(lo) | static_cast<bool>(hi);
-    }
+    constexpr const uint64_t& operator[](size_t i) const noexcept { return words_[i]; }
+
+    constexpr explicit operator bool() const noexcept { return *this != uint{}; }
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
     explicit operator Int() const noexcept
     {
-        return static_cast<Int>(lo);
+        // FIXME: Simplify this.
+        return static_cast<Int>(lo(*this));
     }
 };
 
@@ -105,13 +110,20 @@ inline constexpr uint32_t hi(uint64_t x)
 template <unsigned N>
 inline constexpr auto lo(const uint<N>& x) noexcept
 {
-    return x.lo;
+    uint<N / 2> l;
+    for (size_t i = 0; i < decltype(l)::num_words; ++i)
+        l[i] = x[i];
+    return l;
 }
 
 template <unsigned N>
 inline constexpr auto hi(const uint<N>& x) noexcept
 {
-    return x.hi;
+    uint<N / 2> h;
+    constexpr auto half_words = decltype(h)::num_words;
+    for (size_t i = 0; i < half_words; ++i)
+        h[i] = x[half_words + i];
+    return h;
 }
 
 template <typename T>
@@ -368,13 +380,13 @@ inline constexpr const uint64_t* as_words(const uint128& x) noexcept
 template <unsigned N>
 inline constexpr uint64_t* as_words(uint<N>& x) noexcept
 {
-    return as_words(x.lo);
+    return &x[0];
 }
 
 template <unsigned N>
 inline constexpr const uint64_t* as_words(const uint<N>& x) noexcept
 {
-    return as_words(x.lo);
+    return &x[0];
 }
 
 template <unsigned N>

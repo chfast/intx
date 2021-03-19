@@ -37,9 +37,7 @@ protected:
                 {
                     for (auto d : parts_set)
                     {
-                        uint256 n;
-                        n.lo = uint128{a, b};
-                        n.hi = uint128{c, d};
+                        uint256 n{uint128{c, d}, uint128{a, b}};
                         numbers.emplace_back(n);
                     }
                 }
