@@ -74,10 +74,10 @@ uint256 add_recursive(const uint256& a, const uint256& b) noexcept
     uint128 lo;
     bool lo_carry;
     {
-        const auto l = a.lo[0] + b.lo[0];
-        const auto l_carry = l < a.lo[0];
-        const auto t = a.lo[1] + b.lo[1];
-        const auto carry1 = t < a.lo[1];
+        const auto l = a[0] + b[0];
+        const auto l_carry = l < a[0];
+        const auto t = a[1] + b[1];
+        const auto carry1 = t < a[1];
         const auto h = t + l_carry;
         const auto carry2 = h < t;
         lo = uint128{h, l};
@@ -86,9 +86,9 @@ uint256 add_recursive(const uint256& a, const uint256& b) noexcept
 
     uint128 tt;
     {
-        const auto l = a.hi[0] + b.hi[0];
-        const auto l_carry = l < a.hi[0];
-        const auto t = a.hi[1] + b.hi[1];
+        const auto l = a[2] + b[2];
+        const auto l_carry = l < a[2];
+        const auto t = a[3] + b[3];
         const auto h = t + l_carry;
         tt = uint128{h, l};
     }
@@ -106,22 +106,22 @@ uint256 add_recursive(const uint256& a, const uint256& b) noexcept
 
 uint256 add_waterflow(const uint256& a, const uint256& b) noexcept
 {
-    const auto ll = a.lo[0] + b.lo[0];
-    auto carry = ll < a.lo[0];
+    const auto ll = a[0] + b[0];
+    auto carry = ll < a[0];
 
-    auto lh = a.lo[1] + b.lo[1];
-    auto k1 = lh < a.lo[1];
+    auto lh = a[1] + b[1];
+    auto k1 = lh < a[1];
     lh += carry;
     auto k2 = lh < uint64_t{carry};
     carry = k1 | k2;
 
-    auto hl = a.hi[0] + b.hi[0];
-    k1 = hl < a.hi[0];
+    auto hl = a[2] + b[2];
+    k1 = hl < a[2];
     hl += carry;
     k2 = hl < uint64_t{carry};
     carry = k1 | k2;
 
-    auto hh = a.hi[1] + b.hi[1];
+    auto hh = a[3] + b[3];
     hh += carry;
 
     return {{hh, hl}, {lh, ll}};
