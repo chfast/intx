@@ -265,22 +265,7 @@ static void exponentiation2(benchmark::State& state)
 }
 BENCHMARK(exponentiation2)->Arg(0)->RangeMultiplier(2)->Range(64, 512);
 
-static void count_sigificant_words32_256_loop(benchmark::State& state)
-{
-    auto s = static_cast<unsigned>(state.range(0));
-    auto x = s != 0 ? uint256(0xff) << (s * 32 - 17) : uint256(0);
-    benchmark::DoNotOptimize(x);
-
-    for (auto _ : state)
-    {
-        benchmark::ClobberMemory();
-        auto w = count_significant_words_loop<uint32_t>(x);
-        benchmark::DoNotOptimize(w);
-    }
-}
-BENCHMARK(count_sigificant_words32_256_loop)->DenseRange(0, 8);
-
-static void count_sigificant_words32_256(benchmark::State& state)
+static void count_sigificant_words_256(benchmark::State& state)
 {
     auto s = static_cast<unsigned>(state.range(0));
     auto x = s != 0 ? uint256(0xff) << (s * 32 - 17) : uint256(0);
@@ -290,11 +275,11 @@ static void count_sigificant_words32_256(benchmark::State& state)
     for (auto _ : state)
     {
         benchmark::ClobberMemory();
-        auto w = count_significant_words<uint32_t>(x);
+        auto w = count_significant_words(x);
         benchmark::DoNotOptimize(w);
     }
 }
-BENCHMARK(count_sigificant_words32_256)->DenseRange(0, 8);
+BENCHMARK(count_sigificant_words_256)->DenseRange(0, 8);
 
 template <typename Int>
 static void to_string(benchmark::State& state)

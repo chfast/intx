@@ -308,20 +308,20 @@ inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
 
     if (shift < half_bits)
     {
-        const auto hi = x.hi >> shift;
+        const auto h = hi(x) >> shift;
 
         // Find the part moved from hi to lo.
         // To avoid invalid shift left,
         // split them into 2 valid shifts by (lshift - 1) and 1.
         const auto lshift = half_bits - shift;
-        const auto hi_overflow = (x.hi << (lshift - 1)) << 1;
-        const auto lo_part = x.lo >> shift;
-        const auto lo = lo_part | hi_overflow;
-        return {hi, lo};
+        const auto h_overflow = (hi(x) << (lshift - 1)) << 1;
+        const auto l_part = lo(x) >> shift;
+        const auto l = l_part | h_overflow;
+        return {h, l};
     }
 
     if (shift < num_bits)
-        return {0, x.hi >> (shift - half_bits)};
+        return {0, hi(x) >> (shift - half_bits)};
 
     return 0;
 }
@@ -498,6 +498,17 @@ inline constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 }
 
 template <unsigned N>
+inline constexpr unsigned count_significant_words(const uint<N>& x) noexcept
+{
+    for (size_t i = uint<N>::num_words; i > 0; --i)
+    {
+        if (x[i - 1] != 0)
+            return static_cast<unsigned>(i);
+    }
+    return 0;
+}
+
+template <unsigned N>
 inline constexpr unsigned clz(const uint<N>& x) noexcept
 {
     const auto half_bits = num_bits(x) / 2;
@@ -520,36 +531,6 @@ std::array<Word, sizeof(Int) / sizeof(Word)> to_words(Int x) noexcept
     std::memcpy(&words, &x, sizeof(x));
     return words;
 }
-
-template <typename Word>
-unsigned count_significant_words_loop(uint256 x) noexcept
-{
-    auto words = to_words<Word>(x);
-    for (size_t i = words.size(); i > 0; --i)
-    {
-        if (words[i - 1] != 0)
-            return static_cast<unsigned>(i);
-    }
-    return 0;
-}
-
-template <typename Word, typename Int>
-inline typename std::enable_if<sizeof(Word) == sizeof(Int), unsigned>::type count_significant_words(
-    const Int& x) noexcept
-{
-    return x != 0 ? 1 : 0;
-}
-
-template <typename Word, typename Int>
-inline typename std::enable_if<sizeof(Word) < sizeof(Int), unsigned>::type count_significant_words(
-    const Int& x) noexcept
-{
-    constexpr auto num_words = static_cast<unsigned>(sizeof(x) / sizeof(Word));
-    auto h = count_significant_words<Word>(hi(x));
-    auto l = count_significant_words<Word>(lo(x));
-    return h != 0 ? h + (num_words / 2) : l;
-}
-
 
 namespace internal
 {
