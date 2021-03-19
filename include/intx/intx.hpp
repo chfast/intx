@@ -151,12 +151,9 @@ inline constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
 
 
 template <unsigned N>
-inline constexpr bool operator<(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
 {
-    // Bitwise operators are used to implement logic here to avoid branching.
-    // It also should make the function smaller, but no proper benchmark has
-    // been done.
-    return (a.hi < b.hi) | ((a.hi == b.hi) & (a.lo < b.lo));
+    return sub_with_carry(x, y).carry;
 }
 
 template <unsigned N, typename T,
@@ -175,9 +172,9 @@ inline constexpr bool operator<(const T& x, const uint<N>& y) noexcept
 
 
 template <unsigned N>
-inline constexpr bool operator>(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator>(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return b < a;
+    return sub_with_carry(y, x).carry;
 }
 
 template <unsigned N, typename T,
@@ -196,9 +193,9 @@ inline constexpr bool operator>(const T& x, const uint<N>& y) noexcept
 
 
 template <unsigned N>
-inline constexpr bool operator>=(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator>=(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return !(a < b);
+    return !sub_with_carry(x, y).carry;
 }
 
 template <unsigned N, typename T,
@@ -217,9 +214,9 @@ inline constexpr bool operator>=(const T& x, const uint<N>& y) noexcept
 
 
 template <unsigned N>
-inline constexpr bool operator<=(const uint<N>& a, const uint<N>& b) noexcept
+inline constexpr bool operator<=(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return !(b < a);
+    return !sub_with_carry(y, x).carry;
 }
 
 template <unsigned N, typename T,
