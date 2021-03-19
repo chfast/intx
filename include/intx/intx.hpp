@@ -387,21 +387,6 @@ inline const uint8_t* as_bytes(const uint<N>& x) noexcept
 }
 
 template <unsigned N>
-inline constexpr uint<N> add_loop(const uint<N>& x, const uint<N>& y) noexcept
-{
-    uint<N> s;
-    bool k = false;
-    for (size_t i = 0; i < uint<N>::num_words; ++i)
-    {
-        s[i] = x[i] + y[i];
-        auto k1 = s[i] < x[i];
-        s[i] += k;
-        k = (s[i] < k) || k1;
-    }
-    return s;
-}
-
-template <unsigned N>
 inline constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
     return add_with_carry(x, y).value;
