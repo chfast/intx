@@ -87,39 +87,40 @@ struct uint<128>
     static constexpr unsigned num_bits = 128;
     static constexpr unsigned num_words = 2;
 
-    uint64_t lo = 0;
-    uint64_t hi = 0;
+private:
+    uint64_t words_[2]{};
 
+public:
     constexpr uint() noexcept = default;
 
-    constexpr uint(uint64_t high, uint64_t low) noexcept : lo{low}, hi{high} {}
+    constexpr uint(uint64_t high, uint64_t low) noexcept : words_{low, high} {}
 
     template <typename T,
         typename = typename std::enable_if_t<std::is_convertible<T, uint64_t>::value>>
-    constexpr uint(T x) noexcept : lo(static_cast<uint64_t>(x))  // NOLINT
+    constexpr uint(T x) noexcept : words_{static_cast<uint64_t>(x), 0}  // NOLINT
     {}
 
 #if INTX_HAS_BUILTIN_INT128
     constexpr uint(builtin_uint128 x) noexcept  // NOLINT
-      : lo{uint64_t(x)}, hi{uint64_t(x >> 64)}
+      : words_{uint64_t(x), uint64_t(x >> 64)}
     {}
 
     constexpr explicit operator builtin_uint128() const noexcept
     {
-        return (builtin_uint128{hi} << 64) | lo;
+        return (builtin_uint128{words_[1]} << 64) | words_[0];
     }
 #endif
 
-    constexpr uint64_t& operator[](size_t i) noexcept { return (i == 0) ? lo : hi; }
-    constexpr const uint64_t& operator[](size_t i) const noexcept { return (i == 0) ? lo : hi; }
+    constexpr uint64_t& operator[](size_t i) noexcept { return words_[i]; }
+    constexpr const uint64_t& operator[](size_t i) const noexcept { return words_[i]; }
 
-    constexpr explicit operator bool() const noexcept { return hi | lo; }
+    constexpr explicit operator bool() const noexcept { return (words_[0] | words_[1]) != 0; }
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
     constexpr explicit operator Int() const noexcept
     {
-        return static_cast<Int>(lo);
+        return static_cast<Int>(words_[0]);
     }
 };
 
