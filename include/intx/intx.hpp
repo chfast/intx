@@ -34,12 +34,15 @@ private:
 public:
     constexpr uint() noexcept = default;
 
-    constexpr uint(half_type high, half_type low) noexcept
+    /// TODO: deprecated.
+    static constexpr uint from_halves(half_type low, half_type high) noexcept
     {
+        uint result;
         for (size_t i = 0; i < num_words / 2; ++i)
-            words_[i] = low[i];
+            result.words_[i] = low[i];
         for (size_t i = 0; i < num_words / 2; ++i)
-            words_[num_words / 2 + i] = high[i];
+            result.words_[num_words / 2 + i] = high[i];
+        return result;
     }
 
     /// Implicit converting constructor for the half type.
@@ -338,11 +341,11 @@ inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
         const auto h_overflow = (hi(x) << (lshift - 1)) << 1;
         const auto l_part = lo(x) >> shift;
         const auto l = l_part | h_overflow;
-        return {h, l};
+        return uint<N>::from_halves(l, h);
     }
 
     if (shift < num_bits)
-        return {0, hi(x) >> (shift - half_bits)};
+        return hi(x) >> (shift - half_bits);
 
     return 0;
 }
@@ -443,11 +446,9 @@ template <unsigned N>
 inline constexpr uint<N> sqr(const uint<N>& x) noexcept
 {
     // Based on recursive multiplication implementation.
-
     const auto t = umul(lo(x), lo(x));
     const auto h = ((lo(x) * hi(x)) << 1) + hi(t);
-
-    return {h, lo(t)};
+    return uint<N>::from_halves(lo(t), h);
 }
 
 
