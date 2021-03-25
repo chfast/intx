@@ -34,12 +34,15 @@ private:
 public:
     constexpr uint() noexcept = default;
 
-    constexpr uint(half_type high, half_type low) noexcept
+    /// TODO: deprecated.
+    static constexpr uint from_halves(half_type low, half_type high) noexcept
     {
+        uint result;
         for (size_t i = 0; i < num_words / 2; ++i)
-            words_[i] = low[i];
+            result.words_[i] = low[i];
         for (size_t i = 0; i < num_words / 2; ++i)
-            words_[num_words / 2 + i] = high[i];
+            result.words_[num_words / 2 + i] = high[i];
+        return result;
     }
 
     /// Implicit converting constructor for the half type.
@@ -58,6 +61,12 @@ public:
         for (size_t i = 0; i < num_words / 2; ++i)
             words_[i] = l[i];
     }
+
+    template <typename... T,
+        typename = std::enable_if_t<sizeof...(T) == num_words &&
+                                    std::conjunction_v<std::is_convertible<T, uint64_t>...>>>
+    constexpr uint(T... v) noexcept : words_{static_cast<uint64_t>(v)...}
+    {}
 
     constexpr uint64_t& operator[](size_t i) noexcept { return words_[i]; }
 
@@ -332,11 +341,11 @@ inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
         const auto h_overflow = (hi(x) << (lshift - 1)) << 1;
         const auto l_part = lo(x) >> shift;
         const auto l = l_part | h_overflow;
-        return {h, l};
+        return uint<N>::from_halves(l, h);
     }
 
     if (shift < num_bits)
-        return {0, hi(x) >> (shift - half_bits)};
+        return hi(x) >> (shift - half_bits);
 
     return 0;
 }
@@ -437,11 +446,9 @@ template <unsigned N>
 inline constexpr uint<N> sqr(const uint<N>& x) noexcept
 {
     // Based on recursive multiplication implementation.
-
     const auto t = umul(lo(x), lo(x));
     const auto h = ((lo(x) * hi(x)) << 1) + hi(t);
-
-    return {h, lo(t)};
+    return uint<N>::from_halves(lo(t), h);
 }
 
 
@@ -973,7 +980,9 @@ inline constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
 inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     const auto s = add_with_carry(x, y);
-    return lo(uint512{s.carry, s.value} % mod);
+    uint512 n = s.value;
+    n[4] = s.carry;
+    return lo(n % mod);
 }
 
 inline uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
