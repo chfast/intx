@@ -9,7 +9,5 @@ namespace intx
 {
 namespace experimental
 {
-uint256 add_recursive(const uint256& a, const uint256& b) noexcept;
-uint256 add_waterflow(const uint256& a, const uint256& b) noexcept;
 }  // namespace experimental
 }  // namespace intx

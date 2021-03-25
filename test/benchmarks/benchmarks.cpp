@@ -155,8 +155,6 @@ BENCHMARK_TEMPLATE(binop, uint256, uint256, add);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, inline_add);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, sub);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, inline_sub);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, experimental::add_recursive);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, experimental::add_waterflow);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, public_mul);
 BENCHMARK_TEMPLATE(binop, uint256, uint256, gmp::mul);
 
