@@ -413,6 +413,7 @@ TYPED_TEST(uint_test, count_significant_words_64)
         EXPECT_EQ(count_significant_words(x << s), s / 64 + 1);
 }
 
+static_assert(bswap(uint64_t{0x6600000001000002}) == 0x0200000100000066, "");
 TYPED_TEST(uint_test, bswap)
 {
     auto x = TypeParam{1};

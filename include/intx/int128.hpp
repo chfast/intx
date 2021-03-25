@@ -543,16 +543,22 @@ inline constexpr unsigned clz(uint128 x) noexcept
 }
 
 
-inline uint64_t bswap(uint64_t x) noexcept
+inline constexpr uint64_t bswap(uint64_t x) noexcept
 {
-#ifdef _MSC_VER
-    return _byteswap_uint64(x);
-#else
+#if __has_builtin(__builtin_bswap64)
     return __builtin_bswap64(x);
+#else
+    #ifdef _MSC_VER
+    if (!is_constant_evaluated())
+        return _byteswap_uint64(x);
+    #endif
+    const auto a = ((x << 8) & 0xFF00FF00FF00FF00) | ((x >> 8) & 0x00FF00FF00FF00FF);
+    const auto b = ((a << 16) & 0xFFFF0000FFFF0000) | ((a >> 16) & 0x0000FFFF0000FFFF);
+    return (b << 32) | (b >> 32);
 #endif
 }
 
-inline uint128 bswap(uint128 x) noexcept
+inline constexpr uint128 bswap(uint128 x) noexcept
 {
     return {bswap(x[0]), bswap(x[1])};
 }
