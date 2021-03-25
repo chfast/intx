@@ -397,14 +397,14 @@ TEST(div, reciprocal)
     for (uint64_t d = d_start; d < d_start + n; ++d)
     {
         auto v = reciprocal_2by1(d);
-        EXPECT_EQ(v, reciprocal_naive(d)) << d;
+        ASSERT_EQ(v, reciprocal_naive(d)) << d;
     }
 
     constexpr auto d_end = ~uint64_t{0};
     for (uint64_t d = d_end; d > d_end - n; --d)
     {
         auto v = reciprocal_2by1(d);
-        EXPECT_EQ(v, reciprocal_naive(d)) << d;
+        ASSERT_EQ(v, reciprocal_naive(d)) << d;
     }
 }
 
