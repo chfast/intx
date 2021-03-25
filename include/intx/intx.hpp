@@ -59,6 +59,12 @@ public:
             words_[i] = l[i];
     }
 
+    template <typename... T,
+        typename = std::enable_if_t<sizeof...(T) == num_words &&
+                                    std::conjunction_v<std::is_convertible<T, uint64_t>...>>>
+    constexpr uint(T... v) noexcept : words_{static_cast<uint64_t>(v)...}
+    {}
+
     constexpr uint64_t& operator[](size_t i) noexcept { return words_[i]; }
 
     constexpr const uint64_t& operator[](size_t i) const noexcept { return words_[i]; }
