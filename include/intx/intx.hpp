@@ -486,8 +486,8 @@ inline constexpr uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
         for (size_t i = 0; i < (num_words - j - 1); i++)
         {
             const auto t = umul(x[i], y[j]) + p[i + j] + k;
-            p[i + j] = lo(t);
-            k = hi(t);
+            p[i + j] = t[0];
+            k = t[1];
         }
         p[num_words - 1] += x[num_words - j - 1] * y[j] + k;
     }
