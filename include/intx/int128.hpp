@@ -126,14 +126,6 @@ public:
 
 using uint128 = uint<128>;
 
-inline constexpr uint64_t hi(uint128 x) noexcept
-{
-    return x[1];
-}
-inline constexpr uint64_t lo(uint128 x) noexcept
-{
-    return x[0];
-}
 
 inline constexpr bool is_constant_evaluated() noexcept
 {
