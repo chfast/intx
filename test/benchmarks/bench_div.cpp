@@ -49,7 +49,7 @@ constexpr uint64_t neg(uint64_t x) noexcept
 
 inline uint64_t reciprocal_naive(uint64_t d) noexcept
 {
-    const auto u = uint128{~d, ~uint64_t{0}};
+    const auto u = uint128{~uint64_t{0}, ~d};
     uint64_t v;
 
 #if _MSC_VER
