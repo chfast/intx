@@ -6,5 +6,5 @@
 
 int main(int argc, char**)
 {
-    return static_cast<int>(argc / intx::uint128{1, 0});
+    return static_cast<int>(argc / intx::uint128{1});
 }
