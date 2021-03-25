@@ -44,7 +44,7 @@ static void udiv128(benchmark::State& state)
     benchmark::DoNotOptimize(x);
     benchmark::DoNotOptimize(y);
 
-    for (auto _ : state)
+    for ([[maybe_unused]] auto _ : state)
     {
         auto q = DivFn(x, y);
         benchmark::DoNotOptimize(q);

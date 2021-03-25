@@ -257,7 +257,7 @@ static void exponentiation2(benchmark::State& state)
     const auto base = uint256{2};
     const auto exponent = static_cast<unsigned>(state.range(0));
 
-    for (auto _ : state)
+    for ([[maybe_unused]] auto _ : state)
     {
         const auto e = exp(base, exponent);
         benchmark::DoNotOptimize(e);
@@ -272,7 +272,7 @@ static void count_sigificant_words_256(benchmark::State& state)
     benchmark::DoNotOptimize(x);
     benchmark::ClobberMemory();
 
-    for (auto _ : state)
+    for ([[maybe_unused]] auto _ : state)
     {
         benchmark::ClobberMemory();
         auto w = count_significant_words(x);

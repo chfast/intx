@@ -33,7 +33,7 @@ static void div_normalize(benchmark::State& state)
     auto u = uint512{{48882153453, 100324254353}, {4343242153453, 1324254353}};
     auto v = uint512{{48882100453, 16666654353}, {4343242156663, 1333354353}};
 
-    for (auto _ : state)
+    for ([[maybe_unused]] auto _ : state)
     {
         benchmark::ClobberMemory();
         auto x = NormalizeFn(u, v);
