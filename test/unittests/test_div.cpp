@@ -19,8 +19,8 @@ TEST(div, normalize)
     EXPECT_EQ(na.numerator_ex, 0);
     EXPECT_EQ(na.divisor, v << 63);
 
-    u = uint512{1414, 1313};
-    v = uint512{12, 1212};
+    u = uint512{1313, 0, 0, 0, 1414, 0, 0, 0};
+    v = uint512{1212, 0, 0, 0, 12, 0, 0, 0};
     na = internal::normalize(u, v);
     EXPECT_EQ(na.shift, 60u);
     EXPECT_EQ(na.num_divisor_words, 5);
@@ -30,7 +30,7 @@ TEST(div, normalize)
     EXPECT_EQ(na.divisor, v << 60);
 
     u = uint512{3} << 510;
-    v = uint256{0xffffffffffffffff, 1};
+    v = uint256{1, 0, 0xffffffffffffffff, 0};
     na = internal::normalize(u, v);
     EXPECT_EQ(na.shift, 0u);
     EXPECT_EQ(na.num_divisor_words, 3);
@@ -40,7 +40,7 @@ TEST(div, normalize)
     EXPECT_EQ(na.divisor, v);
 
     u = uint512{7} << 509;
-    v = uint256{0x3fffffffffffffff, 1};
+    v = uint256{1, 0, 0x3fffffffffffffff, 0};
     na = internal::normalize(u, v);
     EXPECT_EQ(na.shift, 2u);
     EXPECT_EQ(na.num_divisor_words, 3);

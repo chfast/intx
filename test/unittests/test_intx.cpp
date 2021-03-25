@@ -36,10 +36,7 @@ protected:
                 for (auto c : parts_set)
                 {
                     for (auto d : parts_set)
-                    {
-                        uint256 n{uint128{c, d}, uint128{a, b}};
-                        numbers.emplace_back(n);
-                    }
+                        numbers.emplace_back(d, c, b, a);
                 }
             }
         }
@@ -220,10 +217,14 @@ TYPED_TEST(uint_test, numeric_limits)
 
 TYPED_TEST(uint_test, comparison)
 {
-    auto z00 = TypeParam{0, 0};
-    auto z01 = TypeParam{0, 1};
-    auto z10 = TypeParam{1, 0};
-    auto z11 = TypeParam{1, 1};
+    constexpr auto half_words_count = TypeParam::num_words / 2;
+
+    auto z00 = TypeParam{0};
+    auto z01 = TypeParam{1};
+    auto z10 = TypeParam{0};
+    z10[half_words_count] = 1;
+    auto z11 = TypeParam{1};
+    z11[half_words_count] = 1;
 
     EXPECT_EQ(z00, z00);
     EXPECT_EQ(z01, z01);
@@ -276,14 +277,16 @@ TYPED_TEST(uint_test, comparison)
 
 TYPED_TEST(uint_test, bitwise)
 {
+    constexpr auto half_bits_count = sizeof(TypeParam) * 4;
+
     auto x00 = TypeParam{0b00};
     auto l01 = TypeParam{0b01};
     auto l10 = TypeParam{0b10};
     auto l11 = TypeParam{0b11};
-    auto h01 = TypeParam{0b01, 0};
-    auto h10 = TypeParam{0b10, 0};
-    auto h11 = TypeParam{0b11, 0};
-    auto x11 = TypeParam{0b11, 0b11};
+    auto h01 = TypeParam{0b01} << half_bits_count;
+    auto h10 = TypeParam{0b10} << half_bits_count;
+    auto h11 = TypeParam{0b11} << half_bits_count;
+    auto x11 = (TypeParam{0b11} << half_bits_count) + 0b11;
 
     EXPECT_EQ(x00 | l01 | l10 | l11, l11);
     EXPECT_EQ(x00 | h01 | h10 | h11, h11);
@@ -504,13 +507,14 @@ TYPED_TEST(uint_test, typed_load)
 
 TYPED_TEST(uint_test, convert_to_bool)
 {
-    EXPECT_TRUE((TypeParam{1, 0}));
-    EXPECT_TRUE((TypeParam{0, 1}));
-    EXPECT_TRUE((TypeParam{1, 1}));
-    EXPECT_TRUE((TypeParam{2, 0}));
-    EXPECT_TRUE((TypeParam{0, 2}));
-    EXPECT_TRUE((TypeParam{2, 2}));
-    EXPECT_FALSE((TypeParam{0, 0}));
+    constexpr auto half_bits_count = sizeof(TypeParam) * 4;
+    EXPECT_TRUE((TypeParam{1}));
+    EXPECT_TRUE((TypeParam{1} << half_bits_count));
+    EXPECT_TRUE((TypeParam{1} << half_bits_count) + 1);
+    EXPECT_TRUE((TypeParam{2}));
+    EXPECT_TRUE((TypeParam{2} << half_bits_count));
+    EXPECT_TRUE((TypeParam{2} << half_bits_count) + 2);
+    EXPECT_FALSE((TypeParam{0}));
 }
 
 TYPED_TEST(uint_test, string_conversions)
@@ -518,8 +522,8 @@ TYPED_TEST(uint_test, string_conversions)
     auto values = {
         TypeParam{1} << (sizeof(TypeParam) * 8 - 1),
         TypeParam{0},
-        TypeParam{1, 0},
-        TypeParam{1, 1},
+        TypeParam{1} << (sizeof(TypeParam) * 4 - 1),
+        (TypeParam{1} << (sizeof(TypeParam) * 4 - 1)) | 1,
         ~TypeParam{1},
         ~TypeParam{0},
     };

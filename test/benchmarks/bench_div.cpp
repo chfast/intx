@@ -30,8 +30,8 @@ inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 template <decltype(internal::normalize<uint512>) NormalizeFn>
 static void div_normalize(benchmark::State& state)
 {
-    auto u = uint512{{48882153453, 100324254353}, {4343242153453, 1324254353}};
-    auto v = uint512{{48882100453, 16666654353}, {4343242156663, 1333354353}};
+    auto u = uint512{1324254353, 0, 4343242153453, 0, 100324254353, 0, 48882153453, 0};
+    auto v = uint512{1333354353, 0, 4343242156663, 0, 16666654353, 0, 48882100453, 0};
 
     for ([[maybe_unused]] auto _ : state)
     {
