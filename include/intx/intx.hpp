@@ -630,7 +630,7 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
     auto it = &u[len - 2];
     do
     {
-        std::tie(*it, rem) = udivrem_2by1({rem, *it}, d, reciprocal);
+        std::tie(*it, rem) = udivrem_2by1({*it, rem}, d, reciprocal);
     } while (it-- != &u[0]);
 
     return rem;
@@ -648,7 +648,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 
     const auto reciprocal = reciprocal_3by2(d);
 
-    auto rem = uint128{u[len - 1], u[len - 2]};  // Set the 2 top words as remainder.
+    auto rem = uint128{u[len - 2], u[len - 1]};  // Set the 2 top words as remainder.
     u[len - 1] = u[len - 2] = 0;  // Reset these words being a part of the result quotient.
 
     auto it = &u[len - 3];
@@ -697,7 +697,7 @@ inline void udivrem_knuth(
     INTX_REQUIRE(dlen >= 3);
     INTX_REQUIRE(ulen >= dlen);
 
-    const auto divisor = uint128{d[dlen - 1], d[dlen - 2]};
+    const auto divisor = uint128{d[dlen - 2], d[dlen - 1]};
     const auto reciprocal = reciprocal_3by2(divisor);
     for (int j = ulen - dlen - 1; j >= 0; --j)
     {
@@ -706,7 +706,7 @@ inline void udivrem_knuth(
         const auto u0 = u[j + dlen - 2];
 
         uint64_t qhat;
-        if (INTX_UNLIKELY(uint128(u2, u1) == divisor))  // Division overflows.
+        if (INTX_UNLIKELY((uint128{u1, u2}) == divisor))  // Division overflows.
         {
             qhat = ~uint64_t{0};
 
@@ -754,7 +754,7 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
     {
         const auto d = as_words(na.divisor);
         const auto r =
-            internal::udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[1], d[0]});
+            internal::udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[0], d[1]});
         return {na.numerator, r >> na.shift};
     }
 

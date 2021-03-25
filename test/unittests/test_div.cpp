@@ -315,14 +315,14 @@ static div_test_case<uint512> div_test_cases[] = {
     },
     {
         // Very special case for reciprocal_3by2().
-        uint128{9223372036855824384u, 9223374235880128514u},
-        uint128{9223372036855824384u, 9223374235880128513u},
+        uint128{9223374235880128514u, 9223372036855824384u},
+        uint128{9223374235880128513u, 9223372036855824384u},
         1,
         1,
     },
     {
         0x6e2d23924d38f0ab643864e9b2a328a54914f48533114fae3475168bfd74a61ae91e676b4a4f33a5b3b6cc189536ccb4afc46d02b061d6daaf0298c993376ab4_u512,
-        uint128{9223372036855824384u, 9223374235880128513u},
+        uint128{9223374235880128513u, 9223372036855824384u},
         0xdc5a47249a56560d078334729ffb61da211f5d2ec622c22f88bc3b4ebae1abdac6b03621554ef71070bc1e0dc5c301bc_u512,
         0x6dc100ea02272bdcf68a4a5b95f468f8_u128,
     },
@@ -376,7 +376,7 @@ TEST(div, sdivrem_512)
 
 inline uint64_t reciprocal_naive(uint64_t d) noexcept
 {
-    const auto u = uint128{~d, ~uint64_t{0}};
+    const auto u = uint128{~uint64_t{0}, ~d};
     uint64_t v;
 
 #if __x86_64__
@@ -397,14 +397,14 @@ TEST(div, reciprocal)
     for (uint64_t d = d_start; d < d_start + n; ++d)
     {
         auto v = reciprocal_2by1(d);
-        EXPECT_EQ(v, reciprocal_naive(d)) << d;
+        ASSERT_EQ(v, reciprocal_naive(d)) << d;
     }
 
     constexpr auto d_end = ~uint64_t{0};
     for (uint64_t d = d_end; d > d_end - n; --d)
     {
         auto v = reciprocal_2by1(d);
-        EXPECT_EQ(v, reciprocal_naive(d)) << d;
+        ASSERT_EQ(v, reciprocal_naive(d)) << d;
     }
 }
 
@@ -412,19 +412,19 @@ TEST(div, reciprocal_3by2)
 {
     // Basic inputs for reciprocal_3by2() to make porting to other languages easier.
 
-    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0x0000000000000000}), 0xffffffffffffffffu);
-    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0x0000000000000001}), 0xffffffffffffffffu);
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0x8000000000000000}), 0xffffffffffffffffu);
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000001, 0x8000000000000000}), 0xffffffffffffffffu);
     EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0x8000000000000000}), 0xfffffffffffffffeu);
-    EXPECT_EQ(reciprocal_3by2({0x8000000000000001, 0x0000000000000000}), 0xfffffffffffffffcu);
-    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0xffffffffffffffff}), 0xfffffffffffffffcu);
-    EXPECT_EQ(reciprocal_3by2({0xc000000000000000, 0x0000000000000000}), 0x5555555555555555u);
-    EXPECT_EQ(reciprocal_3by2({0xc000000000000000, 0x0000000000000001}), 0x5555555555555555u);
-    EXPECT_EQ(reciprocal_3by2({0xc000000000000000, 0xffffffffffffffff}), 0x5555555555555553u);
-    EXPECT_EQ(reciprocal_3by2({0xfffffffffffffffe, 0x0000000000000000}), 2u);
-    EXPECT_EQ(reciprocal_3by2({0xfffffffffffffffe, 0x0000000000000001}), 2u);
-    EXPECT_EQ(reciprocal_3by2({0xfffffffffffffffe, 0xffffffffffffffff}), 1u);
-    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0x0000000000000000}), 1u);
-    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0x0000000000000001}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0x8000000000000001}), 0xfffffffffffffffcu);
+    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0x8000000000000000}), 0xfffffffffffffffcu);
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0xc000000000000000}), 0x5555555555555555u);
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000001, 0xc000000000000000}), 0x5555555555555555u);
+    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xc000000000000000}), 0x5555555555555553u);
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0xfffffffffffffffe}), 2u);
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000001, 0xfffffffffffffffe}), 2u);
+    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xfffffffffffffffe}), 1u);
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0xffffffffffffffff}), 1u);
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000001, 0xffffffffffffffff}), 0u);
     EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xffffffffffffffff}), 0u);
 }
 
