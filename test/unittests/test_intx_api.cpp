@@ -298,3 +298,39 @@ TYPED_TEST(uint_api, bitwise_op_assignment)
     EXPECT_EQ(x <<= x, 2);
     EXPECT_EQ(x >>= x, 0);
 }
+
+TYPED_TEST(uint_api, explicit_conversion_to_integral_type)
+{
+    TypeParam x;
+    x[0] = 3;
+    x[1] = 0xffffffffffffffff;
+
+    TypeParam y;
+    y[0] = 0xfffffffffffffffe;
+    y[1] = 0xffffffffffffffff;
+
+    EXPECT_EQ(static_cast<signed char>(x), 3);
+    EXPECT_EQ(static_cast<signed char>(y), -2);
+    EXPECT_EQ(static_cast<unsigned char>(x), 3);
+    EXPECT_EQ(static_cast<unsigned char>(y), 0xfe);
+
+    EXPECT_EQ(static_cast<signed short>(x), 3);
+    EXPECT_EQ(static_cast<signed short>(y), -2);
+    EXPECT_EQ(static_cast<unsigned short>(x), 3);
+    EXPECT_EQ(static_cast<unsigned short>(y), 0xfffe);
+
+    EXPECT_EQ(static_cast<signed int>(x), 3);
+    EXPECT_EQ(static_cast<signed int>(y), -2);
+    EXPECT_EQ(static_cast<unsigned int>(x), 3u);
+    EXPECT_EQ(static_cast<unsigned int>(y), 0xfffffffe);
+
+    EXPECT_EQ(static_cast<signed long>(x), 3);
+    EXPECT_EQ(static_cast<signed long>(y), -2);
+    EXPECT_EQ(static_cast<unsigned long>(x), 3u);
+    EXPECT_EQ(static_cast<unsigned long>(y), std::numeric_limits<unsigned long>::max() - 1);
+
+    EXPECT_EQ(static_cast<signed long long>(x), 3);
+    EXPECT_EQ(static_cast<signed long long>(y), -2);
+    EXPECT_EQ(static_cast<unsigned long long>(x), 3u);
+    EXPECT_EQ(static_cast<unsigned long long>(y), 0xfffffffffffffffe);
+}

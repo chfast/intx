@@ -75,11 +75,11 @@ public:
     constexpr explicit operator bool() const noexcept { return *this != uint{}; }
 
     /// Explicit converting operator for all builtin integral types.
-    template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    template <typename Int, typename = typename std::enable_if_t<std::is_integral_v<Int>>>
     explicit operator Int() const noexcept
     {
-        // FIXME: Simplify this.
-        return static_cast<Int>(lo(*this));
+        static_assert(sizeof(Int) <= sizeof(uint64_t));
+        return static_cast<Int>(words_[0]);
     }
 };
 
