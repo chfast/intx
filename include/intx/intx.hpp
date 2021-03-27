@@ -45,26 +45,16 @@ public:
         return result;
     }
 
-    /// Implicit converting constructor for the half type.
-    constexpr uint(half_type x) noexcept  // NOLINT
+    /// Implicit converting constructor for any smaller uint type.
+    template <unsigned M, typename = typename std::enable_if_t<(M < N)>>
+    constexpr uint(const uint<M>& x) noexcept
     {
-        for (size_t i = 0; i < num_words / 2; ++i)
+        for (size_t i = 0; i < uint<M>::num_words; ++i)
             words_[i] = x[i];
     }
 
-    /// Implicit converting constructor for types convertible to the half type.
-    template <typename T,
-        typename = typename std::enable_if<std::is_convertible<T, half_type>::value>::type>
-    constexpr uint(T x) noexcept  // NOLINT
-    {
-        half_type l{x};
-        for (size_t i = 0; i < num_words / 2; ++i)
-            words_[i] = l[i];
-    }
-
     template <typename... T,
-        typename = std::enable_if_t<sizeof...(T) == num_words &&
-                                    std::conjunction_v<std::is_convertible<T, uint64_t>...>>>
+        typename = std::enable_if_t<std::conjunction_v<std::is_convertible<T, uint64_t>...>>>
     constexpr uint(T... v) noexcept : words_{static_cast<uint64_t>(v)...}
     {}
 
@@ -75,11 +65,11 @@ public:
     constexpr explicit operator bool() const noexcept { return *this != uint{}; }
 
     /// Explicit converting operator for all builtin integral types.
-    template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    template <typename Int, typename = typename std::enable_if_t<std::is_integral_v<Int>>>
     explicit operator Int() const noexcept
     {
-        // FIXME: Simplify this.
-        return static_cast<Int>(lo(*this));
+        static_assert(sizeof(Int) <= sizeof(uint64_t));
+        return static_cast<Int>(words_[0]);
     }
 };
 
