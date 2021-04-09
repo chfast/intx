@@ -76,12 +76,6 @@ public:
 using uint256 = uint<256>;
 using uint512 = uint<512>;
 
-template <typename T>
-inline constexpr unsigned num_bits(const T&) noexcept
-{
-    return sizeof(T) * 8;
-}
-
 template <unsigned N>
 inline constexpr bool operator==(const uint<N>& x, const uint<N>& y) noexcept
 {

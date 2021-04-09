@@ -363,7 +363,7 @@ TYPED_TEST(uint_test, not_of_zero)
 TYPED_TEST(uint_test, clz_one_bit)
 {
     auto t = TypeParam{1};
-    unsigned b = num_bits(t);
+    unsigned b = TypeParam::num_bits;
     for (unsigned i = 0; i < b; ++i)
     {
         unsigned c = clz(t);
