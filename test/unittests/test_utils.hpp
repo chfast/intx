@@ -25,23 +25,8 @@
 struct type_to_name
 {
     template <typename T>
-    static std::string GetName(int i);
+    static std::string GetName([[maybe_unused]] int i)
+    {
+        return "uint" + std::to_string(T::num_bits);
+    }
 };
-
-template <>
-inline std::string type_to_name::GetName<intx::uint<128>>(int)
-{
-    return "uint128";
-}
-
-template <>
-inline std::string type_to_name::GetName<intx::uint<256>>(int)
-{
-    return "uint256";
-}
-
-template <>
-inline std::string type_to_name::GetName<intx::uint<512>>(int)
-{
-    return "uint512";
-}
