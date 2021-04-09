@@ -954,12 +954,20 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
     const auto s = add_with_carry(x, y);
     uint512 n = s.value;
     n[4] = s.carry;
-    return lo(n % mod);
+    const auto r512 = n % mod;
+    uint256 r;
+    for (size_t i = 0; i < uint256::num_words; ++i)
+        r[i] = r512[i];
+    return r;
 }
 
 inline uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
-    return lo(umul(x, y) % mod);
+    const auto r512 = umul(x, y) % mod;
+    uint256 r;
+    for (size_t i = 0; i < uint256::num_words; ++i)
+        r[i] = r512[i];
+    return r;
 }
 
 
