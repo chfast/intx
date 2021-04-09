@@ -317,27 +317,20 @@ inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
 {
-    constexpr auto num_bits = N;
-    constexpr auto half_bits = num_bits / 2;
+    constexpr auto num_words = uint<N>::num_words;
+    constexpr auto word_bits = sizeof(uint64_t) * 8;
 
-    if (shift < half_bits)
+    const auto s = shift % word_bits;
+    const auto skip = static_cast<size_t>(shift / word_bits);
+
+    uint<N> r;
+    uint64_t carry = 0;
+    for (size_t i = 0; i < (num_words - skip); ++i)
     {
-        const auto h = hi(x) >> shift;
-
-        // Find the part moved from hi to lo.
-        // To avoid invalid shift left,
-        // split them into 2 valid shifts by (lshift - 1) and 1.
-        const auto lshift = half_bits - shift;
-        const auto h_overflow = (hi(x) << (lshift - 1)) << 1;
-        const auto l_part = lo(x) >> shift;
-        const auto l = l_part | h_overflow;
-        return uint<N>::from_halves(l, h);
+        r[num_words - 1 - i - skip] = (x[num_words - 1 - i] >> s) | carry;
+        carry = (x[num_words - 1 - i] << (word_bits - s - 1)) << 1;
     }
-
-    if (shift < num_bits)
-        return hi(x) >> (shift - half_bits);
-
-    return 0;
+    return r;
 }
 
 
