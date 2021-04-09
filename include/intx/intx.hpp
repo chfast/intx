@@ -433,16 +433,6 @@ inline constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
 }
 
 template <unsigned N>
-inline constexpr uint<N> sqr(const uint<N>& x) noexcept
-{
-    // Based on recursive multiplication implementation.
-    const auto t = umul(lo(x), lo(x));
-    const auto h = ((lo(x) * hi(x)) << 1) + hi(t);
-    return uint<N>::from_halves(lo(t), h);
-}
-
-
-template <unsigned N>
 inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
     constexpr auto num_words = uint<N>::num_words;
@@ -484,7 +474,6 @@ inline constexpr uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
     return p;
 }
 
-
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
 inline constexpr uint<N>& operator*=(uint<N>& x, const T& y) noexcept
@@ -503,7 +492,7 @@ inline constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
     {
         if ((exponent & 1) != 0)
             result *= base;
-        base = sqr(base);
+        base *= base;
         exponent >>= 1;
     }
     return result;
