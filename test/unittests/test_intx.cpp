@@ -4,7 +4,6 @@
 
 #include "test_cases.hpp"
 #include "test_utils.hpp"
-#include <experimental/add.hpp>
 #include <gtest/gtest.h>
 #include <intx/intx.hpp>
 
@@ -195,7 +194,7 @@ class uint_test : public testing::Test
 {
 };
 
-using types = testing::Types<uint128, uint256, uint512>;
+using types = testing::Types<uint128, uint192, uint256, uint384, uint512>;
 TYPED_TEST_SUITE(uint_test, types, type_to_name);
 
 TYPED_TEST(uint_test, numeric_limits)

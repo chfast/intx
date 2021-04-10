@@ -17,8 +17,8 @@ namespace intx
 template <unsigned N>
 struct uint
 {
-    static_assert((N & (N - 1)) == 0, "Number of bits must be power of 2");
-    static_assert(N >= 256, "Number of bits must be at lest 256");
+    static_assert(N >= 128, "Number of bits must be at lest 128");
+    static_assert(N % 64 == 0, "Number of bits must be a multiply of 64");
 
     using word_type = uint64_t;
 
@@ -73,7 +73,9 @@ public:
     }
 };
 
+using uint192 = uint<192>;
 using uint256 = uint<256>;
+using uint384 = uint<384>;
 using uint512 = uint<512>;
 
 template <unsigned N>
