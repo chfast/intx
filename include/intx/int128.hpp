@@ -84,8 +84,10 @@ struct uint;
 template <>
 struct uint<128>
 {
+    using word_type = uint64_t;
+    static constexpr auto word_num_bits = sizeof(word_type) * 8;
     static constexpr unsigned num_bits = 128;
-    static constexpr unsigned num_words = 2;
+    static constexpr auto num_words = num_bits / word_num_bits;
 
 private:
     uint64_t words_[2]{};

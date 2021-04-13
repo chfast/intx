@@ -17,33 +17,19 @@ namespace intx
 template <unsigned N>
 struct uint
 {
-    static_assert(N >= 128, "Number of bits must be at lest 128");
-    static_assert(N % 64 == 0, "Number of bits must be a multiply of 64");
-
     using word_type = uint64_t;
-
-    /// The 2x smaller type.
-    using half_type = uint<N / 2>;
-
+    static constexpr auto word_num_bits = sizeof(word_type) * 8;
     static constexpr auto num_bits = N;
-    static constexpr auto num_words = N / 8 / sizeof(word_type);
+    static constexpr auto num_words = num_bits / word_num_bits;
+
+    static_assert(N >= 2 * word_num_bits, "Number of bits must be at lest 128");
+    static_assert(N % word_num_bits == 0, "Number of bits must be a multiply of 64");
 
 private:
     uint64_t words_[num_words]{};
 
 public:
     constexpr uint() noexcept = default;
-
-    /// TODO: deprecated.
-    static constexpr uint from_halves(half_type low, half_type high) noexcept
-    {
-        uint result;
-        for (size_t i = 0; i < num_words / 2; ++i)
-            result.words_[i] = low[i];
-        for (size_t i = 0; i < num_words / 2; ++i)
-            result.words_[num_words / 2 + i] = high[i];
-        return result;
-    }
 
     /// Implicit converting constructor for any smaller uint type.
     template <unsigned M, typename = typename std::enable_if_t<(M < N)>>
@@ -63,6 +49,15 @@ public:
     constexpr const uint64_t& operator[](size_t i) const noexcept { return words_[i]; }
 
     constexpr explicit operator bool() const noexcept { return *this != uint{}; }
+
+    template <unsigned M, typename = typename std::enable_if_t<(M < N)>>
+    explicit operator uint<M>() const noexcept
+    {
+        uint<M> r;
+        for (size_t i = 0; i < uint<M>::num_words; ++i)
+            r[i] = words_[i];
+        return r;
+    }
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int, typename = typename std::enable_if_t<std::is_integral_v<Int>>>
@@ -901,20 +896,12 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
     const auto s = add_with_carry(x, y);
     uint512 n = s.value;
     n[4] = s.carry;
-    const auto r512 = n % mod;
-    uint256 r;
-    for (size_t i = 0; i < uint256::num_words; ++i)
-        r[i] = r512[i];
-    return r;
+    return static_cast<uint256>(n % mod);
 }
 
 inline uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
-    const auto r512 = umul(x, y) % mod;
-    uint256 r;
-    for (size_t i = 0; i < uint256::num_words; ++i)
-        r[i] = r512[i];
-    return r;
+    return static_cast<uint256>(umul(x, y) % mod);
 }
 
 
