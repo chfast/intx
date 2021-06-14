@@ -16,7 +16,6 @@ TEST(div, normalize)
     EXPECT_EQ(na.num_divisor_words, 1);
     EXPECT_EQ(na.num_numerator_words, 0);
     EXPECT_EQ(na.numerator, 0);
-    EXPECT_EQ(na.numerator_ex, 0);
     EXPECT_EQ(na.divisor, v << 63);
 
     u = uint512{1313, 0, 0, 0, 1414, 0, 0, 0};
@@ -26,7 +25,6 @@ TEST(div, normalize)
     EXPECT_EQ(na.num_divisor_words, 5);
     EXPECT_EQ(na.num_numerator_words, 6);
     EXPECT_EQ(na.numerator, u << 60);
-    EXPECT_EQ(na.numerator_ex, 0);
     EXPECT_EQ(na.divisor, v << 60);
 
     u = uint512{3} << 510;
@@ -36,7 +34,6 @@ TEST(div, normalize)
     EXPECT_EQ(na.num_divisor_words, 3);
     EXPECT_EQ(na.num_numerator_words, 8);
     EXPECT_EQ(na.numerator, u);
-    EXPECT_EQ(na.numerator_ex, 0);
     EXPECT_EQ(na.divisor, v);
 
     u = uint512{7} << 509;
@@ -45,8 +42,7 @@ TEST(div, normalize)
     EXPECT_EQ(na.shift, 2u);
     EXPECT_EQ(na.num_divisor_words, 3);
     EXPECT_EQ(na.num_numerator_words, 9);
-    EXPECT_EQ(na.numerator, u << 2);
-    EXPECT_EQ(na.numerator_ex, 3);
+    EXPECT_EQ(na.numerator, intx::uint<576>{u} << 2);
     EXPECT_EQ(na.divisor, v << 2);
 }
 
@@ -335,6 +331,65 @@ TEST(div, udivrem_512)
         auto res = udivrem(t.numerator, t.denominator);
         EXPECT_EQ(res.quot, t.quotient);
         EXPECT_EQ(res.rem, t.reminder);
+    }
+}
+
+TEST(div, udivrem_384)
+{
+    for (auto& t : div_test_cases)
+    {
+        const auto n = static_cast<uint384>(t.numerator);
+        const auto d = static_cast<uint384>(t.denominator);
+        if (n != t.numerator || d != t.denominator)
+            continue;  // Skip trimmed arguments.
+
+        const auto [quot, rem] = udivrem(n, d);
+        EXPECT_EQ(quot, t.quotient);
+        EXPECT_EQ(rem, t.reminder);
+    }
+}
+
+TEST(div, udivrem_256)
+{
+    for (auto& t : div_test_cases)
+    {
+        const auto n = static_cast<uint256>(t.numerator);
+        const auto d = static_cast<uint256>(t.denominator);
+        if (n != t.numerator || d != t.denominator)
+            continue;  // Skip trimmed arguments.
+
+        const auto [quot, rem] = udivrem(n, d);
+        EXPECT_EQ(quot, t.quotient);
+        EXPECT_EQ(rem, t.reminder);
+    }
+}
+
+TEST(div, udivrem_320_by_256)
+{
+    for (auto& t : div_test_cases)
+    {
+        const auto n = static_cast<uint320>(t.numerator);
+        const auto d = static_cast<uint256>(t.denominator);
+        if (n != t.numerator || d != t.denominator)
+            continue;  // Skip trimmed arguments.
+
+        const auto [quot, rem] = udivrem(n, d);
+        EXPECT_EQ(quot, t.quotient);
+        EXPECT_EQ(rem, t.reminder);
+    }
+}
+
+TEST(div, udivrem_512_by_256)
+{
+    for (auto& t : div_test_cases)
+    {
+        const auto d = static_cast<uint256>(t.denominator);
+        if (d != t.denominator)
+            continue;  // Skip trimmed divisors.
+
+        const auto [quot, rem] = udivrem(t.numerator, d);
+        EXPECT_EQ(quot, t.quotient);
+        EXPECT_EQ(rem, t.reminder);
     }
 }
 
