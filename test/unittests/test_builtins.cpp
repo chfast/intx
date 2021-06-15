@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include <gtest/gtest.h>
-#include <intx/int128.hpp>
+#include <intx/intx.hpp>
 
 using namespace intx;
 
@@ -64,6 +64,54 @@ TEST(builtins, clz_zero)
     EXPECT_EQ(clz_generic(uint32_t{0}), 32u);
     EXPECT_EQ(clz(uint64_t{0}), 64u);
     EXPECT_EQ(clz_generic(uint64_t{0}), 64u);
+}
+
+TEST(builtins, count_significant_bytes)
+{
+    static_assert(count_significant_bytes(0) == 0);
+
+    static_assert(count_significant_bytes(1) == 1);
+    static_assert(count_significant_bytes(0x80) == 1);
+    static_assert(count_significant_bytes(0xff) == 1);
+
+    static_assert(count_significant_bytes(0x100) == 2);
+    static_assert(count_significant_bytes(0x8000) == 2);
+    static_assert(count_significant_bytes(0xffff) == 2);
+
+    static_assert(count_significant_bytes(0x10000) == 3);
+    static_assert(count_significant_bytes(0x800000) == 3);
+    static_assert(count_significant_bytes(0xffffff) == 3);
+
+    static_assert(count_significant_bytes(0x1000000) == 4);
+    static_assert(count_significant_bytes(0x80000000) == 4);
+    static_assert(count_significant_bytes(0xffffffff) == 4);
+
+    static_assert(count_significant_bytes(0x100000000) == 5);
+    static_assert(count_significant_bytes(0x8000000000) == 5);
+    static_assert(count_significant_bytes(0xffffffffff) == 5);
+
+    static_assert(count_significant_bytes(0x10000000000) == 6);
+    static_assert(count_significant_bytes(0x800000000000) == 6);
+    static_assert(count_significant_bytes(0xffffffffffff) == 6);
+
+    static_assert(count_significant_bytes(0x1000000000000) == 7);
+    static_assert(count_significant_bytes(0x80000000000000) == 7);
+    static_assert(count_significant_bytes(0xffffffffffffff) == 7);
+
+    static_assert(count_significant_bytes(0x100000000000000) == 8);
+    static_assert(count_significant_bytes(0x8000000000000000) == 8);
+    static_assert(count_significant_bytes(0xffffffffffffffff) == 8);
+
+    uint64_t x = 0;
+    EXPECT_EQ(count_significant_bytes(x), 0u);
+    x = 1;
+    EXPECT_EQ(count_significant_bytes(x), 1u);
+    x = 0x80;
+    EXPECT_EQ(count_significant_bytes(x), 1u);
+    x = 0x100000000000000;
+    EXPECT_EQ(count_significant_bytes(x), 8u);
+    x = 0x8000000000000000;
+    EXPECT_EQ(count_significant_bytes(x), 8u);
 }
 
 namespace

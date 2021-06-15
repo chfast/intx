@@ -444,6 +444,18 @@ inline constexpr unsigned count_significant_words(const uint<N>& x) noexcept
     return 0;
 }
 
+inline constexpr unsigned count_significant_bytes(uint64_t x) noexcept
+{
+    return (64 - clz(x) + 7) / 8;
+}
+
+template <unsigned N>
+inline constexpr unsigned count_significant_bytes(const uint<N>& x) noexcept
+{
+    const auto w = count_significant_words(x);
+    return (w != 0) ? count_significant_bytes(x[w - 1]) + (w - 1) * 8 : 0;
+}
+
 template <unsigned N>
 inline constexpr unsigned clz(const uint<N>& x) noexcept
 {
