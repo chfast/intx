@@ -274,6 +274,73 @@ TYPED_TEST(uint_test, comparison)
     EXPECT_GE(z11, z11);
 }
 
+TYPED_TEST(uint_test, slt)
+{
+    const auto max = ~TypeParam{0} >> 1;
+    const auto max_m1 = max - 1;
+    const auto min = TypeParam{1} << (TypeParam::num_bits - 1);
+    const auto min_m1 = min + 1;
+    const auto zero = TypeParam{0};
+    const auto one = TypeParam{1};
+    const auto neg_one = ~TypeParam{0};
+
+    EXPECT_TRUE(slt(min, max));
+    EXPECT_TRUE(slt(min, max_m1));
+    EXPECT_TRUE(slt(min, one));
+    EXPECT_TRUE(slt(min, zero));
+    EXPECT_TRUE(slt(min, neg_one));
+    EXPECT_TRUE(slt(min, min_m1));
+    EXPECT_FALSE(slt(min, min));
+
+    EXPECT_TRUE(slt(min_m1, max));
+    EXPECT_TRUE(slt(min_m1, max_m1));
+    EXPECT_TRUE(slt(min_m1, one));
+    EXPECT_TRUE(slt(min_m1, zero));
+    EXPECT_TRUE(slt(min_m1, neg_one));
+    EXPECT_FALSE(slt(min_m1, min_m1));
+    EXPECT_FALSE(slt(min_m1, min));
+
+    EXPECT_TRUE(slt(neg_one, max));
+    EXPECT_TRUE(slt(neg_one, max_m1));
+    EXPECT_TRUE(slt(neg_one, one));
+    EXPECT_TRUE(slt(neg_one, zero));
+    EXPECT_FALSE(slt(neg_one, neg_one));
+    EXPECT_FALSE(slt(neg_one, min_m1));
+    EXPECT_FALSE(slt(neg_one, min));
+
+    EXPECT_TRUE(slt(zero, max));
+    EXPECT_TRUE(slt(zero, max_m1));
+    EXPECT_TRUE(slt(zero, one));
+    EXPECT_FALSE(slt(zero, zero));
+    EXPECT_FALSE(slt(zero, neg_one));
+    EXPECT_FALSE(slt(zero, min_m1));
+    EXPECT_FALSE(slt(zero, min));
+
+    EXPECT_TRUE(slt(one, max));
+    EXPECT_TRUE(slt(one, max_m1));
+    EXPECT_FALSE(slt(one, one));
+    EXPECT_FALSE(slt(one, zero));
+    EXPECT_FALSE(slt(one, neg_one));
+    EXPECT_FALSE(slt(one, min_m1));
+    EXPECT_FALSE(slt(one, min));
+
+    EXPECT_TRUE(slt(max_m1, max));
+    EXPECT_FALSE(slt(max_m1, max_m1));
+    EXPECT_FALSE(slt(max_m1, one));
+    EXPECT_FALSE(slt(max_m1, zero));
+    EXPECT_FALSE(slt(max_m1, neg_one));
+    EXPECT_FALSE(slt(max_m1, min_m1));
+    EXPECT_FALSE(slt(max_m1, min));
+
+    EXPECT_FALSE(slt(max, max));
+    EXPECT_FALSE(slt(max, max_m1));
+    EXPECT_FALSE(slt(max, one));
+    EXPECT_FALSE(slt(max, zero));
+    EXPECT_FALSE(slt(max, neg_one));
+    EXPECT_FALSE(slt(max, min_m1));
+    EXPECT_FALSE(slt(max, min));
+}
+
 TYPED_TEST(uint_test, bitwise)
 {
     constexpr auto half_bits_count = sizeof(TypeParam) * 4;
