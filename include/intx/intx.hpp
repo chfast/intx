@@ -201,6 +201,19 @@ inline constexpr bool operator<=(const T& x, const uint<N>& y) noexcept
     return uint<N>(x) <= y;
 }
 
+/// Signed less than comparison.
+///
+/// Interprets the arguments as two's complement signed integers
+/// and checks the "less than" relation.
+template <unsigned N>
+inline constexpr bool slt(const uint<N>& x, const uint<N>& y) noexcept
+{
+    constexpr auto top_word_idx = uint<N>::num_words - 1;
+    const auto x_neg = static_cast<int64_t>(x[top_word_idx]) < 0;
+    const auto y_neg = static_cast<int64_t>(y[top_word_idx]) < 0;
+    return ((x_neg ^ y_neg) != 0) ? x_neg : x < y;
+}
+
 template <unsigned N>
 inline constexpr uint<N> operator|(const uint<N>& x, const uint<N>& y) noexcept
 {
