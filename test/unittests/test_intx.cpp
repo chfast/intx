@@ -399,6 +399,25 @@ TYPED_TEST(uint_test, count_significant_words_64)
         EXPECT_EQ(count_significant_words(x << s), s / 64 + 1);
 }
 
+TYPED_TEST(uint_test, count_significant_bytes)
+{
+    static_assert(count_significant_bytes(TypeParam{0}) == 0);
+    static_assert(count_significant_bytes(TypeParam{1}) == 1);
+    static_assert(count_significant_bytes(TypeParam{0x80}) == 1);
+    static_assert(count_significant_bytes(TypeParam{0x100000000000000}) == 8);
+    static_assert(
+        count_significant_bytes(TypeParam{1} << (TypeParam::num_bits - 8)) == sizeof(TypeParam));
+    static_assert(
+        count_significant_bytes(TypeParam{1} << (TypeParam::num_bits - 1)) == sizeof(TypeParam));
+
+    TypeParam x;
+    EXPECT_EQ(count_significant_bytes(x), 0u);
+    x = 1;
+    EXPECT_EQ(count_significant_bytes(x), 1u);
+    x <<= TypeParam::num_bits - 1;
+    EXPECT_EQ(count_significant_bytes(x), sizeof(TypeParam));
+}
+
 static_assert(bswap(uint64_t{0x6600000001000002}) == 0x0200000100000066, "");
 TYPED_TEST(uint_test, bswap)
 {
