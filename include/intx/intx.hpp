@@ -70,6 +70,7 @@ public:
 
 using uint192 = uint<192>;
 using uint256 = uint<256>;
+using uint320 = uint<320>;
 using uint384 = uint<384>;
 using uint512 = uint<512>;
 
@@ -492,54 +493,53 @@ inline constexpr unsigned clz_nonzero(uint64_t x) noexcept
 #endif
 }
 
-template <unsigned N>
+template <unsigned M, unsigned N>
 struct normalized_div_args
 {
     uint<N> divisor;
-    uint<N> numerator;
-    typename uint<N>::word_type numerator_ex;
+    uint<M + 64> numerator;
     int num_divisor_words;
     int num_numerator_words;
     unsigned shift;
 };
 
-template <typename IntT>
-[[gnu::always_inline]] inline normalized_div_args<IntT::num_bits> normalize(
-    const IntT& numerator, const IntT& denominator) noexcept
+template <unsigned M, unsigned N>
+[[gnu::always_inline]] inline normalized_div_args<M, N> normalize(
+    const uint<M>& numerator, const uint<N>& denominator) noexcept
 {
     // FIXME: Make the implementation type independent
-    static constexpr auto num_words = IntT::num_words;
+    static constexpr auto num_numerator_words = uint<M>::num_words;
+    static constexpr auto num_denominator_words = uint<N>::num_words;
 
     auto* u = as_words(numerator);
     auto* v = as_words(denominator);
 
-    normalized_div_args<IntT::num_bits> na;
+    normalized_div_args<M, N> na;
     auto* un = as_words(na.numerator);
     auto* vn = as_words(na.divisor);
 
     auto& m = na.num_numerator_words;
-    for (m = num_words; m > 0 && u[m - 1] == 0; --m)
+    for (m = num_numerator_words; m > 0 && u[m - 1] == 0; --m)
         ;
 
     auto& n = na.num_divisor_words;
-    for (n = num_words; n > 0 && v[n - 1] == 0; --n)
+    for (n = num_denominator_words; n > 0 && v[n - 1] == 0; --n)
         ;
 
     na.shift = clz_nonzero(v[n - 1]);  // Use clz_nonzero() to avoid clang analyzer's warning.
     if (na.shift)
     {
-        for (int i = num_words - 1; i > 0; --i)
+        for (int i = num_denominator_words - 1; i > 0; --i)
             vn[i] = (v[i] << na.shift) | (v[i - 1] >> (64 - na.shift));
         vn[0] = v[0] << na.shift;
 
-        un[num_words] = u[num_words - 1] >> (64 - na.shift);
-        for (int i = num_words - 1; i > 0; --i)
+        un[num_numerator_words] = u[num_numerator_words - 1] >> (64 - na.shift);
+        for (int i = num_numerator_words - 1; i > 0; --i)
             un[i] = (u[i] << na.shift) | (u[i - 1] >> (64 - na.shift));
         un[0] = u[0] << na.shift;
     }
     else
     {
-        na.numerator_ex = 0;
         na.numerator = numerator;
         na.divisor = denominator;
     }
@@ -674,19 +674,19 @@ inline void udivrem_knuth(
 
 }  // namespace internal
 
-template <unsigned N>
-div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
+template <unsigned M, unsigned N>
+div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
     auto na = internal::normalize(u, v);
 
     if (na.num_numerator_words <= na.num_divisor_words)
-        return {0, u};
+        return {0, static_cast<uint<N>>(u)};
 
     if (na.num_divisor_words == 1)
     {
         const auto r = internal::udivrem_by1(
             as_words(na.numerator), na.num_numerator_words, as_words(na.divisor)[0]);
-        return {na.numerator, r >> na.shift};
+        return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
     if (na.num_divisor_words == 2)
@@ -694,12 +694,12 @@ div_result<uint<N>> udivrem(const uint<N>& u, const uint<N>& v) noexcept
         const auto d = as_words(na.divisor);
         const auto r =
             internal::udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[0], d[1]});
-        return {na.numerator, r >> na.shift};
+        return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
     auto un = as_words(na.numerator);  // Will be modified.
 
-    uint<N> q;
+    uint<M> q;
     internal::udivrem_knuth(
         as_words(q), &un[0], na.num_numerator_words, as_words(na.divisor), na.num_divisor_words);
 
@@ -919,14 +919,14 @@ inline constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
 inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     const auto s = add_with_carry(x, y);
-    uint512 n = s.value;
+    uint<256 + 64> n = s.value;
     n[4] = s.carry;
-    return static_cast<uint256>(n % mod);
+    return udivrem(n, mod).rem;
 }
 
 inline uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
-    return static_cast<uint256>(umul(x, y) % mod);
+    return udivrem(umul(x, y), mod).rem;
 }
 
 
