@@ -294,6 +294,8 @@ template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
 inline constexpr uint<N> operator<<(const uint<N>& x, const T& shift) noexcept
 {
+    // TODO: This may be further optimized for uint<N> shift case by checking if all high words
+    //       are zero, then falling back to x << shift[0].
     if (shift < T{sizeof(x) * 8})
         return x << static_cast<uint64_t>(shift);
     return 0;
