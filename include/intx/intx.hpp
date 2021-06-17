@@ -269,6 +269,40 @@ inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
     return r;
 }
 
+inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
+{
+    constexpr auto num_bits = 256;
+    constexpr auto half_bits = num_bits / 2;
+
+    const auto xlo = uint128{x[0], x[1]};
+
+    if (shift < half_bits)
+    {
+        const auto lo = xlo << shift;
+
+        const auto xhi = uint128{x[2], x[3]};
+
+        // Find the part moved from lo to hi.
+        // The shift right here can be invalid:
+        // for shift == 0 => lshift == half_bits.
+        // Split it into 2 valid shifts by (rshift - 1) and 1.
+        const auto rshift = half_bits - shift;
+        const auto lo_overflow = (xlo >> (rshift - 1)) >> 1;
+        const auto hi = (xhi << shift) | lo_overflow;
+        return {lo[0], lo[1], hi[0], hi[1]};
+    }
+
+    // This check is only needed if we want "defined" behavior for shifts
+    // larger than size of the Int.
+    if (shift < num_bits)
+    {
+        const auto hi = xlo << (shift - half_bits);
+        return {0, 0, hi[0], hi[1]};
+    }
+
+    return 0;
+}
+
 
 template <unsigned N>
 inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
