@@ -67,6 +67,11 @@ enum samples_set_id
     x_512,   ///< Set of random samples with ~512 (8 words) significant bits.
     y_512,   ///< Set of random samples with ~512 (8 words) significant bits, different from x_512.
     norm,    ///< Set of random samples of normalized (first bit set) values.
+    shift_w0,
+    shift_w1,
+    shift_w2,
+    shift_w3,
+    shift_mixed,
 };
 
 template <typename T>

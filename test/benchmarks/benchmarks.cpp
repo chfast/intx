@@ -169,19 +169,97 @@ BENCHMARK_TEMPLATE(binop, uint512, uint512, public_mul);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, gmp::mul);
 
 template <unsigned N>
-[[gnu::noinline]] static intx::uint<N> shl_(const intx::uint<N>& x, uint64_t y) noexcept
+[[gnu::noinline]] static intx::uint<N> shl_public(
+    const intx::uint<N>& x, const uint64_t& y) noexcept
 {
     return x << y;
 }
 
 template <unsigned N>
-[[gnu::noinline]] static intx::uint<N> shl_loop_(const intx::uint<N>& x, uint64_t y) noexcept
+[[gnu::noinline]] static intx::uint<N> shl_public(
+    const intx::uint<N>& x, const intx::uint<N>& y) noexcept
 {
     return x << y;
 }
 
+[[gnu::noinline]] static intx::uint256 shl_halves(
+    const intx::uint256& x, const uint64_t& shift) noexcept
+{
+    constexpr auto num_bits = 256;
+    constexpr auto half_bits = num_bits / 2;
+
+    const auto xlo = uint128{x[0], x[1]};
+
+    if (shift < half_bits)
+    {
+        const auto lo = xlo << shift;
+
+        const auto xhi = uint128{x[2], x[3]};
+
+        // Find the part moved from lo to hi.
+        // The shift right here can be invalid:
+        // for shift == 0 => lshift == half_bits.
+        // Split it into 2 valid shifts by (rshift - 1) and 1.
+        const auto rshift = half_bits - shift;
+        const auto lo_overflow = (xlo >> (rshift - 1)) >> 1;
+        const auto hi = (xhi << shift) | lo_overflow;
+        return {lo[0], lo[1], hi[0], hi[1]};
+    }
+
+    // This check is only needed if we want "defined" behavior for shifts
+    // larger than size of the Int.
+    if (shift < num_bits)
+    {
+        const auto hi = xlo << (shift - half_bits);
+        return {0, 0, hi[0], hi[1]};
+    }
+
+    return 0;
+}
+
+[[gnu::noinline]] static intx::uint256 shl_halves(
+    const intx::uint256& x, const uint256& big_shift) noexcept
+{
+    if (INTX_UNLIKELY((big_shift[3] | big_shift[2] | big_shift[1]) != 0))
+        return 0;
+
+    const auto shift = big_shift[0];
+
+
+    constexpr auto num_bits = 256;
+    constexpr auto half_bits = num_bits / 2;
+
+    const auto xlo = uint128{x[0], x[1]};
+
+    if (shift < half_bits)
+    {
+        const auto lo = xlo << shift;
+
+        const auto xhi = uint128{x[2], x[3]};
+
+        // Find the part moved from lo to hi.
+        // The shift right here can be invalid:
+        // for shift == 0 => lshift == half_bits.
+        // Split it into 2 valid shifts by (rshift - 1) and 1.
+        const auto rshift = half_bits - shift;
+        const auto lo_overflow = (xlo >> (rshift - 1)) >> 1;
+        const auto hi = (xhi << shift) | lo_overflow;
+        return {lo[0], lo[1], hi[0], hi[1]};
+    }
+
+    // This check is only needed if we want "defined" behavior for shifts
+    // larger than size of the Int.
+    if (shift < num_bits)
+    {
+        const auto hi = xlo << (shift - half_bits);
+        return {0, 0, hi[0], hi[1]};
+    }
+
+    return 0;
+}
+
 #if INTX_HAS_EXTINT
-[[gnu::noinline]] static intx::uint256 shl_llvm(const intx::uint256& x, uint64_t y) noexcept
+[[gnu::noinline]] static intx::uint256 shl_llvm(const intx::uint256& x, const uint64_t& y) noexcept
 {
     unsigned _ExtInt(256) a;
     std::memcpy(&a, &x, sizeof(a));
@@ -193,29 +271,51 @@ template <unsigned N>
 #endif
 
 
-template <typename Int, Int ShiftFn(const Int&, uint64_t)>
+template <typename ArgT, typename ShiftT, ArgT ShiftFn(const ArgT&, const ShiftT&)>
 static void shift(benchmark::State& state)
 {
-    const auto& xs = test::get_samples<Int>(sizeof(Int) == sizeof(uint256) ? x_256 : x_512);
+    const auto& shift_samples_id = [&state]() noexcept {
+        switch (state.range(0))
+        {
+        case -1:
+            return shift_mixed;
+        case 0:
+            return shift_w0;
+        case 1:
+            return shift_w1;
+        case 2:
+            return shift_w2;
+        case 3:
+            return shift_w3;
+        default:
+            state.SkipWithError("unexpected argument");
+            return shift_mixed;
+        }
+    }();
+
+    const auto& xs = test::get_samples<ArgT>(sizeof(ArgT) == sizeof(uint256) ? x_256 : x_512);
+    const auto& raw_shifts = test::get_samples<uint64_t>(shift_samples_id);
+    std::array<ShiftT, test::num_samples> shifts;
+    std::copy(std::cbegin(raw_shifts), std::cend(raw_shifts), std::begin(shifts));
 
     while (state.KeepRunningBatch(xs.size()))
     {
         for (size_t i = 0; i < xs.size(); ++i)
         {
-            const auto x = xs[i];
-            const auto sh = static_cast<uint64_t>(x) & (Int::num_bits - 1);
-            const auto _ = ShiftFn(x, sh);
+            const auto _ = ShiftFn(xs[i], shifts[i]);
             benchmark::DoNotOptimize(_);
         }
     }
 }
-BENCHMARK_TEMPLATE(shift, uint256, shl_);
-BENCHMARK_TEMPLATE(shift, uint256, shl_loop_);
+BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_public)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_halves)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_public)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_halves)->DenseRange(-1, 3);
 #if INTX_HAS_EXTINT
-BENCHMARK_TEMPLATE(shift, uint256, shl_llvm);
+BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_llvm)->DenseRange(-1, 3);
 #endif
-BENCHMARK_TEMPLATE(shift, uint512, shl_);
-BENCHMARK_TEMPLATE(shift, uint512, shl_loop_);
+BENCHMARK_TEMPLATE(shift, uint512, uint512, shl_public)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
 
 static void exponentiation(benchmark::State& state)
 {
