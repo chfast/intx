@@ -27,4 +27,5 @@ include(${INTX_DEPS_DOWNLOAD_DIR}/HunterGate.cmake)
 HunterGate(
     URL "https://github.com/cpp-pm/hunter/archive/v0.23.246.tar.gz"
     SHA1 "b28940a87bba9c3f40182692d6fdaf1c9d735840"
+    LOCAL
 )
