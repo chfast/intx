@@ -317,6 +317,84 @@ BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_llvm)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint512, uint512, shl_public)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
 
+[[gnu::noinline]] static bool lt_public(const uint256& x, const uint256& y) noexcept
+{
+    return x < y;
+}
+
+[[gnu::noinline]] static bool lt_wordcmp(const uint256& x, const uint256& y) noexcept
+{
+    for (size_t i = 3; i >= 1; --i)
+    {
+        if (x[i] < y[i])
+            return true;
+        if (x[i] > y[i])
+            return false;
+    }
+    return x[0] < y[0];
+}
+
+[[gnu::noinline]] static bool lt_halves(const uint256& x, const uint256& y) noexcept
+{
+    const auto xhi = uint128{x[2], x[3]};
+    const auto xlo = uint128{x[0], x[1]};
+    const auto yhi = uint128{y[2], y[3]};
+    const auto ylo = uint128{y[0], y[1]};
+    return (xhi < yhi) | ((xhi == yhi) & (xlo < ylo));
+}
+
+#if INTX_HAS_EXTINT
+[[gnu::noinline]] static bool lt_llvm(const uint256& x, const uint256& y) noexcept
+{
+    unsigned _ExtInt(256) a;
+    unsigned _ExtInt(256) b;
+    std::memcpy(&a, &x, sizeof(a));
+    std::memcpy(&b, &y, sizeof(b));
+    return a < b;
+}
+#endif
+
+template <bool CmpFn(const uint256&, const uint256&)>
+static void compare(benchmark::State& state)
+{
+    const auto set_id = [&state]() noexcept {
+        switch (state.range(0))
+        {
+        case 64:
+            return x_64;
+        case 128:
+            return x_128;
+        case 192:
+            return x_192;
+        case 256:
+            return x_256;
+        default:
+            state.SkipWithError("unexpected argument");
+            return x_64;
+        }
+    }();
+
+    const auto& xs = test::get_samples<uint256>(set_id);
+
+    uint256 z;
+    while (state.KeepRunningBatch(xs.size()))
+    {
+        for (size_t i = 0; i < xs.size(); ++i)
+        {
+            const auto x = xs[i];
+            const auto _ = CmpFn(z, x);
+            benchmark::DoNotOptimize(_);
+            z = x;
+        }
+    }
+}
+BENCHMARK_TEMPLATE(compare, lt_public)->DenseRange(64, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_wordcmp)->DenseRange(64, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_halves)->DenseRange(64, 256, 64);
+#if INTX_HAS_EXTINT
+BENCHMARK_TEMPLATE(compare, lt_llvm)->DenseRange(64, 256, 64);
+#endif
+
 static void exponentiation(benchmark::State& state)
 {
     const auto exponent_set_id = [&state]() noexcept {
