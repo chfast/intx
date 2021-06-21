@@ -419,6 +419,19 @@ TYPED_TEST(uint_test, shift_overflow)
     EXPECT_EQ(value << TypeParam{sh}, 0);
 }
 
+TYPED_TEST(uint_test, shift_by_int)
+{
+    const auto x = TypeParam{1} << (sizeof(TypeParam) * 8 - 1) | TypeParam{1};
+    EXPECT_EQ(x >> 0, x);
+    EXPECT_EQ(x << 0, x);
+    EXPECT_EQ(x >> 1, TypeParam{1} << uint64_t{TypeParam::num_bits - 2});
+    EXPECT_EQ(x << 1, TypeParam{2});
+    EXPECT_EQ(x >> int{TypeParam::num_bits - 1}, TypeParam{1});
+    EXPECT_EQ(x << int{TypeParam::num_bits - 1}, TypeParam{1} << uint64_t{TypeParam::num_bits - 1});
+    EXPECT_EQ(x >> int{TypeParam::num_bits}, 0);
+    EXPECT_EQ(x << int{TypeParam::num_bits}, 0);
+}
+
 TYPED_TEST(uint_test, not_of_zero)
 {
     auto ones = ~TypeParam{};
