@@ -254,6 +254,9 @@ inline constexpr uint<N> operator~(const uint<N>& x) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
 {
+    if (INTX_UNLIKELY(shift >= uint<N>::num_bits))
+        return 0;
+
     constexpr auto word_bits = sizeof(uint64_t) * 8;
 
     const auto s = shift % word_bits;
@@ -273,6 +276,9 @@ inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
 {
+    if (INTX_UNLIKELY(shift >= uint<N>::num_bits))
+        return 0;
+
     constexpr auto num_words = uint<N>::num_words;
     constexpr auto word_bits = sizeof(uint64_t) * 8;
 
