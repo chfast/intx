@@ -880,7 +880,7 @@ inline constexpr Int from_string(const char* str)
         {
             if (++num_digits > int{sizeof(x) * 2})
                 throw_<std::out_of_range>(str);
-            x = (x << 4) | from_hex_digit(c);
+            x = (x << uint64_t{4}) | from_hex_digit(c);
         }
         return x;
     }
