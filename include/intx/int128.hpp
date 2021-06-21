@@ -299,7 +299,11 @@ inline constexpr bool operator<(uint128 x, uint128 y) noexcept
     // OPT: This should be implemented by checking the borrow of x - y,
     //      but compilers (GCC8, Clang7)
     //      have problem with properly optimizing subtraction.
+#if INTX_HAS_BUILTIN_INT128
+    return builtin_uint128{x} < builtin_uint128{y};
+#else
     return (x[1] < y[1]) | ((x[1] == y[1]) & (x[0] < y[0]));
+#endif
 }
 
 inline constexpr bool operator<=(uint128 x, uint128 y) noexcept
