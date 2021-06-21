@@ -6,17 +6,21 @@ branches:
   - /release\/.*/
   - appveyor
   - hunter
-configuration:
-  - Release
-  - Debug
 environment:
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      VS_VER: 2017
-      GENERATOR: "Ninja"
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      VS_VER: 2019
-      GENERATOR: "Ninja"
+    - VS_VER: 2017
+      CONFIGURATION: Release
+      GENERATOR: Ninja
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - VS_VER: 2019
+      CONFIGURATION: Debug
+      GENERATOR: Ninja
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    - VS_VER: 2019
+      CONFIGURATION: Release
+      GENERATOR: Ninja
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+
 
 cache:
   - C:\.hunter\_Base\Cache -> cmake\Hunter\init.cmake
