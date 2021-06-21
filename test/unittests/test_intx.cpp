@@ -1,11 +1,9 @@
 // intx: extended precision integer library.
-// Copyright 2019-2020 Pawel Bylica.
+// Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 #include "test_cases.hpp"
-#include "test_utils.hpp"
-#include <gtest/gtest.h>
-#include <intx/intx.hpp>
+#include "test_suite.hpp"
 
 using namespace intx;
 
@@ -189,13 +187,7 @@ TEST(uint256, mulmod)
 }
 
 
-template <typename T>
-class uint_test : public testing::Test
-{
-};
 
-using types = testing::Types<uint128, uint192, uint256, uint384, uint512>;
-TYPED_TEST_SUITE(uint_test, types, type_to_name);
 
 TYPED_TEST(uint_test, numeric_limits)
 {

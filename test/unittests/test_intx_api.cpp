@@ -1,10 +1,8 @@
 // intx: extended precision integer library.
-// Copyright 2019-2020 Pawel Bylica.
+// Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include "test_utils.hpp"
-#include <gtest/gtest.h>
-#include <intx/intx.hpp>
+#include "test_suite.hpp"
 
 #pragma warning(disable : 4307)
 
@@ -53,8 +51,7 @@ class uint_api : public testing::Test
 {
 };
 
-using types = testing::Types<uint128, uint256, uint512>;
-TYPED_TEST_SUITE(uint_api, types, type_to_name);
+TYPED_TEST_SUITE(uint_api, test_types, type_to_name);
 
 TYPED_TEST(uint_api, constructor)
 {
