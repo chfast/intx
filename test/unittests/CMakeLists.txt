@@ -8,6 +8,7 @@ hunter_add_package(GTest)
 find_package(GTest CONFIG REQUIRED)
 
 add_executable(intx-unittests
+    test_bitwise.cpp
     test_builtins.cpp
     test_cases.hpp
     test_div.cpp
