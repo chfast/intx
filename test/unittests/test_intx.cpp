@@ -409,6 +409,45 @@ TYPED_TEST(uint_test, shift_left_overflow)
     }
 }
 
+TYPED_TEST(uint_test, shift_right_overflow)
+{
+    const auto x = ~TypeParam{};
+
+    for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
+    {
+        const auto sh = x >> n;
+        EXPECT_EQ(x >> sh, 0) << "n=" << n;
+    }
+
+    for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
+    {
+        const auto sh = TypeParam{sizeof(TypeParam) * 8} << n;
+        EXPECT_EQ(x >> sh, 0) << "n=" << n;
+    }
+}
+
+TYPED_TEST(uint_test, shift_left_overflow_uint64)
+{
+    const auto x = ~TypeParam{};
+
+    for (unsigned n = 0; n <= 100; ++n)
+    {
+        const uint64_t sh = sizeof(TypeParam) * 8 + n;
+        EXPECT_EQ(x << sh, 0) << "n=" << n;
+    }
+}
+
+TYPED_TEST(uint_test, shift_right_overflow_uint64)
+{
+    const auto x = ~TypeParam{};
+
+    for (unsigned n = 0; n <= 100; ++n)
+    {
+        const uint64_t sh = sizeof(TypeParam) * 8 + n;
+        EXPECT_EQ(x >> sh, 0) << "n=" << n;
+    }
+}
+
 TYPED_TEST(uint_test, shift_overflow)
 {
     const uint64_t sh = sizeof(TypeParam) * 8;

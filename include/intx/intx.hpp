@@ -251,9 +251,43 @@ inline constexpr uint<N> operator~(const uint<N>& x) noexcept
     return z;
 }
 
+
+inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
+{
+    if (INTX_UNLIKELY(shift >= uint256::num_bits))
+        return 0;
+
+    constexpr auto num_bits = uint256::num_bits;
+    constexpr auto half_bits = num_bits / 2;
+
+    const auto xlo = uint128{x[0], x[1]};
+
+    if (shift < half_bits)
+    {
+        const auto lo = xlo << shift;
+
+        const auto xhi = uint128{x[2], x[3]};
+
+        // Find the part moved from lo to hi.
+        // The shift right here can be invalid:
+        // for shift == 0 => rshift == half_bits.
+        // Split it into 2 valid shifts by (rshift - 1) and 1.
+        const auto rshift = half_bits - shift;
+        const auto lo_overflow = (xlo >> (rshift - 1)) >> 1;
+        const auto hi = (xhi << shift) | lo_overflow;
+        return {lo[0], lo[1], hi[0], hi[1]};
+    }
+
+    const auto hi = xlo << (shift - half_bits);
+    return {0, 0, hi[0], hi[1]};
+}
+
 template <unsigned N>
 inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
 {
+    if (INTX_UNLIKELY(shift >= uint<N>::num_bits))
+        return 0;
+
     constexpr auto word_bits = sizeof(uint64_t) * 8;
 
     const auto s = shift % word_bits;
@@ -270,9 +304,42 @@ inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
 }
 
 
+inline constexpr uint256 operator>>(const uint256& x, uint64_t shift) noexcept
+{
+    if (INTX_UNLIKELY(shift >= uint256::num_bits))
+        return 0;
+
+    constexpr auto num_bits = uint256::num_bits;
+    constexpr auto half_bits = num_bits / 2;
+
+    const auto xhi = uint128{x[2], x[3]};
+
+    if (shift < half_bits)
+    {
+        const auto hi = xhi >> shift;
+
+        const auto xlo = uint128{x[0], x[1]};
+
+        // Find the part moved from hi to lo.
+        // The shift left here can be invalid:
+        // for shift == 0 => lshift == half_bits.
+        // Split it into 2 valid shifts by (lshift - 1) and 1.
+        const auto lshift = half_bits - shift;
+        const auto hi_overflow = (xhi << (lshift - 1)) << 1;
+        const auto lo = (xlo >> shift) | hi_overflow;
+        return {lo[0], lo[1], hi[0], hi[1]};
+    }
+
+    const auto lo = xhi >> (shift - half_bits);
+    return {lo[0], lo[1], 0, 0};
+}
+
 template <unsigned N>
 inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
 {
+    if (INTX_UNLIKELY(shift >= uint<N>::num_bits))
+        return 0;
+
     constexpr auto num_words = uint<N>::num_words;
     constexpr auto word_bits = sizeof(uint64_t) * 8;
 
@@ -289,13 +356,36 @@ inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
     return r;
 }
 
+template <unsigned N>
+inline constexpr uint<N> operator<<(const uint<N>& x, const uint<N>& shift) noexcept
+{
+    uint64_t high_words_fold = 0;
+    for (size_t i = 1; i < uint<N>::num_words; ++i)
+        high_words_fold |= shift[i];
+
+    if (INTX_UNLIKELY(high_words_fold != 0))
+        return 0;
+
+    return x << shift[0];
+}
+
+template <unsigned N>
+inline constexpr uint<N> operator>>(const uint<N>& x, const uint<N>& shift) noexcept
+{
+    uint64_t high_words_fold = 0;
+    for (size_t i = 1; i < uint<N>::num_words; ++i)
+        high_words_fold |= shift[i];
+
+    if (INTX_UNLIKELY(high_words_fold != 0))
+        return 0;
+
+    return x >> shift[0];
+}
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
 inline constexpr uint<N> operator<<(const uint<N>& x, const T& shift) noexcept
 {
-    // TODO: This may be further optimized for uint<N> shift case by checking if all high words
-    //       are zero, then falling back to x << shift[0].
     if (shift < T{sizeof(x) * 8})
         return x << static_cast<uint64_t>(shift);
     return 0;
