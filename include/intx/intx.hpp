@@ -118,6 +118,16 @@ inline constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
     return uint<N>(x) != y;
 }
 
+#if !defined(_MSC_VER) || _MSC_VER < 1916  // This kills MSVC 2017 compiler.
+inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
+{
+    const auto xhi = uint128{x[2], x[3]};
+    const auto xlo = uint128{x[0], x[1]};
+    const auto yhi = uint128{y[2], y[3]};
+    const auto ylo = uint128{y[0], y[1]};
+    return (xhi < yhi) | ((xhi == yhi) & (xlo < ylo));
+}
+#endif
 
 template <unsigned N>
 inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
@@ -143,7 +153,7 @@ inline constexpr bool operator<(const T& x, const uint<N>& y) noexcept
 template <unsigned N>
 inline constexpr bool operator>(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return sub_with_carry(y, x).carry;
+    return y < x;
 }
 
 template <unsigned N, typename T,
@@ -164,7 +174,7 @@ inline constexpr bool operator>(const T& x, const uint<N>& y) noexcept
 template <unsigned N>
 inline constexpr bool operator>=(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return !sub_with_carry(x, y).carry;
+    return !(x < y);
 }
 
 template <unsigned N, typename T,
@@ -185,7 +195,7 @@ inline constexpr bool operator>=(const T& x, const uint<N>& y) noexcept
 template <unsigned N>
 inline constexpr bool operator<=(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return !sub_with_carry(y, x).carry;
+    return !(y < x);
 }
 
 template <unsigned N, typename T,
