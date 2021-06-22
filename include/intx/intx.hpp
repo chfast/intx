@@ -118,6 +118,14 @@ inline constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
     return uint<N>(x) != y;
 }
 
+inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
+{
+    const auto xhi = uint128{x[2], x[3]};
+    const auto xlo = uint128{x[0], x[1]};
+    const auto yhi = uint128{y[2], y[3]};
+    const auto ylo = uint128{y[0], y[1]};
+    return (xhi < yhi) | ((xhi == yhi) & (xlo < ylo));
+}
 
 template <unsigned N>
 inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
