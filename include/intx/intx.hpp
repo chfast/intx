@@ -143,7 +143,7 @@ inline constexpr bool operator<(const T& x, const uint<N>& y) noexcept
 template <unsigned N>
 inline constexpr bool operator>(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return sub_with_carry(y, x).carry;
+    return y < x;
 }
 
 template <unsigned N, typename T,
@@ -164,7 +164,7 @@ inline constexpr bool operator>(const T& x, const uint<N>& y) noexcept
 template <unsigned N>
 inline constexpr bool operator>=(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return !sub_with_carry(x, y).carry;
+    return !(x < y);
 }
 
 template <unsigned N, typename T,
@@ -185,7 +185,7 @@ inline constexpr bool operator>=(const T& x, const uint<N>& y) noexcept
 template <unsigned N>
 inline constexpr bool operator<=(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return !sub_with_carry(y, x).carry;
+    return !(y < x);
 }
 
 template <unsigned N, typename T,
