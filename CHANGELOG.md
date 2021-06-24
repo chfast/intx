@@ -5,6 +5,26 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.6.0] — unreleased
+
+### Changed
+
+- **The internal representation of unsigned integers has been changed to be an array of 64-bit words. This provides types composed of any number of words** (e.g. `uint384`). 
+  Previously only power-of-two numbers of words were allowed.
+  This is big change that affects implementation of many operators.
+  [#212](https://github.com/chfast/intx/pull/212)
+  [#213](https://github.com/chfast/intx/pull/213)
+- Subtraction has been slightly rewritten to make it easier for compilers to optimize it.
+  The performance now matches the addition.
+  [#189](https://github.com/chfast/intx/pull/189)
+- Multiplication API has been cleaned up by using
+  [`std::is_constant_evaluated`](https://en.cppreference.com/w/cpp/types/is_constant_evaluated)-like helpers internally.
+  [#195](https://github.com/chfast/intx/pull/195)
+  [#205](https://github.com/chfast/intx/pull/205)
+- Shift API has been changed to use `uint64_t` as shift amount on the fundamental API level.
+  [#202](https://github.com/chfast/intx/pull/202)
+
+
 ## [0.5.1] — 2020-12-14
 
 ### Changed
@@ -82,6 +102,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.6.0]: https://github.com/chfast/intx/compare/v0.5.1..master
 [0.5.1]: https://github.com/chfast/intx/releases/v0.5.1
 [0.5.0]: https://github.com/chfast/intx/releases/v0.5.0
 [0.4.0]: https://github.com/chfast/intx/releases/v0.4.0
