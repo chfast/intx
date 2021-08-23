@@ -92,6 +92,26 @@ static void mod(benchmark::State& state)
 BENCHMARK_TEMPLATE(mod, addmod)->DenseRange(64, 256, 64);
 BENCHMARK_TEMPLATE(mod, mulmod)->DenseRange(64, 256, 64);
 
+template <uint256 ModFn(const uint256&, const uint256&, const uint256&)>
+static void ecmod(benchmark::State& state)
+{
+    // Samples such x <= m, y <= m.
+    const auto& xs = test::get_samples<uint256>(lt_x_256);
+    const auto& ys = test::get_samples<uint256>(lt_256);
+    const auto& ms = test::get_samples<uint256>(x_256);
+
+    while (state.KeepRunningBatch(xs.size()))
+    {
+        for (size_t i = 0; i < xs.size(); ++i)
+        {
+            const auto _ = ModFn(xs[i], ys[i], ms[i]);
+            benchmark::DoNotOptimize(_);
+        }
+    }
+}
+BENCHMARK_TEMPLATE(ecmod, addmod);
+BENCHMARK_TEMPLATE(ecmod, mulmod);
+
 
 template <unsigned N>
 [[gnu::noinline]] static auto public_mul(const intx::uint<N>& x, const intx::uint<N>& y) noexcept

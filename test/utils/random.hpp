@@ -64,9 +64,10 @@ enum samples_set_id
     x_256,   ///< Set of random samples with ~256 (4 words) significant bits.
     y_256,   ///< Set of random samples with ~256 (4 words) significant bits, different from x_256.
     lt_256,  ///< Set of random samples where each lt_256[i] <= x_256[i] && lt_256[i] <= y_256[i].
-    x_512,   ///< Set of random samples with ~512 (8 words) significant bits.
-    y_512,   ///< Set of random samples with ~512 (8 words) significant bits, different from x_512.
-    norm,    ///< Set of random samples of normalized (first bit set) values.
+    lt_x_256,  ///< Set of random samples where each lt_x_256[i] <= x_256[i].
+    x_512,     ///< Set of random samples with ~512 (8 words) significant bits.
+    y_512,  ///< Set of random samples with ~512 (8 words) significant bits, different from x_512.
+    norm,   ///< Set of random samples of normalized (first bit set) values.
     shift_w0,
     shift_w1,
     shift_w2,
