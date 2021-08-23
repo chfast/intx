@@ -13,7 +13,7 @@ namespace
 {
 std::array<uint64_t, num_samples> samples_64_norm;
 std::array<uint128, num_samples> samples_128_norm;
-std::array<uint256, num_samples> samples_256[lt_256 - x_64 + 1];
+std::array<uint256, num_samples> samples_256[lt_x_256 - x_64 + 1];
 std::array<uint512, num_samples> samples_512[y_512 - x_64 + 1];
 std::array<uint64_t, num_samples> samples_shift_w[4];
 std::array<uint64_t, num_samples> samples_shift_mixed;
@@ -52,16 +52,21 @@ bool init() noexcept
         gen_int(samples_256[x_256][i], 4);
         gen_int(samples_256[y_256][i], 4);
         gen_int(samples_256[lt_256][i], 4);
+        gen_int(samples_256[lt_x_256][i], 4);
 
         if (samples_256[lt_256][i] > samples_256[x_256][i])
             std::swap(samples_256[lt_256][i], samples_256[x_256][i]);
 
         if (samples_256[lt_256][i] > samples_256[x_256][i])
             std::swap(samples_256[lt_256][i], samples_256[x_256][i]);
+
+        if (samples_256[lt_x_256][i] > samples_256[x_256][i])
+            std::swap(samples_256[lt_x_256][i], samples_256[x_256][i]);
 
         samples_512[x_256][i] = samples_256[x_256][i];
         samples_512[y_256][i] = samples_256[y_256][i];
         samples_512[lt_256][i] = samples_256[lt_256][i];
+        samples_512[lt_x_256][i] = samples_256[lt_x_256][i];
 
         gen_int(samples_512[x_512][i], 8);
         gen_int(samples_512[y_512][i], 8);
