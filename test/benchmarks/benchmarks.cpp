@@ -1,9 +1,9 @@
 // intx: extended precision integer library.
-// Copyright 2019-2020 Pawel Bylica.
+// Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
+#include "../experimental/addmod.hpp"
 #include <benchmark/benchmark.h>
-#include <experimental/add.hpp>
 #include <intx/intx.hpp>
 #include <test/utils/gmp.hpp>
 #include <test/utils/random.hpp>
@@ -89,8 +89,14 @@ static void mod(benchmark::State& state)
         }
     }
 }
-BENCHMARK_TEMPLATE(mod, addmod)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(mod, mulmod)->DenseRange(64, 256, 64);
+#define ARGS DenseRange(64, 256, 64)
+BENCHMARK_TEMPLATE(mod, addmod)->ARGS;
+BENCHMARK_TEMPLATE(mod, addmod_public)->ARGS;
+BENCHMARK_TEMPLATE(mod, addmod_simple)->ARGS;
+BENCHMARK_TEMPLATE(mod, addmod_prenormalize)->ARGS;
+BENCHMARK_TEMPLATE(mod, addmod_daosvik)->ARGS;
+BENCHMARK_TEMPLATE(mod, mulmod)->ARGS;
+#undef ARGS
 
 template <uint256 ModFn(const uint256&, const uint256&, const uint256&)>
 static void ecmod(benchmark::State& state)
@@ -109,7 +115,10 @@ static void ecmod(benchmark::State& state)
         }
     }
 }
-BENCHMARK_TEMPLATE(ecmod, addmod);
+BENCHMARK_TEMPLATE(ecmod, addmod_public);
+BENCHMARK_TEMPLATE(ecmod, addmod_simple);
+BENCHMARK_TEMPLATE(ecmod, addmod_prenormalize);
+BENCHMARK_TEMPLATE(ecmod, addmod_daosvik);
 BENCHMARK_TEMPLATE(ecmod, mulmod);
 
 
