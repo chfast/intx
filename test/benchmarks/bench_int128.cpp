@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include <benchmark/benchmark.h>
-#include <intx/int128.hpp>
+#include <intx/intx.hpp>
 #include <test/utils/gmp.hpp>
 #include <test/utils/random.hpp>
 

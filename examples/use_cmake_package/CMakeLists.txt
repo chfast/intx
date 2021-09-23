@@ -10,8 +10,5 @@ project(use_intx_cmake_package LANGUAGES CXX)
 
 find_package(intx CONFIG REQUIRED)
 
-add_executable(use_int128 use_int128.cpp)
-target_link_libraries(use_int128 PRIVATE intx::int128)
-
 add_executable(use_intx use_intx.cpp)
 target_link_libraries(use_intx PRIVATE intx::intx)

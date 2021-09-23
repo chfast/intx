@@ -6,7 +6,7 @@
 
 Provides following types:
 
-- `uint128` (standalone module [int128.hpp]),
+- `uint128`,
 - `uint256`,
 - `uint512`.
 
@@ -38,7 +38,6 @@ Licensed under the [Apache License, Version 2.0].
 
 [@chfast]: https://github.com/chfast
 [Apache License, Version 2.0]: LICENSE
-[int128.hpp]: include/intx/int128.hpp
 [standard readme]: https://github.com/RichardLitt/standard-readme
 
 [readme style standard badge]: https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square
