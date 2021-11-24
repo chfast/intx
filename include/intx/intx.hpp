@@ -285,13 +285,13 @@ inline constexpr bool operator==(uint128 x, uint128 y) noexcept
     //         much better than __int128 where it uses vector instructions.
     // GCC8: generates a bit worse cmp based code
     //       although it generates the xor based one for __int128.
-    return (x[0] == y[0]) & (x[1] == y[1]);
+    return (x[0] == y[0]) && (x[1] == y[1]);
 }
 
 inline constexpr bool operator!=(uint128 x, uint128 y) noexcept
 {
     // Analogous to ==, but == not used directly, because that confuses GCC 8-9.
-    return (x[0] != y[0]) | (x[1] != y[1]);
+    return (x[0] != y[0]) || (x[1] != y[1]);
 }
 
 inline constexpr bool operator<(uint128 x, uint128 y) noexcept
@@ -302,7 +302,7 @@ inline constexpr bool operator<(uint128 x, uint128 y) noexcept
 #if INTX_HAS_BUILTIN_INT128
     return builtin_uint128{x} < builtin_uint128{y};
 #else
-    return (x[1] < y[1]) | ((x[1] == y[1]) & (x[0] < y[0]));
+    return (x[1] < y[1]) || ((x[1] == y[1]) && (x[0] < y[0]));
 #endif
 }
 
@@ -1053,7 +1053,7 @@ inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
     const auto xlo = uint128{x[0], x[1]};
     const auto yhi = uint128{y[2], y[3]};
     const auto ylo = uint128{y[0], y[1]};
-    return (xhi < yhi) | ((xhi == yhi) & (xlo < ylo));
+    return (xhi < yhi) || ((xhi == yhi) && (xlo < ylo));
 }
 #endif
 
