@@ -297,7 +297,7 @@ inline constexpr bool operator<(uint128 x, uint128 y) noexcept
 #if INTX_HAS_BUILTIN_INT128
     return builtin_uint128{x} < builtin_uint128{y};
 #else
-    return (x[1] < y[1]) | ((x[1] == y[1]) & (x[0] < y[0]));
+    return (unsigned{x[1] < y[1]} | (unsigned{x[1] == y[1]} & unsigned{x[0] < y[0]})) != 0;
 #endif
 }
 
@@ -1048,7 +1048,7 @@ inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
     const auto xlo = uint128{x[0], x[1]};
     const auto yhi = uint128{y[2], y[3]};
     const auto ylo = uint128{y[0], y[1]};
-    return (xhi < yhi) | ((xhi == yhi) & (xlo < ylo));
+    return (unsigned(xhi < yhi) | (unsigned(xhi == yhi) & unsigned(xlo < ylo))) != 0;
 }
 #endif
 
