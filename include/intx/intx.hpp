@@ -281,17 +281,12 @@ inline constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
 
 inline constexpr bool operator==(uint128 x, uint128 y) noexcept
 {
-    // Clang7: generates perfect xor based code,
-    //         much better than __int128 where it uses vector instructions.
-    // GCC8: generates a bit worse cmp based code
-    //       although it generates the xor based one for __int128.
-    return (x[0] == y[0]) & (x[1] == y[1]);
+    return ((x[0] ^ y[0]) | (x[1] ^ y[1])) == 0;
 }
 
 inline constexpr bool operator!=(uint128 x, uint128 y) noexcept
 {
-    // Analogous to ==, but == not used directly, because that confuses GCC 8-9.
-    return (x[0] != y[0]) | (x[1] != y[1]);
+    return !(x == y);
 }
 
 inline constexpr bool operator<(uint128 x, uint128 y) noexcept
@@ -1005,10 +1000,10 @@ using uint512 = uint<512>;
 template <unsigned N>
 inline constexpr bool operator==(const uint<N>& x, const uint<N>& y) noexcept
 {
-    bool result = true;
+    uint64_t folded = 0;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
-        result &= (x[i] == y[i]);
-    return result;
+        folded |= (x[i] ^ y[i]);
+    return folded == 0;
 }
 
 template <unsigned N, typename T,
