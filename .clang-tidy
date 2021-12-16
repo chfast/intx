@@ -11,6 +11,7 @@ Checks: >
   portability-*,
   readability-*,
   -readability-braces-around-statements,
+  -readability-identifier-length,
   -readability-implicit-bool-conversion,
   -readability-magic-numbers,
   -readability-uppercase-literal-suffix,
