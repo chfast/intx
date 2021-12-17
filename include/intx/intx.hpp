@@ -1943,6 +1943,24 @@ inline constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
 
 inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
+    // Fast path for mod >= 2^192, with x and y at most slightly bigger than mod.
+    // This is always the case when x and y are already reduced modulo mod.
+    // Based on https://github.com/holiman/uint256/pull/86.
+    if ((mod[3] != 0) && (x[3] <= mod[3]) && (y[3] <= mod[3]))
+    {
+        auto s = sub_with_carry(x, mod);
+        if (s.carry)
+            s.value = x;
+
+        auto t = sub_with_carry(y, mod);
+        if (t.carry)
+            t.value = y;
+
+        s = add_with_carry(s.value, t.value);
+        t = sub_with_carry(s.value, mod);
+        return (s.carry || !t.carry) ? t.value : s.value;
+    }
+
     const auto s = add_with_carry(x, y);
     uint<256 + 64> n = s.value;
     n[4] = s.carry;
