@@ -5,6 +5,20 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+
+## [0.7.0] — 2021-12-17
+
+### Changed
+
+- The `int128.hpp` and `intx.hpp` header files have been merged. Now the whole
+  library is included in single [`intx/intx.hpp`](./include/intx/intx.hpp) file.
+  [#242](https://github.com/chfast/intx/pull/242)
+- The `addmod()` implementation has optimized path for elliptic curve context.
+  [#206](https://github.com/chfast/intx/pull/206)
+- The implementation of `operator==` now explicitly performs XOR folding.
+  [#245](https://github.com/chfast/intx/pull/245)
+
+
 ## [0.6.0] — 2021-06-25
 
 ### Changed
@@ -102,6 +116,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.7.0]: https://github.com/chfast/intx/releases/v0.7.0
 [0.6.0]: https://github.com/chfast/intx/releases/v0.6.0
 [0.5.1]: https://github.com/chfast/intx/releases/v0.5.1
 [0.5.0]: https://github.com/chfast/intx/releases/v0.5.0
