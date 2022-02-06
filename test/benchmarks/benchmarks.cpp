@@ -253,21 +253,17 @@ inline auto shld(uint64_t x1, uint64_t x2, uint64_t c)
 }
 
 
-[[gnu::noinline]] static intx::uint256 shl_c(
-    const intx::uint256& x, const uint64_t& shift) noexcept
+[[gnu::noinline]] static intx::uint256 shl_c(const intx::uint256& x, const uint64_t& shift) noexcept
 {
     uint512 extended;
     __builtin_memcpy(&extended[4], &x, sizeof(x));
 
-    const auto sw = shift / 64;
-    const auto sb = shift % 64;
-
-    if (sw >= 4)
-        return 0;
+    const auto sw = shift >= 256 ? 4 : shift / 64;
 
     uint256 r;
     __builtin_memcpy(&r, &extended[sw], sizeof(r));
 
+    const auto sb = shift % 64;
     if (sb == 0)
         return r;
 
