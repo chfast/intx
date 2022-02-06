@@ -246,6 +246,39 @@ template <unsigned N>
     return 0;
 }
 
+
+inline auto shld(uint64_t x1, uint64_t x2, uint64_t c)
+{
+    return (x2 << c) | (x1 >> (64 - c));
+}
+
+
+[[gnu::noinline]] static intx::uint256 shl_c(
+    const intx::uint256& x, const uint64_t& shift) noexcept
+{
+    uint512 extended;
+    __builtin_memcpy(&extended[4], &x, sizeof(x));
+
+    const auto sw = shift / 64;
+    const auto sb = shift % 64;
+
+    if (sw >= 4)
+        return 0;
+
+    uint256 r;
+    __builtin_memcpy(&r, &extended[sw], sizeof(r));
+
+    if (sb == 0)
+        return r;
+
+    uint256 z;
+    z[0] = r[0] << sb;
+    z[1] = shld(r[0], r[1], sb);
+    z[2] = shld(r[1], r[2], sb);
+    z[3] = shld(r[2], r[3], sb);
+    return z;
+}
+
 [[gnu::noinline]] static intx::uint256 shl_halves(
     const intx::uint256& x, const uint256& big_shift) noexcept
 {
@@ -340,6 +373,7 @@ BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_public)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_halves)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_public)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_halves)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_c)->DenseRange(-1, 3);
 #if INTX_HAS_EXTINT
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_llvm)->DenseRange(-1, 3);
 #endif
