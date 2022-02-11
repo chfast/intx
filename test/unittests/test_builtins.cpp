@@ -141,3 +141,60 @@ TEST(builtins, is_constant_evaluated)
     EXPECT_EQ(nonconstexpr_func_res, 1);
 #endif
 }
+
+static_assert(bswap(uint8_t{0x81}) == 0x81);
+static_assert(bswap(uint16_t{0x8681}) == 0x8186);
+static_assert(bswap(uint32_t{0x86818082}) == 0x82808186);
+static_assert(bswap(uint64_t{0x8680808081808082}) == 0x8280808180808086);
+TEST(builtins, bswap)
+{
+    uint8_t x8 = 0x86;
+    EXPECT_EQ(bswap(x8), 0x86);
+    uint16_t x16 = 0x8681;
+    EXPECT_EQ(bswap(x16), 0x8186);
+    uint32_t x32 = 0x86818082;
+    EXPECT_EQ(bswap(x32), 0x82808186);
+    uint64_t x64 = 0x8680808081808082;
+    EXPECT_EQ(bswap(x64), 0x8280808180808086);
+    uint128 x128 = uint128{0x8680808081808082, 0x8080838080848085};
+    EXPECT_EQ(bswap(x128), (uint128{0x8580848080838080, 0x8280808180808086}));
+}
+
+TEST(builtins, be_load_uint8_t)
+{
+    constexpr auto size = sizeof(uint8_t);
+    uint8_t data[size]{};
+    data[0] = 0x81;
+    const auto x = be::unsafe::load<uint8_t>(data);
+    EXPECT_EQ(x, 0x81);
+}
+
+TEST(builtins, be_load_uint16_t)
+{
+    constexpr auto size = sizeof(uint16_t);
+    uint8_t data[size]{};
+    data[0] = 0x80;
+    data[size - 1] = 1;
+    const auto x = be::unsafe::load<uint16_t>(data);
+    EXPECT_EQ(x, (uint16_t{1} << (sizeof(uint16_t) * 8 - 1)) | 1);
+}
+
+TEST(builtins, be_load_uint32_t)
+{
+    constexpr auto size = sizeof(uint32_t);
+    uint8_t data[size]{};
+    data[0] = 0x80;
+    data[size - 1] = 1;
+    const auto x = be::unsafe::load<uint32_t>(data);
+    EXPECT_EQ(x, (uint32_t{1} << (sizeof(uint32_t) * 8 - 1)) | 1);
+}
+
+TEST(builtins, be_load_uint64_t)
+{
+    constexpr auto size = sizeof(uint64_t);
+    uint8_t data[size]{};
+    data[0] = 0x80;
+    data[size - 1] = 1;
+    const auto x = be::unsafe::load<uint64_t>(data);
+    EXPECT_EQ(x, (uint64_t{1} << (sizeof(uint64_t) * 8 - 1)) | 1);
+}

@@ -334,7 +334,6 @@ TYPED_TEST(uint_test, count_significant_bytes)
     EXPECT_EQ(count_significant_bytes(x), sizeof(TypeParam));
 }
 
-static_assert(bswap(uint64_t{0x6600000001000002}) == 0x0200000100000066, "");
 TYPED_TEST(uint_test, bswap)
 {
     auto x = TypeParam{1};
