@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
 
+## [0.7.1] — 2022-02-15
+
+### Fixed
+
+- Added support for `bswap()` of small unsigned types: `uint8_t`, `uint16_t` and `uint32_t`.
+  Previously arguments where promoted to `uint64_t` what produced invalid results.
+  [#247](https://github.com/chfast/intx/pull/247)
+
 ## [0.7.0] — 2021-12-17
 
 ### Changed
@@ -116,6 +124,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.7.1]: https://github.com/chfast/intx/releases/v0.7.1
 [0.7.0]: https://github.com/chfast/intx/releases/v0.7.0
 [0.6.0]: https://github.com/chfast/intx/releases/v0.6.0
 [0.5.1]: https://github.com/chfast/intx/releases/v0.5.1
