@@ -536,6 +536,40 @@ inline constexpr unsigned clz(uint128 x) noexcept
     return x[1] == 0 ? clz(x[0]) + 64 : clz(x[1]);
 }
 
+template <typename T>
+T bswap(T x) noexcept = delete;  // Disable type auto promotion
+
+inline constexpr uint8_t bswap(uint8_t x) noexcept
+{
+    return x;
+}
+
+inline constexpr uint16_t bswap(uint16_t x) noexcept
+{
+#if __has_builtin(__builtin_bswap16)
+    return __builtin_bswap16(x);
+#else
+    #ifdef _MSC_VER
+    if (!is_constant_evaluated())
+        return _byteswap_ushort(x);
+    #endif
+    return static_cast<uint16_t>((x << 8) | (x >> 8));
+#endif
+}
+
+inline constexpr uint32_t bswap(uint32_t x) noexcept
+{
+#if __has_builtin(__builtin_bswap32)
+    return __builtin_bswap32(x);
+#else
+    #ifdef _MSC_VER
+    if (!is_constant_evaluated())
+        return _byteswap_ulong(x);
+    #endif
+    const auto a = ((x << 8) & 0xFF00FF00) | ((x >> 8) & 0x00FF00FF);
+    return (a << 16) | (a >> 16);
+#endif
+}
 
 inline constexpr uint64_t bswap(uint64_t x) noexcept
 {
