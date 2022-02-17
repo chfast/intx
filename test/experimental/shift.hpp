@@ -21,8 +21,8 @@ template <unsigned N>
     for (unsigned i = 0; i < uint<N>::num_words; ++i)
         extended[i + uint<N>::num_words] = x[i];
 
-    const auto sw =
-        shift >= uint<N>::num_bits ? uint<N>::num_words : shift / uint<N>::word_num_bits;
+    const auto s = shift / uint<N>::word_num_bits;
+    const auto sw = s < uint<N>::num_words ? s : uint<N>::num_words;
 
     uint<N> r;
     for (unsigned i = 0; i < uint<N>::num_words; ++i)
