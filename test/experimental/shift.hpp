@@ -87,33 +87,66 @@ template <unsigned N>
     {
     case 0:
     {
-        r[0] = x[0] << s;
-        r[1] = shld(x[0], x[1], s);
-        r[2] = shld(x[1], x[2], s);
-        r[3] = shld(x[2], x[3], s);
+        r = x;
         break;
     }
     case 1:
     {
-        r[1] = x[0] << s;
-        r[2] = shld(x[0], x[1], s);
-        r[3] = shld(x[1], x[2], s);
+        r[1] = x[0];
+        r[2] = x[1];
+        r[3] = x[2];
         break;
     }
     case 2:
     {
-        r[2] = x[0] << s;
-        r[3] = shld(x[0], x[1], s);
+        r[2] = x[0];
+        r[3] = x[1];
         break;
     }
     case 3:
     {
-        r[3] = x[0] << s;
+        r[3] = x[0];
         break;
     }
     default:
         break;
     }
+
+    if (s == 0)
+        return r;
+
+    switch (w)
+    {
+    case 0:
+    {
+        r[3] = shld(r[2], r[3], s);
+        r[2] = shld(r[1], r[2], s);
+        r[1] = shld(r[0], r[1], s);
+        r[0] = r[0] << s;
+        break;
+    }
+    case 1:
+    {
+        r[3] = shld(r[2], r[3], s);
+        r[2] = shld(r[1], r[2], s);
+        r[1] = r[1] << s;
+        break;
+    }
+    case 2:
+    {
+        r[3] = shld(r[2], r[3], s);
+        r[2] = r[2] << s;
+        break;
+    }
+    case 3:
+    {
+        r[3] = r[3] << s;
+        break;
+    }
+    default:
+        break;
+    }
+
     return r;
 }
 
