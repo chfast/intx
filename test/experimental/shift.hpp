@@ -7,11 +7,9 @@
 
 namespace intx::experimental
 {
-template <unsigned N>
-inline constexpr auto shld(
-    typename uint<N>::word_type x1, typename uint<N>::word_type x2, uint64_t c)
+inline constexpr uint64_t shld(uint64_t x1, uint64_t x2, uint64_t c)
 {
-    return (x2 << c) | (x1 >> (uint<N>::word_num_bits - c));
+    return (x2 << c) | (x1 >> (64 - c));
 }
 
 template <unsigned N>
@@ -36,7 +34,7 @@ inline constexpr uint<N> shl_c(const uint<N>& x, const uint64_t& shift) noexcept
 
     z[0] = r[0] << sb;
     for (unsigned i = 1; i < uint<N>::num_words; ++i)
-        z[i] = shld<N>(r[i - 1], r[i], sb);
+        z[i] = shld(r[i - 1], r[i], sb);
 
     return z;
 }
@@ -55,10 +53,9 @@ inline constexpr uint<N> shl_c(const uint<N>& x, const uint<N>& shift) noexcept
 }
 
 
-template <unsigned N>
-inline auto shrd(typename uint<N>::word_type x1, typename uint<N>::word_type x2, uint64_t c)
+inline uint64_t shrd(uint64_t x1, uint64_t x2, uint64_t c)
 {
-    return (x2 >> c) | (x1 << (uint<N>::word_num_bits - c));
+    return (x2 >> c) | (x1 << (64 - c));
 }
 
 template <unsigned N>
@@ -85,7 +82,7 @@ uint<N> shr_c(const uint<N>& x, const uint64_t& shift) noexcept
     z[nw - 1] = r[nw - 1] >> sb;
 
     for (unsigned i = 0; i < nw - 1; ++i)
-        z[nw - i - 2] = shrd<N>(r[nw - i - 1], r[nw - i - 2], sb);
+        z[nw - i - 2] = shrd(r[nw - i - 1], r[nw - i - 2], sb);
 
     return z;
 }
