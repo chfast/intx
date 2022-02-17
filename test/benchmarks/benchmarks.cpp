@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include "../experimental/addmod.hpp"
-#include "../experimental/shl.hpp"
+#include "../experimental/shift.hpp"
 #include <benchmark/benchmark.h>
 #include <intx/intx.hpp>
 #include <test/utils/gmp.hpp>

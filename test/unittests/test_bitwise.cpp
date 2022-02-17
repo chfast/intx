@@ -2,8 +2,7 @@
 // Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include "test/experimental/shl.hpp"
-#include "test/experimental/shr.hpp"
+#include "test/experimental/shift.hpp"
 #include "test_suite.hpp"
 
 using namespace intx;
