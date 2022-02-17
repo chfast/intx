@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include "test/experimental/shl.hpp"
+#include "test/experimental/shr.hpp"
 #include "test_suite.hpp"
 
 using namespace intx;
@@ -200,7 +201,7 @@ TYPED_TEST(uint_test, shift_one_bit_exp)
         SCOPED_TRACE(shift);
         constexpr auto x = TypeParam{1};
         const auto a = experimental::shl_c(x, shift);
-        EXPECT_EQ(x, a >> shift);
+        EXPECT_EQ(x, experimental::shr_c(a, shift));
     }
 }
 
@@ -210,7 +211,7 @@ TYPED_TEST(uint_test, shift_left_overflow_exp)
 
     for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
     {
-        const auto sh = x >> n;
+        const auto sh = experimental::shr_c(x, n);
         EXPECT_EQ(experimental::shl_c(x, sh), 0) << "n=" << n;
     }
 
@@ -227,14 +228,14 @@ TYPED_TEST(uint_test, shift_right_overflow_exp)
 
     for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
     {
-        const auto sh = x >> n;
-        EXPECT_EQ(x >> sh, 0) << "n=" << n;
+        const auto sh = experimental::shr_c(x, n);
+        EXPECT_EQ(experimental::shr_c(x, sh), 0) << "n=" << n;
     }
 
     for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
     {
         const auto sh = experimental::shl_c(TypeParam{sizeof(TypeParam) * 8}, n);
-        EXPECT_EQ(x >> sh, 0) << "n=" << n;
+        EXPECT_EQ(experimental::shr_c(x, sh), 0) << "n=" << n;
     }
 }
 
@@ -256,7 +257,7 @@ TYPED_TEST(uint_test, shift_right_overflow_uint64_exp)
     for (unsigned n = 0; n <= 100; ++n)
     {
         const uint64_t sh = sizeof(TypeParam) * 8 + n;
-        EXPECT_EQ(x >> sh, 0) << "n=" << n;
+        EXPECT_EQ(experimental::shr_c(x, sh), 0) << "n=" << n;
     }
 }
 
@@ -264,8 +265,8 @@ TYPED_TEST(uint_test, shift_overflow_exp)
 {
     const uint64_t sh = sizeof(TypeParam) * 8;
     const auto value = ~TypeParam{};
-    EXPECT_EQ(value >> sh, 0);
-    EXPECT_EQ(value >> TypeParam{sh}, 0);
+    EXPECT_EQ(experimental::shr_c(value, sh), 0);
+    EXPECT_EQ(experimental::shr_c(value, TypeParam{sh}), 0);
     EXPECT_EQ(experimental::shl_c(value, sh), 0);
     EXPECT_EQ(experimental::shl_c(value, TypeParam{sh}), 0);
 }
@@ -273,14 +274,15 @@ TYPED_TEST(uint_test, shift_overflow_exp)
 TYPED_TEST(uint_test, shift_by_int_exp)
 {
     const auto x = experimental::shl_c(TypeParam{1}, (sizeof(TypeParam) * 8 - 1)) | TypeParam{1};
-    EXPECT_EQ(x >> 0, x);
+    EXPECT_EQ(experimental::shr_c(x, 0), x);
     EXPECT_EQ(experimental::shl_c(x, 0), x);
-    EXPECT_EQ(x >> 1, experimental::shl_c(TypeParam{1}, uint64_t{TypeParam::num_bits - 2}));
+    EXPECT_EQ(experimental::shr_c(x, 1),
+        experimental::shl_c(TypeParam{1}, uint64_t{TypeParam::num_bits - 2}));
     EXPECT_EQ(experimental::shl_c(x, 1), TypeParam{2});
-    EXPECT_EQ(x >> int{TypeParam::num_bits - 1}, TypeParam{1});
+    EXPECT_EQ(experimental::shr_c(x, int{TypeParam::num_bits - 1}), TypeParam{1});
     EXPECT_EQ(experimental::shl_c(x, int{TypeParam::num_bits - 1}),
         experimental::shl_c(TypeParam{1}, uint64_t{TypeParam::num_bits - 1}));
-    EXPECT_EQ(x >> int{TypeParam::num_bits}, 0);
+    EXPECT_EQ(experimental::shr_c(x, int{TypeParam::num_bits}), 0);
 }
 
 TYPED_TEST(uint_test, not_of_zero)
