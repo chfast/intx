@@ -201,6 +201,9 @@ TYPED_TEST(uint_test, shift_one_bit_exp)
         constexpr auto x = TypeParam{1};
         const auto a = experimental::shl_c(x, shift);
         EXPECT_EQ(x, experimental::shr_c(a, shift));
+
+        const auto b = experimental::shl_e(x, shift);
+        EXPECT_EQ(x, experimental::shr_c(b, shift));
     }
 }
 
@@ -212,12 +215,16 @@ TYPED_TEST(uint_test, shift_left_overflow_exp)
     {
         const auto sh = experimental::shr_c(x, n);
         EXPECT_EQ(experimental::shl_c(x, sh), 0) << "n=" << n;
+        EXPECT_EQ(experimental::shl_e(x, sh), 0) << "n=" << n;
     }
 
     for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
     {
         const auto sh = experimental::shl_c(TypeParam{sizeof(TypeParam) * 8}, n);
+        const auto sh2 = experimental::shl_e(TypeParam{sizeof(TypeParam) * 8}, n);
+        EXPECT_EQ(sh, sh2);
         EXPECT_EQ(experimental::shl_c(x, sh), 0) << "n=" << n;
+        EXPECT_EQ(experimental::shl_e(x, sh), 0) << "n=" << n;
     }
 }
 
@@ -234,6 +241,8 @@ TYPED_TEST(uint_test, shift_right_overflow_exp)
     for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
     {
         const auto sh = experimental::shl_c(TypeParam{sizeof(TypeParam) * 8}, n);
+        const auto sh2 = experimental::shl_e(TypeParam{sizeof(TypeParam) * 8}, n);
+        EXPECT_EQ(sh, sh2);
         EXPECT_EQ(experimental::shr_c(x, sh), 0) << "n=" << n;
     }
 }
@@ -246,6 +255,7 @@ TYPED_TEST(uint_test, shift_left_overflow_uint64_exp)
     {
         const uint64_t sh = sizeof(TypeParam) * 8 + n;
         EXPECT_EQ(experimental::shl_c(x, sh), 0) << "n=" << n;
+        EXPECT_EQ(experimental::shl_e(x, sh), 0) << "n=" << n;
     }
 }
 
@@ -275,12 +285,16 @@ TYPED_TEST(uint_test, shift_by_int_exp)
     const auto x = experimental::shl_c(TypeParam{1}, (sizeof(TypeParam) * 8 - 1)) | TypeParam{1};
     EXPECT_EQ(experimental::shr_c(x, 0), x);
     EXPECT_EQ(experimental::shl_c(x, 0), x);
+    EXPECT_EQ(experimental::shl_e(x, 0), x);
     EXPECT_EQ(experimental::shr_c(x, 1),
         experimental::shl_c(TypeParam{1}, uint64_t{TypeParam::num_bits - 2}));
     EXPECT_EQ(experimental::shl_c(x, 1), TypeParam{2});
+    EXPECT_EQ(experimental::shl_e(x, 1), TypeParam{2});
     EXPECT_EQ(experimental::shr_c(x, int{TypeParam::num_bits - 1}), TypeParam{1});
     EXPECT_EQ(experimental::shl_c(x, int{TypeParam::num_bits - 1}),
         experimental::shl_c(TypeParam{1}, uint64_t{TypeParam::num_bits - 1}));
+    EXPECT_EQ(experimental::shl_e(x, int{TypeParam::num_bits - 1}),
+        experimental::shl_e(TypeParam{1}, uint64_t{TypeParam::num_bits - 1}));
     EXPECT_EQ(experimental::shr_c(x, int{TypeParam::num_bits}), 0);
 }
 

@@ -52,6 +52,42 @@ inline constexpr uint<N> shl_c(const uint<N>& x, const uint<N>& shift) noexcept
     return shl_c(x, shift[0]);
 }
 
+template <unsigned N>
+inline constexpr uint<N> shl_e(const uint<N>& x, const uint64_t& shift) noexcept
+{
+    uint<N> r;
+
+    const auto w = shift / 64;
+
+    size_t j = 0;
+    for (size_t i = w; i < uint<N>::num_words; ++i, ++j)
+        r[i] = x[j];
+
+    const auto sb = shift % uint<N>::word_num_bits;
+    if (sb == 0)
+        return r;
+
+    uint<N> z;
+    z[0] = r[0] << sb;
+    for (unsigned i = 1; i < uint<N>::num_words; ++i)
+        z[i] = shld(r[i - 1], r[i], sb);
+
+    return z;
+}
+
+template <unsigned N>
+inline constexpr uint<N> shl_e(const uint<N>& x, const uint<N>& shift) noexcept
+{
+    uint64_t high_words_fold = 0;
+    for (size_t i = 1; i < uint<N>::num_words; ++i)
+        high_words_fold |= shift[i];
+
+    if (INTX_UNLIKELY(high_words_fold != 0))
+        return 0;
+
+    return shl_e(x, shift[0]);
+}
+
 
 inline uint64_t shrd(uint64_t x1, uint64_t x2, uint64_t c)
 {
