@@ -13,7 +13,7 @@ inline constexpr uint64_t shld(uint64_t x1, uint64_t x2, uint64_t c)
 }
 
 template <unsigned N>
-inline constexpr uint<N> shl_c(const uint<N>& x, const uint64_t& shift) noexcept
+[[gnu::noinline]] inline constexpr uint<N> shl_c(const uint<N>& x, const uint64_t& shift) noexcept
 {
     uint<2 * N> extended;
     for (unsigned i = 0; i < uint<N>::num_words; ++i)
@@ -53,7 +53,7 @@ inline constexpr uint<N> shl_c(const uint<N>& x, const uint<N>& shift) noexcept
 }
 
 template <unsigned N>
-inline constexpr uint<N> shl_e(const uint<N>& x, const uint64_t& shift) noexcept
+[[gnu::noinline]] inline constexpr uint<N> shl_e(const uint<N>& x, const uint64_t& shift) noexcept
 {
     uint<N> r;
 
