@@ -9,6 +9,8 @@ namespace intx::experimental
 {
 inline constexpr uint64_t shld(uint64_t x1, uint64_t x2, uint64_t c)
 {
+    if (c == 0)
+        return x2;
     return (x2 << c) | (x1 >> (64 - c));
 }
 
@@ -75,9 +77,46 @@ template <unsigned N>
     return z;
 }
 
-[[gnu::noinline]] inline constexpr uint256 shl_e(const uint256& x, const uint64_t& /*shift*/) noexcept
+[[gnu::noinline]] inline constexpr uint256 shl_e(const uint256& x, const uint64_t& shift) noexcept
 {
-    return x;
+    const auto w = shift / 64;
+    const auto s = shift % 64;
+
+    switch (w)
+    {
+    case 0:
+    {
+        uint256 r;
+        r[0] = x[0] << s;
+        r[1] = shld(x[0], x[1], s);
+        r[2] = shld(x[1], x[2], s);
+        r[3] = shld(x[2], x[3], s);
+        return r;
+    }
+    case 1:
+    {
+        uint256 r;
+        r[1] = x[0] << s;
+        r[2] = shld(x[0], x[1], s);
+        r[3] = shld(x[1], x[2], s);
+        return r;
+    }
+    case 2:
+    {
+        uint256 r;
+        r[2] = x[0] << s;
+        r[3] = shld(x[0], x[1], s);
+        return r;
+    }
+    case 3:
+    {
+        uint256 r;
+        r[3] = x[0] << s;
+        return r;
+    }
+    default:
+        return {};
+    }
 }
 
 template <unsigned N>
