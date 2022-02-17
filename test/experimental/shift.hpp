@@ -89,6 +89,41 @@ inline constexpr uint<N> shl_e(const uint<N>& x, const uint<N>& shift) noexcept
 }
 
 
+template <unsigned N>
+[[gnu::noinline]] inline constexpr uint<N> shl_w(const uint<N>& x, const uint64_t& shift) noexcept
+{
+    const auto w = shift / 64;
+    const auto s = shift % 64;
+
+    uint<N> r;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        r[i] = i >= w ? x[i - w] : 0;
+
+    if (s == 0)
+        return r;
+
+    uint<N> z;
+    z[0] = r[0] << s;
+    for (unsigned i = 1; i < uint<N>::num_words; ++i)
+        z[i] = shld(r[i - 1], r[i], s);
+
+    return z;
+}
+
+template <unsigned N>
+inline constexpr uint<N> shl_w(const uint<N>& x, const uint<N>& shift) noexcept
+{
+    uint64_t high_words_fold = 0;
+    for (size_t i = 1; i < uint<N>::num_words; ++i)
+        high_words_fold |= shift[i];
+
+    if (INTX_UNLIKELY(high_words_fold != 0))
+        return 0;
+
+    return shl_w(x, shift[0]);
+}
+
+
 inline uint64_t shrd(uint64_t x1, uint64_t x2, uint64_t c)
 {
     return (x2 >> c) | (x1 << (64 - c));
