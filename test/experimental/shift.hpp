@@ -75,6 +75,11 @@ template <unsigned N>
     return z;
 }
 
+[[gnu::noinline]] inline constexpr uint256 shl_e(const uint256& x, const uint64_t& /*shift*/) noexcept
+{
+    return x;
+}
+
 template <unsigned N>
 inline constexpr uint<N> shl_e(const uint<N>& x, const uint<N>& shift) noexcept
 {
