@@ -136,20 +136,21 @@ template <unsigned N>
 {
     const auto w = shift / 64;
     const auto s = shift % 64;
+    const auto t = s == 0 ? 0 : 64 - s;
+    const auto m = s == 0 ? 0 : ~uint64_t{0};
 
     uint<N> r;
+    uint64_t carry = 0;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
-        r[i] = i >= w ? x[i - w] : 0;
-
-    if (s == 0)
-        return r;
-
-    uint<N> z;
-    z[0] = r[0] << s;
-    for (unsigned i = 1; i < uint<N>::num_words; ++i)
-        z[i] = shld(r[i - 1], r[i], s);
-
-    return z;
+    {
+        auto a = i >= w ? x[i - w] : 0;
+        auto b = a << s;
+        auto c = b | carry;
+        carry = a >> t;
+        carry &= m;
+        r[i] = c;
+    }
+    return r;
 }
 
 template <unsigned N>
