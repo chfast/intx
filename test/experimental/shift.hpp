@@ -82,41 +82,39 @@ template <unsigned N>
     const auto w = shift / 64;
     const auto s = shift % 64;
 
+    uint256 r;
     switch (w)
     {
     case 0:
     {
-        uint256 r;
         r[0] = x[0] << s;
         r[1] = shld(x[0], x[1], s);
         r[2] = shld(x[1], x[2], s);
         r[3] = shld(x[2], x[3], s);
-        return r;
+        break;
     }
     case 1:
     {
-        uint256 r;
         r[1] = x[0] << s;
         r[2] = shld(x[0], x[1], s);
         r[3] = shld(x[1], x[2], s);
-        return r;
+        break;
     }
     case 2:
     {
-        uint256 r;
         r[2] = x[0] << s;
         r[3] = shld(x[0], x[1], s);
-        return r;
+        break;
     }
     case 3:
     {
-        uint256 r;
         r[3] = x[0] << s;
-        return r;
+        break;
     }
     default:
-        return {};
+        break;
     }
+    return r;
 }
 
 template <unsigned N>
