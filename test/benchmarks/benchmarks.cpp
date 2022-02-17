@@ -212,6 +212,20 @@ template <unsigned N>
     return x << y;
 }
 
+template <unsigned N>
+[[gnu::noinline]] static intx::uint<N> shl_generic(
+    const intx::uint<N>& x, const uint64_t& y) noexcept
+{
+    return intx::operator<<<N>(x, y);
+}
+
+template <unsigned N>
+[[gnu::noinline]] static intx::uint<N> shl_generic(
+    const intx::uint<N>& x, const intx::uint<N>& y) noexcept
+{
+    return intx::operator<<<N>(x, y);
+}
+
 [[gnu::noinline]] static intx::uint256 shl_halves(
     const intx::uint256& x, const uint64_t& shift) noexcept
 {
@@ -338,8 +352,10 @@ static void shift(benchmark::State& state)
     }
 }
 BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_public)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_generic)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_halves)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_public)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_generic)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_halves)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, experimental::shl_c)->DenseRange(-1, 3);
 #if INTX_HAS_EXTINT
