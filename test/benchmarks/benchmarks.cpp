@@ -357,6 +357,10 @@ BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_halves)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, experimental::shl_c)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, experimental::shl_e)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, experimental::shl_w)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint64_t, experimental::shl_bits_1)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint64_t, experimental::shl_bits_2)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint64_t, experimental::shl_bits_3)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, uint64_t, experimental::shl_bits_4)->DenseRange(-1, 3);
 #if INTX_HAS_EXTINT
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_llvm)->DenseRange(-1, 3);
 #endif

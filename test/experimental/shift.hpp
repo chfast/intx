@@ -41,6 +41,71 @@ template <unsigned N>
     return z;
 }
 
+[[gnu::noinline]] inline uint256 shl_bits_1(const uint256& x, uint64_t sb) noexcept
+{
+    if (sb == 0)
+        __builtin_unreachable();
+    uint256 z;
+    z[0] = x[0] << sb;
+    for (unsigned i = 1; i < uint256::num_words; ++i)
+        z[i] = shld(x[i - 1], x[i], sb);
+    return z;
+}
+
+[[gnu::noinline]] inline uint256 shl_bits_2(const uint256& x, uint64_t sb) noexcept
+{
+    if (sb == 0)
+        __builtin_unreachable();
+
+    const auto t = 64 - sb;
+
+    uint256 r;
+    uint64_t carry = 0;
+    for (size_t i = 0; i < uint256::num_words; ++i)
+    {
+        auto a = x[i];
+        auto b = a << sb;
+        auto c = b | carry;
+        carry = a >> t;
+        r[i] = c;
+    }
+    return r;
+}
+
+[[gnu::noinline]] inline uint256 shl_bits_3(const uint256& x, uint64_t sb) noexcept
+{
+    if (sb == 0)
+        __builtin_unreachable();
+
+    static constexpr size_t num_words = 4;
+    size_t skip = 0;
+    uint256 r;
+    uint64_t carry = 0;
+    for (size_t i = 0; i < (num_words - skip); ++i)
+    {
+        r[num_words - 1 - i - skip] = (x[num_words - 1 - i] >> sb) | carry;
+        carry = (x[num_words - 1 - i] << (64 - sb - 1)) << 1;
+    }
+    return r;
+}
+
+[[gnu::noinline]] inline uint256 shl_bits_4(const uint256& x, uint64_t sb) noexcept
+{
+    if (sb == 0)
+        __builtin_unreachable();
+
+    static constexpr size_t num_words = 4;
+    size_t skip = 0;
+    uint256 r;
+    uint64_t carry = 0;
+    for (size_t i = 0; i < (num_words - skip); ++i)
+    {
+        r[num_words - 1 - i - skip] = (x[num_words - 1 - i] >> sb) | carry;
+        carry = (x[num_words - 1 - i] << (64 - sb));
+    }
+    return r;
+}
+
 template <unsigned N>
 inline constexpr uint<N> shl_c(const uint<N>& x, const uint<N>& shift) noexcept
 {
