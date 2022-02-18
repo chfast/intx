@@ -199,8 +199,7 @@ BENCHMARK_TEMPLATE(binop, uint512, uint512, public_mul);
 BENCHMARK_TEMPLATE(binop, uint512, uint512, gmp::mul);
 
 template <unsigned N>
-[[gnu::noinline]] static intx::uint<N> shl_public(
-    const intx::uint<N>& x, const uint64_t& y) noexcept
+[[gnu::noinline]] static intx::uint<N> shl_public(const intx::uint<N>& x, uint64_t y) noexcept
 {
     return x << y;
 }
@@ -213,8 +212,7 @@ template <unsigned N>
 }
 
 template <unsigned N>
-[[gnu::noinline]] static intx::uint<N> shl_generic(
-    const intx::uint<N>& x, const uint64_t& y) noexcept
+[[gnu::noinline]] static intx::uint<N> shl_generic(const intx::uint<N>& x, uint64_t y) noexcept
 {
     return intx::operator<<<N>(x, y);
 }
@@ -226,8 +224,7 @@ template <unsigned N>
     return intx::operator<<<N>(x, y);
 }
 
-[[gnu::noinline]] static intx::uint256 shl_halves(
-    const intx::uint256& x, const uint64_t& shift) noexcept
+[[gnu::noinline]] static intx::uint256 shl_halves(const intx::uint256& x, uint64_t shift) noexcept
 {
     constexpr auto num_bits = 256;
     constexpr auto half_bits = num_bits / 2;
@@ -303,7 +300,7 @@ template <unsigned N>
 }
 
 #if INTX_HAS_EXTINT
-[[gnu::noinline]] static intx::uint256 shl_llvm(const intx::uint256& x, const uint64_t& y) noexcept
+[[gnu::noinline]] static intx::uint256 shl_llvm(const intx::uint256& x, uint64_t y) noexcept
 {
     unsigned _ExtInt(256) a;
     std::memcpy(&a, &x, sizeof(a));
@@ -315,7 +312,7 @@ template <unsigned N>
 #endif
 
 
-template <typename ArgT, typename ShiftT, ArgT ShiftFn(const ArgT&, const ShiftT&)>
+template <typename ArgT, typename ShiftT, ArgT ShiftFn(const ArgT&, ShiftT)>
 static void shift(benchmark::State& state)
 {
     const auto& shift_samples_id = [&state]() noexcept {
@@ -339,7 +336,7 @@ static void shift(benchmark::State& state)
 
     const auto& xs = test::get_samples<ArgT>(sizeof(ArgT) == sizeof(uint256) ? x_256 : x_512);
     const auto& raw_shifts = test::get_samples<uint64_t>(shift_samples_id);
-    std::array<ShiftT, test::num_samples> shifts;
+    std::array<std::decay_t<ShiftT>, test::num_samples> shifts;
     std::copy(std::cbegin(raw_shifts), std::cend(raw_shifts), std::begin(shifts));
 
     while (state.KeepRunningBatch(xs.size()))
@@ -351,9 +348,9 @@ static void shift(benchmark::State& state)
         }
     }
 }
-BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_public)->DenseRange(-1, 3);
-BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_generic)->DenseRange(-1, 3);
-BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_halves)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, const uint256&, shl_public)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, const uint256&, shl_generic)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint256, const uint256&, shl_halves)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_public)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_generic)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_halves)->DenseRange(-1, 3);
@@ -363,7 +360,7 @@ BENCHMARK_TEMPLATE(shift, uint256, uint64_t, experimental::shl_w)->DenseRange(-1
 #if INTX_HAS_EXTINT
 BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_llvm)->DenseRange(-1, 3);
 #endif
-BENCHMARK_TEMPLATE(shift, uint512, uint512, shl_public)->DenseRange(-1, 3);
+BENCHMARK_TEMPLATE(shift, uint512, const uint512&, shl_public)->DenseRange(-1, 3);
 BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
 
 [[gnu::noinline]] static bool lt_public(const uint256& x, const uint256& y) noexcept
