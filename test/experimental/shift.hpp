@@ -29,14 +29,16 @@ template <unsigned N>
         r[i] = extended[size_t(uint<N>::num_words - sw + i)];
 
     const auto sb = shift % uint<N>::word_num_bits;
-    if (sb == 0)
-        return r;
+    const auto m = uint64_t{1} << sb;
 
     uint<N> z;
-
-    z[0] = r[0] << sb;
-    for (unsigned i = 1; i < uint<N>::num_words; ++i)
-        z[i] = shld(r[i - 1], r[i], sb);
+    uint64_t k = 0;
+    for (unsigned i = 0; i < uint<N>::num_words; ++i)
+    {
+        const auto p = umul(r[i], m);
+        z[i] = p[0] + k;
+        k = p[1];
+    }
 
     return z;
 }
