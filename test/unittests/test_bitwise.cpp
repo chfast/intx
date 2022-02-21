@@ -2,6 +2,7 @@
 // Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
+#include "test/experimental/shift.hpp"
 #include "test_suite.hpp"
 
 using namespace intx;
@@ -192,6 +193,124 @@ TYPED_TEST(uint_test, shift_by_int)
     EXPECT_EQ(x << int{TypeParam::num_bits}, 0);
 }
 
+TYPED_TEST(uint_test, shift_one_bit_exp)
+{
+    for (unsigned shift = 0; shift < sizeof(TypeParam) * 8; ++shift)
+    {
+        SCOPED_TRACE(shift);
+        constexpr auto x = TypeParam{1};
+        const auto a = experimental::shl_c(x, shift);
+        EXPECT_EQ(x, experimental::shr_c(a, shift));
+
+        const auto b = experimental::shl_e(x, shift);
+        const auto c = experimental::shl_w(x, shift);
+        EXPECT_EQ(b, c);
+        EXPECT_EQ(x, experimental::shr_c(b, shift));
+    }
+}
+
+TYPED_TEST(uint_test, shift_left_overflow_exp)
+{
+    const auto x = ~TypeParam{};
+
+    for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
+    {
+        const auto sh = experimental::shr_c(x, n);
+        EXPECT_EQ(experimental::shl_c(x, sh), 0) << "n=" << n;
+        EXPECT_EQ(experimental::shl_e(x, sh), 0) << "n=" << n;
+        EXPECT_EQ(experimental::shl_e(x, sh), 0) << "n=" << n;
+    }
+
+    for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
+    {
+        const auto sh = experimental::shl_c(TypeParam{sizeof(TypeParam) * 8}, n);
+        const auto sh2 = experimental::shl_e(TypeParam{sizeof(TypeParam) * 8}, n);
+        const auto sh3 = experimental::shl_e(TypeParam{sizeof(TypeParam) * 8}, n);
+        EXPECT_EQ(sh, sh2);
+        EXPECT_EQ(sh, sh3);
+        EXPECT_EQ(experimental::shl_c(x, sh), 0) << "n=" << n;
+        EXPECT_EQ(experimental::shl_e(x, sh), 0) << "n=" << n;
+        EXPECT_EQ(experimental::shl_w(x, sh), 0) << "n=" << n;
+    }
+}
+
+TYPED_TEST(uint_test, shift_right_overflow_exp)
+{
+    const auto x = ~TypeParam{};
+
+    for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
+    {
+        const auto sh = experimental::shr_c(x, n);
+        EXPECT_EQ(experimental::shr_c(x, sh), 0) << "n=" << n;
+    }
+
+    for (unsigned n = 0; n <= sizeof(TypeParam) * 7; ++n)
+    {
+        const auto sh = experimental::shl_c(TypeParam{sizeof(TypeParam) * 8}, n);
+        const auto sh2 = experimental::shl_e(TypeParam{sizeof(TypeParam) * 8}, n);
+        const auto sh3 = experimental::shl_w(TypeParam{sizeof(TypeParam) * 8}, n);
+        EXPECT_EQ(sh, sh2);
+        EXPECT_EQ(sh, sh3);
+        EXPECT_EQ(experimental::shr_c(x, sh), 0) << "n=" << n;
+    }
+}
+
+TYPED_TEST(uint_test, shift_left_overflow_uint64_exp)
+{
+    const auto x = ~TypeParam{};
+
+    for (unsigned n = 0; n <= 100; ++n)
+    {
+        const uint64_t sh = sizeof(TypeParam) * 8 + n;
+        EXPECT_EQ(experimental::shl_c(x, sh), 0) << "n=" << n;
+        EXPECT_EQ(experimental::shl_e(x, sh), 0) << "n=" << n;
+        EXPECT_EQ(experimental::shl_w(x, sh), 0) << "n=" << n;
+    }
+}
+
+TYPED_TEST(uint_test, shift_right_overflow_uint64_exp)
+{
+    const auto x = ~TypeParam{};
+
+    for (unsigned n = 0; n <= 100; ++n)
+    {
+        const uint64_t sh = sizeof(TypeParam) * 8 + n;
+        EXPECT_EQ(experimental::shr_c(x, sh), 0) << "n=" << n;
+    }
+}
+
+TYPED_TEST(uint_test, shift_overflow_exp)
+{
+    const uint64_t sh = sizeof(TypeParam) * 8;
+    const auto value = ~TypeParam{};
+    EXPECT_EQ(experimental::shr_c(value, sh), 0);
+    EXPECT_EQ(experimental::shr_c(value, TypeParam{sh}), 0);
+    EXPECT_EQ(experimental::shl_c(value, sh), 0);
+    EXPECT_EQ(experimental::shl_c(value, TypeParam{sh}), 0);
+}
+
+TYPED_TEST(uint_test, shift_by_int_exp)
+{
+    const auto x = experimental::shl_c(TypeParam{1}, (sizeof(TypeParam) * 8 - 1)) | TypeParam{1};
+    EXPECT_EQ(experimental::shr_c(x, 0), x);
+    EXPECT_EQ(experimental::shl_c(x, 0), x);
+    EXPECT_EQ(experimental::shl_e(x, 0), x);
+    EXPECT_EQ(experimental::shl_w(x, 0), x);
+    EXPECT_EQ(experimental::shr_c(x, 1),
+        experimental::shl_c(TypeParam{1}, uint64_t{TypeParam::num_bits - 2}));
+    EXPECT_EQ(experimental::shl_c(x, 1), TypeParam{2});
+    EXPECT_EQ(experimental::shl_e(x, 1), TypeParam{2});
+    EXPECT_EQ(experimental::shl_w(x, 1), TypeParam{2});
+    EXPECT_EQ(experimental::shr_c(x, int{TypeParam::num_bits - 1}), TypeParam{1});
+    EXPECT_EQ(experimental::shl_c(x, int{TypeParam::num_bits - 1}),
+        experimental::shl_c(TypeParam{1}, uint64_t{TypeParam::num_bits - 1}));
+    EXPECT_EQ(experimental::shl_e(x, int{TypeParam::num_bits - 1}),
+        experimental::shl_e(TypeParam{1}, uint64_t{TypeParam::num_bits - 1}));
+    EXPECT_EQ(experimental::shl_w(x, int{TypeParam::num_bits - 1}),
+        experimental::shl_w(TypeParam{1}, uint64_t{TypeParam::num_bits - 1}));
+    EXPECT_EQ(experimental::shr_c(x, int{TypeParam::num_bits}), 0);
+}
+
 TYPED_TEST(uint_test, not_of_zero)
 {
     auto ones = ~TypeParam{};
@@ -227,4 +346,46 @@ TYPED_TEST(uint_test, shift_against_mul)
     auto s = TypeParam{1} << b;
     auto y = a * s;
     EXPECT_EQ(x, y);
+}
+
+TEST(avx, shl_words)
+{
+    const auto x = 0x18191a1b1c1d1e1f28292a2b2c2d2e2f38393a3b3c3d3e3f48494a4b4c4d4e4f_u256;
+    EXPECT_EQ(experimental::shl_words_avx(x, 0), x);
+    EXPECT_EQ(experimental::shl_words_avx(x, 1), x << 64);
+    EXPECT_EQ(experimental::shl_words_avx(x, 2), x << 128);
+    EXPECT_EQ(experimental::shl_words_avx(x, 3), x << 192);
+    EXPECT_EQ(experimental::shl_words_avx(x, 4), 0);
+    EXPECT_EQ(experimental::shl_words_avx(x, 5), 0);
+    EXPECT_EQ(experimental::shl_words_avx(x, 123131231), 0);
+}
+
+TEST(avx, shl_bits)
+{
+    const auto x = 0x18191a1b1c1d1e1f28292a2b2c2d2e2f38393a3b3c3d3e3f48494a4b4c4d4e4f_u256;
+    EXPECT_EQ(experimental::shl_bits_avx(x, 0), x);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 1), x << 1);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 2), x << 2);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 3), x << 3);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 31), x << 31);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 32), x << 32);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 33), x << 33);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 63), x << 63);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 64), x << 64);
+}
+
+TEST(avx, shl_avx)
+{
+    const auto x = 0x18191a1b1c1d1e1f28292a2b2c2d2e2f38393a3b3c3d3e3f48494a4b4c4d4e4f_u256;
+    EXPECT_EQ(experimental::shl_avx(x, 0), x);
+    EXPECT_EQ(experimental::shl_avx(x, 1), x << 1);
+    EXPECT_EQ(experimental::shl_avx(x, 2), x << 2);
+    EXPECT_EQ(experimental::shl_avx(x, 3), x << 3);
+    EXPECT_EQ(experimental::shl_avx(x, 31), x << 31);
+    EXPECT_EQ(experimental::shl_avx(x, 32), x << 32);
+    EXPECT_EQ(experimental::shl_avx(x, 33), x << 33);
+    EXPECT_EQ(experimental::shl_avx(x, 63), x << 63);
+    EXPECT_EQ(experimental::shl_avx(x, 64), x << 64);
+    EXPECT_EQ(experimental::shl_avx(x, 65), x << 65);
+    EXPECT_EQ(experimental::shl_avx(x, 255), x << 255);
 }
