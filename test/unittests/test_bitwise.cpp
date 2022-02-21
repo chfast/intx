@@ -347,3 +347,45 @@ TYPED_TEST(uint_test, shift_against_mul)
     auto y = a * s;
     EXPECT_EQ(x, y);
 }
+
+TEST(avx, shl_words)
+{
+    const auto x = 0x18191a1b1c1d1e1f28292a2b2c2d2e2f38393a3b3c3d3e3f48494a4b4c4d4e4f_u256;
+    EXPECT_EQ(experimental::shl_words_avx(x, 0), x);
+    EXPECT_EQ(experimental::shl_words_avx(x, 1), x << 64);
+    EXPECT_EQ(experimental::shl_words_avx(x, 2), x << 128);
+    EXPECT_EQ(experimental::shl_words_avx(x, 3), x << 192);
+    EXPECT_EQ(experimental::shl_words_avx(x, 4), 0);
+    EXPECT_EQ(experimental::shl_words_avx(x, 5), 0);
+    EXPECT_EQ(experimental::shl_words_avx(x, 123131231), 0);
+}
+
+TEST(avx, shl_bits)
+{
+    const auto x = 0x18191a1b1c1d1e1f28292a2b2c2d2e2f38393a3b3c3d3e3f48494a4b4c4d4e4f_u256;
+    EXPECT_EQ(experimental::shl_bits_avx(x, 0), x);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 1), x << 1);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 2), x << 2);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 3), x << 3);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 31), x << 31);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 32), x << 32);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 33), x << 33);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 63), x << 63);
+    EXPECT_EQ(experimental::shl_bits_avx(x, 64), x << 64);
+}
+
+TEST(avx, shl_avx)
+{
+    const auto x = 0x18191a1b1c1d1e1f28292a2b2c2d2e2f38393a3b3c3d3e3f48494a4b4c4d4e4f_u256;
+    EXPECT_EQ(experimental::shl_avx(x, 0), x);
+    EXPECT_EQ(experimental::shl_avx(x, 1), x << 1);
+    EXPECT_EQ(experimental::shl_avx(x, 2), x << 2);
+    EXPECT_EQ(experimental::shl_avx(x, 3), x << 3);
+    EXPECT_EQ(experimental::shl_avx(x, 31), x << 31);
+    EXPECT_EQ(experimental::shl_avx(x, 32), x << 32);
+    EXPECT_EQ(experimental::shl_avx(x, 33), x << 33);
+    EXPECT_EQ(experimental::shl_avx(x, 63), x << 63);
+    EXPECT_EQ(experimental::shl_avx(x, 64), x << 64);
+    EXPECT_EQ(experimental::shl_avx(x, 65), x << 65);
+    EXPECT_EQ(experimental::shl_avx(x, 255), x << 255);
+}

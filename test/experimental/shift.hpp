@@ -3,10 +3,68 @@
 // Licensed under the Apache License, Version 2.0.
 #pragma once
 
+#include <immintrin.h>
 #include <intx/intx.hpp>
 
 namespace intx::experimental
 {
+inline uint256 shl_words_avx(const uint256& x, uint64_t sw) noexcept
+{
+    sw = (sw < 4) ? sw : 4;
+    int idxs[][8] = {
+        {0, 1, 2, 3, 4, 5, 6, 7},
+        {-1, -1, 0, 1, 2, 3, 4, 5},
+        {-1, -1, -1, -1, 0, 1, 2, 3},
+        {-1, -1, -1, -1, -1, -1, 0, 1},
+        {-1, -1, -1, -1, -1, -1, -1, -1},
+    };
+
+    auto idx = _mm256_load_si256((__m256i*)idxs[sw]);
+    auto a = _mm256_load_si256((__m256i*)&x);
+
+    auto p = _mm256_permutevar8x32_epi32(a, idx);
+
+    auto zero = __m256{};
+    auto bf = _mm256_blendv_ps(*(__m256*)&p, zero, *(__m256*)&idx);
+    auto b = *(__m256i*)&bf;
+
+    uint256 res;
+    _mm256_store_si256((__m256i*)&res, b);
+
+    return res;
+}
+
+inline uint256 shl_bits_avx(const uint256& x, uint64_t sb) noexcept
+{
+    auto a = _mm256_loadu_si256((__m256i*)&x);
+    auto zero = __m256i{};
+
+    auto p = _mm256_permute4x64_epi64(a, 0b10010000);
+
+    auto b = _mm256_blend_epi32(p, zero, 0b11);
+
+    __m128i rcount{int64_t(64 - sb), 0};
+    auto c = _mm256_srl_epi64(b, rcount);
+
+    __m128i count{int64_t(sb), 0};
+    auto d = _mm256_sll_epi64(a, count);
+
+    auto e = _mm256_or_si256(c, d);
+
+    uint256 res;
+    _mm256_storeu_si256((__m256i*)&res, e);
+
+    return res;
+}
+
+[[gnu::noinline]] inline uint256 shl_avx(const uint256& x, uint64_t shift) noexcept
+{
+    auto sw = shift / 64;
+    auto sb = shift % 64;
+    auto a = shl_words_avx(x, sw);
+    return shl_bits_avx(a, sb);
+}
+
 inline constexpr uint64_t shld(uint64_t x1, uint64_t x2, uint64_t c)
 {
     if (c == 0)
