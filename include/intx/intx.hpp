@@ -167,11 +167,58 @@ struct result_with_carry
 inline constexpr result_with_carry<uint64_t> addc(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
+#if __has_builtin(__builtin_addcll)
+    if (!is_constant_evaluated())
+    {
+        unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
+        const auto s = __builtin_addcll(x, y, carry, &carryout);
+        static_assert(sizeof(s) == sizeof(uint64_t));
+        return {s, static_cast<bool>(carryout)};
+    }
+#elif __has_builtin(__builtin_ia32_addcarryx_u64)
+    if (!is_constant_evaluated())
+    {
+        unsigned long long s = 0;  // NOLINT(google-runtime-int)
+        static_assert(sizeof(s) == sizeof(uint64_t));
+        const auto carryout = __builtin_ia32_addcarryx_u64(carry, x, y, &s);
+        return {s, static_cast<bool>(carryout)};
+    }
+#endif
+
     const auto s = x + y;
     const auto carry1 = s < x;
     const auto t = s + carry;
     const auto carry2 = t < s;
     return {t, carry1 || carry2};
+}
+
+/// Subtraction with carry (borrow).
+inline constexpr result_with_carry<uint64_t> subc(
+    uint64_t x, uint64_t y, bool carry = false) noexcept
+{
+#if __has_builtin(__builtin_subcll)
+    if (!is_constant_evaluated())
+    {
+        unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
+        const auto d = __builtin_subcll(x, y, carry, &carryout);
+        static_assert(sizeof(d) == sizeof(uint64_t));
+        return {d, static_cast<bool>(carryout)};
+    }
+#elif __has_builtin(__builtin_ia32_sbb_u64)
+    if (!is_constant_evaluated())
+    {
+        unsigned long long d = 0;  // NOLINT(google-runtime-int)
+        static_assert(sizeof(d) == sizeof(uint64_t));
+        const auto carryout = __builtin_ia32_sbb_u64(carry, x, y, &d);
+        return {d, static_cast<bool>(carryout)};
+    }
+#endif
+
+    const auto d = x - y;
+    const auto carry1 = x < y;
+    const auto e = d - carry;
+    const auto carry2 = d < uint64_t{carry};
+    return {e, carry1 || carry2};
 }
 
 /// Addition with carry.
@@ -198,17 +245,6 @@ inline constexpr uint128 operator+(uint128 x, uint128 y) noexcept
 inline constexpr uint128 operator+(uint128 x) noexcept
 {
     return x;
-}
-
-/// Subtraction with carrry (borrow).
-inline constexpr result_with_carry<uint64_t> subc(
-    uint64_t x, uint64_t y, bool carry = false) noexcept
-{
-    const auto d = x - y;
-    const auto carry1 = x < y;
-    const auto e = d - carry;
-    const auto carry2 = d < uint64_t{carry};
-    return {e, carry1 || carry2};
 }
 
 /// Performs subtraction of two unsigned numbers and returns the difference
