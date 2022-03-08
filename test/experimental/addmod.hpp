@@ -16,7 +16,7 @@ namespace intx::test
 [[maybe_unused, gnu::noinline]] static uint256 addmod_simple(
     const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
-    const auto s = add_with_carry(x, y);
+    const auto s = addc(x, y);
     uint<256 + 64> n = s.value;
     n[4] = s.carry;
     return udivrem(n, mod).rem;
@@ -28,7 +28,7 @@ namespace intx::test
     const auto xm = x >= mod ? x % mod : x;
     const auto ym = y >= mod ? y % mod : y;
 
-    const auto s = add_with_carry(xm, ym);
+    const auto s = addc(xm, ym);
     auto sum = s.value;
     if (s.carry || s.value >= mod)
         sum -= mod;
@@ -51,12 +51,12 @@ namespace intx::test
         if (t.carry)
             t.value = y;
 
-        s = add_with_carry(s.value, t.value);
+        s = addc(s.value, t.value);
         t = sub_with_carry(s.value, m);
         return (s.carry || !t.carry) ? t.value : s.value;
     }
 
-    const auto s = add_with_carry(x, y);
+    const auto s = addc(x, y);
     uint<256 + 64> n = s.value;
     n[4] = s.carry;
     return udivrem(n, m).rem;

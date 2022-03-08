@@ -154,7 +154,8 @@ struct result_with_carry
 /// Linear arithmetic operators.
 /// @{
 
-inline constexpr result_with_carry<uint64_t> add_with_carry(
+/// Addition with carry.
+inline constexpr result_with_carry<uint64_t> addc(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
     const auto s = x + y;
@@ -164,8 +165,9 @@ inline constexpr result_with_carry<uint64_t> add_with_carry(
     return {t, carry1 || carry2};
 }
 
+/// Addition with carry.
 template <unsigned N>
-inline constexpr result_with_carry<uint<N>> add_with_carry(
+inline constexpr result_with_carry<uint<N>> addc(
     const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
     uint<N> s;
@@ -182,7 +184,7 @@ inline constexpr result_with_carry<uint<N>> add_with_carry(
 
 inline constexpr uint128 operator+(uint128 x, uint128 y) noexcept
 {
-    return add_with_carry(x, y).value;
+    return addc(x, y).value;
 }
 
 inline constexpr uint128 operator+(uint128 x) noexcept
@@ -1411,7 +1413,7 @@ inline const uint8_t* as_bytes(const uint<N>& x) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return add_with_carry(x, y).value;
+    return addc(x, y).value;
 }
 
 template <unsigned N>
@@ -1666,7 +1668,7 @@ inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) n
 
     bool carry = false;
     for (int i = 0; i < len; ++i)
-        std::tie(s[i], carry) = add_with_carry(x[i], y[i], carry);
+        std::tie(s[i], carry) = addc(x[i], y[i], carry);
     return carry;
 }
 
@@ -1990,12 +1992,12 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
         if (t.carry)
             t.value = y;
 
-        s = add_with_carry(s.value, t.value);
+        s = addc(s.value, t.value);
         t = sub_with_carry(s.value, mod);
         return (s.carry || !t.carry) ? t.value : s.value;
     }
 
-    const auto s = add_with_carry(x, y);
+    const auto s = addc(x, y);
     uint<256 + 64> n = s.value;
     n[4] = s.carry;
     return udivrem(n, mod).rem;
