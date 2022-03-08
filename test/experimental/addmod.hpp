@@ -43,16 +43,16 @@ namespace intx::test
     // Based on https://github.com/holiman/uint256/pull/86.
     if ((m[3] != 0) && (x[3] <= m[3]) && (y[3] <= m[3]))
     {
-        auto s = sub_with_carry(x, m);
+        auto s = subc(x, m);
         if (s.carry)
             s.value = x;
 
-        auto t = sub_with_carry(y, m);
+        auto t = subc(y, m);
         if (t.carry)
             t.value = y;
 
         s = addc(s.value, t.value);
-        t = sub_with_carry(s.value, m);
+        t = subc(s.value, m);
         return (s.carry || !t.carry) ? t.value : s.value;
     }
 

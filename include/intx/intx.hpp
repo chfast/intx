@@ -192,7 +192,8 @@ inline constexpr uint128 operator+(uint128 x) noexcept
     return x;
 }
 
-inline constexpr result_with_carry<uint64_t> sub_with_carry(
+/// Subtraction with carrry (borrow).
+inline constexpr result_with_carry<uint64_t> subc(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
     const auto d = x - y;
@@ -205,7 +206,7 @@ inline constexpr result_with_carry<uint64_t> sub_with_carry(
 /// Performs subtraction of two unsigned numbers and returns the difference
 /// and the carry bit (aka borrow, overflow).
 template <unsigned N>
-inline constexpr result_with_carry<uint<N>> sub_with_carry(
+inline constexpr result_with_carry<uint<N>> subc(
     const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
 {
     uint<N> z;
@@ -223,7 +224,7 @@ inline constexpr result_with_carry<uint<N>> sub_with_carry(
 
 inline constexpr uint128 operator-(uint128 x, uint128 y) noexcept
 {
-    return sub_with_carry(x, y).value;
+    return subc(x, y).value;
 }
 
 inline constexpr uint128 operator-(uint128 x) noexcept
@@ -1091,7 +1092,7 @@ inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
 template <unsigned N>
 inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return sub_with_carry(x, y).carry;
+    return subc(x, y).carry;
 }
 
 template <unsigned N, typename T,
@@ -1425,7 +1426,7 @@ inline constexpr uint<N> operator-(const uint<N>& x) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return sub_with_carry(x, y).value;
+    return subc(x, y).value;
 }
 
 template <unsigned N, typename T,
@@ -1682,9 +1683,9 @@ inline uint64_t submul(
     uint64_t borrow = 0;
     for (int i = 0; i < len; ++i)
     {
-        const auto s = sub_with_carry(x[i], borrow);
+        const auto s = subc(x[i], borrow);
         const auto p = umul(y[i], multiplier);
-        const auto t = sub_with_carry(s.value, p[0]);
+        const auto t = subc(s.value, p[0]);
         r[i] = t.value;
         borrow = p[1] + s.carry + t.carry;
     }
@@ -1719,8 +1720,8 @@ inline void udivrem_knuth(
 
             bool carry;
             const auto overflow = submul(&u[j], &u[j], d, dlen - 2, qhat);
-            std::tie(u[j + dlen - 2], carry) = sub_with_carry(rhat[0], overflow);
-            std::tie(u[j + dlen - 1], carry) = sub_with_carry(rhat[1], carry);
+            std::tie(u[j + dlen - 2], carry) = subc(rhat[0], overflow);
+            std::tie(u[j + dlen - 1], carry) = subc(rhat[1], carry);
 
             if (INTX_UNLIKELY(carry))
             {
@@ -1984,16 +1985,16 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
     // Based on https://github.com/holiman/uint256/pull/86.
     if ((mod[3] != 0) && (x[3] <= mod[3]) && (y[3] <= mod[3]))
     {
-        auto s = sub_with_carry(x, mod);
+        auto s = subc(x, mod);
         if (s.carry)
             s.value = x;
 
-        auto t = sub_with_carry(y, mod);
+        auto t = subc(y, mod);
         if (t.carry)
             t.value = y;
 
         s = addc(s.value, t.value);
-        t = sub_with_carry(s.value, mod);
+        t = subc(s.value, mod);
         return (s.carry || !t.carry) ? t.value : s.value;
     }
 
