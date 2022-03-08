@@ -174,10 +174,9 @@ inline constexpr result_with_carry<uint<N>> addc(
     bool k = carry;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
     {
-        s[i] = x[i] + y[i];
-        const auto k1 = s[i] < x[i];
-        s[i] += k;
-        k = (s[i] < uint64_t{k}) || k1;
+        const auto t = addc(x[i], y[i], k);
+        s[i] = t.value;
+        k = t.carry;
     }
     return {s, k};
 }
@@ -213,11 +212,9 @@ inline constexpr result_with_carry<uint<N>> subc(
     bool k = carry;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
     {
-        z[i] = x[i] - y[i];
-        const auto k1 = x[i] < y[i];
-        const auto k2 = z[i] < uint64_t{k};
-        z[i] -= k;
-        k = k1 || k2;
+        const auto t = subc(x[i], y[i], k);
+        z[i] = t.value;
+        k = t.carry;
     }
     return {z, k};
 }
