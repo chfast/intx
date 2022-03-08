@@ -1,6 +1,10 @@
 # intx: extended precision integer library.
-# Copyright 2019-2020 Pawel Bylica.
+# Copyright 2019 Pawel Bylica.
 # Licensed under the Apache License, Version 2.0.
+
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.12)
+    add_subdirectory(analysis)
+endif()
 
 add_subdirectory(experimental)
 add_subdirectory(utils)
