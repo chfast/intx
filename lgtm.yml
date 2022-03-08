@@ -1,0 +1,6 @@
+
+extraction:
+  cpp:
+    configure:
+      command:
+        - cmake -S $LGTM_SRC -B $LGTM_SRC/_lgtm_build_dir -DINTX_TESTING=1
