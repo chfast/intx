@@ -175,24 +175,21 @@ static_assert(!uint128{0, 0}, "");
 static_assert(!static_cast<bool>(uint128{0}), "");
 }  // namespace static_test_explicit_conversion_to_bool
 
-#ifndef _MSC_VER
-// FIXME: Investigate "integer constant overflow" issue on MSVC.
 namespace static_test_arith
 {
 constexpr auto a = uint128{0x8000000000000000};
 constexpr auto s = a + a;
-static_assert(s == uint128{0, 1}, "");
-static_assert(s - a == a, "");
-static_assert(s - 0 == s, "");
-static_assert(s + 0 == s, "");
-static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff}, "");
-static_assert(0 - uint128(2) == uint128{0xfffffffffffffffe, 0xffffffffffffffff}, "");
-static_assert(uint128(13) - 17 == uint128{0xfffffffffffffffc, 0xffffffffffffffff}, "");
+static_assert(s == uint128{0, 1});
+static_assert(s - a == a);
+static_assert(s - 0 == s);
+static_assert(s + 0 == s);
+static_assert(-uint128(1) == uint128{0xffffffffffffffff, 0xffffffffffffffff});
+static_assert(0 - uint128(2) == uint128{0xfffffffffffffffe, 0xffffffffffffffff});
+static_assert(uint128(13) - 17 == uint128{0xfffffffffffffffc, 0xffffffffffffffff});
 
-static_assert(-a == (~a + 1), "");
-static_assert(+a == a, "");
+static_assert(-a == (~a + 1));
+static_assert(+a == a);
 }  // namespace static_test_arith
-#endif
 
 TEST(int128, numeric_limits)
 {
