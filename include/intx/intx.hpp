@@ -74,6 +74,15 @@ using builtin_uint128 = unsigned __int128;
     #pragma GCC diagnostic pop
 #endif
 
+constexpr bool byte_order_is_little_endian =
+#if defined(__BYTE_ORDER__)
+    (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__);
+#elif defined(_WIN32)
+    true;  // On Windows assume little endian.
+#else
+    #error "Unknown endianness"
+#endif
+
 template <unsigned N>
 struct uint;
 
@@ -2016,6 +2025,43 @@ inline constexpr uint512 operator"" _u512(const char* s)
     return from_string<uint512>(s);
 }
 
+
+/// Convert native representation to/from little-endian byte order.
+/// intx and built-in integral types are supported.
+template <typename T>
+inline constexpr T to_little_endian(const T& x) noexcept
+{
+    if constexpr (byte_order_is_little_endian)
+        return x;
+    else if constexpr (std::is_integral_v<T>)
+        return bswap(x);
+    else  // Wordwise bswap.
+    {
+        T r;
+        for (size_t i = 0; i < T::num_words; ++i)
+            r[i] = bswap(x[i]);
+        return r;
+    }
+}
+
+/// Convert native representation to/from big-endian byte order.
+/// intx and built-in integral types are supported.
+template <typename T>
+inline constexpr T to_big_endian(const T& x) noexcept
+{
+    if constexpr (byte_order_is_little_endian)
+        return bswap(x);
+    else if constexpr (std::is_integral_v<T>)
+        return x;
+    else  // Swap words.
+    {
+        T r;
+        for (size_t i = 0; i < T::num_words; ++i)
+            r[T::num_words - 1 - i] = x[i];
+        return r;
+    }
+}
+
 namespace le  // Conversions to/from LE bytes.
 {
 template <typename IntT, unsigned M>
@@ -2025,13 +2071,15 @@ inline IntT load(const uint8_t (&src)[M]) noexcept
         "the size of source bytes must match the size of the destination uint");
     IntT x;
     std::memcpy(&x, src, sizeof(x));
+    x = to_little_endian(x);
     return x;
 }
 
 template <unsigned N>
 inline void store(uint8_t (&dst)[N / 8], const uint<N>& x) noexcept
 {
-    std::memcpy(dst, &x, sizeof(x));
+    const auto d = to_little_endian(x);
+    std::memcpy(dst, &d, sizeof(d));
 }
 
 }  // namespace le
@@ -2048,7 +2096,7 @@ inline IntT load(const uint8_t (&src)[M]) noexcept
         "the size of source bytes must not exceed the size of the destination uint");
     IntT x;
     std::memcpy(&as_bytes(x)[IntT::num_bits / 8 - M], src, M);
-    x = bswap(x);
+    x = to_big_endian(x);
     return x;
 }
 
@@ -2062,7 +2110,7 @@ inline IntT load(const T& t) noexcept
 template <unsigned N>
 inline void store(uint8_t (&dst)[N / 8], const uint<N>& x) noexcept
 {
-    const auto d = bswap(x);
+    const auto d = to_big_endian(x);
     std::memcpy(dst, &d, sizeof(d));
 }
 
@@ -2083,9 +2131,8 @@ template <unsigned M, unsigned N>
 inline void trunc(uint8_t (&dst)[M], const uint<N>& x) noexcept
 {
     static_assert(M < N / 8, "destination must be smaller than the source value");
-    const auto d = bswap(x);
-    const auto b = as_bytes(d);
-    std::memcpy(dst, &b[sizeof(d) - M], M);
+    const auto d = to_big_endian(x);
+    std::memcpy(dst, &as_bytes(d)[sizeof(d) - M], M);
 }
 
 /// Stores the truncated value of an uint in the .bytes field of an object of type T.
@@ -2106,7 +2153,7 @@ inline IntT load(const uint8_t* src) noexcept
 {
     IntT x;
     std::memcpy(&x, src, sizeof(x));
-    x = bswap(x);
+    x = to_big_endian(x);
     return x;
 }
 
@@ -2115,7 +2162,7 @@ inline IntT load(const uint8_t* src) noexcept
 template <unsigned N>
 inline void store(uint8_t* dst, const uint<N>& x) noexcept
 {
-    const auto d = bswap(x);
+    const auto d = to_big_endian(x);
     std::memcpy(dst, &d, sizeof(d));
 }
 }  // namespace unsafe

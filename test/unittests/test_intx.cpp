@@ -272,7 +272,7 @@ TYPED_TEST(uint_test, to_string_base)
 
 TYPED_TEST(uint_test, as_bytes)
 {
-    constexpr auto x = TypeParam{0xa05};
+    constexpr auto x = to_little_endian(TypeParam{0xa05});
     const auto b = as_bytes(x);
     EXPECT_EQ(b[0], 5);
     EXPECT_EQ(b[1], 0xa);
@@ -281,5 +281,6 @@ TYPED_TEST(uint_test, as_bytes)
     auto d = as_bytes(y);
     d[0] = 3;
     d[1] = 0xc;
+    y = to_little_endian(y);
     EXPECT_EQ(y, 0xc03);
 }

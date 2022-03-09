@@ -17,6 +17,18 @@ static_assert(clz_generic(uint64_t{1}) == 63);
 static_assert(clz_generic(uint64_t{3}) == 62);
 static_assert(clz_generic(uint64_t{9}) == 60);
 
+static constexpr auto is_le = byte_order_is_little_endian;
+static_assert(to_little_endian(uint8_t{0x0a}) == 0x0a);
+static_assert(to_little_endian(uint16_t{0x0b0a}) == (is_le ? 0x0b0a : 0x0a0b));
+static_assert(to_little_endian(uint32_t{0x0d0c0b0a}) == (is_le ? 0x0d0c0b0a : 0x0a0b0c0d));
+static_assert(to_little_endian(uint64_t{0x02010f0e0d0c0b0a}) ==
+              (is_le ? 0x02010f0e0d0c0b0a : 0x0a0b0c0d0e0f0102));
+static_assert(to_big_endian(uint8_t{0x0a}) == 0x0a);
+static_assert(to_big_endian(uint16_t{0x0b0a}) == (is_le ? 0x0a0b : 0x0b0a));
+static_assert(to_big_endian(uint32_t{0x0d0c0b0a}) == (is_le ? 0x0a0b0c0d : 0x0d0c0b0a));
+static_assert(to_big_endian(uint64_t{0x02010f0e0d0c0b0a}) ==
+              (is_le ? 0x0a0b0c0d0e0f0102 : 0x02010f0e0d0c0b0a));
+
 
 TEST(builtins, clz64_single_one)
 {
