@@ -21,6 +21,14 @@ commands:
             sudo apt -q update
             sudo apt install -qy libgmp-dev
 
+  install_powerpc64:
+    steps:
+      - run:
+          name: "Install powerpc64 toolchain"
+          command: |
+            sudo apt -q update
+            sudo apt -qy install g++-powerpc64-linux-gnu qemu-user-static
+
   check_code_format:
     steps:
       - run:
@@ -195,6 +203,15 @@ jobs:
       - build_and_test
       - benchmark
 
+  powerpc64:
+    environment:
+      BUILD_TYPE: Release
+      CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/powerpc64.cmake -DINTX_BENCHMARKING=OFF
+    executor: linux-gcc-latest
+    steps:
+      - install_powerpc64
+      - build_and_test
+
   arm64:
     environment:
       BUILD_TYPE: Release
@@ -299,3 +316,4 @@ workflows:
       - macos
       - cmake-min
       - arm64
+      - powerpc64
