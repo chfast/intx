@@ -33,7 +33,7 @@ before_build:
 - cmake -S . -B build -DINTX_BENCHMARKING=OFF -DNATIVE=ON -Wno-dev -G "%GENERATOR%" -DCMAKE_BUILD_TYPE=%CONFIGURATION% -DHUNTER_CONFIGURATION_TYPES=%CONFIGURATION% -DCMAKE_INSTALL_PREFIX=C:\install
 
 build_script:
-- cmake --build build --target install
+- cmake --build build --target install --parallel 1
 - cmake --build build --target package
 
 after_build:
