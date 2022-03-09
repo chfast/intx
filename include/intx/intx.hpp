@@ -1566,7 +1566,6 @@ template <unsigned M, unsigned N>
 [[gnu::always_inline]] inline normalized_div_args<M, N> normalize(
     const uint<M>& numerator, const uint<N>& denominator) noexcept
 {
-    // FIXME: Make the implementation type independent
     static constexpr auto num_numerator_words = uint<M>::num_words;
     static constexpr auto num_denominator_words = uint<N>::num_words;
 
