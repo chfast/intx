@@ -195,6 +195,15 @@ jobs:
       - build_and_test
       - benchmark
 
+  arm64:
+    environment:
+      BUILD_TYPE: Release
+    machine:
+      image: ubuntu-2004:202101-01
+      resource_class: arm.medium
+    steps:
+      - build_and_test
+
   no-exceptions:
     environment:
       BUILD_TYPE: Release
@@ -289,3 +298,4 @@ workflows:
       - fuzzing
       - macos
       - cmake-min
+      - arm64
