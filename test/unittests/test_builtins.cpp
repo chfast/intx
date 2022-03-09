@@ -132,7 +132,7 @@ TEST(builtins, is_constant_evaluated)
     auto is_constexpr_false = is_constant_evaluated();
     auto nonconstexpr_func_res = func();
 
-#if (defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 9) || \
+#if (defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 10) || \
     (defined(_MSC_VER) && _MSC_VER >= 1925)
     EXPECT_FALSE(is_constexpr_false);
     EXPECT_EQ(nonconstexpr_func_res, 2);
