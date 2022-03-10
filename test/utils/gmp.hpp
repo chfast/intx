@@ -19,9 +19,9 @@ inline Int mul(const Int& x, const Int& y) noexcept
 {
     constexpr size_t num_limbs = sizeof(Int) / sizeof(mp_limb_t);
     Int p[2];
-    auto p_p = (mp_ptr)&p;
-    auto p_x = (mp_srcptr)&x;
-    auto p_y = (mp_srcptr)&y;
+    auto p_p = reinterpret_cast<mp_ptr>(&p);
+    auto p_x = reinterpret_cast<mp_srcptr>(&x);
+    auto p_y = reinterpret_cast<mp_srcptr>(&y);
     mpn_mul_n(p_p, p_x, p_y, num_limbs);
     return p[0];
 }
@@ -29,9 +29,9 @@ inline Int mul(const Int& x, const Int& y) noexcept
 inline uint512 mul_full(const uint256& x, const uint256& y) noexcept
 {
     uint512 p;
-    auto p_p = (mp_ptr)&p;
-    auto p_x = (mp_srcptr)&x;
-    auto p_y = (mp_srcptr)&y;
+    auto p_p = reinterpret_cast<mp_ptr>(&p);
+    auto p_x = reinterpret_cast<mp_srcptr>(&x);
+    auto p_y = reinterpret_cast<mp_srcptr>(&y);
     mpn_mul_n(p_p, p_x, p_y, uint256_limbs);
     return p;
 }
@@ -43,7 +43,8 @@ inline div_result<Int> udivrem(const Int& x, const Int& y) noexcept
     constexpr auto x_limbs = sizeof(Int) / sizeof(mp_limb_t);
     const auto y_limbs = static_cast<mp_size_t>(count_significant_words(y));
 
-    Int q, r;
+    Int q;
+    Int r;
     auto p_q = (mp_ptr)&q;
     auto p_r = (mp_ptr)&r;
     auto p_x = (mp_srcptr)&x;
@@ -93,7 +94,7 @@ inline div_result<Int> sdivrem(const Int& x, const Int& y) noexcept
     if (r_is_neg)
         r = -r;
 
-    mpz_clears(x_gmp, y_gmp, q_gmp, r_gmp, NULL);
+    mpz_clears(x_gmp, y_gmp, q_gmp, r_gmp, NULL);  // NOLINT(cppcoreguidelines-pro-type-vararg)
 
     return {q, r};
 }
