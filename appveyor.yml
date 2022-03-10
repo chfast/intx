@@ -2,10 +2,10 @@ version: "{build}"
 image: Visual Studio 2017
 branches:
   only:
-  - master
-  - /release\/.*/
-  - appveyor
-  - hunter
+    - master
+    - /release\/.*/
+    - appveyor
+    - hunter
 environment:
   matrix:
     - VS_VER: 2017
@@ -20,21 +20,26 @@ environment:
       CONFIGURATION: Release
       GENERATOR: Ninja
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    - VS_VER: 2022
+      CONFIGURATION: Release
+      GENERATOR: Ninja
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
 
 cache:
   - C:\.hunter\_Base\Cache -> cmake\Hunter\init.cmake
 
 install:
-- cmake --version
+  - cmake --version
 
 before_build:
-- call "%ProgramFiles(x86)%\Microsoft Visual Studio\%VS_VER%\Community\Common7\Tools\vsdevcmd" -arch=amd64
-- cmake -S . -B build -DINTX_BENCHMARKING=OFF -DNATIVE=ON -Wno-dev -G "%GENERATOR%" -DCMAKE_BUILD_TYPE=%CONFIGURATION% -DHUNTER_CONFIGURATION_TYPES=%CONFIGURATION% -DCMAKE_INSTALL_PREFIX=C:\install
+  - if "%VS_VER%" == "2022" (call "%ProgramFiles%\Microsoft Visual Studio\%VS_VER%\Community\Common7\Tools\vsdevcmd" -arch=amd64)
+  - if not "%VS_VER%" == "2022" (call "%ProgramFiles(x86)%\Microsoft Visual Studio\%VS_VER%\Community\Common7\Tools\vsdevcmd" -arch=amd64)
+  - cmake -S . -B build -DINTX_BENCHMARKING=OFF -DNATIVE=ON -Wno-dev -G "%GENERATOR%" -DCMAKE_BUILD_TYPE=%CONFIGURATION% -DHUNTER_CONFIGURATION_TYPES=%CONFIGURATION% -DCMAKE_INSTALL_PREFIX=C:\install
 
 build_script:
-- cmake --build build --target install --parallel 1
-- cmake --build build --target package
+  - cmake --build build --target install --parallel 1
+  - cmake --build build --target package
 
 after_build:
-- cd build && ctest -j4 --output-on-failure --schedule-random
+  - cd build && ctest -j4 --output-on-failure --schedule-random
