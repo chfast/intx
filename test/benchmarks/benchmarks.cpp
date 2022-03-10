@@ -290,7 +290,7 @@ template <unsigned N>
 #if INTX_HAS_EXTINT
 [[gnu::noinline]] static intx::uint256 shl_llvm(const intx::uint256& x, const uint64_t& y) noexcept
 {
-    unsigned _ExtInt(256) a;
+    unsigned _ExtInt(256) a;  // NOLINT(cppcoreguidelines-init-variables)
     std::memcpy(&a, &x, sizeof(a));
     const auto b = a << y;
     uint256 r;
@@ -324,7 +324,7 @@ static void shift(benchmark::State& state)
 
     const auto& xs = test::get_samples<ArgT>(sizeof(ArgT) == sizeof(uint256) ? x_256 : x_512);
     const auto& raw_shifts = test::get_samples<uint64_t>(shift_samples_id);
-    std::array<ShiftT, test::num_samples> shifts;
+    std::array<ShiftT, test::num_samples> shifts{};
     std::copy(std::cbegin(raw_shifts), std::cend(raw_shifts), std::begin(shifts));
 
     while (state.KeepRunningBatch(xs.size()))
@@ -375,8 +375,8 @@ BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
 #if INTX_HAS_EXTINT
 [[gnu::noinline]] static bool lt_llvm(const uint256& x, const uint256& y) noexcept
 {
-    unsigned _ExtInt(256) a;
-    unsigned _ExtInt(256) b;
+    unsigned _ExtInt(256) a;  // NOLINT(cppcoreguidelines-init-variables)
+    unsigned _ExtInt(256) b;  // NOLINT(cppcoreguidelines-init-variables)
     std::memcpy(&a, &x, sizeof(a));
     std::memcpy(&b, &y, sizeof(b));
     return a < b;

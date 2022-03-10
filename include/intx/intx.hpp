@@ -242,16 +242,16 @@ inline uint128& operator--(uint128& x) noexcept
     return x = x - 1;
 }
 
-inline uint128 operator++(uint128& x, int) noexcept
+inline const uint128 operator++(uint128& x, int) noexcept  // NOLINT(readability-const-return-type)
 {
-    auto ret = x;
+    const auto ret = x;
     ++x;
     return ret;
 }
 
-inline uint128 operator--(uint128& x, int) noexcept
+inline const uint128 operator--(uint128& x, int) noexcept  // NOLINT(readability-const-return-type)
 {
-    auto ret = x;
+    const auto ret = x;
     --x;
     return ret;
 }
@@ -643,7 +643,7 @@ inline uint64_t reciprocal_2by1(uint64_t d) noexcept
     const uint32_t v0 = internal::reciprocal_table[d9 - 256];
 
     const uint64_t d40 = (d >> 24) + 1;
-    const uint64_t v1 = (v0 << 11) - uint32_t(v0 * v0 * d40 >> 40) - 1;
+    const uint64_t v1 = (v0 << 11) - uint32_t(uint32_t{v0 * v0} * d40 >> 40) - 1;
 
     const uint64_t v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
 
@@ -1553,7 +1553,7 @@ inline constexpr unsigned clz_nonzero(uint64_t x) noexcept
 }
 
 template <unsigned M, unsigned N>
-struct normalized_div_args
+struct normalized_div_args  // NOLINT(cppcoreguidelines-pro-type-member-init)
 {
     uint<N> divisor;
     uint<M + 64> numerator;
@@ -1702,7 +1702,7 @@ inline void udivrem_knuth(
         const auto u1 = u[j + dlen - 1];
         const auto u0 = u[j + dlen - 2];
 
-        uint64_t qhat;
+        uint64_t qhat{};
         if (INTX_UNLIKELY((uint128{u1, u2}) == divisor))  // Division overflows.
         {
             qhat = ~uint64_t{0};
@@ -1714,7 +1714,7 @@ inline void udivrem_knuth(
             uint128 rhat;
             std::tie(qhat, rhat) = udivrem_3by2(u2, u1, u0, divisor, reciprocal);
 
-            bool carry;
+            bool carry{};
             const auto overflow = submul(&u[j], &u[j], d, dlen - 2, qhat);
             std::tie(u[j + dlen - 2], carry) = subc(rhat[0], overflow);
             std::tie(u[j + dlen - 1], carry) = subc(rhat[1], carry);
