@@ -118,33 +118,33 @@ constexpr uint128 zero;
 constexpr uint128 zer0 = 0;
 constexpr uint128 one = 1;
 
-static_assert(zero == 0, "");
-static_assert(zero != 1, "");
-static_assert(one > 0, "");
-static_assert(one >= 0, "");
-static_assert(zero >= 0, "");
-static_assert(zero < 1, "");
-static_assert(zero <= 1, "");
-static_assert(zero <= 0, "");
+static_assert(zero == 0);
+static_assert(zero != 1);
+static_assert(one > 0);
+static_assert(one >= 0);
+static_assert(zero >= 0);
+static_assert(zero < 1);
+static_assert(zero <= 1);
+static_assert(zero <= 0);
 
-static_assert(zero == zer0, "");
-static_assert(zero != one, "");
-static_assert(one > zero, "");
-static_assert(one >= zero, "");
-static_assert(zero >= zer0, "");
-static_assert(zero < one, "");
-static_assert(zero <= one, "");
-static_assert(zero <= zer0, "");
+static_assert(zero == zer0);
+static_assert(zero != one);
+static_assert(one > zero);
+static_assert(one >= zero);
+static_assert(zero >= zer0);
+static_assert(zero < one);
+static_assert(zero <= one);
+static_assert(zero <= zer0);
 
 constexpr auto zero_one = uint128{1};
 constexpr auto one_zero = uint128{0, 1};
 
-static_assert(!(zero_one == one_zero), "");
-static_assert(zero_one != one_zero, "");
-static_assert(zero_one < one_zero, "");
-static_assert(zero_one <= one_zero, "");
-static_assert(!(zero_one > one_zero), "");
-static_assert(!(zero_one >= one_zero), "");
+static_assert(!(zero_one == one_zero));
+static_assert(zero_one != one_zero);
+static_assert(zero_one < one_zero);
+static_assert(zero_one <= one_zero);
+static_assert(!(zero_one > one_zero));
+static_assert(!(zero_one >= one_zero));
 }  // namespace static_test_comparison
 
 namespace static_test_bitwise_operators
@@ -154,25 +154,25 @@ constexpr uint128 y{0xaaaaaaaaaaaaaaaa, 0xaaaaaaaaaaaaaaaa};
 constexpr uint128 one = 1;
 constexpr uint128 zero = 0;
 
-static_assert((x | one) == x, "");
-static_assert((y | one) == uint128{0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa}, "");
+static_assert((x | one) == x);
+static_assert((y | one) == uint128{0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa});
 
-static_assert((x & one) == one, "");
-static_assert((y & one) == zero, "");
+static_assert((x & one) == one);
+static_assert((y & one) == zero);
 
-static_assert((x ^ zero) == x, "");
-static_assert((x ^ one) == uint128{0x5555555555555554, 0x5555555555555555}, "");
+static_assert((x ^ zero) == x);
+static_assert((x ^ one) == uint128{0x5555555555555554, 0x5555555555555555});
 
-static_assert(~x == y, "");
+static_assert(~x == y);
 }  // namespace static_test_bitwise_operators
 
 namespace static_test_explicit_conversion_to_bool
 {
-static_assert(uint128{0, 1}, "");
-static_assert(uint128{1, 0}, "");
-static_assert(uint128{1, 1}, "");
-static_assert(!uint128{0, 0}, "");
-static_assert(!static_cast<bool>(uint128{0}), "");
+static_assert(uint128{0, 1});
+static_assert(uint128{1, 0});
+static_assert(uint128{1, 1});
+static_assert(!uint128{0, 0});
+static_assert(!static_cast<bool>(uint128{0}));
 }  // namespace static_test_explicit_conversion_to_bool
 
 namespace static_test_arith
@@ -193,14 +193,14 @@ static_assert(+a == a);
 
 TEST(int128, numeric_limits)
 {
-    static_assert(!std::numeric_limits<uint128>::is_signed, "");
-    static_assert(std::numeric_limits<uint128>::is_integer, "");
-    static_assert(std::numeric_limits<uint128>::is_exact, "");
-    static_assert(std::numeric_limits<uint128>::radix == 2, "");
+    static_assert(!std::numeric_limits<uint128>::is_signed);
+    static_assert(std::numeric_limits<uint128>::is_integer);
+    static_assert(std::numeric_limits<uint128>::is_exact);
+    static_assert(std::numeric_limits<uint128>::radix == 2);
 
-    static_assert(std::numeric_limits<uint128>::digits10 == 38, "");
-    static_assert(std::numeric_limits<uint128>::min() == 0, "");
-    static_assert(std::numeric_limits<uint128>::max() == uint128{0} - 1, "");
+    static_assert(std::numeric_limits<uint128>::digits10 == 38);
+    static_assert(std::numeric_limits<uint128>::min() == 0);
+    static_assert(std::numeric_limits<uint128>::max() == uint128{0} - 1);
 
     EXPECT_EQ(std::numeric_limits<uint128>::min(), 0);
     EXPECT_EQ(std::numeric_limits<uint128>::max(), uint128{0} - 1);
@@ -270,8 +270,8 @@ TEST(int128, shl)
     y = ~uint128{0};
     EXPECT_EQ(y << sh, 0);
 
-    static_assert((x << 128) == 0, "");
-    static_assert((uint128(3) << 63) == uint128{uint64_t(1) << 63, 1}, "");
+    static_assert((x << 128) == 0);
+    static_assert((uint128(3) << 63) == uint128{uint64_t(1) << 63, 1});
 
     auto z = uint128{2};
     EXPECT_EQ(z <<= 63, uint128({0, 1}));
@@ -299,8 +299,8 @@ TEST(int128, shr)
     EXPECT_EQ(y >> uint128{sh}, 0);
     EXPECT_EQ(y >> uint128({0, 1}), 0);
 
-    static_assert((x >> 128) == 0, "");
-    static_assert((uint128{0, 3} >> 1) == uint128{uint64_t(1) << 63, 1}, "");
+    static_assert((x >> 128) == 0);
+    static_assert((uint128{0, 3} >> 1) == uint128{uint64_t(1) << 63, 1});
 
     auto z = uint128{0, 1};
     EXPECT_EQ(z >>= 63, 2);
@@ -361,13 +361,13 @@ TEST(int128, literals)
 TEST(int128, from_string)
 {
     constexpr auto ka = from_string<uint128>("18446744073709551617");
-    static_assert(ka == uint128{1, 1}, "");
+    static_assert(ka == uint128{1, 1});
     const auto* const sa = "18446744073709551617";
     const auto a = from_string<uint128>(sa);
     EXPECT_EQ(a, uint128(1, 1));
 
     constexpr auto kb = from_string<uint128>("0x300aabbccddeeff99");
-    static_assert(kb == uint128{0xaabbccddeeff99, 3}, "");
+    static_assert(kb == uint128{0xaabbccddeeff99, 3});
     const auto* const sb = "0x300aabbccddeeff99";
     EXPECT_EQ(from_string<uint128>(sb), uint128(0xaabbccddeeff99, 3));
 }

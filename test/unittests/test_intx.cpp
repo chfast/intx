@@ -81,10 +81,10 @@ TEST_F(Uint256Test, simple_udiv)
     for (size_t i = 0; i < sizeof(data_set) / sizeof(data_set[0]); ++i)
     {
         const auto& data = data_set[i];
-        uint256 n = from_string<uint256>(data[0]);
-        uint256 d = from_string<uint256>(data[1]);
-        uint256 expected_q = from_string<uint256>(data[2]);
-        uint256 expected_r = from_string<uint256>(data[3]);
+        const auto n = from_string<uint256>(data[0]);
+        const auto d = from_string<uint256>(data[1]);
+        const auto expected_q = from_string<uint256>(data[2]);
+        const auto expected_r = from_string<uint256>(data[3]);
 
         const auto res = udivrem(n, d);
         EXPECT_EQ(res.quot, expected_q) << "data index: " << i;
@@ -120,7 +120,7 @@ TEST_F(Uint256Test, mul_against_add)
 TEST(uint512, literal)
 {
     auto x = 1_u512;
-    static_assert(std::is_same<decltype(x), uint512>::value, "");
+    static_assert(std::is_same<decltype(x), uint512>::value);
     EXPECT_EQ(x, 1);
 
     x = 0_u512;
@@ -219,16 +219,16 @@ TEST(uint256, mulmod)
 
 TYPED_TEST(uint_test, numeric_limits)
 {
-    static_assert(std::numeric_limits<uint256>::digits10 == 77, "");
-    static_assert(std::numeric_limits<uint512>::digits10 == 154, "");
+    static_assert(std::numeric_limits<uint256>::digits10 == 77);
+    static_assert(std::numeric_limits<uint512>::digits10 == 154);
 
-    static_assert(!std::numeric_limits<TypeParam>::is_signed, "");
-    static_assert(std::numeric_limits<TypeParam>::is_integer, "");
-    static_assert(std::numeric_limits<TypeParam>::is_exact, "");
-    static_assert(std::numeric_limits<TypeParam>::radix == 2, "");
+    static_assert(!std::numeric_limits<TypeParam>::is_signed);
+    static_assert(std::numeric_limits<TypeParam>::is_integer);
+    static_assert(std::numeric_limits<TypeParam>::is_exact);
+    static_assert(std::numeric_limits<TypeParam>::radix == 2);
 
-    static_assert(std::numeric_limits<TypeParam>::min() == 0, "");
-    static_assert(std::numeric_limits<TypeParam>::max() == TypeParam{0} - 1, "");
+    static_assert(std::numeric_limits<TypeParam>::min() == 0);
+    static_assert(std::numeric_limits<TypeParam>::max() == TypeParam{0} - 1);
 
     EXPECT_EQ(std::numeric_limits<TypeParam>::min(), 0);
     EXPECT_EQ(std::numeric_limits<TypeParam>::max(), TypeParam{0} - 1);

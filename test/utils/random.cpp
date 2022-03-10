@@ -5,9 +5,7 @@
 #include "random.hpp"
 #include <intx/intx.hpp>
 
-namespace intx
-{
-namespace test
+namespace intx::test
 {
 namespace
 {
@@ -128,5 +126,4 @@ const std::array<uint512, num_samples>& get_samples<uint512>(samples_set_id id) 
     return samples_512[id];
 }
 
-}  // namespace test
-}  // namespace intx
+}  // namespace intx::test

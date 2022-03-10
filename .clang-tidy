@@ -1,3 +1,5 @@
+FormatStyle: file
+WarningsAsErrors: '*'
 Checks: >
   bugprone-*,
   cert-*,
@@ -7,6 +9,9 @@ Checks: >
   google-runtime-int,
   misc-*,
   -misc-non-private-member-variables-in-classes,
+  modernize-*,
+  -modernize-avoid-c-arrays,
+  -modernize-use-trailing-return-type,
   performance-*,
   portability-*,
   readability-*,
@@ -15,6 +20,3 @@ Checks: >
   -readability-implicit-bool-conversion,
   -readability-magic-numbers,
   -readability-uppercase-literal-suffix,
-
-WarningsAsErrors:  '*'
-FormatStyle:       file

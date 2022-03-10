@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019-2020 Pawel Bylica.
+// Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 /// @file
@@ -10,9 +10,7 @@
 #include <iterator>
 #include <random>
 
-namespace intx
-{
-namespace test
+namespace intx::test
 {
 using seed_type = std::random_device::result_type;
 
@@ -79,5 +77,4 @@ template <typename T>
 const std::array<T, num_samples>& get_samples(samples_set_id id) noexcept;
 
 
-}  // namespace test
-}  // namespace intx
+}  // namespace intx::test

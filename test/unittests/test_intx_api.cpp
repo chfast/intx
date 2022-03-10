@@ -8,34 +8,32 @@
 
 using namespace intx;
 
-static_assert(uint128{2} + uint128{2} == 4, "");
-static_assert(uint256{2} + uint256{2} == 4, "");
-static_assert(uint512{2} + uint512{2} == 4, "");
+static_assert(uint128{2} + uint128{2} == 4);
+static_assert(uint256{2} + uint256{2} == 4);
+static_assert(uint512{2} + uint512{2} == 4);
 
-static_assert(uint128{2} - uint128{1} == 1, "");
-static_assert(uint256{2} - uint256{1} == 1, "");
-static_assert(uint512{2} - uint512{1} == 1, "");
+static_assert(uint128{2} - uint128{1} == 1);
+static_assert(uint256{2} - uint256{1} == 1);
+static_assert(uint512{2} - uint512{1} == 1);
 
-static_assert(uint128{2} * uint128{2} == 4, "");
-static_assert(uint256{2} * uint256{2} == 4, "");
-static_assert(uint512{2} * uint512{2} == 4, "");
+static_assert(uint128{2} * uint128{2} == 4);
+static_assert(uint256{2} * uint256{2} == 4);
+static_assert(uint512{2} * uint512{2} == 4);
 
-static_assert(umul(uint256{2}, uint256{3}) == 6, "");
+static_assert(umul(uint256{2}, uint256{3}) == 6);
 
-static_assert(0_u256 == 0, "");
-static_assert(-1_u256 == ~0_u256, "");
+static_assert(0_u256 == 0);
+static_assert(-1_u256 == ~0_u256);
 static_assert(
-    115792089237316195423570985008687907853269984665640564039457584007913129639935_u256 == ~0_u256,
-    "");
-static_assert(
-    0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u256 == ~0_u256, "");
+    115792089237316195423570985008687907853269984665640564039457584007913129639935_u256 == ~0_u256);
+static_assert(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u256 == ~0_u256);
 
-static_assert(clz(uint128{0}) == 128, "");
-static_assert(clz(uint128{1}) == 127, "");
-static_assert(clz(uint256{0}) == 256, "");
-static_assert(clz(uint256{1}) == 255, "");
-static_assert(clz(uint512{0}) == 512, "");
-static_assert(clz(uint512{1}) == 511, "");
+static_assert(clz(uint128{0}) == 128);
+static_assert(clz(uint128{1}) == 127);
+static_assert(clz(uint256{0}) == 256);
+static_assert(clz(uint256{1}) == 255);
+static_assert(clz(uint512{0}) == 512);
+static_assert(clz(uint512{1}) == 511);
 
 TEST(uint256, div)
 {

@@ -1,5 +1,5 @@
 // intx: extended precision integer library.
-// Copyright 2019-2020 Pawel Bylica.
+// Copyright 2019 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
 /// @file
@@ -31,9 +31,7 @@ struct uint192
     uint64_t hi;
 };
 
-namespace intx
-{
-namespace experimental
+namespace intx::experimental
 {
 #ifndef INTX_EXPERIMENTAL
 bool uaddo(uint64_t al, uint64_t ah, uint64_t bl, uint64_t bh, uint128* res) noexcept
@@ -68,5 +66,4 @@ uint192 add_waterfall(
     return {hl, lh, ll};
 }
 #endif
-}  // namespace experimental
-}  // namespace intx
+}  // namespace intx::experimental

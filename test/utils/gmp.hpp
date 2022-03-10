@@ -10,9 +10,7 @@
 #include <gmp.h>
 #include <intx/intx.hpp>
 
-namespace intx
-{
-namespace gmp
+namespace intx::gmp
 {
 static constexpr size_t uint256_limbs = sizeof(uint256) / sizeof(mp_limb_t);
 
@@ -144,5 +142,4 @@ inline Int addmod(const Int& x, const Int& y, const Int& mod) noexcept
     return rem;
 }
 
-}  // namespace gmp
-}  // namespace intx
+}  // namespace intx::gmp
