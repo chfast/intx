@@ -16,6 +16,7 @@ add_executable(intx-unittests
     test_intx.cpp
     test_intx_api.cpp
     test_suite.hpp
+    test_uint256.cpp
 )
 target_link_libraries(intx-unittests PRIVATE intx intx::experimental intx::testutils GTest::gtest_main)
 set_target_properties(intx-unittests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)
