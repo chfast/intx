@@ -1460,7 +1460,8 @@ inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
         uint64_t k = 0;
         for (size_t i = 0; i < num_words; ++i)
         {
-            const auto t = umul(x[i], y[j]) + p[i + j] + k;
+            const auto a = addc(p[i + j], k);
+            const auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
             p[i + j] = t[0];
             k = t[1];
         }
@@ -1482,7 +1483,8 @@ inline constexpr uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
         uint64_t k = 0;
         for (size_t i = 0; i < (num_words - j - 1); i++)
         {
-            const auto t = umul(x[i], y[j]) + p[i + j] + k;
+            const auto a = addc(p[i + j], k);
+            const auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
             p[i + j] = t[0];
             k = t[1];
         }
