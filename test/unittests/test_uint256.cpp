@@ -170,7 +170,8 @@ static decltype(&addmod) addmod_impls[] = {
     test::addmod_public,
     test::addmod_simple,
     test::addmod_prenormalize,
-    test::addmod_daosvik,
+    test::addmod_daosvik_v1,
+    test::addmod_daosvik_v2,
 };
 
 TEST(uint256, addmod)

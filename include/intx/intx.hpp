@@ -2033,17 +2033,25 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
     // Based on https://github.com/holiman/uint256/pull/86.
     if ((mod[3] != 0) && (x[3] <= mod[3]) && (y[3] <= mod[3]))
     {
-        auto s = subc(x, mod);
-        if (s.carry)
-            s.value = x;
+        // Normalize x in case it is bigger than mod.
+        auto xn = x;
+        const auto xd = subc(x, mod);
+        if (!xd.carry)
+            xn = xd.value;
 
-        auto t = subc(y, mod);
-        if (t.carry)
-            t.value = y;
+        // Normalize y in case it is bigger than mod.
+        auto yn = y;
+        const auto yd = subc(y, mod);
+        if (!yd.carry)
+            yn = yd.value;
 
-        s = addc(s.value, t.value);
-        t = subc(s.value, mod);
-        return (s.carry || !t.carry) ? t.value : s.value;
+        const auto a = addc(xn, yn);
+        const auto av = a.value;
+        const auto b = subc(av, mod);
+        const auto bv = b.value;
+        if (a.carry || !b.carry)
+            return bv;
+        return av;
     }
 
     const auto s = addc(x, y);
