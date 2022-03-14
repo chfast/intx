@@ -200,14 +200,14 @@ inline constexpr uint128 operator+(uint128 x) noexcept
     return x;
 }
 
-/// Subtraction with carrry (borrow).
+/// Subtraction with carry (borrow).
 inline constexpr result_with_carry<uint64_t> subc(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
     const auto d = x - y;
-    const auto carry1 = x < y;
+    const auto carry1 = x < d;
     const auto e = d - carry;
-    const auto carry2 = d < uint64_t{carry};
+    const auto carry2 = d < e;
     return {e, carry1 || carry2};
 }
 
