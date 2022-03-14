@@ -205,9 +205,9 @@ inline constexpr result_with_carry<uint64_t> subc(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
     const auto d = x - y;
-    const auto carry1 = x < d;
+    const auto carry1 = d > x;
     const auto e = d - carry;
-    const auto carry2 = d < e;
+    const auto carry2 = e > d;
     return {e, carry1 || carry2};
 }
 
