@@ -1690,11 +1690,11 @@ inline uint64_t submul(
     uint64_t borrow = 0;
     for (int i = 0; i < len; ++i)
     {
-        const auto s = subc(x[i], borrow);
+        const auto s = x[i] - borrow;
         const auto p = umul(y[i], multiplier);
-        const auto t = subc(s.value, p[0]);
-        r[i] = t.value;
-        borrow = p[1] + s.carry + t.carry;
+        borrow = p[1] + (x[i] < s);
+        r[i] = s - p[0];
+        borrow += (s < r[i]);
     }
     return borrow;
 }
