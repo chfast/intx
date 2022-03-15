@@ -1255,32 +1255,15 @@ inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
     }
     if (shift < 128)
     {
-        return {0, x[0] << shift, shld(x[0], x[1], shift), shld(x[1], x[2], shift)};
+        return {0, x[0] << (shift - 64), shld(x[0], x[1], (shift - 64)), shld(x[1], x[2], (shift - 64))};
     }
-
-    constexpr auto num_bits = uint256::num_bits;
-    constexpr auto half_bits = num_bits / 2;
-
-    const auto xlo = uint128{x[0], x[1]};
-
-    if (shift < half_bits)
-    {
-        const auto lo = xlo << shift;
-
-        const auto xhi = uint128{x[2], x[3]};
-
-        // Find the part moved from lo to hi.
-        // The shift right here can be invalid:
-        // for shift == 0 => rshift == half_bits.
-        // Split it into 2 valid shifts by (rshift - 1) and 1.
-        const auto rshift = half_bits - shift;
-        const auto lo_overflow = xlo >> rshift;
-        const auto hi = (xhi << shift) | lo_overflow;
-        return {lo[0], lo[1], hi[0], hi[1]};
-    }
-
-    const auto hi = xlo << (shift - half_bits);
-    return {0, 0, hi[0], hi[1]};
+    if (shift == 128)
+        return {0, 0, x[0], x[1]};
+    if (shift < 192)
+        return {0, 0, x[0] << (shift - 128), shld(x[0], x[1], (shift - 128))};
+    if (shift == 192)
+        return {0, 0, 0, x[0]};
+    return {0, 0, 0, x[0] << (shift - 192)};
 }
 
 template <unsigned N>
