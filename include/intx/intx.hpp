@@ -1408,16 +1408,18 @@ inline constexpr const uint64_t* as_words(const uint<N>& x) noexcept
     return &x[0];
 }
 
-template <unsigned N>
-inline uint8_t* as_bytes(uint<N>& x) noexcept
+template <typename T>
+inline uint8_t* as_bytes(T& x) noexcept
 {
-    return reinterpret_cast<uint8_t*>(as_words(x));
+    static_assert(std::is_trivially_copyable_v<T>);  // As in bit_cast.
+    return reinterpret_cast<uint8_t*>(&x);
 }
 
-template <unsigned N>
-inline const uint8_t* as_bytes(const uint<N>& x) noexcept
+template <typename T>
+inline const uint8_t* as_bytes(const T& x) noexcept
 {
-    return reinterpret_cast<const uint8_t*>(as_words(x));
+    static_assert(std::is_trivially_copyable_v<T>);  // As in bit_cast.
+    return reinterpret_cast<const uint8_t*>(&x);
 }
 
 template <unsigned N>
@@ -2069,38 +2071,54 @@ inline constexpr T to_big_endian(const T& x) noexcept
 
 namespace le  // Conversions to/from LE bytes.
 {
-template <typename IntT, unsigned M>
-inline IntT load(const uint8_t (&src)[M]) noexcept
+template <typename T, unsigned M>
+inline T load(const uint8_t (&src)[M]) noexcept
 {
-    static_assert(M == IntT::num_bits / 8,
-        "the size of source bytes must match the size of the destination uint");
-    IntT x;
+    static_assert(
+        M == sizeof(T), "the size of source bytes must match the size of the destination uint");
+    T x;
     std::memcpy(&x, src, sizeof(x));
-    x = to_little_endian(x);
-    return x;
+    return to_little_endian(x);
 }
 
-template <unsigned N>
-inline void store(uint8_t (&dst)[N / 8], const uint<N>& x) noexcept
+template <typename T>
+inline void store(uint8_t (&dst)[sizeof(T)], const T& x) noexcept
 {
     const auto d = to_little_endian(x);
     std::memcpy(dst, &d, sizeof(d));
 }
 
+namespace unsafe
+{
+template <typename T>
+inline T load(const uint8_t* src) noexcept
+{
+    T x;
+    std::memcpy(&x, src, sizeof(x));
+    return to_little_endian(x);
+}
+
+template <typename T>
+inline void store(uint8_t* dst, const T& x) noexcept
+{
+    const auto d = to_little_endian(x);
+    std::memcpy(dst, &d, sizeof(d));
+}
+}  // namespace unsafe
 }  // namespace le
 
 
 namespace be  // Conversions to/from BE bytes.
 {
-/// Loads an uint value from bytes of big-endian order.
-/// If the size of bytes is smaller than the result uint, the value is zero-extended.
-template <typename IntT, unsigned M>
-inline IntT load(const uint8_t (&src)[M]) noexcept
+/// Loads an integer value from bytes of big-endian order.
+/// If the size of bytes is smaller than the result, the value is zero-extended.
+template <typename T, unsigned M>
+inline T load(const uint8_t (&src)[M]) noexcept
 {
-    static_assert(M <= IntT::num_bits / 8,
+    static_assert(M <= sizeof(T),
         "the size of source bytes must not exceed the size of the destination uint");
-    IntT x;
-    std::memcpy(&as_bytes(x)[IntT::num_bits / 8 - M], src, M);
+    T x{};
+    std::memcpy(&as_bytes(x)[sizeof(T) - M], src, M);
     x = to_big_endian(x);
     return x;
 }
@@ -2111,20 +2129,20 @@ inline IntT load(const T& t) noexcept
     return load<IntT>(t.bytes);
 }
 
-/// Stores an uint value in a bytes array in big-endian order.
-template <unsigned N>
-inline void store(uint8_t (&dst)[N / 8], const uint<N>& x) noexcept
+/// Stores an integer value in a bytes array in big-endian order.
+template <typename T>
+inline void store(uint8_t (&dst)[sizeof(T)], const T& x) noexcept
 {
     const auto d = to_big_endian(x);
     std::memcpy(dst, &d, sizeof(d));
 }
 
-/// Stores an uint value in .bytes field of type T. The .bytes must be an array of uint8_t
+/// Stores an SrcT value in .bytes field of type DstT. The .bytes must be an array of uint8_t
 /// of the size matching the size of uint.
-template <typename T, unsigned N>
-inline T store(const uint<N>& x) noexcept
+template <typename DstT, typename SrcT>
+inline DstT store(const SrcT& x) noexcept
 {
-    T r{};
+    DstT r{};
     store(r.bytes, x);
     return r;
 }
@@ -2162,10 +2180,10 @@ inline IntT load(const uint8_t* src) noexcept
     return x;
 }
 
-/// Stores an uint value at the provided pointer in big-endian order. The user must make sure
+/// Stores an integer value at the provided pointer in big-endian order. The user must make sure
 /// that the provided buffer is big enough to fit the value. Therefore marked "unsafe".
-template <unsigned N>
-inline void store(uint8_t* dst, const uint<N>& x) noexcept
+template <typename T>
+inline void store(uint8_t* dst, const T& x) noexcept
 {
     const auto d = to_big_endian(x);
     std::memcpy(dst, &d, sizeof(d));

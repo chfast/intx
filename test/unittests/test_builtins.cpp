@@ -177,8 +177,9 @@ TEST(builtins, be_load_uint8_t)
     constexpr auto size = sizeof(uint8_t);
     uint8_t data[size]{};
     data[0] = 0x81;
-    const auto x = be::unsafe::load<uint8_t>(data);
-    EXPECT_EQ(x, 0x81);
+    const auto expected = 0x81;
+    EXPECT_EQ(be::unsafe::load<uint8_t>(data), expected);
+    EXPECT_EQ(be::load<uint8_t>(data), expected);
 }
 
 TEST(builtins, be_load_uint16_t)
@@ -187,8 +188,9 @@ TEST(builtins, be_load_uint16_t)
     uint8_t data[size]{};
     data[0] = 0x80;
     data[size - 1] = 1;
-    const auto x = be::unsafe::load<uint16_t>(data);
-    EXPECT_EQ(x, (uint16_t{1} << (sizeof(uint16_t) * 8 - 1)) | 1);
+    const auto expected = (uint16_t{1} << (sizeof(uint16_t) * 8 - 1)) | 1;
+    EXPECT_EQ(be::unsafe::load<uint16_t>(data), expected);
+    EXPECT_EQ(be::load<uint16_t>(data), expected);
 }
 
 TEST(builtins, be_load_uint32_t)
@@ -197,8 +199,9 @@ TEST(builtins, be_load_uint32_t)
     uint8_t data[size]{};
     data[0] = 0x80;
     data[size - 1] = 1;
-    const auto x = be::unsafe::load<uint32_t>(data);
-    EXPECT_EQ(x, (uint32_t{1} << (sizeof(uint32_t) * 8 - 1)) | 1);
+    const auto expected = (uint32_t{1} << (sizeof(uint32_t) * 8 - 1)) | 1;
+    EXPECT_EQ(be::unsafe::load<uint32_t>(data), expected);
+    EXPECT_EQ(be::load<uint32_t>(data), expected);
 }
 
 TEST(builtins, be_load_uint64_t)
@@ -207,6 +210,45 @@ TEST(builtins, be_load_uint64_t)
     uint8_t data[size]{};
     data[0] = 0x80;
     data[size - 1] = 1;
-    const auto x = be::unsafe::load<uint64_t>(data);
-    EXPECT_EQ(x, (uint64_t{1} << (sizeof(uint64_t) * 8 - 1)) | 1);
+    const auto expected = (uint64_t{1} << (sizeof(uint64_t) * 8 - 1)) | 1;
+    EXPECT_EQ(be::unsafe::load<uint64_t>(data), expected);
+    EXPECT_EQ(be::load<uint64_t>(data), expected);
+}
+
+TEST(builtins, be_load_partial)
+{
+    uint8_t data[1]{0xec};
+    EXPECT_EQ(be::load<uint64_t>(data), uint64_t{0xec});
+    EXPECT_EQ(be::load<uint32_t>(data), uint32_t{0xec});
+    EXPECT_EQ(be::load<uint16_t>(data), uint16_t{0xec});
+}
+
+TEST(builtins, be_store_uint64_t)
+{
+    constexpr auto size = sizeof(uint64_t);
+    uint8_t data[size]{};
+    std::string_view view{reinterpret_cast<const char*>(data), std::size(data)};
+    be::store(data, uint64_t{0x0102030405060708});
+    EXPECT_EQ(view, "\x01\x02\x03\x04\x05\x06\x07\x08");
+    std::fill_n(data, std::size(data), uint8_t{0});
+    be::unsafe::store(data, uint64_t{0x0102030405060708});
+    EXPECT_EQ(view, "\x01\x02\x03\x04\x05\x06\x07\x08");
+}
+
+TEST(builtins, le_load_uint32_t)
+{
+    const uint8_t data[] = {0xb1, 0xb2, 0xb3, 0xb4};
+    EXPECT_EQ(le::load<uint32_t>(data), 0xb4b3b2b1);
+    EXPECT_EQ(le::unsafe::load<uint32_t>(data), 0xb4b3b2b1);
+}
+
+TEST(builtins, le_store_uint32_t)
+{
+    uint8_t data[] = {0xb1, 0xb2, 0xb3, 0xb4};
+    std::string_view view{reinterpret_cast<const char*>(data), std::size(data)};
+    le::store(data, uint32_t{0xa1a2a3a4});
+    EXPECT_EQ(view, "\xa4\xa3\xa2\xa1");
+    std::fill_n(data, std::size(data), uint8_t{0xff});
+    le::unsafe::store(data, uint32_t{0xc1c2c3c4});
+    EXPECT_EQ(view, "\xc4\xc3\xc2\xc1");
 }
