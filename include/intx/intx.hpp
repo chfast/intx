@@ -2088,6 +2088,23 @@ inline void store(uint8_t (&dst)[sizeof(T)], const T& x) noexcept
     std::memcpy(dst, &d, sizeof(d));
 }
 
+namespace unsafe
+{
+template <typename T>
+inline T load(const uint8_t* src) noexcept
+{
+    T x;
+    std::memcpy(&x, src, sizeof(x));
+    return to_little_endian(x);
+}
+
+template <typename T>
+inline void store(uint8_t* dst, const T& x) noexcept
+{
+    const auto d = to_little_endian(x);
+    std::memcpy(dst, &d, sizeof(d));
+}
+}  // namespace unsafe
 }  // namespace le
 
 

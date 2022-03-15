@@ -237,16 +237,18 @@ TEST(builtins, be_store_uint64_t)
 
 TEST(builtins, le_load_uint32_t)
 {
-    uint8_t data[] = {0xb1, 0xb2, 0xb3, 0xb4};
+    const uint8_t data[] = {0xb1, 0xb2, 0xb3, 0xb4};
     EXPECT_EQ(le::load<uint32_t>(data), 0xb4b3b2b1);
+    EXPECT_EQ(le::unsafe::load<uint32_t>(data), 0xb4b3b2b1);
 }
 
 TEST(builtins, le_store_uint32_t)
 {
     uint8_t data[] = {0xb1, 0xb2, 0xb3, 0xb4};
+    std::string_view view{reinterpret_cast<const char*>(data), std::size(data)};
     le::store(data, uint32_t{0xa1a2a3a4});
-    EXPECT_EQ(data[0], 0xa4);
-    EXPECT_EQ(data[1], 0xa3);
-    EXPECT_EQ(data[2], 0xa2);
-    EXPECT_EQ(data[3], 0xa1);
+    EXPECT_EQ(view, "\xa4\xa3\xa2\xa1");
+    std::fill_n(data, std::size(data), uint8_t{0xff});
+    le::unsafe::store(data, uint32_t{0xc1c2c3c4});
+    EXPECT_EQ(view, "\xc4\xc3\xc2\xc1");
 }
