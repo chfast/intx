@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
 
+## [0.8.0] — 2022-03-15
+
+### Added
+
+- Added support for big-endian architectures.
+  [#257](https://github.com/chfast/intx/pull/257)
+- Extend endian-specific load/store helpers to work with builtin integer types.
+  [#265](https://github.com/chfast/intx/pull/265)
+
+### Changed
+
+- The `addc()` and `subc()` have been optimized with compiler's builtins if available.
+  [#250](https://github.com/chfast/intx/pull/250)
+  [#251](https://github.com/chfast/intx/pull/251)
+  [#253](https://github.com/chfast/intx/pull/253)
+- Fixed and enabled CI testing for architectures other than x86.
+  [#255](https://github.com/chfast/intx/pull/255)
+- Small multiplication optimization.
+  [#261](https://github.com/chfast/intx/pull/261)
+- Small division optimization.
+  [#263](https://github.com/chfast/intx/pull/263)
+- Small comparison operators optimization for the `uint256` type.
+  [#264](https://github.com/chfast/intx/pull/264)
+
 ## [0.7.1] — 2022-02-15
 
 ### Fixed
@@ -124,6 +148,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.8.0]: https://github.com/chfast/intx/releases/v0.8.0
 [0.7.1]: https://github.com/chfast/intx/releases/v0.7.1
 [0.7.0]: https://github.com/chfast/intx/releases/v0.7.0
 [0.6.0]: https://github.com/chfast/intx/releases/v0.6.0
