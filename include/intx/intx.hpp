@@ -1087,11 +1087,14 @@ inline constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
 #if !defined(_MSC_VER) || _MSC_VER < 1916  // This kills MSVC 2017 compiler.
 inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
 {
-    const auto xhi = uint128{x[2], x[3]};
-    const auto xlo = uint128{x[0], x[1]};
-    const auto yhi = uint128{y[2], y[3]};
-    const auto ylo = uint128{y[0], y[1]};
-    return (unsigned(xhi < yhi) | (unsigned(xhi == yhi) & unsigned(xlo < ylo))) != 0;
+    auto xp = intx::uint128{x[2], x[3]};
+    auto yp = intx::uint128{y[2], y[3]};
+    if (xp == yp)
+    {
+        xp = intx::uint128{x[0], x[1]};
+        yp = intx::uint128{y[0], y[1]};
+    }
+    return xp < yp;
 }
 #endif
 
