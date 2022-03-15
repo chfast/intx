@@ -366,11 +366,11 @@ inline constexpr uint128 operator<<(uint128 x, uint64_t shift) noexcept
         auto b1 = h ? x[1] : x[0];
         auto sh = h ? shift : shift - 64;
 
-        if (h)
-        {
-            return uint128{b0 << sh, (b1 << sh) | (x[0] >> (64 - shift))};
-        }
-        return uint128{b0, b1 << sh};
+        auto c0 = b0 << sh;
+        auto c1 = b1 << sh;
+
+        auto d1 = h ? c1 | (x[0] >> (64 - shift)) : c1;
+        return uint128{c0, d1};
     }
     return 0;
 }
