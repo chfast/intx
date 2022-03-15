@@ -2094,8 +2094,8 @@ inline void store(uint8_t (&dst)[N / 8], const uint<N>& x) noexcept
 
 namespace be  // Conversions to/from BE bytes.
 {
-/// Loads an uint value from bytes of big-endian order.
-/// If the size of bytes is smaller than the result uint, the value is zero-extended.
+/// Loads an integer value from bytes of big-endian order.
+/// If the size of bytes is smaller than the result, the value is zero-extended.
 template <typename T, unsigned M>
 inline T load(const uint8_t (&src)[M]) noexcept
 {
@@ -2113,20 +2113,20 @@ inline IntT load(const T& t) noexcept
     return load<IntT>(t.bytes);
 }
 
-/// Stores an uint value in a bytes array in big-endian order.
-template <unsigned N>
-inline void store(uint8_t (&dst)[N / 8], const uint<N>& x) noexcept
+/// Stores an integer value in a bytes array in big-endian order.
+template <typename T>
+inline void store(uint8_t (&dst)[sizeof(T)], const T& x) noexcept
 {
     const auto d = to_big_endian(x);
     std::memcpy(dst, &d, sizeof(d));
 }
 
-/// Stores an uint value in .bytes field of type T. The .bytes must be an array of uint8_t
+/// Stores an SrcT value in .bytes field of type DstT. The .bytes must be an array of uint8_t
 /// of the size matching the size of uint.
-template <typename T, unsigned N>
-inline T store(const uint<N>& x) noexcept
+template <typename DstT, typename SrcT>
+inline DstT store(const SrcT& x) noexcept
 {
-    T r{};
+    DstT r{};
     store(r.bytes, x);
     return r;
 }
@@ -2164,10 +2164,10 @@ inline IntT load(const uint8_t* src) noexcept
     return x;
 }
 
-/// Stores an uint value at the provided pointer in big-endian order. The user must make sure
+/// Stores an integer value at the provided pointer in big-endian order. The user must make sure
 /// that the provided buffer is big enough to fit the value. Therefore marked "unsafe".
-template <unsigned N>
-inline void store(uint8_t* dst, const uint<N>& x) noexcept
+template <typename T>
+inline void store(uint8_t* dst, const T& x) noexcept
 {
     const auto d = to_big_endian(x);
     std::memcpy(dst, &d, sizeof(d));

@@ -222,3 +222,15 @@ TEST(builtins, be_load_partial)
     EXPECT_EQ(be::load<uint32_t>(data), uint32_t{0xec});
     EXPECT_EQ(be::load<uint16_t>(data), uint16_t{0xec});
 }
+
+TEST(builtins, be_store_uint64_t)
+{
+    constexpr auto size = sizeof(uint64_t);
+    uint8_t data[size]{};
+    std::string_view view{reinterpret_cast<const char*>(data), std::size(data)};
+    be::store(data, uint64_t{0x0102030405060708});
+    EXPECT_EQ(view, "\x01\x02\x03\x04\x05\x06\x07\x08");
+    std::fill_n(data, std::size(data), uint8_t{0});
+    be::unsafe::store(data, uint64_t{0x0102030405060708});
+    EXPECT_EQ(view, "\x01\x02\x03\x04\x05\x06\x07\x08");
+}
