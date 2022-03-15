@@ -177,8 +177,9 @@ TEST(builtins, be_load_uint8_t)
     constexpr auto size = sizeof(uint8_t);
     uint8_t data[size]{};
     data[0] = 0x81;
-    const auto x = be::unsafe::load<uint8_t>(data);
-    EXPECT_EQ(x, 0x81);
+    const auto expected = 0x81;
+    EXPECT_EQ(be::unsafe::load<uint8_t>(data), expected);
+    EXPECT_EQ(be::load<uint8_t>(data), expected);
 }
 
 TEST(builtins, be_load_uint16_t)
@@ -187,8 +188,9 @@ TEST(builtins, be_load_uint16_t)
     uint8_t data[size]{};
     data[0] = 0x80;
     data[size - 1] = 1;
-    const auto x = be::unsafe::load<uint16_t>(data);
-    EXPECT_EQ(x, (uint16_t{1} << (sizeof(uint16_t) * 8 - 1)) | 1);
+    const auto expected = (uint16_t{1} << (sizeof(uint16_t) * 8 - 1)) | 1;
+    EXPECT_EQ(be::unsafe::load<uint16_t>(data), expected);
+    EXPECT_EQ(be::load<uint16_t>(data), expected);
 }
 
 TEST(builtins, be_load_uint32_t)
@@ -197,8 +199,9 @@ TEST(builtins, be_load_uint32_t)
     uint8_t data[size]{};
     data[0] = 0x80;
     data[size - 1] = 1;
-    const auto x = be::unsafe::load<uint32_t>(data);
-    EXPECT_EQ(x, (uint32_t{1} << (sizeof(uint32_t) * 8 - 1)) | 1);
+    const auto expected = (uint32_t{1} << (sizeof(uint32_t) * 8 - 1)) | 1;
+    EXPECT_EQ(be::unsafe::load<uint32_t>(data), expected);
+    EXPECT_EQ(be::load<uint32_t>(data), expected);
 }
 
 TEST(builtins, be_load_uint64_t)
@@ -207,6 +210,15 @@ TEST(builtins, be_load_uint64_t)
     uint8_t data[size]{};
     data[0] = 0x80;
     data[size - 1] = 1;
-    const auto x = be::unsafe::load<uint64_t>(data);
-    EXPECT_EQ(x, (uint64_t{1} << (sizeof(uint64_t) * 8 - 1)) | 1);
+    const auto expected = (uint64_t{1} << (sizeof(uint64_t) * 8 - 1)) | 1;
+    EXPECT_EQ(be::unsafe::load<uint64_t>(data), expected);
+    EXPECT_EQ(be::load<uint64_t>(data), expected);
+}
+
+TEST(builtins, be_load_partial)
+{
+    uint8_t data[1]{0xec};
+    EXPECT_EQ(be::load<uint64_t>(data), uint64_t{0xec});
+    EXPECT_EQ(be::load<uint32_t>(data), uint32_t{0xec});
+    EXPECT_EQ(be::load<uint16_t>(data), uint16_t{0xec});
 }

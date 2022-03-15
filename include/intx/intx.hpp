@@ -1408,16 +1408,18 @@ inline constexpr const uint64_t* as_words(const uint<N>& x) noexcept
     return &x[0];
 }
 
-template <unsigned N>
-inline uint8_t* as_bytes(uint<N>& x) noexcept
+template <typename T>
+inline uint8_t* as_bytes(T& x) noexcept
 {
-    return reinterpret_cast<uint8_t*>(as_words(x));
+    static_assert(std::is_trivially_copyable_v<T>);  // As in bit_cast.
+    return reinterpret_cast<uint8_t*>(&x);
 }
 
-template <unsigned N>
-inline const uint8_t* as_bytes(const uint<N>& x) noexcept
+template <typename T>
+inline const uint8_t* as_bytes(const T& x) noexcept
 {
-    return reinterpret_cast<const uint8_t*>(as_words(x));
+    static_assert(std::is_trivially_copyable_v<T>);  // As in bit_cast.
+    return reinterpret_cast<const uint8_t*>(&x);
 }
 
 template <unsigned N>
@@ -2094,13 +2096,13 @@ namespace be  // Conversions to/from BE bytes.
 {
 /// Loads an uint value from bytes of big-endian order.
 /// If the size of bytes is smaller than the result uint, the value is zero-extended.
-template <typename IntT, unsigned M>
-inline IntT load(const uint8_t (&src)[M]) noexcept
+template <typename T, unsigned M>
+inline T load(const uint8_t (&src)[M]) noexcept
 {
-    static_assert(M <= IntT::num_bits / 8,
+    static_assert(M <= sizeof(T),
         "the size of source bytes must not exceed the size of the destination uint");
-    IntT x;
-    std::memcpy(&as_bytes(x)[IntT::num_bits / 8 - M], src, M);
+    T x{};
+    std::memcpy(&as_bytes(x)[sizeof(T) - M], src, M);
     x = to_big_endian(x);
     return x;
 }
