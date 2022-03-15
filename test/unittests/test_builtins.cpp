@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 #include <intx/intx.hpp>
 
+#pragma warning(disable : 4307)
+
 using namespace intx;
 
 static_assert(clz_generic(uint32_t{0}) == 32);
@@ -28,6 +30,16 @@ static_assert(to_big_endian(uint16_t{0x0b0a}) == (is_le ? 0x0a0b : 0x0b0a));
 static_assert(to_big_endian(uint32_t{0x0d0c0b0a}) == (is_le ? 0x0a0b0c0d : 0x0d0c0b0a));
 static_assert(to_big_endian(uint64_t{0x02010f0e0d0c0b0a}) ==
               (is_le ? 0x0a0b0c0d0e0f0102 : 0x02010f0e0d0c0b0a));
+
+static_assert(addc(0, 0).value == 0);
+static_assert(!addc(0, 0).carry);
+static_assert(addc(0xffffffffffffffff, 2).value == 1);
+static_assert(addc(0xffffffffffffffff, 2).carry);
+
+static_assert(subc(0, 0).value == 0);
+static_assert(!subc(0, 0).carry);
+static_assert(subc(0, 1).value == 0xffffffffffffffff);
+static_assert(subc(0, 1).carry);
 
 
 TEST(builtins, clz64_single_one)
