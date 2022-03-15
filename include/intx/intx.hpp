@@ -1249,6 +1249,14 @@ inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
         return {x[0] << shift, shld(x[0], x[1], shift), shld(x[1], x[2], shift),
             shld(x[2], x[3], shift)};
     }
+    if (shift == 64)
+    {
+        return {0, x[0], x[1], x[2]};
+    }
+    if (shift < 128)
+    {
+        return {0, x[0] << shift, shld(x[0], x[1], shift), shld(x[1], x[2], shift)};
+    }
 
     constexpr auto num_bits = uint256::num_bits;
     constexpr auto half_bits = num_bits / 2;
