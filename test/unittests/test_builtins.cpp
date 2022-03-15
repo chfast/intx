@@ -234,3 +234,19 @@ TEST(builtins, be_store_uint64_t)
     be::unsafe::store(data, uint64_t{0x0102030405060708});
     EXPECT_EQ(view, "\x01\x02\x03\x04\x05\x06\x07\x08");
 }
+
+TEST(builtins, le_load_uint32_t)
+{
+    uint8_t data[] = {0xb1, 0xb2, 0xb3, 0xb4};
+    EXPECT_EQ(le::load<uint32_t>(data), 0xb4b3b2b1);
+}
+
+TEST(builtins, le_store_uint32_t)
+{
+    uint8_t data[] = {0xb1, 0xb2, 0xb3, 0xb4};
+    le::store(data, uint32_t{0xa1a2a3a4});
+    EXPECT_EQ(data[0], 0xa4);
+    EXPECT_EQ(data[1], 0xa3);
+    EXPECT_EQ(data[2], 0xa2);
+    EXPECT_EQ(data[3], 0xa1);
+}
