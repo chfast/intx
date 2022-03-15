@@ -1252,7 +1252,7 @@ inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
         // for shift == 0 => rshift == half_bits.
         // Split it into 2 valid shifts by (rshift - 1) and 1.
         const auto rshift = half_bits - shift;
-        const auto lo_overflow = (xlo >> (rshift - 1)) >> 1;
+        const auto lo_overflow = xlo >> rshift;
         const auto hi = (xhi << shift) | lo_overflow;
         return {lo[0], lo[1], hi[0], hi[1]};
     }
