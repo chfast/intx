@@ -1230,6 +1230,11 @@ inline constexpr uint<N> operator~(const uint<N>& x) noexcept
     return z;
 }
 
+inline constexpr auto shld(uint64_t x1, uint64_t x2, uint64_t c) noexcept
+{
+    return (x2 << c) | (x1 >> (64 - c));
+}
+
 
 inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
 {
@@ -1238,6 +1243,12 @@ inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
 
     if (INTX_UNLIKELY(shift == 0))
         return x;
+
+    if (shift < 64)
+    {
+        return {x[0] << shift, shld(x[0], x[1], shift), shld(x[1], x[2], shift),
+            shld(x[2], x[3], shift)};
+    }
 
     constexpr auto num_bits = uint256::num_bits;
     constexpr auto half_bits = num_bits / 2;
