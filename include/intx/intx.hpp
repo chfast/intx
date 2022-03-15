@@ -1236,6 +1236,9 @@ inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
     if (INTX_UNLIKELY(shift >= uint256::num_bits))
         return 0;
 
+    if (INTX_UNLIKELY(shift == 0))
+        return x;
+
     constexpr auto num_bits = uint256::num_bits;
     constexpr auto half_bits = num_bits / 2;
 
