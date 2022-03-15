@@ -355,14 +355,13 @@ inline constexpr uint128 operator^(uint128 x, uint128 y) noexcept
 
 inline constexpr uint128 operator<<(uint128 x, uint64_t shift) noexcept
 {
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 right shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{x[0] << shift, (x[1] << shift) | ((x[0] >> 1) >> (63 - shift))} :
-
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{0, x[0] << (shift - 64)} : 0;
+    if (shift < 128)
+    {
+        return (shift < 64) ?
+                   uint128{x[0] << shift, (x[1] << shift) | ((x[0] >> 1) >> (63 - shift))} :
+                   uint128{0, x[0] << (shift - 64)};
+    }
+    return 0;
 }
 
 inline constexpr uint128 operator<<(uint128 x, uint128 shift) noexcept
@@ -373,16 +372,21 @@ inline constexpr uint128 operator<<(uint128 x, uint128 shift) noexcept
     return x << shift[0];
 }
 
+inline constexpr uint64_t shrd(uint64_t x1, uint64_t x2, uint64_t c) noexcept
+{
+    return (x2 >> c) | (x1 << (64 - c));
+}
+
 inline constexpr uint128 operator>>(uint128 x, uint64_t shift) noexcept
 {
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 left shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{(x[0] >> shift) | ((x[1] << 1) << (63 - shift)), x[1] >> shift} :
-
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{x[1] >> (shift - 64)} : 0;
+    if (shift < 128)
+    {
+        if (shift < 64)
+            return {(x[0] >> shift) | ((x[1] << 1) << (63 - shift)), x[1] >> shift};
+        else
+            return x[1] >> (shift - 64);
+    }
+    return 0;
 }
 
 inline constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
