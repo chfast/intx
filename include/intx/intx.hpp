@@ -1257,7 +1257,7 @@ inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
         return {lo[0], lo[1], hi[0], hi[1]};
     }
 
-    const auto hi = xlo << (shift - half_bits);
+    const uint128 hi = builtin_uint128{xlo} << (shift - half_bits);
     return {0, 0, hi[0], hi[1]};
 }
 
