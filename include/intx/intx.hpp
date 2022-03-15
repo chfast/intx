@@ -357,9 +357,13 @@ inline constexpr uint128 operator<<(uint128 x, uint64_t shift) noexcept
 {
     if (shift < 128)
     {
-        return (shift < 64) ?
-                   uint128{x[0] << shift, (x[1] << shift) | ((x[0] >> 1) >> (63 - shift))} :
-                   uint128{0, x[0] << (shift - 64)};
+        if (shift < 64)
+        {
+            if (shift == 0)
+                return x;
+            return uint128{x[0] << shift, (x[1] << shift) | (x[0] >> (64 - shift))};
+        }
+        return uint128{0, x[0] << (shift - 64)};
     }
     return 0;
 }
