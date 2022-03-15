@@ -351,6 +351,11 @@ BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
     return x < y;
 }
 
+[[gnu::noinline]] static bool lt_sub(const uint256& x, const uint256& y) noexcept
+{
+    return subc(x, y).carry;
+}
+
 [[gnu::noinline]] static bool lt_wordcmp(const uint256& x, const uint256& y) noexcept
 {
     for (size_t i = 3; i >= 1; --i)
@@ -418,6 +423,7 @@ static void compare(benchmark::State& state)
     }
 }
 BENCHMARK_TEMPLATE(compare, lt_public)->DenseRange(64, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_sub)->DenseRange(64, 256, 64);
 BENCHMARK_TEMPLATE(compare, lt_wordcmp)->DenseRange(64, 256, 64);
 BENCHMARK_TEMPLATE(compare, lt_halves)->DenseRange(64, 256, 64);
 #if INTX_HAS_EXTINT
