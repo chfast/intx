@@ -357,17 +357,20 @@ inline constexpr uint128 operator<<(uint128 x, uint64_t shift) noexcept
 {
     if (shift < 128)
     {
+        if (shift == 0)
+            return x;
+
         const bool h = shift < 64;
-        if (!h)
-            shift -= 64;
-        const auto r0 = x[0] << shift;
+
+        auto b0 = h ? x[0] : 0;
+        auto b1 = h ? x[1] : x[0];
+        auto sh = h ? shift : shift - 64;
+
         if (h)
         {
-            if (shift == 0)
-                return x;
-            return uint128{r0, (x[1] << shift) | (x[0] >> (64 - shift))};
+            return uint128{b0 << sh, (b1 << sh) | (x[0] >> (64 - shift))};
         }
-        return uint128{0, r0};
+        return uint128{b0, b1 << sh};
     }
     return 0;
 }
