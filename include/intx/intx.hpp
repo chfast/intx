@@ -164,7 +164,7 @@ struct result_with_carry
 /// @{
 
 /// Addition with carry. `uint64_t *carry` is used as in/out parameter
-inline constexpr uint64_t addc(uint64_t x, uint64_t y, unsigned long long *carry) noexcept
+inline constexpr uint64_t addc(uint64_t x, uint64_t y, unsigned long long* carry) noexcept
 {
 #if __has_builtin(__builtin_addcll)
     if (!is_constant_evaluated())
@@ -190,7 +190,7 @@ inline constexpr uint64_t addc(uint64_t x, uint64_t y, unsigned long long *carry
 }
 
 /// Subtraction with carry (borrow). `uint64_t *carry` is used as in/out parameter
-inline constexpr uint64_t subc(uint64_t x, uint64_t y, unsigned long long *carry) noexcept
+inline constexpr uint64_t subc(uint64_t x, uint64_t y, unsigned long long* carry) noexcept
 {
 #if __has_builtin(__builtin_subcll)
     if (!is_constant_evaluated())
@@ -217,7 +217,7 @@ inline constexpr uint64_t subc(uint64_t x, uint64_t y, unsigned long long *carry
 
 /// Addition with carry.
 template <unsigned N>
-inline constexpr uint<N> addc(const uint<N>& x, const uint<N>& y, unsigned long long *carry) noexcept
+inline constexpr uint<N> addc(const uint<N>& x, const uint<N>& y, unsigned long long* carry) noexcept
 {
     uint<N> s;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
@@ -241,7 +241,7 @@ inline constexpr uint128 operator+(uint128 x) noexcept
 /// Performs subtraction of two unsigned numbers and returns the difference
 /// and the carry bit (aka borrow, overflow).
 template <unsigned N>
-inline constexpr uint<N> subc(const uint<N>& x, const uint<N>& y, unsigned long long *carry) noexcept
+inline constexpr uint<N> subc(const uint<N>& x, const uint<N>& y, unsigned long long* carry) noexcept
 {
     uint<N> z;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
