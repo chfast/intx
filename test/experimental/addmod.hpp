@@ -16,9 +16,9 @@ namespace intx::test
 [[maybe_unused, gnu::noinline]] static uint256 addmod_simple(
     const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
-    const auto s = addc(x, y);
-    uint<256 + 64> n = s.value;
-    n[4] = s.carry;
+    uint64_t carry = 0;
+    uint<256 + 64> n = addc(x, y, &carry);
+    n[4] = carry;
     return udivrem(n, mod).rem;
 }
 
@@ -28,9 +28,9 @@ namespace intx::test
     const auto xm = x >= mod ? x % mod : x;
     const auto ym = y >= mod ? y % mod : y;
 
-    const auto s = addc(xm, ym);
-    auto sum = s.value;
-    if (s.carry || s.value >= mod)
+    uint64_t carry = 0;
+    auto sum = addc(xm, ym, &carry);
+    if (carry || sum >= mod)
         sum -= mod;
     return sum;
 }
@@ -43,22 +43,28 @@ namespace intx::test
     // Based on https://github.com/holiman/uint256/pull/86.
     if ((m[3] != 0) && (x[3] <= m[3]) && (y[3] <= m[3]))
     {
-        auto s = subc(x, m);
-        if (s.carry)
-            s.value = x;
+        uint64_t carry = 0;
+        auto s = subc(x, m, &carry);
+        if (carry)
+            s = x;
 
-        auto t = subc(y, m);
-        if (t.carry)
-            t.value = y;
+        carry = 0;
+        auto t = subc(y, m, &carry);
+        if (carry)
+            t = y;
 
-        s = addc(s.value, t.value);
-        t = subc(s.value, m);
-        return (s.carry || !t.carry) ? t.value : s.value;
+        carry = 0;
+        s = addc(s, t, &carry);
+
+        uint64_t carry2 = 0;
+        t = subc(s, m, &carry2);
+
+        return (carry || !carry2) ? t : s;
     }
 
-    const auto s = addc(x, y);
-    uint<256 + 64> n = s.value;
-    n[4] = s.carry;
+    uint64_t carry = 0;
+    uint<256 + 64> n = addc(x, y, &carry);
+    n[4] = carry;
     return udivrem(n, m).rem;
 }
 
@@ -72,28 +78,31 @@ namespace intx::test
     {
         // Normalize x in case it is bigger than mod.
         auto xn = x;
-        const auto xd = subc(x, mod);
-        if (!xd.carry)
-            xn = xd.value;
+        uint64_t carry = 0;
+        const auto xd = subc(x, mod, &carry);
+        if (!carry)
+            xn = xd;
 
         // Normalize y in case it is bigger than mod.
         auto yn = y;
-        const auto yd = subc(y, mod);
-        if (!yd.carry)
-            yn = yd.value;
+        carry = 0;
+        const auto yd = subc(y, mod, &carry);
+        if (!carry)
+            yn = yd;
 
-        const auto a = addc(xn, yn);
-        const auto av = a.value;
-        const auto b = subc(av, mod);
-        const auto bv = b.value;
-        if (a.carry || !b.carry)
+        carry = 0;
+        const auto av = addc(xn, yn, &carry);
+
+        uint64_t carry2 = 0;
+        const auto bv = subc(av, mod, &carry2);
+        if (carry || !carry2)
             return bv;
         return av;
     }
 
-    const auto s = addc(x, y);
-    uint<256 + 64> n = s.value;
-    n[4] = s.carry;
+    uint64_t carry = 0;
+    uint<256 + 64> n = addc(x, y, &carry);
+    n[4] = carry;
     return udivrem(n, mod).rem;
 }
 }  // namespace intx::test

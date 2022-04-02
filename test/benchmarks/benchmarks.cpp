@@ -355,7 +355,9 @@ BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
 
 [[gnu::noinline]] static bool lt_sub(const uint256& x, const uint256& y) noexcept
 {
-    return subc(x, y).carry;
+    uint64_t carry = 0;
+    subc(x, y, &carry);
+    return !!carry;
 }
 
 [[gnu::noinline]] static bool lt_wordcmp(const uint256& x, const uint256& y) noexcept
