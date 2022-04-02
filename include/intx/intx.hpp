@@ -165,7 +165,7 @@ struct result_with_carry
 
 /// Addition with carry. `uint64_t *carry` is used as in/out parameter
 inline constexpr uint64_t addc(
-    uint64_t x, uint64_t y, unsigned long long* carry) noexcept
+    uint64_t x, uint64_t y, unsigned long long* carry) noexcept // NOLINT(google-runtime-int)
 {
 #if __has_builtin(__builtin_addcll)
     if (!is_constant_evaluated())
@@ -192,7 +192,7 @@ inline constexpr uint64_t addc(
 
 /// Subtraction with carry (borrow). `uint64_t *carry` is used as in/out parameter
 inline constexpr uint64_t subc(
-    uint64_t x, uint64_t y, unsigned long long* carry) noexcept
+    uint64_t x, uint64_t y, unsigned long long* carry) noexcept // NOLINT(google-runtime-int)
 {
 #if __has_builtin(__builtin_subcll)
     if (!is_constant_evaluated())
@@ -219,7 +219,8 @@ inline constexpr uint64_t subc(
 
 /// Addition with carry.
 template <unsigned N>
-inline constexpr uint<N> addc(const uint<N>& x, const uint<N>& y, unsigned long long* carry) noexcept
+inline constexpr uint<N> addc(
+    const uint<N>& x, const uint<N>& y, unsigned long long* carry) noexcept // NOLINT(google-runtime-int)
 {
     uint<N> s;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
@@ -231,7 +232,7 @@ inline constexpr uint<N> addc(const uint<N>& x, const uint<N>& y, unsigned long 
 
 inline constexpr uint128 operator+(uint128 x, uint128 y) noexcept
 {
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     return addc(x, y, &carry);
 }
 
@@ -243,7 +244,8 @@ inline constexpr uint128 operator+(uint128 x) noexcept
 /// Performs subtraction of two unsigned numbers and returns the difference
 /// and the carry bit (aka borrow, overflow).
 template <unsigned N>
-inline constexpr uint<N> subc(const uint<N>& x, const uint<N>& y, unsigned long long* carry) noexcept
+inline constexpr uint<N> subc(
+    const uint<N>& x, const uint<N>& y, unsigned long long* carry) noexcept // NOLINT(google-runtime-int)
 {
     uint<N> z;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
@@ -255,7 +257,7 @@ inline constexpr uint<N> subc(const uint<N>& x, const uint<N>& y, unsigned long 
 
 inline constexpr uint128 operator-(uint128 x, uint128 y) noexcept
 {
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     return subc(x, y, &carry);
 }
 
@@ -1127,7 +1129,7 @@ inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
 template <unsigned N>
 inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
 {
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     subc(x, y, &carry);
     return !!carry;
 }
@@ -1301,7 +1303,7 @@ inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
     const auto skip = static_cast<size_t>(shift / word_bits);
 
     uint<N> r;
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     for (size_t i = 0; i < (uint<N>::num_words - skip); ++i)
     {
         r[i + skip] = (x[i] << s) | carry;
@@ -1354,7 +1356,7 @@ inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
     const auto skip = static_cast<size_t>(shift / word_bits);
 
     uint<N> r;
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     for (size_t i = 0; i < (num_words - skip); ++i)
     {
         r[num_words - 1 - i - skip] = (x[num_words - 1 - i] >> s) | carry;
@@ -1453,7 +1455,7 @@ inline const uint8_t* as_bytes(const T& x) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
 {
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     return addc(x, y, &carry);
 }
 
@@ -1466,7 +1468,7 @@ inline constexpr uint<N> operator-(const uint<N>& x) noexcept
 template <unsigned N>
 inline constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     return subc(x, y, &carry);
 }
 
@@ -1495,7 +1497,7 @@ inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
         uint64_t k = 0;
         for (size_t i = 0; i < num_words; ++i)
         {
-            unsigned long long carry = 0;
+            unsigned long long carry = 0; // NOLINT(google-runtime-int)
             const auto a = addc(p[i + j], k, &carry);
             const auto t = umul(x[i], y[j]) + uint128{a, carry};
             p[i + j] = t[0];
@@ -1519,7 +1521,7 @@ inline constexpr uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
         uint64_t k = 0;
         for (size_t i = 0; i < (num_words - j - 1); i++)
         {
-            unsigned long long carry = 0;
+            unsigned long long carry = 0; // NOLINT(google-runtime-int)
             const auto a = addc(p[i + j], k, &carry);
             const auto t = umul(x[i], y[j]) + uint128{a, carry};
             p[i + j] = t[0];
@@ -1711,7 +1713,7 @@ inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) n
     // OPT: Add MinLen template parameter and unroll first loop iterations.
     INTX_REQUIRE(len >= 2);
 
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     for (int i = 0; i < len; ++i)
         s[i] = addc(x[i], y[i], &carry);
     return !!carry;
@@ -1763,9 +1765,9 @@ inline void udivrem_knuth(
             std::tie(qhat, rhat) = udivrem_3by2(u2, u1, u0, divisor, reciprocal);
 
             const auto overflow = submul(&u[j], &u[j], d, dlen - 2, qhat);
-            unsigned long long carry1 = 0;
+            unsigned long long carry1 = 0; // NOLINT(google-runtime-int)
             u[j + dlen - 2] = subc(rhat[0], overflow, &carry1);
-            unsigned long long carry2 = 0;
+            unsigned long long carry2 = 0; // NOLINT(google-runtime-int)
             u[j + dlen - 1] = subc(rhat[1], carry1, &carry2);
 
             if (INTX_UNLIKELY(!!carry2))
@@ -2032,7 +2034,7 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
     {
         // Normalize x in case it is bigger than mod.
         auto xn = x;
-        unsigned long long carry = 0;
+        unsigned long long carry = 0; // NOLINT(google-runtime-int)
         const auto xd = subc(x, mod, &carry);
         if (!carry)
             xn = xd;
@@ -2045,7 +2047,7 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
             yn = yd;
 
         carry = 0;
-        unsigned long long carry2 = 0;
+        unsigned long long carry2 = 0; // NOLINT(google-runtime-int)
         const auto av = addc(xn, yn, &carry2);
         const auto bv = subc(av, mod, &carry);
         if (carry2 || !carry)
@@ -2053,7 +2055,7 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
         return av;
     }
 
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     const auto s = addc(x, y, &carry);
     uint<256 + 64> n = s;
     n[4] = carry;

@@ -355,7 +355,7 @@ BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
 
 [[gnu::noinline]] static bool lt_sub(const uint256& x, const uint256& y) noexcept
 {
-    unsigned long long carry = 0;
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
     subc(x, y, &carry);
     return !!carry;
 }
