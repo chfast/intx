@@ -38,7 +38,7 @@ TEST(builtins, addc)
     EXPECT_EQ(addc(0, 0, &carry), 0);
     EXPECT_EQ(carry, 0);
     EXPECT_EQ(addc(0xffffffffffffffff, 2, &carry), 1);
-    EXPECT_NE(carry,  0);
+    EXPECT_NE(carry, 0);
 }
 
 TEST(builtins, subc)
