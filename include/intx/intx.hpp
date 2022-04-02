@@ -164,7 +164,8 @@ struct result_with_carry
 /// @{
 
 /// Addition with carry. `uint64_t *carry` is used as in/out parameter
-inline constexpr uint64_t addc(uint64_t x, uint64_t y, unsigned long long* carry) noexcept
+inline constexpr uint64_t addc(
+    uint64_t x, uint64_t y, unsigned long long* carry) noexcept
 {
 #if __has_builtin(__builtin_addcll)
     if (!is_constant_evaluated())
@@ -190,7 +191,8 @@ inline constexpr uint64_t addc(uint64_t x, uint64_t y, unsigned long long* carry
 }
 
 /// Subtraction with carry (borrow). `uint64_t *carry` is used as in/out parameter
-inline constexpr uint64_t subc(uint64_t x, uint64_t y, unsigned long long* carry) noexcept
+inline constexpr uint64_t subc(
+    uint64_t x, uint64_t y, unsigned long long* carry) noexcept
 {
 #if __has_builtin(__builtin_subcll)
     if (!is_constant_evaluated())
