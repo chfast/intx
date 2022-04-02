@@ -169,8 +169,7 @@ inline constexpr uint64_t addc(uint64_t x, uint64_t y, uint64_t *carry) noexcept
 #if __has_builtin(__builtin_addcll)
     if (!is_constant_evaluated())
     {
-        static_assert(sizeof(s) == sizeof(uint64_t));
-        return __builtin_addcll(x, y, *carry);
+        return __builtin_addcll(x, y, *carry, carry);
     }
 #elif __has_builtin(__builtin_ia32_addcarryx_u64)
     if (!is_constant_evaluated())
@@ -196,7 +195,6 @@ inline constexpr uint64_t subc(uint64_t x, uint64_t y, uint64_t *carry) noexcept
 #if __has_builtin(__builtin_subcll)
     if (!is_constant_evaluated())
     {
-        static_assert(sizeof(d) == sizeof(uint64_t));
         return __builtin_subcll(x, y, *carry, carry);
     }
 #elif __has_builtin(__builtin_ia32_sbb_u64)
