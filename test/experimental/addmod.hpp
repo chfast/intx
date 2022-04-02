@@ -16,7 +16,7 @@ namespace intx::test
 [[maybe_unused, gnu::noinline]] static uint256 addmod_simple(
     const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
-    uint64_t carry = 0;
+    unsigned long long carry = 0;
     uint<256 + 64> n = addc(x, y, &carry);
     n[4] = carry;
     return udivrem(n, mod).rem;
@@ -28,7 +28,7 @@ namespace intx::test
     const auto xm = x >= mod ? x % mod : x;
     const auto ym = y >= mod ? y % mod : y;
 
-    uint64_t carry = 0;
+    unsigned long long carry = 0;
     auto sum = addc(xm, ym, &carry);
     if (carry || sum >= mod)
         sum -= mod;
@@ -43,7 +43,7 @@ namespace intx::test
     // Based on https://github.com/holiman/uint256/pull/86.
     if ((m[3] != 0) && (x[3] <= m[3]) && (y[3] <= m[3]))
     {
-        uint64_t carry = 0;
+        unsigned long long carry = 0;
         auto s = subc(x, m, &carry);
         if (carry)
             s = x;
@@ -56,13 +56,13 @@ namespace intx::test
         carry = 0;
         s = addc(s, t, &carry);
 
-        uint64_t carry2 = 0;
+        unsigned long long carry2 = 0;
         t = subc(s, m, &carry2);
 
         return (carry || !carry2) ? t : s;
     }
 
-    uint64_t carry = 0;
+    unsigned long long carry = 0;
     uint<256 + 64> n = addc(x, y, &carry);
     n[4] = carry;
     return udivrem(n, m).rem;
@@ -78,7 +78,7 @@ namespace intx::test
     {
         // Normalize x in case it is bigger than mod.
         auto xn = x;
-        uint64_t carry = 0;
+        unsigned long long carry = 0;
         const auto xd = subc(x, mod, &carry);
         if (!carry)
             xn = xd;
@@ -93,14 +93,14 @@ namespace intx::test
         carry = 0;
         const auto av = addc(xn, yn, &carry);
 
-        uint64_t carry2 = 0;
+        unsigned long long carry2 = 0;
         const auto bv = subc(av, mod, &carry2);
         if (carry || !carry2)
             return bv;
         return av;
     }
 
-    uint64_t carry = 0;
+    unsigned long long carry = 0;
     uint<256 + 64> n = addc(x, y, &carry);
     n[4] = carry;
     return udivrem(n, mod).rem;

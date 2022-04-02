@@ -34,7 +34,7 @@ static_assert(to_big_endian(uint64_t{0x02010f0e0d0c0b0a}) ==
 
 TEST(builtins, addc)
 {
-    uint64_t carry = 0;
+    unsigned long long carry = 0;
     EXPECT_EQ(addc(0, 0, &carry), 0);
     EXPECT_EQ(carry, 0);
     EXPECT_EQ(addc(0xffffffffffffffff, 2, &carry), 1);
@@ -43,7 +43,7 @@ TEST(builtins, addc)
 
 TEST(builtins, subc)
 {
-    uint64_t carry = 0;
+    unsigned long long carry = 0;
     EXPECT_EQ(subc(0, 0, &carry), 0);
     EXPECT_TRUE(!carry);
     EXPECT_EQ(subc(0, 1, &carry), 0xffffffffffffffff);
