@@ -178,7 +178,7 @@ inline constexpr uint64_t addc(
     {
         unsigned long long s = 0;  // NOLINT(google-runtime-int)
         static_assert(sizeof(s) == sizeof(uint64_t));
-        *carry = __builtin_ia32_addcarryx_u64(*carry, x, y, &s);
+        *carry = __builtin_ia32_addcarryx_u64((unsigned char)*carry, x, y, &s);
         return s;
     }
 #endif
@@ -206,7 +206,7 @@ inline constexpr uint64_t subc(
     {
         unsigned long long d = 0;  // NOLINT(google-runtime-int)
         static_assert(sizeof(d) == sizeof(uint64_t));
-        *carry = __builtin_ia32_sbb_u64(*carry, x, y, &d);
+        *carry = __builtin_ia32_sbb_u64((unsigned char)*carry, x, y, &d);
         return d;
     }
 #endif
