@@ -1100,10 +1100,8 @@ template <unsigned N>
 inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
 {
     for (size_t i = uint<N>::num_words; i-- > 1; ) {
-        if (x[i] < y[i])
-            return true;
-        if (x[i] > y[i])
-            return false;
+        if (x[i] != y[i])
+            return x[i] < y[i];
     }
     return x[0] < y[0];
 }
