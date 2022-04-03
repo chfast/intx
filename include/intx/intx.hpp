@@ -172,7 +172,7 @@ inline constexpr uint64_t addc(
 
     const auto s = x + y;
     const auto t = s + *carry;
-    *carry = (s < x) || (t < s);
+    *carry = uint64_t(s < x) | uint64_t(t < s);
     return t;
 }
 
@@ -197,7 +197,7 @@ inline constexpr uint64_t subc(
 
     const auto d = x - y;
     const auto e = d - *carry;
-    *carry = (x < y) || (d < *carry);
+    *carry = uint64_t(x < y) | uint64_t(d < *carry);
     return e;
 }
 
