@@ -182,6 +182,11 @@ inline constexpr uint64_t addc(
     }
 #endif
 
+    if (((x | y) & (uint64_t(1) << 63)) == 0) {
+        const auto t = x + y + *carry;
+        *carry = 0;
+        return t;
+    }
     const auto s = x + y;
     const auto carry1 = s < x;
     const auto t = s + *carry;
