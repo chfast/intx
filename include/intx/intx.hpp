@@ -318,7 +318,7 @@ inline constexpr bool operator<(uint128 x, uint128 y) noexcept
 #if INTX_HAS_BUILTIN_INT128
     return builtin_uint128{x} < builtin_uint128{y};
 #else
-    return x[1] < y[1] || (x[1] == y[1] && x[0] < y[0]};
+    return x[1] < y[1] || (x[1] == y[1] && x[0] < y[0]);
 #endif
 }
 
