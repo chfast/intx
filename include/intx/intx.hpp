@@ -148,18 +148,6 @@ inline constexpr bool is_constant_evaluated() noexcept
 }
 
 
-/// Contains result of add/sub/etc with a carry flag.
-template <typename T>
-struct result_with_carry
-{
-    T value;
-    bool carry;
-
-    /// Conversion to tuple of references, to allow usage with std::tie().
-    constexpr operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
-};
-
-
 /// Linear arithmetic operators.
 /// @{
 
@@ -182,16 +170,9 @@ inline constexpr uint64_t addc(
     }
 #endif
 
-    if (((x | y) & (uint64_t(1) << 63)) == 0) {
-        const auto t = x + y + *carry;
-        *carry = 0;
-        return t;
-    }
     const auto s = x + y;
-    const auto carry1 = s < x;
     const auto t = s + *carry;
-    const auto carry2 = t < s;
-    *carry = !!(carry1 || carry2);
+    *carry = (s < x) || (t < s);
     return t;
 }
 
@@ -215,10 +196,8 @@ inline constexpr uint64_t subc(
 #endif
 
     const auto d = x - y;
-    const auto carry1 = x < y;
     const auto e = d - *carry;
-    const auto carry2 = d < *carry;
-    *carry = !!(carry1 || carry2);
+    *carry = (x < y) || (d < *carry);
     return e;
 }
 
@@ -339,7 +318,7 @@ inline constexpr bool operator<(uint128 x, uint128 y) noexcept
 #if INTX_HAS_BUILTIN_INT128
     return builtin_uint128{x} < builtin_uint128{y};
 #else
-    return (unsigned{x[1] < y[1]} | (unsigned{x[1] == y[1]} & unsigned{x[0] < y[0]})) != 0;
+    return x[1] < y[1] || (x[1] == y[1] && x[0] < y[0]};
 #endif
 }
 
@@ -1134,9 +1113,13 @@ inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
 template <unsigned N>
 inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
 {
-    unsigned long long carry = 0; // NOLINT(google-runtime-int)
-    subc(x, y, &carry);
-    return !!carry;
+    for (size_t i = uint<N>::num_words; i-- > 0; ) {
+        if (x[i] < y[i])
+            return true;
+        if (x[i] > y[i])
+            return false;
+    }
+    return false;
 }
 
 template <unsigned N, typename T,
