@@ -1068,6 +1068,13 @@ public:
         static_assert(sizeof(Int) <= sizeof(uint64_t));
         return static_cast<Int>(words_[0]);
     }
+
+    friend inline constexpr uint operator+(const uint& x, const uint& y) noexcept
+    {
+        return addc(x, y).value;
+    }
+
+    inline constexpr uint& operator+=(const uint& y) noexcept { return *this = *this + y; }
 };
 
 using uint192 = uint<192>;
@@ -1459,12 +1466,6 @@ inline const uint8_t* as_bytes(const T& x) noexcept
 }
 
 template <unsigned N>
-inline constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return addc(x, y).value;
-}
-
-template <unsigned N>
 inline constexpr uint<N> operator-(const uint<N>& x) noexcept
 {
     return ~x + uint<N>{1};
@@ -1474,13 +1475,6 @@ template <unsigned N>
 inline constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
 {
     return subc(x, y).value;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N>& operator+=(uint<N>& x, const T& y) noexcept
-{
-    return x = x + y;
 }
 
 template <unsigned N, typename T,
@@ -1877,20 +1871,6 @@ inline constexpr uint<N> bswap(const uint<N>& x) noexcept
 
 
 // Support for type conversions for binary operators.
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator+(const uint<N>& x, const T& y) noexcept
-{
-    return x + uint<N>(y);
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator+(const T& x, const uint<N>& y) noexcept
-{
-    return uint<N>(x) + y;
-}
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
