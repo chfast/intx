@@ -1106,6 +1106,20 @@ public:
     }
 
     inline constexpr uint& operator*=(const uint& y) noexcept { return *this = *this * y; }
+
+    friend inline constexpr uint operator/(const uint& x, const uint& y) noexcept
+    {
+        return udivrem(x, y).quot;
+    }
+
+    friend inline constexpr uint operator%(const uint& x, const uint& y) noexcept
+    {
+        return udivrem(x, y).rem;
+    }
+
+    inline constexpr uint& operator/=(const uint& y) noexcept { return *this = *this / y; }
+
+    inline constexpr uint& operator%=(const uint& y) noexcept { return *this = *this % y; }
 };
 
 using uint192 = uint<192>;
@@ -1761,7 +1775,7 @@ inline void udivrem_knuth(
 }  // namespace internal
 
 template <unsigned M, unsigned N>
-div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
+constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
     auto na = internal::normalize(u, v);
 
@@ -1816,32 +1830,6 @@ inline constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v)
 }
 
 template <unsigned N>
-inline constexpr uint<N> operator/(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return udivrem(x, y).quot;
-}
-
-template <unsigned N>
-inline constexpr uint<N> operator%(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return udivrem(x, y).rem;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N>& operator/=(uint<N>& x, const T& y) noexcept
-{
-    return x = x / y;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N>& operator%=(uint<N>& x, const T& y) noexcept
-{
-    return x = x % y;
-}
-
-template <unsigned N>
 inline constexpr uint<N> bswap(const uint<N>& x) noexcept
 {
     constexpr auto num_words = uint<N>::num_words;
@@ -1853,34 +1841,6 @@ inline constexpr uint<N> bswap(const uint<N>& x) noexcept
 
 
 // Support for type conversions for binary operators.
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator/(const uint<N>& x, const T& y) noexcept
-{
-    return x / uint<N>(y);
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator/(const T& x, const uint<N>& y) noexcept
-{
-    return uint<N>(x) / y;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator%(const uint<N>& x, const T& y) noexcept
-{
-    return x % uint<N>(y);
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator%(const T& x, const uint<N>& y) noexcept
-{
-    return uint<N>(x) % y;
-}
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
