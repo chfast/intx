@@ -1084,6 +1084,28 @@ public:
     }
 
     inline constexpr uint& operator-=(const uint& y) noexcept { return *this = *this - y; }
+
+    /// Multiplication implementation using word access
+    /// and discarding the high part of the result product.
+    friend inline constexpr uint operator*(const uint& x, const uint& y) noexcept
+    {
+        uint<N> p;
+        for (size_t j = 0; j < num_words; j++)
+        {
+            uint64_t k = 0;
+            for (size_t i = 0; i < (num_words - j - 1); i++)
+            {
+                const auto a = addc(p[i + j], k);
+                const auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
+                p[i + j] = t[0];
+                k = t[1];
+            }
+            p[num_words - 1] += x[num_words - j - 1] * y[j] + k;
+        }
+        return p;
+    }
+
+    inline constexpr uint& operator*=(const uint& y) noexcept { return *this = *this * y; }
 };
 
 using uint192 = uint<192>;
@@ -1495,36 +1517,6 @@ inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
     return p;
 }
 
-/// Multiplication implementation using word access
-/// and discarding the high part of the result product.
-template <unsigned N>
-inline constexpr uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
-{
-    constexpr auto num_words = uint<N>::num_words;
-
-    uint<N> p;
-    for (size_t j = 0; j < num_words; j++)
-    {
-        uint64_t k = 0;
-        for (size_t i = 0; i < (num_words - j - 1); i++)
-        {
-            const auto a = addc(p[i + j], k);
-            const auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
-            p[i + j] = t[0];
-            k = t[1];
-        }
-        p[num_words - 1] += x[num_words - j - 1] * y[j] + k;
-    }
-    return p;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N>& operator*=(uint<N>& x, const T& y) noexcept
-{
-    return x = x * y;
-}
-
 template <unsigned N>
 inline constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 {
@@ -1861,20 +1853,6 @@ inline constexpr uint<N> bswap(const uint<N>& x) noexcept
 
 
 // Support for type conversions for binary operators.
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator*(const uint<N>& x, const T& y) noexcept
-{
-    return x * uint<N>(y);
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator*(const T& x, const uint<N>& y) noexcept
-{
-    return uint<N>(x) * y;
-}
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
