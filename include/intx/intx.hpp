@@ -1122,6 +1122,14 @@ public:
     inline constexpr uint& operator%=(const uint& y) noexcept { return *this = *this % y; }
 
 
+    inline constexpr uint operator~() const noexcept
+    {
+        uint z;
+        for (size_t i = 0; i < num_words; ++i)
+            z[i] = ~words_[i];
+        return z;
+    }
+
     friend inline constexpr uint operator|(const uint& x, const uint& y) noexcept
     {
         uint z;
@@ -1311,15 +1319,6 @@ inline constexpr bool slt(const uint<N>& x, const uint<N>& y) noexcept
     const auto x_neg = static_cast<int64_t>(x[top_word_idx]) < 0;
     const auto y_neg = static_cast<int64_t>(y[top_word_idx]) < 0;
     return ((x_neg ^ y_neg) != 0) ? x_neg : x < y;
-}
-
-template <unsigned N>
-inline constexpr uint<N> operator~(const uint<N>& x) noexcept
-{
-    uint<N> z;
-    for (size_t i = 0; i < uint<N>::num_words; ++i)
-        z[i] = ~x[i];
-    return z;
 }
 
 
