@@ -31,15 +31,24 @@ static_assert(to_big_endian(uint32_t{0x0d0c0b0a}) == (is_le ? 0x0a0b0c0d : 0x0d0
 static_assert(to_big_endian(uint64_t{0x02010f0e0d0c0b0a}) ==
               (is_le ? 0x0a0b0c0d0e0f0102 : 0x02010f0e0d0c0b0a));
 
-static_assert(addc(0, 0).value == 0);
-static_assert(!addc(0, 0).carry);
-static_assert(addc(0xffffffffffffffff, 2).value == 1);
-static_assert(addc(0xffffffffffffffff, 2).carry);
 
-static_assert(subc(0, 0).value == 0);
-static_assert(!subc(0, 0).carry);
-static_assert(subc(0, 1).value == 0xffffffffffffffff);
-static_assert(subc(0, 1).carry);
+TEST(builtins, addc)
+{
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
+    EXPECT_EQ(addc(0, 0, &carry), 0);
+    EXPECT_EQ(carry, 0);
+    EXPECT_EQ(addc(0xffffffffffffffff, 2, &carry), 1);
+    EXPECT_NE(carry, 0);
+}
+
+TEST(builtins, subc)
+{
+    unsigned long long carry = 0; // NOLINT(google-runtime-int)
+    EXPECT_EQ(subc(0, 0, &carry), 0);
+    EXPECT_TRUE(!carry);
+    EXPECT_EQ(subc(0, 1, &carry), 0xffffffffffffffff);
+    EXPECT_TRUE(carry);
+}
 
 
 TEST(builtins, clz64_single_one)
