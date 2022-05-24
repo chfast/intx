@@ -1068,6 +1068,58 @@ public:
         static_assert(sizeof(Int) <= sizeof(uint64_t));
         return static_cast<Int>(words_[0]);
     }
+
+    friend inline constexpr uint operator+(const uint& x, const uint& y) noexcept
+    {
+        return addc(x, y).value;
+    }
+
+    inline constexpr uint& operator+=(const uint& y) noexcept { return *this = *this + y; }
+
+    inline constexpr uint operator-() const noexcept { return ~*this + uint{1}; }
+
+    friend inline constexpr uint operator-(const uint& x, const uint& y) noexcept
+    {
+        return subc(x, y).value;
+    }
+
+    inline constexpr uint& operator-=(const uint& y) noexcept { return *this = *this - y; }
+
+    /// Multiplication implementation using word access
+    /// and discarding the high part of the result product.
+    friend inline constexpr uint operator*(const uint& x, const uint& y) noexcept
+    {
+        uint<N> p;
+        for (size_t j = 0; j < num_words; j++)
+        {
+            uint64_t k = 0;
+            for (size_t i = 0; i < (num_words - j - 1); i++)
+            {
+                const auto a = addc(p[i + j], k);
+                const auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
+                p[i + j] = t[0];
+                k = t[1];
+            }
+            p[num_words - 1] += x[num_words - j - 1] * y[j] + k;
+        }
+        return p;
+    }
+
+    inline constexpr uint& operator*=(const uint& y) noexcept { return *this = *this * y; }
+
+    friend inline constexpr uint operator/(const uint& x, const uint& y) noexcept
+    {
+        return udivrem(x, y).quot;
+    }
+
+    friend inline constexpr uint operator%(const uint& x, const uint& y) noexcept
+    {
+        return udivrem(x, y).rem;
+    }
+
+    inline constexpr uint& operator/=(const uint& y) noexcept { return *this = *this / y; }
+
+    inline constexpr uint& operator%=(const uint& y) noexcept { return *this = *this % y; }
 };
 
 using uint192 = uint<192>;
@@ -1459,38 +1511,6 @@ inline const uint8_t* as_bytes(const T& x) noexcept
 }
 
 template <unsigned N>
-inline constexpr uint<N> operator+(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return addc(x, y).value;
-}
-
-template <unsigned N>
-inline constexpr uint<N> operator-(const uint<N>& x) noexcept
-{
-    return ~x + uint<N>{1};
-}
-
-template <unsigned N>
-inline constexpr uint<N> operator-(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return subc(x, y).value;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N>& operator+=(uint<N>& x, const T& y) noexcept
-{
-    return x = x + y;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N>& operator-=(uint<N>& x, const T& y) noexcept
-{
-    return x = x - y;
-}
-
-template <unsigned N>
 inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
     constexpr auto num_words = uint<N>::num_words;
@@ -1509,36 +1529,6 @@ inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
         p[j + num_words] = k;
     }
     return p;
-}
-
-/// Multiplication implementation using word access
-/// and discarding the high part of the result product.
-template <unsigned N>
-inline constexpr uint<N> operator*(const uint<N>& x, const uint<N>& y) noexcept
-{
-    constexpr auto num_words = uint<N>::num_words;
-
-    uint<N> p;
-    for (size_t j = 0; j < num_words; j++)
-    {
-        uint64_t k = 0;
-        for (size_t i = 0; i < (num_words - j - 1); i++)
-        {
-            const auto a = addc(p[i + j], k);
-            const auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
-            p[i + j] = t[0];
-            k = t[1];
-        }
-        p[num_words - 1] += x[num_words - j - 1] * y[j] + k;
-    }
-    return p;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N>& operator*=(uint<N>& x, const T& y) noexcept
-{
-    return x = x * y;
 }
 
 template <unsigned N>
@@ -1785,7 +1775,7 @@ inline void udivrem_knuth(
 }  // namespace internal
 
 template <unsigned M, unsigned N>
-div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
+constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
     auto na = internal::normalize(u, v);
 
@@ -1840,32 +1830,6 @@ inline constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v)
 }
 
 template <unsigned N>
-inline constexpr uint<N> operator/(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return udivrem(x, y).quot;
-}
-
-template <unsigned N>
-inline constexpr uint<N> operator%(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return udivrem(x, y).rem;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N>& operator/=(uint<N>& x, const T& y) noexcept
-{
-    return x = x / y;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N>& operator%=(uint<N>& x, const T& y) noexcept
-{
-    return x = x % y;
-}
-
-template <unsigned N>
 inline constexpr uint<N> bswap(const uint<N>& x) noexcept
 {
     constexpr auto num_words = uint<N>::num_words;
@@ -1877,76 +1841,6 @@ inline constexpr uint<N> bswap(const uint<N>& x) noexcept
 
 
 // Support for type conversions for binary operators.
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator+(const uint<N>& x, const T& y) noexcept
-{
-    return x + uint<N>(y);
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator+(const T& x, const uint<N>& y) noexcept
-{
-    return uint<N>(x) + y;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator-(const uint<N>& x, const T& y) noexcept
-{
-    return x - uint<N>(y);
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator-(const T& x, const uint<N>& y) noexcept
-{
-    return uint<N>(x) - y;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator*(const uint<N>& x, const T& y) noexcept
-{
-    return x * uint<N>(y);
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator*(const T& x, const uint<N>& y) noexcept
-{
-    return uint<N>(x) * y;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator/(const uint<N>& x, const T& y) noexcept
-{
-    return x / uint<N>(y);
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator/(const T& x, const uint<N>& y) noexcept
-{
-    return uint<N>(x) / y;
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator%(const uint<N>& x, const T& y) noexcept
-{
-    return x % uint<N>(y);
-}
-
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
-inline constexpr uint<N> operator%(const T& x, const uint<N>& y) noexcept
-{
-    return uint<N>(x) % y;
-}
 
 template <unsigned N, typename T,
     typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
