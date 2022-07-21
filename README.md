@@ -1,6 +1,7 @@
 # intx
 
 [![readme style: standard][readme style standard badge]][standard readme]
+[![GitPOAP Badge](https://public-api.gitpoap.io/v1/repo/chfast/intx/badge)](https://www.gitpoap.io/gh/chfast/intx)
 
 > Extended precision integer C++ library
 
