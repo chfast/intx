@@ -8,7 +8,7 @@
 #include <test/utils/gmp.hpp>
 #include <test/utils/random.hpp>
 
-#if __clang_major__ >= 11 && !defined(__apple_build_version__)
+#if __clang_major__ >= 11 && __clang_major__ <= 13 && !defined(__apple_build_version__)
     #define INTX_HAS_EXTINT 1
 #else
     #define INTX_HAS_EXTINT 0
@@ -376,7 +376,7 @@ BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
     const auto xlo = uint128{x[0], x[1]};
     const auto yhi = uint128{y[2], y[3]};
     const auto ylo = uint128{y[0], y[1]};
-    return (xhi < yhi) | ((xhi == yhi) & (xlo < ylo));
+    return int{xhi < yhi} | (int{xhi == yhi} & int{xlo < ylo});
 }
 
 #if INTX_HAS_EXTINT
