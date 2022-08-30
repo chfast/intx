@@ -68,18 +68,19 @@ bool init() noexcept
 
         gen_int(samples_512[x_512][i], 8);
         gen_int(samples_512[y_512][i], 8);
-
-        for (size_t w = 0; w < 4; ++w)
-        {
-            std::generate(
-                std::begin(samples_shift_w[w]), std::end(samples_shift_w[w]), [&rng, w]() noexcept {
-                    return std::uniform_int_distribution<uint64_t>{w * 64, (w + 1) * 64 - 1}(rng);
-                });
-            std::copy_n(std::begin(samples_shift_w[w]), num_samples / 4,
-                &samples_shift_mixed[(num_samples / 4) * w]);
-        }
-        std::shuffle(std::begin(samples_shift_mixed), std::end(samples_shift_mixed), rng);
     }
+
+    // Generate samples for shift amounts: ranges, 0-64, 0-128, ... and mix of those.
+    for (size_t w = 0; w < 4; ++w)
+    {
+        std::generate(
+            std::begin(samples_shift_w[w]), std::end(samples_shift_w[w]), [&rng, w]() noexcept {
+                return std::uniform_int_distribution<uint64_t>{w * 64, (w + 1) * 64 - 1}(rng);
+            });
+        std::copy_n(std::begin(samples_shift_w[w]), num_samples / 4,
+            &samples_shift_mixed[(num_samples / 4) * w]);
+    }
+    std::shuffle(std::begin(samples_shift_mixed), std::end(samples_shift_mixed), rng);
 
     return true;
 }
