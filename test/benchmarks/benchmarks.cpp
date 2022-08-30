@@ -393,43 +393,43 @@ BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
 template <bool CmpFn(const uint256&, const uint256&)>
 static void compare(benchmark::State& state)
 {
-    const auto set_id = [&state]() noexcept {
+    const auto [x_id, y_id] = [&state]() noexcept -> std::pair<samples_set_id, samples_set_id> {
         switch (state.range(0))
         {
+        case 0:
+            return {x_256_mixed, y_256_mixed};
         case 64:
-            return x_64;
+            return {x_64, y_64};
         case 128:
-            return x_128;
+            return {x_128, y_128};
         case 192:
-            return x_192;
+            return {x_192, y_192};
         case 256:
-            return x_256;
+            return {x_256, y_256};
         default:
             state.SkipWithError("unexpected argument");
-            return x_64;
+            return {};
         }
     }();
 
-    const auto& xs = test::get_samples<uint256>(set_id);
+    const auto& xs = test::get_samples<uint256>(x_id);
+    const auto& ys = test::get_samples<uint256>(y_id);
 
-    uint256 z;
     while (state.KeepRunningBatch(xs.size()))
     {
         for (size_t i = 0; i < xs.size(); ++i)
         {
-            const auto x = xs[i];
-            const auto _ = CmpFn(z, x);
+            const auto _ = CmpFn(xs[i], ys[i]);
             benchmark::DoNotOptimize(_);
-            z = x;
         }
     }
 }
-BENCHMARK_TEMPLATE(compare, lt_public)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(compare, lt_sub)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(compare, lt_wordcmp)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(compare, lt_halves)->DenseRange(64, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_public)->DenseRange(0, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_sub)->DenseRange(0, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_wordcmp)->DenseRange(0, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_halves)->DenseRange(0, 256, 64);
 #if INTX_HAS_EXTINT
-BENCHMARK_TEMPLATE(compare, lt_llvm)->DenseRange(64, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_llvm)->DenseRange(0, 256, 64);
 #endif
 
 static void exponentiation(benchmark::State& state)
