@@ -82,8 +82,18 @@ bool init() noexcept
             });
         std::copy_n(std::begin(samples_shift_w[w]), num_samples / 4,
             &samples_shift_mixed[(num_samples / 4) * w]);
+
+        std::copy_n(std::begin(samples_256[x_64 + w]), num_samples / 4,
+            &samples_256[x_256_mixed][(num_samples / 4) * w]);
+        std::copy_n(std::begin(samples_256[y_64 + w]), num_samples / 4,
+            &samples_256[y_256_mixed][(num_samples / 4) * w]);
     }
     std::shuffle(std::begin(samples_shift_mixed), std::end(samples_shift_mixed), rng);
+
+    auto rng_copy = rng;
+    std::shuffle(std::begin(samples_256[x_256_mixed]), std::end(samples_256[x_256_mixed]), rng);
+    std::shuffle(
+        std::begin(samples_256[y_256_mixed]), std::end(samples_256[y_256_mixed]), rng_copy);
 
     return true;
 }
