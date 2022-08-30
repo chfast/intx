@@ -39,12 +39,15 @@ bool init() noexcept
         samples_128_norm[i][1] |= 0x8000000000000000;
 
         gen_int(samples_256[x_64][i], 1);
+        gen_int(samples_256[y_64][i], 1);
         samples_512[x_64][i] = samples_256[x_64][i];
 
         gen_int(samples_256[x_128][i], 2);
+        gen_int(samples_256[y_128][i], 2);
         samples_512[x_128][i] = samples_256[x_128][i];
 
         gen_int(samples_256[x_192][i], 3);
+        gen_int(samples_256[y_192][i], 3);
         samples_512[x_192][i] = samples_256[x_192][i];
 
         gen_int(samples_256[x_256][i], 4);
