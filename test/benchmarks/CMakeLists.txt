@@ -17,4 +17,5 @@ add_executable(intx-bench
     utils.cpp
 )
 target_link_libraries(intx-bench PRIVATE intx intx::experimental intx::testutils benchmark::benchmark GMP::gmp)
+target_compile_options(intx-bench PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-falign-functions=32>)
 set_target_properties(intx-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)
