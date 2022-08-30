@@ -55,8 +55,8 @@ bool init() noexcept
         if (samples_256[lt_256][i] > samples_256[x_256][i])
             std::swap(samples_256[lt_256][i], samples_256[x_256][i]);
 
-        if (samples_256[lt_256][i] > samples_256[x_256][i])
-            std::swap(samples_256[lt_256][i], samples_256[x_256][i]);
+        if (samples_256[lt_256][i] > samples_256[y_256][i])
+            std::swap(samples_256[lt_256][i], samples_256[y_256][i]);
 
         if (samples_256[lt_x_256][i] > samples_256[x_256][i])
             std::swap(samples_256[lt_x_256][i], samples_256[x_256][i]);
