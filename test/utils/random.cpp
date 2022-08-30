@@ -30,6 +30,12 @@ bool init() noexcept
             [&rng] { return std::uniform_int_distribution<uint64_t>{}(rng); });
     };
 
+    const auto lt_fixup = [&rng](uint256& tgt, const uint256& src) noexcept {
+        if (tgt[3] > src[3])
+            tgt[3] = std::uniform_int_distribution<uint64_t>{0, src[3]}(rng);
+        assert(tgt <= src);
+    };
+
     for (size_t i = 0; i < num_samples; ++i)
     {
         gen_int(samples_64_norm[i], 1);
@@ -55,14 +61,9 @@ bool init() noexcept
         gen_int(samples_256[lt_256][i], 4);
         gen_int(samples_256[lt_x_256][i], 4);
 
-        if (samples_256[lt_256][i] > samples_256[x_256][i])
-            std::swap(samples_256[lt_256][i], samples_256[x_256][i]);
-
-        if (samples_256[lt_256][i] > samples_256[y_256][i])
-            std::swap(samples_256[lt_256][i], samples_256[y_256][i]);
-
-        if (samples_256[lt_x_256][i] > samples_256[x_256][i])
-            std::swap(samples_256[lt_x_256][i], samples_256[x_256][i]);
+        lt_fixup(samples_256[lt_256][i], samples_256[x_256][i]);
+        lt_fixup(samples_256[lt_256][i], samples_256[y_256][i]);
+        lt_fixup(samples_256[lt_x_256][i], samples_256[x_256][i]);
 
         samples_512[x_256][i] = samples_256[x_256][i];
         samples_512[y_256][i] = samples_256[y_256][i];
