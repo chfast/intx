@@ -292,11 +292,8 @@ jobs:
 
   cmake-min:
     docker:
-      - image: circleci/buildpack-deps:bionic
+      - image: cimg/base:stable-20.04
     steps:
-      - run:
-          name: "Install default CMake"
-          command: sudo apt -q update && sudo apt -qy install cmake
       - build_and_test
 
 workflows:
