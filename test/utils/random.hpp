@@ -56,12 +56,17 @@ constexpr size_t num_samples = 256;
 
 enum samples_set_id
 {
-    x_64,    ///< Set of random samples with ~64 (1 word) significant bits.
-    x_128,   ///< Set of random samples with ~128 (2 words) significant bits.
-    x_192,   ///< Set of random samples with ~192 (3 words) significant bits.
-    x_256,   ///< Set of random samples with ~256 (4 words) significant bits.
-    y_256,   ///< Set of random samples with ~256 (4 words) significant bits, different from x_256.
-    lt_256,  ///< Set of random samples where each lt_256[i] <= x_256[i] && lt_256[i] <= y_256[i].
+    x_64,         ///< Set of random samples with ~64 (1 word) significant bits.
+    x_128,        ///< Set of random samples with ~128 (2 words) significant bits.
+    x_192,        ///< Set of random samples with ~192 (3 words) significant bits.
+    x_256,        ///< Set of random samples with ~256 (4 words) significant bits.
+    x_256_mixed,  ///< Equal combination of above 4 sets, shuffled.
+    y_64,   ///< Set of random samples with ~64 (1 word) significant bits, different from x_64.
+    y_128,  ///< Set of random samples with ~128 (2 words) significant bits, different from x_128.
+    y_192,  ///< Set of random samples with ~192 (3 words) significant bits, different from x_192.
+    y_256,  ///< Set of random samples with ~256 (4 words) significant bits, different from x_256.
+    y_256_mixed,  ///< Equal combination of above 4 sets, shuffled exactly as x_256_mixed.
+    lt_256,    ///< Set of random samples where each lt_256[i] <= x_256[i] && lt_256[i] <= y_256[i].
     lt_x_256,  ///< Set of random samples where each lt_x_256[i] <= x_256[i].
     x_512,     ///< Set of random samples with ~512 (8 words) significant bits.
     y_512,  ///< Set of random samples with ~512 (8 words) significant bits, different from x_512.
