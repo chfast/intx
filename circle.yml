@@ -54,15 +54,12 @@ commands:
       - checkout
       - run:
           name: "Configure"
-          working_directory: ~/build
-          command: cmake ../project -DCMAKE_INSTALL_PREFIX=~/install -DCMAKE_BUILD_TYPE=$BUILD_TYPE $CMAKE_OPTIONS
+          command: cmake -B ~/build -DCMAKE_INSTALL_PREFIX=~/install -DCMAKE_BUILD_TYPE=$BUILD_TYPE $CMAKE_OPTIONS
       - run:
           name: "Build"
-          working_directory: ~/build
           command: |
-            cmake --build . -- -j4
-            cmake --build . --target install
-            cmake --build . --target package
+            cmake --build ~/build --parallel
+            cmake --build ~/build --target package
       - run:
           name: "Test"
           working_directory: ~/build
@@ -132,10 +129,9 @@ jobs:
       - checkout
       - run:
           name: "Build package"
-          working_directory: ~/build
           command: |
-            cmake ../project -DINTX_TESTING=OFF
-            cmake --build . --target package
+            cmake -B ~/build -DINTX_TESTING=OFF
+            cmake --build ~/build --target package
       - run:
           name: "Inspect package"
           command: tar tvf ~/build/intx*.tar.gz

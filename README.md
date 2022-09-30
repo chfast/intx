@@ -17,14 +17,12 @@ To build, test or benchmark.
 ```bash
 git clone https://github.com/chfast/intx
 cd intx
-mkdir build
-cd build
 
-cmake ..
-cmake --build . -- -j
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
 
-test/intx-unittests
-test/intx-bench
+build/test/intx-unittests
+build/test/intx-bench
 ```
 
 ## Maintainer
