@@ -230,7 +230,7 @@ inline constexpr result_with_carry<uint<N>> addc(
     bool k = carry;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
     {
-        const auto t = addc(x[i], y[i], k);
+        auto t = addc(x[i], y[i], k);
         s[i] = t.value;
         k = t.carry;
     }
@@ -257,7 +257,7 @@ inline constexpr result_with_carry<uint<N>> subc(
     bool k = carry;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
     {
-        const auto t = subc(x[i], y[i], k);
+        auto t = subc(x[i], y[i], k);
         z[i] = t.value;
         k = t.carry;
     }
@@ -1095,8 +1095,8 @@ public:
             uint64_t k = 0;
             for (size_t i = 0; i < (num_words - j - 1); i++)
             {
-                const auto a = addc(p[i + j], k);
-                const auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
+                auto a = addc(p[i + j], k);
+                auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
                 p[i + j] = t[0];
                 k = t[1];
             }
@@ -1524,8 +1524,8 @@ inline constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
         uint64_t k = 0;
         for (size_t i = 0; i < num_words; ++i)
         {
-            const auto a = addc(p[i + j], k);
-            const auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
+            auto a = addc(p[i + j], k);
+            auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
             p[i + j] = t[0];
             k = t[1];
         }
@@ -1869,26 +1869,26 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
     {
         // Normalize x in case it is bigger than mod.
         auto xn = x;
-        const auto xd = subc(x, mod);
+        auto xd = subc(x, mod);
         if (!xd.carry)
             xn = xd.value;
 
         // Normalize y in case it is bigger than mod.
         auto yn = y;
-        const auto yd = subc(y, mod);
+        auto yd = subc(y, mod);
         if (!yd.carry)
             yn = yd.value;
 
-        const auto a = addc(xn, yn);
-        const auto av = a.value;
-        const auto b = subc(av, mod);
-        const auto bv = b.value;
+        auto a = addc(xn, yn);
+        auto av = a.value;
+        auto b = subc(av, mod);
+        auto bv = b.value;
         if (a.carry || !b.carry)
             return bv;
         return av;
     }
 
-    const auto s = addc(x, y);
+    auto s = addc(x, y);
     uint<256 + 64> n = s.value;
     n[4] = s.carry;
     return udivrem(n, mod).rem;
