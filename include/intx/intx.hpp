@@ -1832,6 +1832,11 @@ inline constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v)
     return {q_is_neg ? -res.quot : res.quot, u_is_neg ? -res.rem : res.rem};
 }
 
+inline constexpr uint256 bswap(const uint256& x) noexcept
+{
+    return {bswap(x[3]), bswap(x[2]), bswap(x[1]), bswap(x[0])};
+}
+
 template <unsigned N>
 inline constexpr uint<N> bswap(const uint<N>& x) noexcept
 {
