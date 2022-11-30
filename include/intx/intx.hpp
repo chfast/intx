@@ -2052,10 +2052,13 @@ namespace unsafe
 template <typename IntT>
 inline IntT load(const uint8_t* src) noexcept
 {
-    IntT x;
-    std::memcpy(&x, src, sizeof(x));
-    x = to_big_endian(x);
-    return x;
+    // Align bytes.
+    // TODO: Using memcpy() directly triggers this optimization bug in GCC:
+    //   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
+    alignas(IntT) std::byte aligned_storage[sizeof(IntT)];
+    std::memcpy(&aligned_storage, src, sizeof(IntT));
+    // TODO(C++23): Use std::start_lifetime_as<uint256>().
+    return to_big_endian(*reinterpret_cast<const IntT*>(&aligned_storage));
 }
 
 /// Stores an integer value at the provided pointer in big-endian order. The user must make sure
