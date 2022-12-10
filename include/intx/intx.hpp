@@ -2074,6 +2074,25 @@ inline void store(uint8_t* dst, const T& x) noexcept
     const auto d = to_big_endian(x);
     std::memcpy(dst, &d, sizeof(d));
 }
+
+/// Specialization for uint256.
+inline void store(uint8_t* dst, const uint256& x) noexcept
+{
+    // Store byte-swapped words in primitive temporaries. This helps with memory aliasing
+    // and GCC bug https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
+    // TODO: Use std::byte instead of uint8_t.
+    const auto v0 = to_big_endian(x[0]);
+    const auto v1 = to_big_endian(x[1]);
+    const auto v2 = to_big_endian(x[2]);
+    const auto v3 = to_big_endian(x[3]);
+
+    // Store words in reverse (big-endian) order, write addresses are ascending.
+    std::memcpy(dst, &v3, sizeof(v3));
+    std::memcpy(dst + 8, &v2, sizeof(v2));
+    std::memcpy(dst + 16, &v1, sizeof(v1));
+    std::memcpy(dst + 24, &v0, sizeof(v0));
+}
+
 }  // namespace unsafe
 
 }  // namespace be
