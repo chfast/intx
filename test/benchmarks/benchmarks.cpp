@@ -358,6 +358,18 @@ BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
     return subc(x, y).carry;
 }
 
+[[gnu::noinline]] static bool lt_split(const uint256& x, const uint256& y) noexcept
+{
+    auto xp = uint128{x[2], x[3]};
+    auto yp = uint128{y[2], y[3]};
+    if (xp == yp)
+    {
+        xp = uint128{x[0], x[1]};
+        yp = uint128{y[0], y[1]};
+    }
+    return xp < yp;
+}
+
 [[gnu::noinline]] static bool lt_wordcmp(const uint256& x, const uint256& y) noexcept
 {
     for (size_t i = 3; i >= 1; --i)
@@ -368,6 +380,34 @@ BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
             return false;
     }
     return x[0] < y[0];
+}
+
+/// Find the first different word and compares it.
+/// Proposed in https://github.com/chfast/intx/pull/269.
+[[gnu::noinline]] static bool lt_ne(const uint256& x, const uint256& y) noexcept
+{
+    for (auto i = uint256::num_words - 1; i > 0; --i)
+    {
+        if (x[i] != y[i])
+            return x[i] < y[i];
+    }
+    return x[0] < y[0];
+}
+
+/// A modification of lt_ne(). Smaller code, saves one cmp instruction.
+[[gnu::noinline]] static bool lt_ne2(const uint256& x, const uint256& y) noexcept
+{
+    auto a = x[3];
+    auto b = y[3];
+    for (auto i = uint256::num_words - 1; i > 0;)
+    {
+        if (a != b)
+            break;
+        --i;
+        a = x[i];
+        b = y[i];
+    }
+    return a < b;
 }
 
 [[gnu::noinline]] static bool lt_halves(const uint256& x, const uint256& y) noexcept
@@ -426,7 +466,10 @@ static void compare(benchmark::State& state)
 }
 BENCHMARK_TEMPLATE(compare, lt_public)->DenseRange(0, 256, 64);
 BENCHMARK_TEMPLATE(compare, lt_sub)->DenseRange(0, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_split)->DenseRange(0, 256, 64);
 BENCHMARK_TEMPLATE(compare, lt_wordcmp)->DenseRange(0, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_ne)->DenseRange(0, 256, 64);
+BENCHMARK_TEMPLATE(compare, lt_ne2)->DenseRange(0, 256, 64);
 BENCHMARK_TEMPLATE(compare, lt_halves)->DenseRange(0, 256, 64);
 #if INTX_HAS_EXTINT
 BENCHMARK_TEMPLATE(compare, lt_llvm)->DenseRange(0, 256, 64);
