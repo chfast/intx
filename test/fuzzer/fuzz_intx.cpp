@@ -17,6 +17,7 @@ enum class op : uint8_t
     add = 0x04,
     sub = 0x05,
     sdivrem = 0x06,
+    cmp = 0x07,
 };
 
 template <typename T>
@@ -33,11 +34,9 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
     if (data_size != 2 * arg_size + 1)
         return;
 
-    T a, b;
-    std::memcpy(&a, &data[1], arg_size);
-    std::memcpy(&b, &data[1 + arg_size], arg_size);
-    a = bswap(a);  // Bswap for BE - easier to extract the test from corpus.
-    b = bswap(b);
+    // Load 2 values. BE for easier extracting tests from corpus.
+    const auto a = be::unsafe::load<T>(&data[1]);
+    const auto b = be::unsafe::load<T>(&data[1 + arg_size]);
 
     switch (static_cast<op>(data[0]))
     {
@@ -94,6 +93,19 @@ inline void test_op(const uint8_t* data, size_t data_size) noexcept
         expect_eq(s, a + (~b + 1));
         break;
     }
+    case op::cmp:
+    {
+        auto aa = to_big_endian(a);
+        auto bb = to_big_endian(b);
+        auto m = std::memcmp(&aa, &bb, sizeof(aa));
+        expect_eq(a < b, m < 0);
+        expect_eq(a <= b, m <= 0);
+        expect_eq(a > b, m > 0);
+        expect_eq(a >= b, m >= 0);
+        expect_eq(a == b, m == 0);
+        expect_eq(a != b, m != 0);
+        break;
+    }
 
     default:
         break;
@@ -106,7 +118,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t data_size) noe
     test_op<intx::uint<2048>>(data, data_size);
     test_op<intx::uint<1024>>(data, data_size);
     test_op<intx::uint<512>>(data, data_size);
+    test_op<intx::uint<384>>(data, data_size);
+    test_op<intx::uint<320>>(data, data_size);
     test_op<intx::uint<256>>(data, data_size);
+    test_op<intx::uint<192>>(data, data_size);
     test_op<intx::uint<128>>(data, data_size);
     return 0;
 }
