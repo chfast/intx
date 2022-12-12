@@ -562,4 +562,35 @@ BENCHMARK_TEMPLATE(to_string, uint128);
 BENCHMARK_TEMPLATE(to_string, uint256);
 BENCHMARK_TEMPLATE(to_string, uint512);
 
+
+template <typename Int>
+[[gnu::noinline]] auto load_be(const uint8_t* data) noexcept
+{
+    return intx::be::unsafe::load<Int>(data);
+}
+
+template <typename Int>
+[[gnu::noinline]] auto store_be(uint8_t* data, const Int& v) noexcept
+{
+    intx::be::unsafe::store(data, v);
+}
+
+template <typename Int>
+static void load_store_be(benchmark::State& state)
+{
+    uint8_t load_buffer[sizeof(Int) + 7]{};
+    const auto unaligned_load_ptr = load_buffer + 7;
+    uint8_t store_buffer[sizeof(Int) + 1]{};
+    const auto unaligned_store_ptr = store_buffer + 1;
+
+    for ([[maybe_unused]] auto _ : state)
+    {
+        auto v = load_be<Int>(unaligned_load_ptr);
+        store_be(unaligned_store_ptr, v);
+    }
+}
+BENCHMARK_TEMPLATE(load_store_be, uint128);
+BENCHMARK_TEMPLATE(load_store_be, uint256);
+BENCHMARK_TEMPLATE(load_store_be, uint512);
+
 BENCHMARK_MAIN();

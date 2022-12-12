@@ -1832,6 +1832,11 @@ inline constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v)
     return {q_is_neg ? -res.quot : res.quot, u_is_neg ? -res.rem : res.rem};
 }
 
+inline constexpr uint256 bswap(const uint256& x) noexcept
+{
+    return {bswap(x[3]), bswap(x[2]), bswap(x[1]), bswap(x[0])};
+}
+
 template <unsigned N>
 inline constexpr uint<N> bswap(const uint<N>& x) noexcept
 {
@@ -2052,10 +2057,13 @@ namespace unsafe
 template <typename IntT>
 inline IntT load(const uint8_t* src) noexcept
 {
-    IntT x;
-    std::memcpy(&x, src, sizeof(x));
-    x = to_big_endian(x);
-    return x;
+    // Align bytes.
+    // TODO: Using memcpy() directly triggers this optimization bug in GCC:
+    //   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
+    alignas(IntT) std::byte aligned_storage[sizeof(IntT)];
+    std::memcpy(&aligned_storage, src, sizeof(IntT));
+    // TODO(C++23): Use std::start_lifetime_as<uint256>().
+    return to_big_endian(*reinterpret_cast<const IntT*>(&aligned_storage));
 }
 
 /// Stores an integer value at the provided pointer in big-endian order. The user must make sure
@@ -2066,6 +2074,25 @@ inline void store(uint8_t* dst, const T& x) noexcept
     const auto d = to_big_endian(x);
     std::memcpy(dst, &d, sizeof(d));
 }
+
+/// Specialization for uint256.
+inline void store(uint8_t* dst, const uint256& x) noexcept
+{
+    // Store byte-swapped words in primitive temporaries. This helps with memory aliasing
+    // and GCC bug https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
+    // TODO: Use std::byte instead of uint8_t.
+    const auto v0 = to_big_endian(x[0]);
+    const auto v1 = to_big_endian(x[1]);
+    const auto v2 = to_big_endian(x[2]);
+    const auto v3 = to_big_endian(x[3]);
+
+    // Store words in reverse (big-endian) order, write addresses are ascending.
+    std::memcpy(dst, &v3, sizeof(v3));
+    std::memcpy(dst + 8, &v2, sizeof(v2));
+    std::memcpy(dst + 16, &v1, sizeof(v1));
+    std::memcpy(dst + 24, &v0, sizeof(v0));
+}
+
 }  // namespace unsafe
 
 }  // namespace be
