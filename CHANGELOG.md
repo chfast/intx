@@ -5,6 +5,22 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.9.0] — 2022-12-13
+
+### Changed
+
+- Optimizations for GCC compiler.
+  [#279](https://github.com/chfast/intx/pull/279)
+  [#281](https://github.com/chfast/intx/pull/281)
+- Required CMake version increased from 3.10 to 3.16
+  [#276](https://github.com/chfast/intx/pull/276)
+- Simplification of many operators declarations by using `friend inline` functions.
+  [#270](https://github.com/chfast/intx/pull/270)
+  [#271](https://github.com/chfast/intx/pull/271)
+- Benchmarks updates and fixes.
+  [#274](https://github.com/chfast/intx/pull/274)
+  [#275](https://github.com/chfast/intx/pull/275)
+  [#277](https://github.com/chfast/intx/pull/277)
 
 ## [0.8.0] — 2022-03-15
 
@@ -148,6 +164,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.9.0]: https://github.com/chfast/intx/releases/v0.9.0
 [0.8.0]: https://github.com/chfast/intx/releases/v0.8.0
 [0.7.1]: https://github.com/chfast/intx/releases/v0.7.1
 [0.7.0]: https://github.com/chfast/intx/releases/v0.7.0
