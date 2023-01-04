@@ -1,4 +1,6 @@
 version: 2.1
+orbs:
+  win: circleci/windows@5.0
 
 executors:
   linux-gcc-latest:
@@ -287,6 +289,38 @@ jobs:
       - build_and_test
       - benchmark
 
+  windows-32bit:
+    executor: win/server-2022
+    steps:
+      - checkout
+      - run:
+          name: "Setup environment (bash)"
+          shell: bash
+          command: |
+            echo 'export PATH=$PATH:"/c/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin"' >> $BASH_ENV
+      - run:
+          name: 'Configure'
+          shell: powershell
+          command: |
+            $ErrorActionPreference = "Stop"
+            & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch x86
+            which cmake
+            cmake -S . -B ~/build -G Ninja -DCMAKE_INSTALL_PREFIX=C:\install -DCMAKE_BUILD_TYPE=Release -DINTX_BENCHMARKING=OFF
+      - run:
+          name: 'Build'
+          shell: powershell
+          command: |
+            $ErrorActionPreference = "Stop"
+            & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch x86
+            cmake --build ~/build
+      - run:
+          name: 'Test'
+          shell: powershell
+          working_directory: ~/build
+          command: |
+            $ErrorActionPreference = "Stop"
+            & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch x86
+            ctest -j4 --output-on-failure --schedule-random
 
   cmake-min:
     docker:
@@ -312,3 +346,4 @@ workflows:
       - cmake-min
       - arm64
       - powerpc64
+      - windows-32bit
