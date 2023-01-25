@@ -5,6 +5,13 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.9.1] — 2023-01-25
+
+### Fixed
+
+- Fixed 32-bit Windows builds: the `_umul128` intrinsic is not available there.
+  [#283](https://github.com/chfast/intx/pull/283)
+
 ## [0.9.0] — 2022-12-13
 
 ### Changed
@@ -164,6 +171,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.9.1]: https://github.com/chfast/intx/releases/v0.9.1
 [0.9.0]: https://github.com/chfast/intx/releases/v0.9.0
 [0.8.0]: https://github.com/chfast/intx/releases/v0.8.0
 [0.7.1]: https://github.com/chfast/intx/releases/v0.7.1
