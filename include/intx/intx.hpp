@@ -1608,7 +1608,11 @@ struct normalized_div_args  // NOLINT(cppcoreguidelines-pro-type-member-init)
 };
 
 template <unsigned M, unsigned N>
+#if !defined(_WIN32) || defined(__GNUG__)
 [[gnu::always_inline]] inline normalized_div_args<M, N> normalize(
+#else
+inline normalized_div_args<M, N> normalize(
+#endif
     const uint<M>& numerator, const uint<N>& denominator) noexcept
 {
     static constexpr auto num_numerator_words = uint<M>::num_words;
