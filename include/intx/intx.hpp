@@ -1611,7 +1611,7 @@ template <unsigned M, unsigned N>
 #if !defined(_WIN32) || defined(__GNUG__)
 [[gnu::always_inline]] inline normalized_div_args<M, N> normalize(
 #else
-inline normalized_div_args<M, N> normalize(
+__forceinline inline normalized_div_args<M, N> normalize(
 #endif
     const uint<M>& numerator, const uint<N>& denominator) noexcept
 {
