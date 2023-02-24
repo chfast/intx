@@ -5,8 +5,6 @@
 #include <gtest/gtest.h>
 #include <intx/intx.hpp>
 
-#pragma warning(disable : 4307)
-
 using namespace intx;
 
 static_assert(clz_generic(uint32_t{0}) == 32);

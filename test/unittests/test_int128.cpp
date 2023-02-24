@@ -4,8 +4,6 @@
 
 #include "test_suite.hpp"
 
-#pragma warning(disable : 4307)
-
 using namespace intx;
 
 namespace
