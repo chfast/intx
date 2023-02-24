@@ -5,10 +5,10 @@ orbs:
 executors:
   linux-gcc-latest:
     docker:
-      - image: ethereum/cpp-build-env:18-gcc-12
+      - image: ethereum/cpp-build-env:19-gcc-12
   linux-clang-latest:
     docker:
-      - image: ethereum/cpp-build-env:18-clang-14
+      - image: ethereum/cpp-build-env:19-clang-15
   macos:
     macos:
       xcode: 14.2.0
@@ -56,7 +56,7 @@ commands:
       - checkout
       - run:
           name: "Configure"
-          command: cmake -B ~/build -DCMAKE_INSTALL_PREFIX=~/install -DCMAKE_BUILD_TYPE=$BUILD_TYPE $CMAKE_OPTIONS
+          command: cmake -B ~/build -DCMAKE_COMPILE_WARNING_AS_ERROR=TRUE -DCMAKE_INSTALL_PREFIX=~/install -DCMAKE_BUILD_TYPE=$BUILD_TYPE $CMAKE_OPTIONS
       - run:
           name: "Build"
           command: |
@@ -101,8 +101,8 @@ commands:
         type: string
     steps:
       - run:
-          name: "Upgrade codecov"
-          command: sudo pip3 install --upgrade --quiet --no-cache-dir codecov
+          name: "Install codecov"
+          command: pip3 install --break-system-packages --upgrade --user --quiet --no-cache-dir codecov
       - run:
           name: "Upload to Codecov"
           command: |
@@ -121,8 +121,7 @@ jobs:
 
   lint:
     docker:
-      # TODO: clang-format-14 has a regression. Jump to 15 when available.
-      - image: ethereum/cpp-build-env:17-clang-13
+      - image: ethereum/cpp-build-env:19-clang-15
     steps:
       - checkout
       - check_code_format
@@ -134,7 +133,7 @@ jobs:
       - run:
           name: "Build package"
           command: |
-            cmake -B ~/build -DINTX_TESTING=OFF
+            cmake -B ~/build -DCMAKE_COMPILE_WARNING_AS_ERROR=TRUE -DINTX_TESTING=OFF
             cmake --build ~/build --target package
       - run:
           name: "Inspect package"
@@ -236,7 +235,7 @@ jobs:
       BUILD_TYPE: Release
       CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_BENCHMARKING=OFF
     docker:
-      - image: ethereum/cpp-build-env:18-gcc-12-multilib
+      - image: ethereum/cpp-build-env:19-gcc-12-multilib
     steps:
       - build_and_test
 
@@ -247,7 +246,7 @@ jobs:
       TESTS_FILTER: unittests
       TESTS_EXCLUDE: random
     docker:
-      - image: ethereum/cpp-build-env:18-gcc-12-multilib
+      - image: ethereum/cpp-build-env:19-gcc-12-multilib
     steps:
       - build_and_test
       - collect_coverage_gcc
@@ -304,8 +303,8 @@ jobs:
           command: |
             $ErrorActionPreference = "Stop"
             & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch x86
-            which cmake
-            cmake -S . -B ~/build -G Ninja -DCMAKE_INSTALL_PREFIX=C:\install -DCMAKE_BUILD_TYPE=Release -DINTX_BENCHMARKING=OFF
+            cmake --version
+            cmake -S . -B ~/build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=TRUE -DCMAKE_INSTALL_PREFIX=C:\install -DCMAKE_BUILD_TYPE=Release -DINTX_BENCHMARKING=OFF
       - run:
           name: 'Build'
           shell: powershell
