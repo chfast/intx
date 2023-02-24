@@ -36,6 +36,7 @@ Checks: >
   hicpp-multiway-paths-covered,
   hicpp-no-assembler,
   misc-*,
+  -misc-const-correctness,
   -misc-non-private-member-variables-in-classes,
   modernize-*,
   -modernize-avoid-c-arrays,

@@ -875,7 +875,7 @@ inline uint128& operator%=(uint128& x, uint128 y) noexcept
 namespace std
 {
 template <unsigned N>
-struct numeric_limits<intx::uint<N>>
+struct numeric_limits<intx::uint<N>>  // NOLINT(cert-dcl58-cpp)
 {
     using type = intx::uint<N>;
 
