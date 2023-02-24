@@ -15,6 +15,12 @@
 #include <tuple>
 #include <type_traits>
 
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 5030)  // Allow unknown attributes.
+#endif
+
+
 #ifndef __has_builtin
     #define __has_builtin(NAME) 0
 #endif
@@ -2098,3 +2104,7 @@ inline void store(uint8_t* dst, const uint256& x) noexcept
 }  // namespace be
 
 }  // namespace intx
+
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
