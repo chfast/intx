@@ -15,6 +15,12 @@
 #include <tuple>
 #include <type_traits>
 
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 5030)  // Allow unknown attributes.
+#endif
+
+
 #ifndef __has_builtin
     #define __has_builtin(NAME) 0
 #endif
@@ -875,7 +881,7 @@ inline uint128& operator%=(uint128& x, uint128 y) noexcept
 namespace std
 {
 template <unsigned N>
-struct numeric_limits<intx::uint<N>>
+struct numeric_limits<intx::uint<N>>  // NOLINT(cert-dcl58-cpp)
 {
     using type = intx::uint<N>;
 
@@ -2098,3 +2104,7 @@ inline void store(uint8_t* dst, const uint256& x) noexcept
 }  // namespace be
 
 }  // namespace intx
+
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif

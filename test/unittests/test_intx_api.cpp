@@ -4,8 +4,6 @@
 
 #include "test_suite.hpp"
 
-#pragma warning(disable : 4307)
-
 using namespace intx;
 
 static_assert(uint128{2} + uint128{2} == 4);
