@@ -226,7 +226,7 @@ jobs:
     environment:
       BUILD_TYPE: Release
     machine:
-      image: ubuntu-2004:202101-01
+      image: ubuntu-2204:2023.02.1
       resource_class: arm.medium
     steps:
       - build_and_test
