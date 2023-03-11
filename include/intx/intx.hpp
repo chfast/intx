@@ -8,6 +8,7 @@
 #include <bit>
 #include <cassert>
 #include <climits>
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -512,55 +513,9 @@ inline constexpr uint128& operator>>=(uint128& x, uint64_t shift) noexcept
 
 /// @}
 
-
-inline constexpr unsigned clz_generic(uint32_t x) noexcept
+inline constexpr unsigned clz(std::unsigned_integral auto x) noexcept
 {
-    unsigned n = 32;
-    for (int i = 4; i >= 0; --i)
-    {
-        const auto s = unsigned{1} << i;
-        const auto hi = x >> s;
-        if (hi != 0)
-        {
-            n -= s;
-            x = hi;
-        }
-    }
-    return n - x;
-}
-
-inline constexpr unsigned clz_generic(uint64_t x) noexcept
-{
-    unsigned n = 64;
-    for (int i = 5; i >= 0; --i)
-    {
-        const auto s = unsigned{1} << i;
-        const auto hi = x >> s;
-        if (hi != 0)
-        {
-            n -= s;
-            x = hi;
-        }
-    }
-    return n - static_cast<unsigned>(x);
-}
-
-inline constexpr unsigned clz(uint32_t x) noexcept
-{
-#ifdef _MSC_VER
-    return clz_generic(x);
-#else
-    return x != 0 ? unsigned(__builtin_clz(x)) : 32;
-#endif
-}
-
-inline constexpr unsigned clz(uint64_t x) noexcept
-{
-#ifdef _MSC_VER
-    return clz_generic(x);
-#else
-    return x != 0 ? unsigned(__builtin_clzll(x)) : 64;
-#endif
+    return static_cast<unsigned>(std::countl_zero(x));
 }
 
 inline constexpr unsigned clz(uint128 x) noexcept
@@ -1578,11 +1533,7 @@ namespace internal
 inline constexpr unsigned clz_nonzero(uint64_t x) noexcept
 {
     INTX_REQUIRE(x != 0);
-#ifdef _MSC_VER
-    return clz_generic(x);
-#else
-    return unsigned(__builtin_clzll(x));
-#endif
+    return static_cast<unsigned>(std::countl_zero(x));
 }
 
 template <unsigned M, unsigned N>
