@@ -14,6 +14,17 @@ executors:
       xcode: 14.2.0
 
 commands:
+  install_cmake:
+    parameters:
+      version:
+        type: string
+    steps:
+      - run:
+          name: "Install CMake <<parameters.version>>"
+          working_directory: /usr/local
+          command: |
+            curl -L https://github.com/Kitware/CMake/releases/download/v<<parameters.version>>/cmake-<<parameters.version>>-linux-x86_64.tar.gz | sudo tar -xz --strip=1
+
   install_deps:
     description: "Install dependencies"
     steps:
@@ -323,8 +334,11 @@ jobs:
 
   cmake-min:
     docker:
-      - image: cimg/base:stable-20.04
+      - image: cimg/base:current-22.04
     steps:
+      - install_cmake:
+          version: 3.16.3
+      - install_deps
       - build_and_test
 
 workflows:
