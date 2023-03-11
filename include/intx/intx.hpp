@@ -5,6 +5,7 @@
 #pragma once
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <climits>
 #include <cstdint>
@@ -78,15 +79,6 @@ namespace intx
 using builtin_uint128 = unsigned __int128;
 
     #pragma GCC diagnostic pop
-#endif
-
-constexpr bool byte_order_is_little_endian =
-#if defined(__BYTE_ORDER__)
-    (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__);
-#elif defined(_WIN32)
-    true;  // On Windows assume little endian.
-#else
-    #error "Unknown endianness"
 #endif
 
 template <unsigned N>
@@ -1927,7 +1919,7 @@ inline constexpr uint512 operator"" _u512(const char* s)
 template <typename T>
 inline constexpr T to_little_endian(const T& x) noexcept
 {
-    if constexpr (byte_order_is_little_endian)
+    if constexpr (std::endian::native == std::endian::little)
         return x;
     else if constexpr (std::is_integral_v<T>)
         return bswap(x);
@@ -1945,7 +1937,7 @@ inline constexpr T to_little_endian(const T& x) noexcept
 template <typename T>
 inline constexpr T to_big_endian(const T& x) noexcept
 {
-    if constexpr (byte_order_is_little_endian)
+    if constexpr (std::endian::native == std::endian::little)
         return bswap(x);
     else if constexpr (std::is_integral_v<T>)
         return x;

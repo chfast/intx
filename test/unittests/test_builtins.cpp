@@ -17,7 +17,7 @@ static_assert(clz_generic(uint64_t{1}) == 63);
 static_assert(clz_generic(uint64_t{3}) == 62);
 static_assert(clz_generic(uint64_t{9}) == 60);
 
-static constexpr auto is_le = byte_order_is_little_endian;
+static constexpr auto is_le = std::endian::native == std::endian::little;
 static_assert(to_little_endian(uint8_t{0x0a}) == 0x0a);
 static_assert(to_little_endian(uint16_t{0x0b0a}) == (is_le ? 0x0b0a : 0x0a0b));
 static_assert(to_little_endian(uint32_t{0x0d0c0b0a}) == (is_le ? 0x0d0c0b0a : 0x0a0b0c0d));
