@@ -136,16 +136,6 @@ public:
 using uint128 = uint<128>;
 
 
-inline constexpr bool is_constant_evaluated() noexcept
-{
-#if __has_builtin(__builtin_is_constant_evaluated) || (defined(_MSC_VER) && _MSC_VER >= 1925)
-    return __builtin_is_constant_evaluated();
-#else
-    return true;
-#endif
-}
-
-
 /// Contains result of add/sub/etc with a carry flag.
 template <typename T>
 struct result_with_carry
@@ -166,7 +156,7 @@ inline constexpr result_with_carry<uint64_t> addc(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
 #if __has_builtin(__builtin_addcll)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
         const auto s = __builtin_addcll(x, y, carry, &carryout);
@@ -174,7 +164,7 @@ inline constexpr result_with_carry<uint64_t> addc(
         return {s, static_cast<bool>(carryout)};
     }
 #elif __has_builtin(__builtin_ia32_addcarryx_u64)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned long long s = 0;  // NOLINT(google-runtime-int)
         static_assert(sizeof(s) == sizeof(uint64_t));
@@ -195,7 +185,7 @@ inline constexpr result_with_carry<uint64_t> subc(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
 #if __has_builtin(__builtin_subcll)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
         const auto d = __builtin_subcll(x, y, carry, &carryout);
@@ -203,7 +193,7 @@ inline constexpr result_with_carry<uint64_t> subc(
         return {d, static_cast<bool>(carryout)};
     }
 #elif __has_builtin(__builtin_ia32_sbb_u64)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned long long d = 0;  // NOLINT(google-runtime-int)
         static_assert(sizeof(d) == sizeof(uint64_t));
@@ -439,7 +429,7 @@ inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 #if INTX_HAS_BUILTIN_INT128
     return builtin_uint128{x} * builtin_uint128{y};
 #elif defined(_MSC_VER) && _MSC_VER >= 1925 && defined(_M_X64)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned __int64 hi = 0;
         const auto lo = _umul128(x, y, &hi);
@@ -593,7 +583,7 @@ inline constexpr uint16_t bswap(uint16_t x) noexcept
     return __builtin_bswap16(x);
 #else
     #ifdef _MSC_VER
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
         return _byteswap_ushort(x);
     #endif
     return static_cast<uint16_t>((x << 8) | (x >> 8));
@@ -606,7 +596,7 @@ inline constexpr uint32_t bswap(uint32_t x) noexcept
     return __builtin_bswap32(x);
 #else
     #ifdef _MSC_VER
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
         return _byteswap_ulong(x);
     #endif
     const auto a = ((x << 8) & 0xFF00FF00) | ((x >> 8) & 0x00FF00FF);
@@ -620,7 +610,7 @@ inline constexpr uint64_t bswap(uint64_t x) noexcept
     return __builtin_bswap64(x);
 #else
     #ifdef _MSC_VER
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
         return _byteswap_uint64(x);
     #endif
     const auto a = ((x << 8) & 0xFF00FF00FF00FF00) | ((x >> 8) & 0x00FF00FF00FF00FF);

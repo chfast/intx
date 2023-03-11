@@ -136,34 +136,6 @@ TEST(builtins, count_significant_bytes)
     EXPECT_EQ(count_significant_bytes(x), 8u);
 }
 
-namespace
-{
-constexpr int func() noexcept
-{
-    return is_constant_evaluated() ? 1 : 2;
-}
-}  // namespace
-
-TEST(builtins, is_constant_evaluated)
-{
-    constexpr auto is_constexpr_true = is_constant_evaluated();
-    EXPECT_TRUE(is_constexpr_true);
-    constexpr auto constexpr_func_res = func();
-    EXPECT_EQ(constexpr_func_res, 1);
-
-    auto is_constexpr_false = is_constant_evaluated();
-    auto nonconstexpr_func_res = func();
-
-#if (defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 10) || \
-    (defined(_MSC_VER) && _MSC_VER >= 1925)
-    EXPECT_FALSE(is_constexpr_false);
-    EXPECT_EQ(nonconstexpr_func_res, 2);
-#else
-    EXPECT_TRUE(is_constexpr_false);
-    EXPECT_EQ(nonconstexpr_func_res, 1);
-#endif
-}
-
 static_assert(bswap(uint8_t{0x81}) == 0x81);
 static_assert(bswap(uint16_t{0x8681}) == 0x8186);
 static_assert(bswap(uint32_t{0x86818082}) == 0x82808186);
