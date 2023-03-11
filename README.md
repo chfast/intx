@@ -2,13 +2,11 @@
 
 [![readme style: standard][readme style standard badge]][standard readme]
 
-> Extended precision integer C++ library
+Extended precision integer C++ library
 
-Provides following types:
-
-- `uint128`,
-- `uint256`,
-- `uint512`.
+The intx header-only C++20 library provides allocation-free extended precision
+integer types. They are implemented as arrays of `std::uint64_t` words
+and closely match the behavior of built-in types.
 
 ## Usage
 
