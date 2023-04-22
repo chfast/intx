@@ -27,7 +27,7 @@ if(INTX_TESTING)
 endif()
 
 project(intx LANGUAGES CXX)
-set(PROJECT_VERSION 0.9.2)
+set(PROJECT_VERSION 0.10.0-dev)
 
 cable_configure_compiler(NO_STACK_PROTECTION)
 
