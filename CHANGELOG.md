@@ -5,6 +5,14 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.10.0] — unreleased
+
+### Changed
+
+- C++20 is not required to use intx.
+  [#287](https://github.com/chfast/intx/pull/287)
+  [#290](https://github.com/chfast/intx/pull/290)
+
 ## [0.9.2] — 2023-03-11
 
 ### Changed
@@ -179,6 +187,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.10.0]: https://github.com/chfast/intx/compare/v0.9.2..master
 [0.9.2]: https://github.com/chfast/intx/releases/v0.9.2
 [0.9.1]: https://github.com/chfast/intx/releases/v0.9.1
 [0.9.0]: https://github.com/chfast/intx/releases/v0.9.0
