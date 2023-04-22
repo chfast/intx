@@ -8,10 +8,6 @@ branches:
     - hunter
 environment:
   matrix:
-    - VS_VER: 2017
-      CONFIGURATION: Release
-      GENERATOR: Ninja
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     - VS_VER: 2019
       CONFIGURATION: Debug
       GENERATOR: Ninja

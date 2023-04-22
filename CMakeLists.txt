@@ -44,7 +44,7 @@ set(INTX_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 add_library(intx INTERFACE)
 add_library(intx::intx ALIAS intx)
-target_compile_features(intx INTERFACE cxx_std_17)
+target_compile_features(intx INTERFACE cxx_std_20)
 target_sources(intx INTERFACE $<BUILD_INTERFACE:${INTX_INCLUDE_DIR}/intx/intx.hpp>)
 target_include_directories(intx INTERFACE $<BUILD_INTERFACE:${INTX_INCLUDE_DIR}>$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
