@@ -7,17 +7,7 @@
 
 using namespace intx;
 
-static_assert(clz_generic(uint32_t{0}) == 32);
-static_assert(clz_generic(uint32_t{1}) == 31);
-static_assert(clz_generic(uint32_t{3}) == 30);
-static_assert(clz_generic(uint32_t{9}) == 28);
-
-static_assert(clz_generic(uint64_t{0}) == 64);
-static_assert(clz_generic(uint64_t{1}) == 63);
-static_assert(clz_generic(uint64_t{3}) == 62);
-static_assert(clz_generic(uint64_t{9}) == 60);
-
-static constexpr auto is_le = byte_order_is_little_endian;
+static constexpr auto is_le = std::endian::native == std::endian::little;
 static_assert(to_little_endian(uint8_t{0x0a}) == 0x0a);
 static_assert(to_little_endian(uint16_t{0x0b0a}) == (is_le ? 0x0b0a : 0x0a0b));
 static_assert(to_little_endian(uint32_t{0x0d0c0b0a}) == (is_le ? 0x0d0c0b0a : 0x0a0b0c0d));
@@ -38,55 +28,6 @@ static_assert(subc(0, 0).value == 0);
 static_assert(!subc(0, 0).carry);
 static_assert(subc(0, 1).value == 0xffffffffffffffff);
 static_assert(subc(0, 1).carry);
-
-
-TEST(builtins, clz64_single_one)
-{
-    for (unsigned i = 0; i <= 63; ++i)
-    {
-        const auto input = (uint64_t{1} << 63) >> i;
-        EXPECT_EQ(clz(input), i);
-        EXPECT_EQ(clz_generic(input), i);
-    }
-}
-
-TEST(builtins, clz64_two_ones)
-{
-    for (unsigned i = 0; i <= 63; ++i)
-    {
-        const auto input = ((uint64_t{1} << 63) >> i) | 1;
-        EXPECT_EQ(clz(input), i);
-        EXPECT_EQ(clz_generic(input), i);
-    }
-}
-
-TEST(builtins, clz32_single_one)
-{
-    for (unsigned i = 0; i <= 31; ++i)
-    {
-        const auto input = (uint32_t{1} << 31) >> i;
-        EXPECT_EQ(clz(input), i);
-        EXPECT_EQ(clz_generic(input), i);
-    }
-}
-
-TEST(builtins, clz32_two_ones)
-{
-    for (unsigned i = 0; i <= 31; ++i)
-    {
-        const auto input = ((uint32_t{1} << 31) >> i) | 1;
-        EXPECT_EQ(clz(input), i);
-        EXPECT_EQ(clz_generic(input), i);
-    }
-}
-
-TEST(builtins, clz_zero)
-{
-    EXPECT_EQ(clz(uint32_t{0}), 32u);
-    EXPECT_EQ(clz_generic(uint32_t{0}), 32u);
-    EXPECT_EQ(clz(uint64_t{0}), 64u);
-    EXPECT_EQ(clz_generic(uint64_t{0}), 64u);
-}
 
 TEST(builtins, count_significant_bytes)
 {
@@ -134,34 +75,6 @@ TEST(builtins, count_significant_bytes)
     EXPECT_EQ(count_significant_bytes(x), 8u);
     x = 0x8000000000000000;
     EXPECT_EQ(count_significant_bytes(x), 8u);
-}
-
-namespace
-{
-constexpr int func() noexcept
-{
-    return is_constant_evaluated() ? 1 : 2;
-}
-}  // namespace
-
-TEST(builtins, is_constant_evaluated)
-{
-    constexpr auto is_constexpr_true = is_constant_evaluated();
-    EXPECT_TRUE(is_constexpr_true);
-    constexpr auto constexpr_func_res = func();
-    EXPECT_EQ(constexpr_func_res, 1);
-
-    auto is_constexpr_false = is_constant_evaluated();
-    auto nonconstexpr_func_res = func();
-
-#if (defined(__clang__) && __clang_major__ >= 9) || (defined(__GNUC__) && __GNUC__ >= 10) || \
-    (defined(_MSC_VER) && _MSC_VER >= 1925)
-    EXPECT_FALSE(is_constexpr_false);
-    EXPECT_EQ(nonconstexpr_func_res, 2);
-#else
-    EXPECT_TRUE(is_constexpr_false);
-    EXPECT_EQ(nonconstexpr_func_res, 1);
-#endif
 }
 
 static_assert(bswap(uint8_t{0x81}) == 0x81);

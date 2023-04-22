@@ -9,7 +9,6 @@ find_package(GMP REQUIRED)
 
 add_executable(intx-bench
     ../experimental/addmod.hpp
-    bench_builtins.cpp
     bench_div.cpp
     bench_int128.cpp
     benchmarks.cpp

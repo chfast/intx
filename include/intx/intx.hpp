@@ -5,8 +5,10 @@
 #pragma once
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <climits>
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -37,17 +39,6 @@
     #define __has_feature(NAME) 0
 #endif
 
-#if !defined(NDEBUG)
-    #define INTX_UNREACHABLE() assert(false)
-#elif __has_builtin(__builtin_unreachable)
-    #define INTX_UNREACHABLE() __builtin_unreachable()
-#elif defined(_MSC_VER)
-    #define INTX_UNREACHABLE() __assume(0)
-#else
-    #define INTX_UNREACHABLE() (void)0
-#endif
-
-
 #if __has_builtin(__builtin_expect)
     #define INTX_UNLIKELY(EXPR) __builtin_expect(bool{EXPR}, false)
 #else
@@ -57,7 +48,7 @@
 #if !defined(NDEBUG)
     #define INTX_REQUIRE assert
 #else
-    #define INTX_REQUIRE(X) (X) ? (void)0 : INTX_UNREACHABLE()
+    #define INTX_REQUIRE(X) (X) ? (void)0 : intx::unreachable()
 #endif
 
 
@@ -70,6 +61,17 @@
 
 namespace intx
 {
+/// Mark a possible code path as unreachable (invokes undefined behavior).
+/// TODO(C++23): Use std::unreachable().
+[[noreturn]] inline void unreachable() noexcept
+{
+#if __has_builtin(__builtin_unreachable)
+    __builtin_unreachable();
+#elif defined(_MSC_VER)
+    __assume(false);
+#endif
+}
+
 #if INTX_HAS_BUILTIN_INT128
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wpedantic"  // Usage of __int128 triggers a pedantic warning.
@@ -78,15 +80,6 @@ namespace intx
 using builtin_uint128 = unsigned __int128;
 
     #pragma GCC diagnostic pop
-#endif
-
-constexpr bool byte_order_is_little_endian =
-#if defined(__BYTE_ORDER__)
-    (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__);
-#elif defined(_WIN32)
-    true;  // On Windows assume little endian.
-#else
-    #error "Unknown endianness"
 #endif
 
 template <unsigned N>
@@ -144,16 +137,6 @@ public:
 using uint128 = uint<128>;
 
 
-inline constexpr bool is_constant_evaluated() noexcept
-{
-#if __has_builtin(__builtin_is_constant_evaluated) || (defined(_MSC_VER) && _MSC_VER >= 1925)
-    return __builtin_is_constant_evaluated();
-#else
-    return true;
-#endif
-}
-
-
 /// Contains result of add/sub/etc with a carry flag.
 template <typename T>
 struct result_with_carry
@@ -174,7 +157,7 @@ inline constexpr result_with_carry<uint64_t> addc(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
 #if __has_builtin(__builtin_addcll)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
         const auto s = __builtin_addcll(x, y, carry, &carryout);
@@ -182,7 +165,7 @@ inline constexpr result_with_carry<uint64_t> addc(
         return {s, static_cast<bool>(carryout)};
     }
 #elif __has_builtin(__builtin_ia32_addcarryx_u64)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned long long s = 0;  // NOLINT(google-runtime-int)
         static_assert(sizeof(s) == sizeof(uint64_t));
@@ -203,7 +186,7 @@ inline constexpr result_with_carry<uint64_t> subc(
     uint64_t x, uint64_t y, bool carry = false) noexcept
 {
 #if __has_builtin(__builtin_subcll)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
         const auto d = __builtin_subcll(x, y, carry, &carryout);
@@ -211,7 +194,7 @@ inline constexpr result_with_carry<uint64_t> subc(
         return {d, static_cast<bool>(carryout)};
     }
 #elif __has_builtin(__builtin_ia32_sbb_u64)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned long long d = 0;  // NOLINT(google-runtime-int)
         static_assert(sizeof(d) == sizeof(uint64_t));
@@ -447,7 +430,7 @@ inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 #if INTX_HAS_BUILTIN_INT128
     return builtin_uint128{x} * builtin_uint128{y};
 #elif defined(_MSC_VER) && _MSC_VER >= 1925 && defined(_M_X64)
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
     {
         unsigned __int64 hi = 0;
         const auto lo = _umul128(x, y, &hi);
@@ -530,55 +513,9 @@ inline constexpr uint128& operator>>=(uint128& x, uint64_t shift) noexcept
 
 /// @}
 
-
-inline constexpr unsigned clz_generic(uint32_t x) noexcept
+inline constexpr unsigned clz(std::unsigned_integral auto x) noexcept
 {
-    unsigned n = 32;
-    for (int i = 4; i >= 0; --i)
-    {
-        const auto s = unsigned{1} << i;
-        const auto hi = x >> s;
-        if (hi != 0)
-        {
-            n -= s;
-            x = hi;
-        }
-    }
-    return n - x;
-}
-
-inline constexpr unsigned clz_generic(uint64_t x) noexcept
-{
-    unsigned n = 64;
-    for (int i = 5; i >= 0; --i)
-    {
-        const auto s = unsigned{1} << i;
-        const auto hi = x >> s;
-        if (hi != 0)
-        {
-            n -= s;
-            x = hi;
-        }
-    }
-    return n - static_cast<unsigned>(x);
-}
-
-inline constexpr unsigned clz(uint32_t x) noexcept
-{
-#ifdef _MSC_VER
-    return clz_generic(x);
-#else
-    return x != 0 ? unsigned(__builtin_clz(x)) : 32;
-#endif
-}
-
-inline constexpr unsigned clz(uint64_t x) noexcept
-{
-#ifdef _MSC_VER
-    return clz_generic(x);
-#else
-    return x != 0 ? unsigned(__builtin_clzll(x)) : 64;
-#endif
+    return static_cast<unsigned>(std::countl_zero(x));
 }
 
 inline constexpr unsigned clz(uint128 x) noexcept
@@ -601,7 +538,7 @@ inline constexpr uint16_t bswap(uint16_t x) noexcept
     return __builtin_bswap16(x);
 #else
     #ifdef _MSC_VER
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
         return _byteswap_ushort(x);
     #endif
     return static_cast<uint16_t>((x << 8) | (x >> 8));
@@ -614,7 +551,7 @@ inline constexpr uint32_t bswap(uint32_t x) noexcept
     return __builtin_bswap32(x);
 #else
     #ifdef _MSC_VER
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
         return _byteswap_ulong(x);
     #endif
     const auto a = ((x << 8) & 0xFF00FF00) | ((x >> 8) & 0x00FF00FF);
@@ -628,7 +565,7 @@ inline constexpr uint64_t bswap(uint64_t x) noexcept
     return __builtin_bswap64(x);
 #else
     #ifdef _MSC_VER
-    if (!is_constant_evaluated())
+    if (!std::is_constant_evaluated())
         return _byteswap_uint64(x);
     #endif
     const auto a = ((x << 8) & 0xFF00FF00FF00FF00) | ((x >> 8) & 0x00FF00FF00FF00FF);
@@ -1596,11 +1533,7 @@ namespace internal
 inline constexpr unsigned clz_nonzero(uint64_t x) noexcept
 {
     INTX_REQUIRE(x != 0);
-#ifdef _MSC_VER
-    return clz_generic(x);
-#else
-    return unsigned(__builtin_clzll(x));
-#endif
+    return static_cast<unsigned>(std::countl_zero(x));
 }
 
 template <unsigned M, unsigned N>
@@ -1927,7 +1860,7 @@ inline constexpr uint512 operator"" _u512(const char* s)
 template <typename T>
 inline constexpr T to_little_endian(const T& x) noexcept
 {
-    if constexpr (byte_order_is_little_endian)
+    if constexpr (std::endian::native == std::endian::little)
         return x;
     else if constexpr (std::is_integral_v<T>)
         return bswap(x);
@@ -1945,7 +1878,7 @@ inline constexpr T to_little_endian(const T& x) noexcept
 template <typename T>
 inline constexpr T to_big_endian(const T& x) noexcept
 {
-    if constexpr (byte_order_is_little_endian)
+    if constexpr (std::endian::native == std::endian::little)
         return bswap(x);
     else if constexpr (std::is_integral_v<T>)
         return x;
