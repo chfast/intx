@@ -10,6 +10,7 @@ executors:
     docker:
       - image: ethereum/cpp-build-env:19-clang-15
   macos:
+    resource_class: macos.m1.medium.gen1
     macos:
       xcode: 14.3.1
 
