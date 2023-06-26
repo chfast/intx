@@ -11,7 +11,7 @@ executors:
       - image: ethereum/cpp-build-env:19-clang-15
   macos:
     macos:
-      xcode: 14.2.0
+      xcode: 14.3.1
 
 commands:
   install_cmake:
