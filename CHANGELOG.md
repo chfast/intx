@@ -5,7 +5,7 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
-## [0.9.3] — unreleased
+## [0.9.3] — 2023-07-17
 
 ### Fixed
 
@@ -186,7 +186,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
-[0.9.3]: https://github.com/chfast/intx/compare/v0.9.2..release/0.9
+[0.9.3]: https://github.com/chfast/intx/releases/v0.9.3
 [0.9.2]: https://github.com/chfast/intx/releases/v0.9.2
 [0.9.1]: https://github.com/chfast/intx/releases/v0.9.1
 [0.9.0]: https://github.com/chfast/intx/releases/v0.9.0
