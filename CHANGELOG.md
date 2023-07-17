@@ -5,6 +5,13 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.10.1] — 2023-07-17
+
+### Fixed
+
+- Fixed buggy `__builtin_subcll` in Xcode 14.3.1 on arm64.
+  [294](https://github.com/chfast/intx/pull/294)
+
 ## [0.10.0] — 2023-04-25
 
 ### Changed
@@ -194,6 +201,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.10.1]: https://github.com/chfast/intx/releases/v0.10.1
 [0.10.0]: https://github.com/chfast/intx/releases/v0.10.0
 [0.9.3]: https://github.com/chfast/intx/releases/v0.9.3
 [0.9.2]: https://github.com/chfast/intx/releases/v0.9.2
