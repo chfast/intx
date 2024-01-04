@@ -4,6 +4,9 @@
 
 add_compile_options(
     $<$<CXX_COMPILER_ID:MSVC>:-wd5030>  # allow unknown attributes
+
+    # prevent gtest build failure on 32-bit arch
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<EQUAL:${CMAKE_SIZEOF_VOID_P},4>>:-Wno-restrict>
 )
 
 add_subdirectory(analysis)
