@@ -120,7 +120,7 @@ TEST(uint256, simple_udiv)
 TEST(uint512, literal)
 {
     auto x = 1_u512;
-    static_assert(std::is_same<decltype(x), uint512>::value);
+    static_assert(std::is_same_v<decltype(x), uint512>);
     EXPECT_EQ(x, 1);
 
     x = 0_u512;
@@ -165,7 +165,7 @@ TEST(uint256, exp)
         83674153047243082998136072363356897816464308069321161820168341056719375264851_u256);
 }
 
-static decltype(&addmod) addmod_impls[] = {
+constexpr decltype(&addmod) addmod_impls[] = {
     addmod,
     test::addmod_public,
     test::addmod_simple,
