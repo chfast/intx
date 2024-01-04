@@ -10,6 +10,9 @@
 using namespace intx;
 
 uint128 div_gcc(uint128 x, uint128 y) noexcept;
+
+namespace
+{
 inline div_result<uint128> gcc_(uint128 x, uint128 y) noexcept
 {
     return {div_gcc(x, y), 0};
@@ -20,15 +23,15 @@ inline div_result<uint128> gmp_(uint128 x, uint128 y) noexcept
     return gmp::udivrem(x, y);
 }
 
-[[gnu::noinline]] static auto intx_(uint128 x, uint128 y) noexcept
+[[gnu::noinline]] auto intx_(uint128 x, uint128 y) noexcept
 {
     return intx::udivrem(x, y);
 }
 
 template <decltype(intx_) DivFn>
-static void udiv128(benchmark::State& state)
+void udiv128(benchmark::State& state)
 {
-    const uint128 inputs[][2] = {
+    uint128 inputs[][2] = {
         {0x537e3fbc5318dbc0e7e47d96b32ef2d5_u128, 0x395df916dfd1b5e38ae7c47ce8a620f_u128},
         {0x837e3fbc5318dbc0e7e47d96b32ef2d5_u128, 0x895df916dfd1b5e38ae7c47ce8a620f_u128},
         {0xee657725ff64cd48b8fe188a09dc4f78_u128, 3},                   // worst shift
@@ -39,8 +42,8 @@ static void udiv128(benchmark::State& state)
     benchmark::ClobberMemory();
 
     const auto idx = static_cast<size_t>(state.range(0));
-    const uint128 x = inputs[idx][0];
-    const uint128 y = inputs[idx][1];
+    uint128 x = inputs[idx][0];
+    uint128 y = inputs[idx][1];
     benchmark::DoNotOptimize(x);
     benchmark::DoNotOptimize(y);
 
@@ -56,12 +59,12 @@ BENCHMARK_TEMPLATE(udiv128, gmp_)->DenseRange(0, 3);
 
 
 template <typename RetT, RetT (*MulFn)(uint64_t, uint64_t)>
-static void umul128(benchmark::State& state)
+void umul128(benchmark::State& state)
 {
     const auto inputs = test::gen_uniform_seq(1000);
     benchmark::ClobberMemory();
 
-    while (state.KeepRunningBatch(inputs.size()))
+    while (state.KeepRunningBatch(static_cast<benchmark::IterationCount>(inputs.size())))
     {
         uint64_t alo = 0;
         uint64_t ahi = 0;
@@ -76,3 +79,4 @@ static void umul128(benchmark::State& state)
     }
 }
 BENCHMARK_TEMPLATE(umul128, intx::uint128, intx::umul);
+}  // namespace
