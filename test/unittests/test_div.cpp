@@ -55,7 +55,7 @@ struct div_test_case
     Int reminder;
 };
 
-static div_test_case<uint512> div_test_cases[] = {
+constexpr div_test_case<uint512> div_test_cases[] = {
     {2, 1, 2, 0},
     {
         0x10000000000000000_u512,
@@ -394,7 +394,7 @@ TEST(div, udivrem_512_by_256)
 }
 
 
-static div_test_case<uint256> sdivrem_test_cases[] = {
+constexpr div_test_case<uint256> sdivrem_test_cases[] = {
     {13_u256, 3_u256, 4_u256, 1_u256},
     {-13_u256, 3_u256, -4_u256, -1_u256},
     {13_u256, -3_u256, -4_u256, 1_u256},
