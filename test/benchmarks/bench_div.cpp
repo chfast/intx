@@ -16,11 +16,13 @@ uint64_t reciprocal_3by2_noinline(intx::uint128 d) noexcept;
 
 using namespace intx;
 
+namespace
+{
 inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 {
     auto shift = __builtin_clzl(du);
     auto u = uint128{uu} << shift;
-    auto d = du << shift;
+    auto d = du << shift;  // TODO: NOLINT(clang-analyzer-core.BitwiseShift)
     auto v = reciprocal_2by1(d);
 
     return udivrem_2by1(u, d, v).quot;
@@ -28,7 +30,7 @@ inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 
 
 template <decltype(internal::normalize<512, 512>) NormalizeFn>
-static void div_normalize(benchmark::State& state)
+void div_normalize(benchmark::State& state)
 {
     auto u = uint512{1324254353, 0, 4343242153453, 0, 100324254353, 0, 48882153453, 0};
     auto v = uint512{1333354353, 0, 4343242156663, 0, 16666654353, 0, 48882100453, 0};
@@ -63,7 +65,7 @@ inline uint64_t reciprocal_naive(uint64_t d) noexcept
 }
 
 template <typename T, uint64_t Fn(T)>
-static void reciprocal(benchmark::State& state)
+void reciprocal(benchmark::State& state)
 {
     auto samples = test::get_samples<T>(test::norm);
 
@@ -84,7 +86,7 @@ BENCHMARK_TEMPLATE(reciprocal, uint128, reciprocal_3by2);
 BENCHMARK_TEMPLATE(reciprocal, uint128, reciprocal_3by2_noinline);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
-static void udiv64(benchmark::State& state)
+void udiv64(benchmark::State& state)
 {
     // Pick random operands. Keep the divisor small, because this is the worst
     // case for most algorithms.
@@ -128,3 +130,4 @@ BENCHMARK_TEMPLATE(udiv64, udiv_by_reciprocal);
 BENCHMARK_TEMPLATE(udiv64, udiv_native);
 BENCHMARK_TEMPLATE(udiv64, soft_div_unr);
 BENCHMARK_TEMPLATE(udiv64, soft_div_unr_unrolled);
+}  // namespace
