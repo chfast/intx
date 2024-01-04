@@ -9,6 +9,7 @@
 #include <cassert>
 #include <climits>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -105,13 +106,14 @@ public:
 
     constexpr uint(uint64_t low, uint64_t high) noexcept : words_{low, high} {}
 
-    template <typename T,
-        typename = typename std::enable_if_t<std::is_convertible<T, uint64_t>::value>>
-    constexpr uint(T x) noexcept : words_{static_cast<uint64_t>(x), 0}  // NOLINT
+    template <typename T>
+    constexpr explicit(false) uint(T x) noexcept
+        requires std::is_convertible_v<T, uint64_t>
+      : words_{static_cast<uint64_t>(x), 0}
     {}
 
 #if INTX_HAS_BUILTIN_INT128
-    constexpr uint(builtin_uint128 x) noexcept  // NOLINT
+    constexpr explicit(false) uint(builtin_uint128 x) noexcept
       : words_{uint64_t(x), uint64_t(x >> 64)}
     {}
 
@@ -127,8 +129,9 @@ public:
     constexpr explicit operator bool() const noexcept { return (words_[0] | words_[1]) != 0; }
 
     /// Explicit converting operator for all builtin integral types.
-    template <typename Int, typename = typename std::enable_if<std::is_integral<Int>::value>::type>
+    template <typename Int>
     constexpr explicit operator Int() const noexcept
+        requires std::is_integral_v<Int>
     {
         return static_cast<Int>(words_[0]);
     }
@@ -978,16 +981,18 @@ public:
     constexpr uint() noexcept = default;
 
     /// Implicit converting constructor for any smaller uint type.
-    template <unsigned M, typename = typename std::enable_if_t<(M < N)>>
-    constexpr uint(const uint<M>& x) noexcept
+    template <unsigned M>
+    constexpr explicit(false) uint(const uint<M>& x) noexcept
+        requires(M < N)
     {
         for (size_t i = 0; i < uint<M>::num_words; ++i)
             words_[i] = x[i];
     }
 
-    template <typename... T,
-        typename = std::enable_if_t<std::conjunction_v<std::is_convertible<T, uint64_t>...>>>
-    constexpr uint(T... v) noexcept : words_{static_cast<uint64_t>(v)...}
+    template <typename... T>
+    constexpr explicit(false) uint(T... v) noexcept
+        requires std::conjunction_v<std::is_convertible<T, uint64_t>...>
+      : words_{static_cast<uint64_t>(v)...}
     {}
 
     constexpr uint64_t& operator[](size_t i) noexcept { return words_[i]; }
@@ -996,8 +1001,9 @@ public:
 
     constexpr explicit operator bool() const noexcept { return *this != uint{}; }
 
-    template <unsigned M, typename = typename std::enable_if_t<(M < N)>>
+    template <unsigned M>
     explicit operator uint<M>() const noexcept
+        requires(M < N)
     {
         uint<M> r;
         for (size_t i = 0; i < uint<M>::num_words; ++i)
@@ -1006,8 +1012,9 @@ public:
     }
 
     /// Explicit converting operator for all builtin integral types.
-    template <typename Int, typename = typename std::enable_if_t<std::is_integral_v<Int>>>
+    template <typename Int>
     explicit operator Int() const noexcept
+        requires(std::is_integral_v<Int>)
     {
         static_assert(sizeof(Int) <= sizeof(uint64_t));
         return static_cast<Int>(words_[0]);
@@ -1120,16 +1127,16 @@ inline constexpr bool operator==(const uint<N>& x, const uint<N>& y) noexcept
     return folded == 0;
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator==(const uint<N>& x, const T& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return x == uint<N>(y);
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator==(const T& x, const uint<N>& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return uint<N>(y) == x;
 }
@@ -1141,16 +1148,16 @@ inline constexpr bool operator!=(const uint<N>& x, const uint<N>& y) noexcept
     return !(x == y);
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator!=(const uint<N>& x, const T& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return x != uint<N>(y);
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return uint<N>(x) != y;
 }
@@ -1175,16 +1182,16 @@ inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
     return subc(x, y).carry;
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator<(const uint<N>& x, const T& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return x < uint<N>(y);
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator<(const T& x, const uint<N>& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return uint<N>(x) < y;
 }
@@ -1196,16 +1203,16 @@ inline constexpr bool operator>(const uint<N>& x, const uint<N>& y) noexcept
     return y < x;
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator>(const uint<N>& x, const T& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return x > uint<N>(y);
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator>(const T& x, const uint<N>& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return uint<N>(x) > y;
 }
@@ -1217,16 +1224,16 @@ inline constexpr bool operator>=(const uint<N>& x, const uint<N>& y) noexcept
     return !(x < y);
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator>=(const uint<N>& x, const T& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return x >= uint<N>(y);
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator>=(const T& x, const uint<N>& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return uint<N>(x) >= y;
 }
@@ -1238,16 +1245,16 @@ inline constexpr bool operator<=(const uint<N>& x, const uint<N>& y) noexcept
     return !(y < x);
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator<=(const uint<N>& x, const T& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return x <= uint<N>(y);
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr bool operator<=(const T& x, const uint<N>& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return uint<N>(x) <= y;
 }
@@ -1396,18 +1403,18 @@ inline constexpr uint<N> operator>>(const uint<N>& x, const uint<N>& shift) noex
     return x >> shift[0];
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr uint<N> operator<<(const uint<N>& x, const T& shift) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     if (shift < T{sizeof(x) * 8})
         return x << static_cast<uint64_t>(shift);
     return 0;
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr uint<N> operator>>(const uint<N>& x, const T& shift) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     if (shift < T{sizeof(x) * 8})
         return x >> static_cast<uint64_t>(shift);
@@ -1790,16 +1797,16 @@ inline constexpr uint<N> bswap(const uint<N>& x) noexcept
 
 // Support for type conversions for binary operators.
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr uint<N>& operator<<=(uint<N>& x, const T& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return x = x << y;
 }
 
-template <unsigned N, typename T,
-    typename = typename std::enable_if<std::is_convertible<T, uint<N>>::value>::type>
+template <unsigned N, typename T>
 inline constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
 {
     return x = x >> y;
 }
