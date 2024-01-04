@@ -370,28 +370,24 @@ TEST(int128, from_string)
     EXPECT_EQ(from_string<uint128>(sb), uint128(0xaabbccddeeff99, 3));
 }
 
-TEST(int128, literals_exceptions)
-{
-    EXPECT_THROW_MESSAGE(340282366920938463463374607431768211456_u128, std::out_of_range,
-        "340282366920938463463374607431768211456");
-    EXPECT_THROW_MESSAGE(3402823669209384634633746074317682114550_u128, std::out_of_range,
-        "3402823669209384634633746074317682114550");
-
-    EXPECT_THROW_MESSAGE(0x100000000000000000000000000000000_u128, std::out_of_range,
-        "0x100000000000000000000000000000000");
-
-    // Binary literals 0xb... are not supported yet.
-    EXPECT_THROW_MESSAGE(operator""_u128("0b1"), std::invalid_argument, "invalid digit");
-    EXPECT_THROW_MESSAGE(0b1010_u128, std::invalid_argument, "invalid digit");
-
-    EXPECT_THROW_MESSAGE(operator""_u128("123x456"), std::invalid_argument, "invalid digit");
-    EXPECT_THROW_MESSAGE(operator""_u128("0xabcxdef"), std::invalid_argument, "invalid digit");
-}
-
 TEST(int128, from_string_exceptions)
 {
+    EXPECT_THROW_MESSAGE(from_string<uint128>("340282366920938463463374607431768211456"),
+        std::out_of_range, "340282366920938463463374607431768211456");
+    EXPECT_THROW_MESSAGE(from_string<uint128>("3402823669209384634633746074317682114550"),
+        std::out_of_range, "3402823669209384634633746074317682114550");
+    EXPECT_THROW_MESSAGE(from_string<uint128>("0x100000000000000000000000000000000"),
+        std::out_of_range, "0x100000000000000000000000000000000");
+
     EXPECT_THROW_MESSAGE(from_string<uint128>("123a"), std::invalid_argument, "invalid digit");
     EXPECT_THROW_MESSAGE(from_string<uint128>("0xcdefg"), std::invalid_argument, "invalid digit");
+
+    // TODO: Binary literals 0xb... are not supported yet.
+    EXPECT_THROW_MESSAGE(from_string<uint128>("0b1"), std::invalid_argument, "invalid digit");
+    EXPECT_THROW_MESSAGE(from_string<uint128>("0b1010"), std::invalid_argument, "invalid digit");
+
+    // TODO: Literal separators are not supported yet
+    EXPECT_THROW_MESSAGE(from_string<uint128>("100'000"), std::invalid_argument, "invalid digit");
 }
 
 TEST(int128, to_string)
