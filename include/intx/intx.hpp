@@ -780,7 +780,7 @@ inline constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     return {res.quot, res.rem >> lsh};
 }
 
-inline div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
+inline constexpr div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
 {
     constexpr auto sign_mask = uint128{1} << 127;
     const auto x_is_neg = (x & sign_mask) != 0;
@@ -796,22 +796,22 @@ inline div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
     return {q_is_neg ? -res.quot : res.quot, x_is_neg ? -res.rem : res.rem};
 }
 
-inline uint128 operator/(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator/(uint128 x, uint128 y) noexcept
 {
     return udivrem(x, y).quot;
 }
 
-inline uint128 operator%(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator%(uint128 x, uint128 y) noexcept
 {
     return udivrem(x, y).rem;
 }
 
-inline uint128& operator/=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator/=(uint128& x, uint128 y) noexcept
 {
     return x = x / y;
 }
 
-inline uint128& operator%=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator%=(uint128& x, uint128 y) noexcept
 {
     return x = x % y;
 }
