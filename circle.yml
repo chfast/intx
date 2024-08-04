@@ -77,7 +77,7 @@ commands:
           name: "Test"
           working_directory: ~/build
           command: |
-            ctest -j4 --output-on-failure --schedule-random -R ${TESTS_FILTER:-'.*'} -E ${TESTS_EXCLUDE}
+            ctest -j4 --output-on-failure --schedule-random -R ${TESTS_FILTER:-'.*'}
       - run:
           name: "Install"
           command: cmake --build ~/build --target install
@@ -160,7 +160,6 @@ jobs:
     environment:
       BUILD_TYPE: Coverage
       TESTS_FILTER: unittests
-      TESTS_EXCLUDE: random
     executor: linux-gcc-latest
     steps:
       - install_deps
@@ -173,7 +172,6 @@ jobs:
     environment:
       BUILD_TYPE: Coverage
       TESTS_FILTER: unittests
-      TESTS_EXCLUDE: random
     executor: linux-clang-latest
     steps:
       - install_deps
@@ -261,7 +259,6 @@ jobs:
       BUILD_TYPE: Coverage
       CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_BENCHMARKING=OFF
       TESTS_FILTER: unittests
-      TESTS_EXCLUDE: random
     docker:
       - image: ethereum/cpp-build-env:21-gcc-13-multilib
     steps:
