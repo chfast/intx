@@ -280,14 +280,14 @@ inline constexpr uint128& operator--(uint128& x) noexcept
     return x = x - 1;
 }
 
-inline constexpr uint128 operator++(uint128& x, int) noexcept
+inline constexpr const uint128 operator++(uint128& x, int) noexcept  // NOLINT(*-const-return-type)
 {
     const auto ret = x;
     ++x;
     return ret;
 }
 
-inline constexpr uint128 operator--(uint128& x, int) noexcept
+inline constexpr const uint128 operator--(uint128& x, int) noexcept  // NOLINT(*-const-return-type)
 {
     const auto ret = x;
     --x;
