@@ -1003,8 +1003,9 @@ public:
 
     constexpr explicit operator bool() const noexcept { return *this != uint{}; }
 
+    /// Explicit converting operator to smaller uint types.
     template <unsigned M>
-    explicit operator uint<M>() const noexcept
+    constexpr explicit operator uint<M>() const noexcept
         requires(M < N)
     {
         uint<M> r;
@@ -1015,7 +1016,7 @@ public:
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int>
-    explicit operator Int() const noexcept
+    constexpr explicit operator Int() const noexcept
         requires(std::is_integral_v<Int>)
     {
         static_assert(sizeof(Int) <= sizeof(uint64_t));

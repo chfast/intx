@@ -292,8 +292,30 @@ TYPED_TEST(uint_api, bitwise_op_assignment)
     EXPECT_EQ(x >>= x, 0);
 }
 
+TYPED_TEST(uint_api, explicit_conversion_to_smaller_uint)
+{
+    if constexpr (TypeParam::num_bits > 128)
+    {
+        using SmallerType = intx::uint<TypeParam::num_bits - 64>;
+        static_assert(static_cast<SmallerType>(TypeParam{1}) == 1);
+
+        TypeParam x;
+        for (size_t i = 0; i < TypeParam::num_words; ++i)
+            x[i] = i + 1;
+
+        const auto smaller = static_cast<SmallerType>(x);
+        for (size_t i = 0; i < SmallerType::num_words; ++i)
+        {
+            EXPECT_EQ(smaller[i], i + 1);
+        }
+    }
+}
+
 TYPED_TEST(uint_api, explicit_conversion_to_integral_type)
 {
+    static_assert(
+        static_cast<uint32_t>(TypeParam{0x0102030405060708, 0xffffffffffffffff}) == 0x05060708);
+
     TypeParam x;
     x[0] = 3;
     x[1] = 0xffffffffffffffff;
