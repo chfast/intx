@@ -235,6 +235,26 @@ TEST(int128, mul)
 
 TEST(int128, increment)
 {
+    static_assert([] {
+        uint128 x;
+        return ++x;
+    }() == 1);
+
+    static_assert([] {
+        uint128 x;
+        return x++;
+    }() == 0);
+
+    static_assert([] {
+        uint128 x = 1;
+        return --x;
+    }() == 0);
+
+    static_assert([] {
+        uint128 x = 1;
+        return x++;
+    }() == 1);
+
     constexpr auto IO = uint128{0, 1};
     constexpr auto Of = uint128{~uint64_t{0}};
 

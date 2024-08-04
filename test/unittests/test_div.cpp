@@ -446,6 +446,8 @@ inline uint64_t reciprocal_naive(uint64_t d) noexcept
 
 TEST(div, reciprocal)
 {
+    static_assert(reciprocal_2by1(0x8000000000000000) == 0xffffffffffffffff);
+
     constexpr auto n = 1000000;
 
     constexpr auto d_start = uint64_t{1} << 63;

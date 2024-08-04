@@ -270,24 +270,24 @@ inline constexpr uint128 operator-(uint128 x) noexcept
     return 0 - x;
 }
 
-inline uint128& operator++(uint128& x) noexcept
+inline constexpr uint128& operator++(uint128& x) noexcept
 {
     return x = x + 1;
 }
 
-inline uint128& operator--(uint128& x) noexcept
+inline constexpr uint128& operator--(uint128& x) noexcept
 {
     return x = x - 1;
 }
 
-inline const uint128 operator++(uint128& x, int) noexcept  // NOLINT(readability-const-return-type)
+inline constexpr uint128 operator++(uint128& x, int) noexcept
 {
     const auto ret = x;
     ++x;
     return ret;
 }
 
-inline const uint128 operator--(uint128& x, int) noexcept  // NOLINT(readability-const-return-type)
+inline constexpr uint128 operator--(uint128& x, int) noexcept
 {
     const auto ret = x;
     --x;
@@ -627,7 +627,7 @@ constexpr uint16_t reciprocal_table[] = {REPEAT256()};
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
 ///
 /// Based on Algorithm 2 from "Improved division by invariant integers".
-inline uint64_t reciprocal_2by1(uint64_t d) noexcept
+inline constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
     INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
 
