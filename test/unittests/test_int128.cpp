@@ -327,6 +327,14 @@ TEST(int128, shr)
 
 TEST(int128, div)
 {
+    static_assert(udivrem(7, 3) == div_result<uint128>{2, 1});
+    static_assert(udivrem(0x10000000000000000_u128, 0x20000000000000000_u128) ==
+                  div_result<uint128>{0, 0x10000000000000000_u128});
+    static_assert(udivrem(0x80000000000000000000000000000002_u128,
+    0x80000000000000000000000000000000_u128) == div_result<uint128>{1, 2});
+    static_assert(udivrem(0x70000000000000000_u128, 0x20000000000000000_u128) ==
+                  div_result<uint128>{3, 0x10000000000000000_u128});
+
     int index = 0;
     for (const auto& t : div_test_cases)
     {

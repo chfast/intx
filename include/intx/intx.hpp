@@ -593,6 +593,8 @@ struct div_result
     QuotT quot;
     RemT rem;
 
+    bool operator==(const div_result&) const = default;
+
     /// Conversion to tuple of references, to allow usage with std::tie().
     constexpr operator std::tuple<QuotT&, RemT&>() noexcept { return {quot, rem}; }
 };
@@ -648,7 +650,7 @@ inline constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
     return v4;
 }
 
-inline uint64_t reciprocal_3by2(uint128 d) noexcept
+inline constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 {
     auto v = reciprocal_2by1(d[1]);
     auto p = d[1] * v;
@@ -679,7 +681,7 @@ inline uint64_t reciprocal_3by2(uint128 d) noexcept
     return v;
 }
 
-inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
+inline constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
     auto q = umul(v, u[1]);
     q = fast_add(q, u);
@@ -703,7 +705,7 @@ inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noex
     return {q[1], r};
 }
 
-inline div_result<uint64_t, uint128> udivrem_3by2(
+inline constexpr div_result<uint64_t, uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
     auto q = umul(v, u2);
@@ -733,7 +735,7 @@ inline div_result<uint64_t, uint128> udivrem_3by2(
     return {q[1], r};
 }
 
-inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
+inline constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 {
     if (y[1] == 0)
     {
