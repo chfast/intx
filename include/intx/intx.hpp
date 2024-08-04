@@ -5,6 +5,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cassert>
 #include <climits>
@@ -601,29 +602,13 @@ struct div_result
 
 namespace internal
 {
-inline constexpr uint16_t reciprocal_table_item(uint8_t d9) noexcept
-{
-    return uint16_t(0x7fd00 / (0x100 | d9));
-}
-
-#define REPEAT4(x)                                                  \
-    reciprocal_table_item((x) + 0), reciprocal_table_item((x) + 1), \
-        reciprocal_table_item((x) + 2), reciprocal_table_item((x) + 3)
-
-#define REPEAT32(x)                                                                         \
-    REPEAT4((x) + 4 * 0), REPEAT4((x) + 4 * 1), REPEAT4((x) + 4 * 2), REPEAT4((x) + 4 * 3), \
-        REPEAT4((x) + 4 * 4), REPEAT4((x) + 4 * 5), REPEAT4((x) + 4 * 6), REPEAT4((x) + 4 * 7)
-
-#define REPEAT256()                                                                           \
-    REPEAT32(32 * 0), REPEAT32(32 * 1), REPEAT32(32 * 2), REPEAT32(32 * 3), REPEAT32(32 * 4), \
-        REPEAT32(32 * 5), REPEAT32(32 * 6), REPEAT32(32 * 7)
-
 /// Reciprocal lookup table.
-constexpr uint16_t reciprocal_table[] = {REPEAT256()};
-
-#undef REPEAT4
-#undef REPEAT32
-#undef REPEAT256
+constexpr auto reciprocal_table = []() noexcept {
+    std::array<uint16_t, 256> table{};
+    for (size_t i = 0; i < table.size(); ++i)
+        table[i] = static_cast<uint16_t>(0x7fd00 / (i + 256));
+    return table;
+}();
 }  // namespace internal
 
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
@@ -634,7 +619,7 @@ inline constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
     INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
 
     const uint64_t d9 = d >> 55;
-    const uint32_t v0 = internal::reciprocal_table[d9 - 256];
+    const uint32_t v0 = internal::reciprocal_table[static_cast<size_t>(d9 - 256)];
 
     const uint64_t d40 = (d >> 24) + 1;
     const uint64_t v1 = (v0 << 11) - uint32_t(uint32_t{v0 * v0} * d40 >> 40) - 1;
