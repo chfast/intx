@@ -270,24 +270,24 @@ inline constexpr uint128 operator-(uint128 x) noexcept
     return 0 - x;
 }
 
-inline uint128& operator++(uint128& x) noexcept
+inline constexpr uint128& operator++(uint128& x) noexcept
 {
     return x = x + 1;
 }
 
-inline uint128& operator--(uint128& x) noexcept
+inline constexpr uint128& operator--(uint128& x) noexcept
 {
     return x = x - 1;
 }
 
-inline const uint128 operator++(uint128& x, int) noexcept  // NOLINT(readability-const-return-type)
+inline constexpr const uint128 operator++(uint128& x, int) noexcept  // NOLINT(*-const-return-type)
 {
     const auto ret = x;
     ++x;
     return ret;
 }
 
-inline const uint128 operator--(uint128& x, int) noexcept  // NOLINT(readability-const-return-type)
+inline constexpr const uint128 operator--(uint128& x, int) noexcept  // NOLINT(*-const-return-type)
 {
     const auto ret = x;
     --x;
@@ -593,6 +593,8 @@ struct div_result
     QuotT quot;
     RemT rem;
 
+    bool operator==(const div_result&) const = default;
+
     /// Conversion to tuple of references, to allow usage with std::tie().
     constexpr operator std::tuple<QuotT&, RemT&>() noexcept { return {quot, rem}; }
 };
@@ -627,7 +629,7 @@ constexpr uint16_t reciprocal_table[] = {REPEAT256()};
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
 ///
 /// Based on Algorithm 2 from "Improved division by invariant integers".
-inline uint64_t reciprocal_2by1(uint64_t d) noexcept
+inline constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
     INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
 
@@ -648,7 +650,7 @@ inline uint64_t reciprocal_2by1(uint64_t d) noexcept
     return v4;
 }
 
-inline uint64_t reciprocal_3by2(uint128 d) noexcept
+inline constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 {
     auto v = reciprocal_2by1(d[1]);
     auto p = d[1] * v;
@@ -679,7 +681,7 @@ inline uint64_t reciprocal_3by2(uint128 d) noexcept
     return v;
 }
 
-inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
+inline constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
     auto q = umul(v, u[1]);
     q = fast_add(q, u);
@@ -703,7 +705,7 @@ inline div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noex
     return {q[1], r};
 }
 
-inline div_result<uint64_t, uint128> udivrem_3by2(
+inline constexpr div_result<uint64_t, uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
     auto q = umul(v, u2);
@@ -733,7 +735,7 @@ inline div_result<uint64_t, uint128> udivrem_3by2(
     return {q[1], r};
 }
 
-inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
+inline constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 {
     if (y[1] == 0)
     {
@@ -778,7 +780,7 @@ inline div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     return {res.quot, res.rem >> lsh};
 }
 
-inline div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
+inline constexpr div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
 {
     constexpr auto sign_mask = uint128{1} << 127;
     const auto x_is_neg = (x & sign_mask) != 0;
@@ -794,22 +796,22 @@ inline div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
     return {q_is_neg ? -res.quot : res.quot, x_is_neg ? -res.rem : res.rem};
 }
 
-inline uint128 operator/(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator/(uint128 x, uint128 y) noexcept
 {
     return udivrem(x, y).quot;
 }
 
-inline uint128 operator%(uint128 x, uint128 y) noexcept
+inline constexpr uint128 operator%(uint128 x, uint128 y) noexcept
 {
     return udivrem(x, y).rem;
 }
 
-inline uint128& operator/=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator/=(uint128& x, uint128 y) noexcept
 {
     return x = x / y;
 }
 
-inline uint128& operator%=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator%=(uint128& x, uint128 y) noexcept
 {
     return x = x % y;
 }
@@ -1001,8 +1003,9 @@ public:
 
     constexpr explicit operator bool() const noexcept { return *this != uint{}; }
 
+    /// Explicit converting operator to smaller uint types.
     template <unsigned M>
-    explicit operator uint<M>() const noexcept
+    constexpr explicit operator uint<M>() const noexcept
         requires(M < N)
     {
         uint<M> r;
@@ -1013,7 +1016,7 @@ public:
 
     /// Explicit converting operator for all builtin integral types.
     template <typename Int>
-    explicit operator Int() const noexcept
+    constexpr explicit operator Int() const noexcept
         requires(std::is_integral_v<Int>)
     {
         static_assert(sizeof(Int) <= sizeof(uint64_t));

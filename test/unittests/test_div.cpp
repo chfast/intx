@@ -446,6 +446,8 @@ inline uint64_t reciprocal_naive(uint64_t d) noexcept
 
 TEST(div, reciprocal)
 {
+    static_assert(reciprocal_2by1(0x8000000000000000) == 0xffffffffffffffff);
+
     constexpr auto n = 1000000;
 
     constexpr auto d_start = uint64_t{1} << 63;
@@ -466,6 +468,7 @@ TEST(div, reciprocal)
 TEST(div, reciprocal_3by2)
 {
     // Basic inputs for reciprocal_3by2() to make porting to other languages easier.
+    static_assert(reciprocal_3by2(0x80000000000000000000000000000000_u128) == 0xffffffffffffffff);
 
     EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0x8000000000000000}), 0xffffffffffffffffu);
     EXPECT_EQ(reciprocal_3by2({0x0000000000000001, 0x8000000000000000}), 0xffffffffffffffffu);

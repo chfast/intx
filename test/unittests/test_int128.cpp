@@ -235,6 +235,26 @@ TEST(int128, mul)
 
 TEST(int128, increment)
 {
+    static_assert([] {
+        uint128 x;
+        return ++x;
+    }() == 1);
+
+    static_assert([] {
+        uint128 x;
+        return x++;
+    }() == 0);
+
+    static_assert([] {
+        uint128 x = 1;
+        return --x;
+    }() == 0);
+
+    static_assert([] {
+        uint128 x = 1;
+        return x++;
+    }() == 1);
+
     constexpr auto IO = uint128{0, 1};
     constexpr auto Of = uint128{~uint64_t{0}};
 
@@ -307,6 +327,16 @@ TEST(int128, shr)
 
 TEST(int128, div)
 {
+    static_assert(7_u128 / 3_u128 == 2_u128);
+    static_assert(7_u128 % 3_u128 == 1_u128);
+    static_assert(udivrem(7, 3) == div_result<uint128>{2, 1});
+    static_assert(udivrem(0x10000000000000000_u128, 0x20000000000000000_u128) ==
+                  div_result<uint128>{0, 0x10000000000000000_u128});
+    static_assert(udivrem(0x80000000000000000000000000000002_u128,
+                      0x80000000000000000000000000000000_u128) == div_result<uint128>{1, 2});
+    static_assert(udivrem(0x70000000000000000_u128, 0x20000000000000000_u128) ==
+                  div_result<uint128>{3, 0x10000000000000000_u128});
+
     int index = 0;
     for (const auto& t : div_test_cases)
     {
@@ -326,6 +356,10 @@ TEST(int128, div)
 
 TEST(int128, sdivrem)
 {
+    static_assert(
+        sdivrem(0x33c7c3442a47d644b0d0b4ca50f8bbe1_u128, 0x5d99de82798cc77d06c05e7aa7c1f54_u128) ==
+        div_result<uint128>{8, 0x4fad402ed8172862d70858cfd17c141_u128});
+
     const auto x = 0x83017fa6deecda0063b1977_u128;
     const auto y = 0x1bc83504ea8f7_u128;
 
