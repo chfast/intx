@@ -1582,8 +1582,8 @@ template <unsigned M, unsigned N>
         na.divisor = denominator;
     }
 
-    // Skip the highest word of numerator if not significant.
-    if (un[m] != 0 || un[m - 1] >= vn[n - 1])
+    // Add the highest word of the normalized numerator if significant.
+    if (m != 0 && (un[m] != 0 || un[m - 1] >= vn[n - 1]))
         ++m;
 
     return na;
