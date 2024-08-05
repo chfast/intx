@@ -488,8 +488,6 @@ TEST(div, reciprocal_3by2)
 
 TEST(div, reciprocal_table)
 {
-    uint8_t d = 0;
-    EXPECT_EQ(internal::reciprocal_table_item(d), 2045);
-    d = 0xff;
-    EXPECT_EQ(internal::reciprocal_table_item(d), 1024);
+    EXPECT_EQ(internal::reciprocal_table[0], 2045);
+    EXPECT_EQ(internal::reciprocal_table[0xff], 1024);
 }
