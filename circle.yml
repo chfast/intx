@@ -88,7 +88,7 @@ commands:
       - run:
           name: "Benchmark"
           working_directory: ~/build
-          command: test/intx-bench --benchmark_min_time=0.01
+          command: test/intx-bench --benchmark_min_time=1x
 
   collect_coverage_gcc:
     description: "Collect coverage data (GCC)"
@@ -284,7 +284,7 @@ jobs:
           working_directory: ~/build
           command: |
             mkdir -p ~/corpus
-            test/intx-fuzzer ~/corpus -use_value_profile=1 -max_len=129 -runs=100000 -jobs=4
+            test/intx-fuzzer ~/corpus -fork=4 -use_value_profile=1 -max_len=129 -runs=1000000
       - save_cache:
           key: corpus-{{ epoch }}
           paths:
