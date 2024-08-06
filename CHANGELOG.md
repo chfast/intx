@@ -5,6 +5,29 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.11.0] — 2024-08-06
+
+### Added
+
+- Support `constexpr` context execution for all arithmetic including division.
+  [#305](https://github.com/chfast/intx/pull/305)
+  [#311](https://github.com/chfast/intx/pull/311)
+  [#314](https://github.com/chfast/intx/pull/314)
+
+### Changed
+
+- Literal operators changed to `consteval`.
+  [#298](https://github.com/chfast/intx/pull/298)
+- Some C++20 modernization.
+  [#297](https://github.com/chfast/intx/pull/297)
+  [#308](https://github.com/chfast/intx/pull/308)
+
+### Fixed
+
+- Fixes to division for `constexpr` context.
+  [#309](https://github.com/chfast/intx/pull/309)
+  [#310](https://github.com/chfast/intx/pull/310)
+
 ## [0.10.1] — 2023-07-17
 
 ### Fixed
@@ -201,6 +224,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.11.0]: https://github.com/chfast/intx/releases/v0.11.0
 [0.10.1]: https://github.com/chfast/intx/releases/v0.10.1
 [0.10.0]: https://github.com/chfast/intx/releases/v0.10.0
 [0.9.3]: https://github.com/chfast/intx/releases/v0.9.3
