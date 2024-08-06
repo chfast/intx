@@ -326,6 +326,11 @@ constexpr div_test_case<uint512> div_test_cases[] = {
 
 TEST(div, udivrem_512)
 {
+    static_assert(std::ranges::all_of(div_test_cases, [](const auto& c) {
+        const auto [q, r] = udivrem(c.numerator, c.denominator);
+        return q == c.quotient && r == c.reminder;
+    }));
+
     for (auto& t : div_test_cases)
     {
         auto res = udivrem(t.numerator, t.denominator);

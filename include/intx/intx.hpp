@@ -1543,11 +1543,11 @@ struct normalized_div_args  // NOLINT(cppcoreguidelines-pro-type-member-init)
 };
 
 template <unsigned M, unsigned N>
-[[gnu::always_inline]] inline normalized_div_args<M, N> normalize(
+[[gnu::always_inline]] constexpr normalized_div_args<M, N> normalize(
     const uint<M>& numerator, const uint<N>& denominator) noexcept
 {
-    static constexpr auto num_numerator_words = uint<M>::num_words;
-    static constexpr auto num_denominator_words = uint<N>::num_words;
+    constexpr auto num_numerator_words = uint<M>::num_words;
+    constexpr auto num_denominator_words = uint<N>::num_words;
 
     auto* u = as_words(numerator);
     auto* v = as_words(denominator);
@@ -1595,7 +1595,7 @@ template <unsigned M, unsigned N>
 /// @param len  The number of numerator words.
 /// @param d    The normalized divisor.
 /// @return     The remainder.
-inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
+inline constexpr uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 {
     INTX_REQUIRE(len >= 2);
 
@@ -1622,7 +1622,7 @@ inline uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 /// @param len  The number of numerator words.
 /// @param d    The normalized divisor.
 /// @return     The remainder.
-inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
+inline constexpr uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 {
     INTX_REQUIRE(len >= 3);
 
@@ -1644,7 +1644,7 @@ inline uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 }
 
 /// s = x + y.
-inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
+inline constexpr bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
     INTX_REQUIRE(len >= 2);
@@ -1656,7 +1656,7 @@ inline bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) n
 }
 
 /// r = x - multiplier * y.
-inline uint64_t submul(
+inline constexpr uint64_t submul(
     uint64_t r[], const uint64_t x[], const uint64_t y[], int len, uint64_t multiplier) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
@@ -1674,7 +1674,7 @@ inline uint64_t submul(
     return borrow;
 }
 
-inline void udivrem_knuth(
+inline constexpr void udivrem_knuth(
     uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
 {
     INTX_REQUIRE(dlen >= 3);
