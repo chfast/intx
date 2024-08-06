@@ -486,7 +486,7 @@ inline constexpr uint128& operator-=(uint128& x, uint128 y) noexcept
     return x = x - y;
 }
 
-inline uint128& operator*=(uint128& x, uint128 y) noexcept
+inline constexpr uint128& operator*=(uint128& x, uint128 y) noexcept
 {
     return x = x * y;
 }
@@ -1806,7 +1806,7 @@ inline constexpr uint<N>& operator>>=(uint<N>& x, const T& y) noexcept
 }
 
 
-inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
+inline constexpr uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     // Fast path for mod >= 2^192, with x and y at most slightly bigger than mod.
     // This is always the case when x and y are already reduced modulo mod.
@@ -1840,7 +1840,7 @@ inline uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) no
     return udivrem(n, mod).rem;
 }
 
-inline uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
+inline constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     return udivrem(umul(x, y), mod).rem;
 }

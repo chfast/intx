@@ -176,6 +176,11 @@ constexpr decltype(&addmod) addmod_impls[] = {
 
 TEST(uint256, addmod)
 {
+    static_assert(
+        addmod(0xdce049946eccbbf77ed1e8e2a3c89e15a8e897df2194150700f5096dea864cdb_u256,
+            0x397dd0df188eaffbf5216c6be56fe49002fbdc23b95a58a60f69e56f6f87f424_u256,
+            0xf0f9d0006f7b450e8f73f621a6ca3b56_u128) == 0x7533da49e8c499530049fbf08733976b_u128);
+
     for (auto&& impl : addmod_impls)
     {
         const auto x = 0xab0f4afc4c78548d4c30e1ab3449e3_u128;
@@ -208,6 +213,11 @@ TEST(uint256, addmod_ec2)
 
 TEST(uint256, mulmod)
 {
+    static_assert(
+        mulmod(0x4028c97ce32bf74a3a3137956b07a5a699ca8422bdf672f547_u256,
+            0x8c9f09b6227ba6542a97343c679e1d11d8bfa29228c18615c2_u256,
+            0xf0f9d0006f7b450e8f73f621a6ca3b56_u128) == 0xca283039a2ad0dbd3d60fbadb29e9c7a_u128);
+
     const auto x = 0xab0f4afc4c78548d4c30e1ab3449e3_u128;
     const auto y = 0xf0a4485af15508e448cdddb0d1301664_u128;
     const auto mod = 0xf0f9d0006f7b450e8f73f621a6ca3b56_u128;
