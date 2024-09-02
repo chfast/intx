@@ -972,58 +972,17 @@ public:
     }
 
     inline constexpr uint& operator^=(const uint& y) noexcept { return *this = *this ^ y; }
+
+    friend inline constexpr bool operator==(const uint& x, const uint& y) noexcept
+    {
+        uint64_t folded = 0;
+        for (size_t i = 0; i < num_words; ++i)
+            folded |= (x[i] ^ y[i]);
+        return folded == 0;
+    }
 };
 
-using uint192 = uint<192>;
 using uint256 = uint<256>;
-using uint320 = uint<320>;
-using uint384 = uint<384>;
-using uint448 = uint<448>;
-using uint512 = uint<512>;
-
-template <unsigned N>
-inline constexpr bool operator==(const uint<N>& x, const uint<N>& y) noexcept
-{
-    uint64_t folded = 0;
-    for (size_t i = 0; i < uint<N>::num_words; ++i)
-        folded |= (x[i] ^ y[i]);
-    return folded == 0;
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator==(const uint<N>& x, const T& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return x == uint<N>(y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator==(const T& x, const uint<N>& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return uint<N>(y) == x;
-}
-
-
-template <unsigned N>
-inline constexpr bool operator!=(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return !(x == y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator!=(const uint<N>& x, const T& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return x != uint<N>(y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return uint<N>(x) != y;
-}
 
 inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
 {
