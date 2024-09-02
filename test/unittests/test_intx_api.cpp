@@ -4,6 +4,16 @@
 
 #include "test_suite.hpp"
 
+using namespace intx::literals;
+
+static_assert(1_u128);
+static_assert(1_u192);
+static_assert(1_u256);
+static_assert(1_u320);
+static_assert(1_u384);
+static_assert(1_u448);
+static_assert(1_u512);
+
 using namespace intx;
 
 static_assert(uint128{2} + uint128{2} == 4);

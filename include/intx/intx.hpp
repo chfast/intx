@@ -916,11 +916,6 @@ inline constexpr Int from_string(const std::string& s)
     return from_string<Int>(s.c_str());
 }
 
-consteval uint128 operator""_u128(const char* s)
-{
-    return from_string<uint128>(s);
-}
-
 template <unsigned N>
 inline std::string to_string(uint<N> x, int base = 10)
 {
@@ -1104,6 +1099,7 @@ using uint192 = uint<192>;
 using uint256 = uint<256>;
 using uint320 = uint<320>;
 using uint384 = uint<384>;
+using uint448 = uint<448>;
 using uint512 = uint<512>;
 
 template <unsigned N>
@@ -1843,17 +1839,27 @@ inline constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint25
     return udivrem(umul(x, y), mod).rem;
 }
 
+/// Define type alias uintN = uint<N> and the matching literal ""_uN.
+/// The literal operators are defined in the intx::literals namespace.
+#define DEFINE_ALIAS_AND_LITERAL(N)                  \
+    using uint##N = uint<N>;                         \
+    namespace literals                               \
+    {                                                \
+    consteval uint##N operator""_u##N(const char* s) \
+    {                                                \
+        return from_string<uint##N>(s);              \
+    }                                                \
+    }
+DEFINE_ALIAS_AND_LITERAL(128);
+DEFINE_ALIAS_AND_LITERAL(192);
+DEFINE_ALIAS_AND_LITERAL(256);
+DEFINE_ALIAS_AND_LITERAL(320);
+DEFINE_ALIAS_AND_LITERAL(384);
+DEFINE_ALIAS_AND_LITERAL(448);
+DEFINE_ALIAS_AND_LITERAL(512);
+#undef DEFINE_ALIAS_AND_LITERAL
 
-consteval uint256 operator""_u256(const char* s)
-{
-    return from_string<uint256>(s);
-}
-
-consteval uint512 operator""_u512(const char* s)
-{
-    return from_string<uint512>(s);
-}
-
+using namespace literals;
 
 /// Convert native representation to/from little-endian byte order.
 /// intx and built-in integral types are supported.
