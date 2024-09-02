@@ -84,8 +84,127 @@ using builtin_uint128 = unsigned __int128;
     #pragma GCC diagnostic pop
 #endif
 
+
 template <unsigned N>
 struct uint;
+
+/// Contains result of add/sub/etc with a carry flag.
+template <typename T>
+struct result_with_carry
+{
+    T value;
+    bool carry;
+
+    /// Conversion to tuple of references, to allow usage with std::tie().
+    constexpr explicit(false) operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
+};
+
+template <typename QuotT, typename RemT = QuotT>
+struct div_result
+{
+    QuotT quot;
+    RemT rem;
+
+    bool operator==(const div_result&) const = default;
+
+    /// Conversion to tuple of references, to allow usage with std::tie().
+    constexpr explicit(false) operator std::tuple<QuotT&, RemT&>() noexcept { return {quot, rem}; }
+};
+
+/// Addition with carry.
+inline constexpr result_with_carry<uint64_t> addc(
+    uint64_t x, uint64_t y, bool carry = false) noexcept
+{
+#if __has_builtin(__builtin_addcll)
+    if (!std::is_constant_evaluated())
+    {
+        unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
+        const auto s = __builtin_addcll(x, y, carry, &carryout);
+        static_assert(sizeof(s) == sizeof(uint64_t));
+        return {s, static_cast<bool>(carryout)};
+    }
+#elif __has_builtin(__builtin_ia32_addcarryx_u64)
+    if (!std::is_constant_evaluated())
+    {
+        unsigned long long s = 0;  // NOLINT(google-runtime-int)
+        static_assert(sizeof(s) == sizeof(uint64_t));
+        const auto carryout = __builtin_ia32_addcarryx_u64(carry, x, y, &s);
+        return {s, static_cast<bool>(carryout)};
+    }
+#endif
+
+    const auto s = x + y;
+    const auto carry1 = s < x;
+    const auto t = s + carry;
+    const auto carry2 = t < s;
+    return {t, carry1 || carry2};
+}
+
+/// Subtraction with carry (borrow).
+inline constexpr result_with_carry<uint64_t> subc(
+    uint64_t x, uint64_t y, bool carry = false) noexcept
+{
+// Use __builtin_subcll if available (except buggy Xcode 14.3.1 on arm64).
+#if __has_builtin(__builtin_subcll) && __apple_build_version__ != 14030022
+    if (!std::is_constant_evaluated())
+    {
+        unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
+        const auto d = __builtin_subcll(x, y, carry, &carryout);
+        static_assert(sizeof(d) == sizeof(uint64_t));
+        return {d, static_cast<bool>(carryout)};
+    }
+#elif __has_builtin(__builtin_ia32_sbb_u64)
+    if (!std::is_constant_evaluated())
+    {
+        unsigned long long d = 0;  // NOLINT(google-runtime-int)
+        static_assert(sizeof(d) == sizeof(uint64_t));
+        const auto carryout = __builtin_ia32_sbb_u64(carry, x, y, &d);
+        return {d, static_cast<bool>(carryout)};
+    }
+#endif
+
+    const auto d = x - y;
+    const auto carry1 = x < y;
+    const auto e = d - carry;
+    const auto carry2 = d < uint64_t{carry};
+    return {e, carry1 || carry2};
+}
+
+/// Addition with carry.
+template <unsigned N>
+inline constexpr result_with_carry<uint<N>> addc(
+    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
+{
+    uint<N> s;
+    bool k = carry;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+    {
+        auto t = addc(x[i], y[i], k);
+        s[i] = t.value;
+        k = t.carry;
+    }
+    return {s, k};
+}
+
+/// Performs subtraction of two unsigned numbers and returns the difference
+/// and the carry bit (aka borrow, overflow).
+template <unsigned N>
+inline constexpr result_with_carry<uint<N>> subc(
+    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
+{
+    uint<N> z;
+    bool k = carry;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+    {
+        auto t = subc(x[i], y[i], k);
+        z[i] = t.value;
+        k = t.carry;
+    }
+    return {z, k};
+}
+
+constexpr uint<128> umul(uint64_t x, uint64_t y) noexcept;
+
 
 /// The 128-bit unsigned integer.
 ///
@@ -136,164 +255,132 @@ public:
     {
         return static_cast<Int>(words_[0]);
     }
+
+    friend constexpr uint operator+(uint x, uint y) noexcept { return addc(x, y).value; }
+
+    constexpr uint operator+() const noexcept { return *this; }
+
+    friend constexpr uint operator-(uint x, uint y) noexcept { return subc(x, y).value; }
+
+    constexpr uint operator-() const noexcept
+    {
+        // Implementing as subtraction is better than ~x + 1.
+        // Clang9: Perfect.
+        // GCC8: Does something weird.
+        return 0 - *this;
+    }
+
+    constexpr uint& operator+=(uint y) noexcept { return *this = *this + y; }
+
+    constexpr uint& operator-=(uint y) noexcept { return *this = *this - y; }
+
+    constexpr uint& operator++() noexcept { return *this += 1; }
+
+    constexpr uint& operator--() noexcept { return *this -= 1; }
+
+    constexpr const uint operator++(int) noexcept  // NOLINT(*-const-return-type)
+    {
+        const auto ret = *this;
+        *this += 1;
+        return ret;
+    }
+
+    constexpr const uint operator--(int) noexcept  // NOLINT(*-const-return-type)
+    {
+        const auto ret = *this;
+        *this -= 1;
+        return ret;
+    }
+
+    friend constexpr bool operator==(uint x, uint y) noexcept
+    {
+        return ((x[0] ^ y[0]) | (x[1] ^ y[1])) == 0;
+    }
+
+    friend constexpr bool operator<(uint x, uint y) noexcept
+    {
+        // OPT: This should be implemented by checking the borrow of x - y,
+        //      but compilers (GCC8, Clang7)
+        //      have problem with properly optimizing subtraction.
+
+#if INTX_HAS_BUILTIN_INT128
+        return builtin_uint128{x} < builtin_uint128{y};
+#else
+        return (unsigned{x[1] < y[1]} | (unsigned{x[1] == y[1]} & unsigned{x[0] < y[0]})) != 0;
+#endif
+    }
+    friend constexpr bool operator<=(uint x, uint y) noexcept { return !(y < x); }
+    friend constexpr bool operator>(uint x, uint y) noexcept { return y < x; }
+    friend constexpr bool operator>=(uint x, uint y) noexcept { return !(x < y); }
+
+    friend constexpr uint operator~(uint x) noexcept { return {~x[0], ~x[1]}; }
+    friend constexpr uint operator|(uint x, uint y) noexcept { return {x[0] | y[0], x[1] | y[1]}; }
+    friend constexpr uint operator&(uint x, uint y) noexcept { return {x[0] & y[0], x[1] & y[1]}; }
+    friend constexpr uint operator^(uint x, uint y) noexcept { return {x[0] ^ y[0], x[1] ^ y[1]}; }
+
+    friend constexpr uint operator<<(uint x, uint64_t shift) noexcept
+    {
+        return (shift < 64) ?
+                   // Find the part moved from lo to hi.
+                   // For shift == 0 right shift by (64 - shift) is invalid so
+                   // split it into 2 shifts by 1 and (63 - shift).
+                   uint{x[0] << shift, (x[1] << shift) | ((x[0] >> 1) >> (63 - shift))} :
+
+                   // Guarantee "defined" behavior for shifts larger than 128.
+                   (shift < 128) ? uint{0, x[0] << (shift - 64)} : 0;
+    }
+
+    friend constexpr uint operator<<(uint x, uint shift) noexcept
+    {
+        if (shift[1] != 0) [[unlikely]]
+            return 0;
+
+        return x << shift[0];
+    }
+
+    friend constexpr uint operator>>(uint x, uint64_t shift) noexcept
+    {
+        return (shift < 64) ?
+                   // Find the part moved from lo to hi.
+                   // For shift == 0 left shift by (64 - shift) is invalid so
+                   // split it into 2 shifts by 1 and (63 - shift).
+                   uint{(x[0] >> shift) | ((x[1] << 1) << (63 - shift)), x[1] >> shift} :
+
+                   // Guarantee "defined" behavior for shifts larger than 128.
+                   (shift < 128) ? uint{x[1] >> (shift - 64)} : 0;
+    }
+
+    friend constexpr uint operator>>(uint x, uint shift) noexcept
+    {
+        if (shift[1] != 0) [[unlikely]]
+            return 0;
+
+        return x >> shift[0];
+    }
+
+    friend constexpr uint operator*(uint x, uint y) noexcept
+    {
+        auto p = umul(x[0], y[0]);
+        p[1] += (x[0] * y[1]) + (x[1] * y[0]);
+        return {p[0], p[1]};
+    }
+
+    friend constexpr div_result<uint> udivrem(uint x, uint y) noexcept;
+    friend constexpr uint operator/(uint x, uint y) noexcept { return udivrem(x, y).quot; }
+    friend constexpr uint operator%(uint x, uint y) noexcept { return udivrem(x, y).rem; }
+
+    constexpr uint& operator*=(uint y) noexcept { return *this = *this * y; }
+    constexpr uint& operator|=(uint y) noexcept { return *this = *this | y; }
+    constexpr uint& operator&=(uint y) noexcept { return *this = *this & y; }
+    constexpr uint& operator^=(uint y) noexcept { return *this = *this ^ y; }
+    constexpr uint& operator<<=(uint64_t shift) noexcept { return *this = *this << shift; }
+    constexpr uint& operator>>=(uint64_t shift) noexcept { return *this = *this >> shift; }
+    constexpr uint& operator/=(uint y) noexcept { return *this = *this / y; }
+    constexpr uint& operator%=(uint y) noexcept { return *this = *this % y; }
 };
 
 using uint128 = uint<128>;
 
-
-/// Contains result of add/sub/etc with a carry flag.
-template <typename T>
-struct result_with_carry
-{
-    T value;
-    bool carry;
-
-    /// Conversion to tuple of references, to allow usage with std::tie().
-    constexpr explicit(false) operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
-};
-
-
-/// Linear arithmetic operators.
-/// @{
-
-/// Addition with carry.
-inline constexpr result_with_carry<uint64_t> addc(
-    uint64_t x, uint64_t y, bool carry = false) noexcept
-{
-#if __has_builtin(__builtin_addcll)
-    if (!std::is_constant_evaluated())
-    {
-        unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
-        const auto s = __builtin_addcll(x, y, carry, &carryout);
-        static_assert(sizeof(s) == sizeof(uint64_t));
-        return {s, static_cast<bool>(carryout)};
-    }
-#elif __has_builtin(__builtin_ia32_addcarryx_u64)
-    if (!std::is_constant_evaluated())
-    {
-        unsigned long long s = 0;  // NOLINT(google-runtime-int)
-        static_assert(sizeof(s) == sizeof(uint64_t));
-        const auto carryout = __builtin_ia32_addcarryx_u64(carry, x, y, &s);
-        return {s, static_cast<bool>(carryout)};
-    }
-#endif
-
-    const auto s = x + y;
-    const auto carry1 = s < x;
-    const auto t = s + carry;
-    const auto carry2 = t < s;
-    return {t, carry1 || carry2};
-}
-
-/// Subtraction with carry (borrow).
-inline constexpr result_with_carry<uint64_t> subc(
-    uint64_t x, uint64_t y, bool carry = false) noexcept
-{
-    // Use __builtin_subcll if available (except buggy Xcode 14.3.1 on arm64).
-#if __has_builtin(__builtin_subcll) && __apple_build_version__ != 14030022
-    if (!std::is_constant_evaluated())
-    {
-        unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
-        const auto d = __builtin_subcll(x, y, carry, &carryout);
-        static_assert(sizeof(d) == sizeof(uint64_t));
-        return {d, static_cast<bool>(carryout)};
-    }
-#elif __has_builtin(__builtin_ia32_sbb_u64)
-    if (!std::is_constant_evaluated())
-    {
-        unsigned long long d = 0;  // NOLINT(google-runtime-int)
-        static_assert(sizeof(d) == sizeof(uint64_t));
-        const auto carryout = __builtin_ia32_sbb_u64(carry, x, y, &d);
-        return {d, static_cast<bool>(carryout)};
-    }
-#endif
-
-    const auto d = x - y;
-    const auto carry1 = x < y;
-    const auto e = d - carry;
-    const auto carry2 = d < uint64_t{carry};
-    return {e, carry1 || carry2};
-}
-
-/// Addition with carry.
-template <unsigned N>
-inline constexpr result_with_carry<uint<N>> addc(
-    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
-{
-    uint<N> s;
-    bool k = carry;
-    for (size_t i = 0; i < uint<N>::num_words; ++i)
-    {
-        auto t = addc(x[i], y[i], k);
-        s[i] = t.value;
-        k = t.carry;
-    }
-    return {s, k};
-}
-
-inline constexpr uint128 operator+(uint128 x, uint128 y) noexcept
-{
-    return addc(x, y).value;
-}
-
-inline constexpr uint128 operator+(uint128 x) noexcept
-{
-    return x;
-}
-
-/// Performs subtraction of two unsigned numbers and returns the difference
-/// and the carry bit (aka borrow, overflow).
-template <unsigned N>
-inline constexpr result_with_carry<uint<N>> subc(
-    const uint<N>& x, const uint<N>& y, bool carry = false) noexcept
-{
-    uint<N> z;
-    bool k = carry;
-    for (size_t i = 0; i < uint<N>::num_words; ++i)
-    {
-        auto t = subc(x[i], y[i], k);
-        z[i] = t.value;
-        k = t.carry;
-    }
-    return {z, k};
-}
-
-inline constexpr uint128 operator-(uint128 x, uint128 y) noexcept
-{
-    return subc(x, y).value;
-}
-
-inline constexpr uint128 operator-(uint128 x) noexcept
-{
-    // Implementing as subtraction is better than ~x + 1.
-    // Clang9: Perfect.
-    // GCC8: Does something weird.
-    return 0 - x;
-}
-
-inline constexpr uint128& operator++(uint128& x) noexcept
-{
-    return x = x + 1;
-}
-
-inline constexpr uint128& operator--(uint128& x) noexcept
-{
-    return x = x - 1;
-}
-
-inline constexpr const uint128 operator++(uint128& x, int) noexcept  // NOLINT(*-const-return-type)
-{
-    const auto ret = x;
-    ++x;
-    return ret;
-}
-
-inline constexpr const uint128 operator--(uint128& x, int) noexcept  // NOLINT(*-const-return-type)
-{
-    const auto ret = x;
-    --x;
-    return ret;
-}
 
 /// Optimized addition.
 ///
@@ -307,127 +394,6 @@ inline constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
     return x + y;  // Fallback to generic addition.
 #endif
 }
-
-/// @}
-
-
-/// Comparison operators.
-///
-/// In all implementations bitwise operators are used instead of logical ones
-/// to avoid branching.
-///
-/// @{
-
-inline constexpr bool operator==(uint128 x, uint128 y) noexcept
-{
-    return ((x[0] ^ y[0]) | (x[1] ^ y[1])) == 0;
-}
-
-inline constexpr bool operator!=(uint128 x, uint128 y) noexcept
-{
-    return !(x == y);
-}
-
-inline constexpr bool operator<(uint128 x, uint128 y) noexcept
-{
-    // OPT: This should be implemented by checking the borrow of x - y,
-    //      but compilers (GCC8, Clang7)
-    //      have problem with properly optimizing subtraction.
-#if INTX_HAS_BUILTIN_INT128
-    return builtin_uint128{x} < builtin_uint128{y};
-#else
-    return (unsigned{x[1] < y[1]} | (unsigned{x[1] == y[1]} & unsigned{x[0] < y[0]})) != 0;
-#endif
-}
-
-inline constexpr bool operator<=(uint128 x, uint128 y) noexcept
-{
-    return !(y < x);
-}
-
-inline constexpr bool operator>(uint128 x, uint128 y) noexcept
-{
-    return y < x;
-}
-
-inline constexpr bool operator>=(uint128 x, uint128 y) noexcept
-{
-    return !(x < y);
-}
-
-/// @}
-
-
-/// Bitwise operators.
-/// @{
-
-inline constexpr uint128 operator~(uint128 x) noexcept
-{
-    return {~x[0], ~x[1]};
-}
-
-inline constexpr uint128 operator|(uint128 x, uint128 y) noexcept
-{
-    // Clang: perfect.
-    // GCC 8-12: stupidly uses a vector instruction in all bitwise operators.
-    return {x[0] | y[0], x[1] | y[1]};
-}
-
-inline constexpr uint128 operator&(uint128 x, uint128 y) noexcept
-{
-    return {x[0] & y[0], x[1] & y[1]};
-}
-
-inline constexpr uint128 operator^(uint128 x, uint128 y) noexcept
-{
-    return {x[0] ^ y[0], x[1] ^ y[1]};
-}
-
-inline constexpr uint128 operator<<(uint128 x, uint64_t shift) noexcept
-{
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 right shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{x[0] << shift, (x[1] << shift) | ((x[0] >> 1) >> (63 - shift))} :
-
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{0, x[0] << (shift - 64)} : 0;
-}
-
-inline constexpr uint128 operator<<(uint128 x, uint128 shift) noexcept
-{
-    if (INTX_UNLIKELY(shift[1] != 0))
-        return 0;
-
-    return x << shift[0];
-}
-
-inline constexpr uint128 operator>>(uint128 x, uint64_t shift) noexcept
-{
-    return (shift < 64) ?
-               // Find the part moved from lo to hi.
-               // For shift == 0 left shift by (64 - shift) is invalid so
-               // split it into 2 shifts by 1 and (63 - shift).
-               uint128{(x[0] >> shift) | ((x[1] << 1) << (63 - shift)), x[1] >> shift} :
-
-               // Guarantee "defined" behavior for shifts larger than 128.
-               (shift < 128) ? uint128{x[1] >> (shift - 64)} : 0;
-}
-
-inline constexpr uint128 operator>>(uint128 x, uint128 shift) noexcept
-{
-    if (INTX_UNLIKELY(shift[1] != 0))
-        return 0;
-
-    return x >> static_cast<uint64_t>(shift);
-}
-
-/// @}
-
-
-/// Multiplication
-/// @{
 
 /// Full unsigned multiplication 64 x 64 -> 128.
 inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
@@ -462,61 +428,6 @@ inline constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
     uint64_t hi = t3 + (u2 >> 32) + (u1 >> 32);
     return {lo, hi};
 }
-
-inline constexpr uint128 operator*(uint128 x, uint128 y) noexcept
-{
-    auto p = umul(x[0], y[0]);
-    p[1] += (x[0] * y[1]) + (x[1] * y[0]);
-    return {p[0], p[1]};
-}
-
-/// @}
-
-
-/// Assignment operators.
-/// @{
-
-inline constexpr uint128& operator+=(uint128& x, uint128 y) noexcept
-{
-    return x = x + y;
-}
-
-inline constexpr uint128& operator-=(uint128& x, uint128 y) noexcept
-{
-    return x = x - y;
-}
-
-inline constexpr uint128& operator*=(uint128& x, uint128 y) noexcept
-{
-    return x = x * y;
-}
-
-inline constexpr uint128& operator|=(uint128& x, uint128 y) noexcept
-{
-    return x = x | y;
-}
-
-inline constexpr uint128& operator&=(uint128& x, uint128 y) noexcept
-{
-    return x = x & y;
-}
-
-inline constexpr uint128& operator^=(uint128& x, uint128 y) noexcept
-{
-    return x = x ^ y;
-}
-
-inline constexpr uint128& operator<<=(uint128& x, uint64_t shift) noexcept
-{
-    return x = x << shift;
-}
-
-inline constexpr uint128& operator>>=(uint128& x, uint64_t shift) noexcept
-{
-    return x = x >> shift;
-}
-
-/// @}
 
 inline constexpr unsigned clz(std::unsigned_integral auto x) noexcept
 {
@@ -587,18 +498,6 @@ inline constexpr uint128 bswap(uint128 x) noexcept
 
 /// Division.
 /// @{
-
-template <typename QuotT, typename RemT = QuotT>
-struct div_result
-{
-    QuotT quot;
-    RemT rem;
-
-    bool operator==(const div_result&) const = default;
-
-    /// Conversion to tuple of references, to allow usage with std::tie().
-    constexpr operator std::tuple<QuotT&, RemT&>() noexcept { return {quot, rem}; }
-};
 
 namespace internal
 {
@@ -779,26 +678,6 @@ inline constexpr div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
     const auto res = udivrem(x_abs, y_abs);
 
     return {q_is_neg ? -res.quot : res.quot, x_is_neg ? -res.rem : res.rem};
-}
-
-inline constexpr uint128 operator/(uint128 x, uint128 y) noexcept
-{
-    return udivrem(x, y).quot;
-}
-
-inline constexpr uint128 operator%(uint128 x, uint128 y) noexcept
-{
-    return udivrem(x, y).rem;
-}
-
-inline constexpr uint128& operator/=(uint128& x, uint128 y) noexcept
-{
-    return x = x / y;
-}
-
-inline constexpr uint128& operator%=(uint128& x, uint128 y) noexcept
-{
-    return x = x % y;
 }
 
 /// @}
