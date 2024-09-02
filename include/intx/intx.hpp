@@ -149,7 +149,7 @@ struct result_with_carry
     bool carry;
 
     /// Conversion to tuple of references, to allow usage with std::tie().
-    constexpr operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
+    constexpr explicit(false) operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
 };
 
 
@@ -628,7 +628,7 @@ inline constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 
     const uint64_t d0 = d & 1;
     const uint64_t d63 = (d >> 1) + d0;  // ceil(d/2)
-    const uint64_t e = ((v2 >> 1) & (0 - d0)) - v2 * d63;
+    const uint64_t e = ((v2 >> 1) & (0 - d0)) - (v2 * d63);
     const uint64_t v3 = (umul(v2, e)[1] >> 1) + (v2 << 31);
 
     const uint64_t v4 = v3 - (umul(v3, d) + d)[1] - d;
@@ -673,7 +673,7 @@ inline constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64
 
     ++q[1];
 
-    auto r = u[0] - q[1] * d;
+    auto r = u[0] - (q[1] * d);
 
     if (r > q[0])
     {
@@ -696,7 +696,7 @@ inline constexpr div_result<uint64_t, uint128> udivrem_3by2(
     auto q = umul(v, u2);
     q = fast_add(q, {u1, u2});
 
-    auto r1 = u1 - q[1] * d[1];
+    auto r1 = u1 - (q[1] * d[1]);
 
     auto t = umul(d[0], q[1]);
 
@@ -935,7 +935,7 @@ inline std::string to_string(uint<N> x, int base = 10)
         s.push_back(char(c));
         x = res.quot;
     }
-    std::reverse(s.begin(), s.end());
+    std::ranges::reverse(s);
     return s;
 }
 
@@ -1753,7 +1753,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
 template <unsigned N>
 inline constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
-    const auto sign_mask = uint<N>{1} << (sizeof(u) * 8 - 1);
+    const auto sign_mask = uint<N>{1} << (uint<N>::num_bits - 1);
     auto u_is_neg = (u & sign_mask) != 0;
     auto v_is_neg = (v & sign_mask) != 0;
 
@@ -1998,7 +1998,7 @@ inline T trunc(const uint<N>& x) noexcept
 namespace unsafe
 {
 /// Loads an uint value from a buffer. The user must make sure
-/// that the provided buffer is big enough. Therefore marked "unsafe".
+/// that the provided buffer is big enough. Therefore, marked "unsafe".
 template <typename IntT>
 inline IntT load(const uint8_t* src) noexcept
 {
@@ -2012,7 +2012,7 @@ inline IntT load(const uint8_t* src) noexcept
 }
 
 /// Stores an integer value at the provided pointer in big-endian order. The user must make sure
-/// that the provided buffer is big enough to fit the value. Therefore marked "unsafe".
+/// that the provided buffer is big enough to fit the value. Therefore, marked "unsafe".
 template <typename T>
 inline void store(uint8_t* dst, const T& x) noexcept
 {
