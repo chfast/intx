@@ -980,104 +980,30 @@ public:
             folded |= (x[i] ^ y[i]);
         return folded == 0;
     }
+
+    friend inline constexpr bool operator<(const uint& x, const uint& y) noexcept
+    {
+        if constexpr (N == 256)
+        {
+            auto xp = uint128{x[2], x[3]};
+            auto yp = uint128{y[2], y[3]};
+            if (xp == yp)
+            {
+                xp = uint128{x[0], x[1]};
+                yp = uint128{y[0], y[1]};
+            }
+            return xp < yp;
+        }
+        else
+            return subc(x, y).carry;
+    }
+    friend constexpr bool operator>(const uint& x, const uint& y) noexcept { return y < x; }
+    friend constexpr bool operator>=(const uint& x, const uint& y) noexcept { return !(x < y); }
+    friend constexpr bool operator<=(const uint& x, const uint& y) noexcept { return !(y < x); }
 };
 
 using uint256 = uint<256>;
 
-template <unsigned N>
-inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
-{
-    if constexpr (N == 256)
-    {
-        auto xp = uint128{x[2], x[3]};
-        auto yp = uint128{y[2], y[3]};
-        if (xp == yp)
-        {
-            xp = uint128{x[0], x[1]};
-            yp = uint128{y[0], y[1]};
-        }
-        return xp < yp;
-    }
-    else
-        return subc(x, y).carry;
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator<(const uint<N>& x, const T& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return x < uint<N>(y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator<(const T& x, const uint<N>& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return uint<N>(x) < y;
-}
-
-
-template <unsigned N>
-inline constexpr bool operator>(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return y < x;
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator>(const uint<N>& x, const T& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return x > uint<N>(y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator>(const T& x, const uint<N>& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return uint<N>(x) > y;
-}
-
-
-template <unsigned N>
-inline constexpr bool operator>=(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return !(x < y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator>=(const uint<N>& x, const T& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return x >= uint<N>(y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator>=(const T& x, const uint<N>& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return uint<N>(x) >= y;
-}
-
-
-template <unsigned N>
-inline constexpr bool operator<=(const uint<N>& x, const uint<N>& y) noexcept
-{
-    return !(y < x);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator<=(const uint<N>& x, const T& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return x <= uint<N>(y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator<=(const T& x, const uint<N>& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return uint<N>(x) <= y;
-}
 
 /// Signed less than comparison.
 ///
