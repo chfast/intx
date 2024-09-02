@@ -984,22 +984,22 @@ public:
 
 using uint256 = uint<256>;
 
-inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
-{
-    auto xp = uint128{x[2], x[3]};
-    auto yp = uint128{y[2], y[3]};
-    if (xp == yp)
-    {
-        xp = uint128{x[0], x[1]};
-        yp = uint128{y[0], y[1]};
-    }
-    return xp < yp;
-}
-
 template <unsigned N>
 inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
 {
-    return subc(x, y).carry;
+    if constexpr (N == 256)
+    {
+        auto xp = uint128{x[2], x[3]};
+        auto yp = uint128{y[2], y[3]};
+        if (xp == yp)
+        {
+            xp = uint128{x[0], x[1]};
+            yp = uint128{y[0], y[1]};
+        }
+        return xp < yp;
+    }
+    else
+        return subc(x, y).carry;
 }
 
 template <unsigned N, typename T>
@@ -1092,109 +1092,103 @@ inline constexpr bool slt(const uint<N>& x, const uint<N>& y) noexcept
     return ((x_neg ^ y_neg) != 0) ? x_neg : x < y;
 }
 
-
-inline constexpr uint256 operator<<(const uint256& x, uint64_t shift) noexcept
-{
-    if (INTX_UNLIKELY(shift >= uint256::num_bits))
-        return 0;
-
-    constexpr auto num_bits = uint256::num_bits;
-    constexpr auto half_bits = num_bits / 2;
-
-    const auto xlo = uint128{x[0], x[1]};
-
-    if (shift < half_bits)
-    {
-        const auto lo = xlo << shift;
-
-        const auto xhi = uint128{x[2], x[3]};
-
-        // Find the part moved from lo to hi.
-        // The shift right here can be invalid:
-        // for shift == 0 => rshift == half_bits.
-        // Split it into 2 valid shifts by (rshift - 1) and 1.
-        const auto rshift = half_bits - shift;
-        const auto lo_overflow = (xlo >> (rshift - 1)) >> 1;
-        const auto hi = (xhi << shift) | lo_overflow;
-        return {lo[0], lo[1], hi[0], hi[1]};
-    }
-
-    const auto hi = xlo << (shift - half_bits);
-    return {0, 0, hi[0], hi[1]};
-}
-
 template <unsigned N>
 inline constexpr uint<N> operator<<(const uint<N>& x, uint64_t shift) noexcept
 {
-    if (INTX_UNLIKELY(shift >= uint<N>::num_bits))
+    if (shift >= uint<N>::num_bits) [[unlikely]]
         return 0;
 
-    constexpr auto word_bits = sizeof(uint64_t) * 8;
-
-    const auto s = shift % word_bits;
-    const auto skip = static_cast<size_t>(shift / word_bits);
-
-    uint<N> r;
-    uint64_t carry = 0;
-    for (size_t i = 0; i < (uint<N>::num_words - skip); ++i)
+    if constexpr (N == 256)
     {
-        r[i + skip] = (x[i] << s) | carry;
-        carry = (x[i] >> (word_bits - s - 1)) >> 1;
-    }
-    return r;
-}
-
-
-inline constexpr uint256 operator>>(const uint256& x, uint64_t shift) noexcept
-{
-    if (INTX_UNLIKELY(shift >= uint256::num_bits))
-        return 0;
-
-    constexpr auto num_bits = uint256::num_bits;
-    constexpr auto half_bits = num_bits / 2;
-
-    const auto xhi = uint128{x[2], x[3]};
-
-    if (shift < half_bits)
-    {
-        const auto hi = xhi >> shift;
+        constexpr auto half_bits = uint<N>::num_bits / 2;
 
         const auto xlo = uint128{x[0], x[1]};
 
-        // Find the part moved from hi to lo.
-        // The shift left here can be invalid:
-        // for shift == 0 => lshift == half_bits.
-        // Split it into 2 valid shifts by (lshift - 1) and 1.
-        const auto lshift = half_bits - shift;
-        const auto hi_overflow = (xhi << (lshift - 1)) << 1;
-        const auto lo = (xlo >> shift) | hi_overflow;
-        return {lo[0], lo[1], hi[0], hi[1]};
-    }
+        if (shift < half_bits)
+        {
+            const auto lo = xlo << shift;
 
-    const auto lo = xhi >> (shift - half_bits);
-    return {lo[0], lo[1], 0, 0};
+            const auto xhi = uint128{x[2], x[3]};
+
+            // Find the part moved from lo to hi.
+            // The shift right here can be invalid:
+            // for shift == 0 => rshift == half_bits.
+            // Split it into 2 valid shifts by (rshift - 1) and 1.
+            const auto rshift = half_bits - shift;
+            const auto lo_overflow = (xlo >> (rshift - 1)) >> 1;
+            const auto hi = (xhi << shift) | lo_overflow;
+            return {lo[0], lo[1], hi[0], hi[1]};
+        }
+
+        const auto hi = xlo << (shift - half_bits);
+        return {0, 0, hi[0], hi[1]};
+    }
+    else
+    {
+        constexpr auto word_bits = sizeof(uint64_t) * 8;
+
+        const auto s = shift % word_bits;
+        const auto skip = static_cast<size_t>(shift / word_bits);
+
+        uint<N> r;
+        uint64_t carry = 0;
+        for (size_t i = 0; i < (uint<N>::num_words - skip); ++i)
+        {
+            r[i + skip] = (x[i] << s) | carry;
+            carry = (x[i] >> (word_bits - s - 1)) >> 1;
+        }
+        return r;
+    }
 }
 
 template <unsigned N>
 inline constexpr uint<N> operator>>(const uint<N>& x, uint64_t shift) noexcept
 {
-    if (INTX_UNLIKELY(shift >= uint<N>::num_bits))
+    if (shift >= uint<N>::num_bits) [[unlikely]]
         return 0;
 
-    constexpr auto num_words = uint<N>::num_words;
-    constexpr auto word_bits = sizeof(uint64_t) * 8;
-
-    const auto s = shift % word_bits;
-    const auto skip = static_cast<size_t>(shift / word_bits);
-
-    uint<N> r;
-    uint64_t carry = 0;
-    for (size_t i = 0; i < (num_words - skip); ++i)
+    if constexpr (N == 256)
     {
-        r[num_words - 1 - i - skip] = (x[num_words - 1 - i] >> s) | carry;
-        carry = (x[num_words - 1 - i] << (word_bits - s - 1)) << 1;
+        constexpr auto half_bits = uint<N>::num_bits / 2;
+
+        const auto xhi = uint128{x[2], x[3]};
+
+        if (shift < half_bits)
+        {
+            const auto hi = xhi >> shift;
+
+            const auto xlo = uint128{x[0], x[1]};
+
+            // Find the part moved from hi to lo.
+            // The shift left here can be invalid:
+            // for shift == 0 => lshift == half_bits.
+            // Split it into 2 valid shifts by (lshift - 1) and 1.
+            const auto lshift = half_bits - shift;
+            const auto hi_overflow = (xhi << (lshift - 1)) << 1;
+            const auto lo = (xlo >> shift) | hi_overflow;
+            return {lo[0], lo[1], hi[0], hi[1]};
+        }
+
+        const auto lo = xhi >> (shift - half_bits);
+        return {lo[0], lo[1], 0, 0};
     }
-    return r;
+    else
+    {
+        constexpr auto num_words = uint<N>::num_words;
+        constexpr auto word_bits = sizeof(uint64_t) * 8;
+
+        const auto s = shift % word_bits;
+        const auto skip = static_cast<size_t>(shift / word_bits);
+
+        uint<N> r;
+        uint64_t carry = 0;
+        for (size_t i = 0; i < (num_words - skip); ++i)
+        {
+            r[num_words - 1 - i - skip] = (x[num_words - 1 - i] >> s) | carry;
+            carry = (x[num_words - 1 - i] << (word_bits - s - 1)) << 1;
+        }
+        return r;
+    }
 }
 
 template <unsigned N>
