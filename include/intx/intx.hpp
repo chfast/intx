@@ -1107,7 +1107,7 @@ using uint384 = uint<384>;
 using uint512 = uint<512>;
 
 template <unsigned N>
-inline constexpr bool operator==(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr bool operator==(const uint<N>& x, const std::type_identity_t<uint<N>>& y) noexcept
 {
     uint64_t folded = 0;
     for (size_t i = 0; i < uint<N>::num_words; ++i)
@@ -1115,39 +1115,10 @@ inline constexpr bool operator==(const uint<N>& x, const uint<N>& y) noexcept
     return folded == 0;
 }
 
-template <unsigned N, typename T>
-inline constexpr bool operator==(const uint<N>& x, const T& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return x == uint<N>(y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator==(const T& x, const uint<N>& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return uint<N>(y) == x;
-}
-
-
 template <unsigned N>
-inline constexpr bool operator!=(const uint<N>& x, const uint<N>& y) noexcept
+inline constexpr bool operator!=(const uint<N>& x, const std::type_identity_t<uint<N>>& y) noexcept
 {
     return !(x == y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator!=(const uint<N>& x, const T& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return x != uint<N>(y);
-}
-
-template <unsigned N, typename T>
-inline constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
-    requires std::is_convertible_v<T, uint<N>>
-{
-    return uint<N>(x) != y;
 }
 
 #if !defined(_MSC_VER) || _MSC_VER < 1916  // This kills MSVC 2017 compiler.

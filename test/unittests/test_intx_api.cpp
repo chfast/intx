@@ -249,6 +249,30 @@ TYPED_TEST(uint_api, comparison)
     EXPECT_TRUE(d >= x);
 }
 
+template <typename T>
+struct Equal
+{
+    T x;
+    friend bool operator==(const Equal&, const Equal&) = default;
+};
+TYPED_TEST(uint_api, default_equal_operator)
+{
+    EXPECT_TRUE(Equal<TypeParam>{1} == Equal<TypeParam>{1});
+    EXPECT_FALSE(Equal<TypeParam>{1} == Equal<TypeParam>{0});
+}
+
+// template <typename T>
+// struct NotEqual
+// {
+//     T x;
+//     friend bool operator!=(const NotEqual&, const NotEqual&) = default;
+// };
+// TYPED_TEST(uint_api, default_notequal_operator)
+// {
+//     EXPECT_TRUE(NotEqual<TypeParam>{1} != NotEqual<TypeParam>{0});
+//     EXPECT_FALSE(NotEqual<TypeParam>{1} != NotEqual<TypeParam>{1});
+// }
+
 TYPED_TEST(uint_api, arithmetic_op_assignment)
 {
     auto x = TypeParam{};
