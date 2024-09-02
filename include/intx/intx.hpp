@@ -1150,7 +1150,6 @@ inline constexpr bool operator!=(const T& x, const uint<N>& y) noexcept
     return uint<N>(x) != y;
 }
 
-#if !defined(_MSC_VER) || _MSC_VER < 1916  // This kills MSVC 2017 compiler.
 inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
 {
     auto xp = uint128{x[2], x[3]};
@@ -1162,7 +1161,6 @@ inline constexpr bool operator<(const uint256& x, const uint256& y) noexcept
     }
     return xp < yp;
 }
-#endif
 
 template <unsigned N>
 inline constexpr bool operator<(const uint<N>& x, const uint<N>& y) noexcept
