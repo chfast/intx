@@ -5,6 +5,30 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.12.0] — 2024-09-03
+
+### Added
+
+- Consequent type aliases and literal suffixes:
+  [#317](https://github.com/chfast/intx/pull/317)
+  - `uint128`, `1_u128`
+  - `uint192`, `1_u192`
+  - `uint256`, `1_u256`
+  - `uint320`, `1_u320`
+  - `uint384`, `1_u384`
+  - `uint448`, `1_u448`
+  - `uint512`, `1_u512`
+
+### Changed
+
+- Restructure of the code by using `friend operator` and `if constexpr`.
+  [#318](https://github.com/chfast/intx/pull/318)
+  [#319](https://github.com/chfast/intx/pull/319)
+  [#320](https://github.com/chfast/intx/pull/320)
+  [#321](https://github.com/chfast/intx/pull/321)
+  [#322](https://github.com/chfast/intx/pull/322)
+  [#324](https://github.com/chfast/intx/pull/324)
+
 ## [0.11.0] — 2024-08-06
 
 ### Added
@@ -224,6 +248,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.12.0]: https://github.com/chfast/intx/releases/v0.12.0
 [0.11.0]: https://github.com/chfast/intx/releases/v0.11.0
 [0.10.1]: https://github.com/chfast/intx/releases/v0.10.1
 [0.10.0]: https://github.com/chfast/intx/releases/v0.10.0
