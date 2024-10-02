@@ -1150,6 +1150,14 @@ public:
     constexpr uint& operator>>=(uint shift) noexcept { return *this = *this >> shift; }
 };
 
+// TODO: Fixes GCC-13 regression. Investigate.
+template <unsigned N, typename T>
+inline constexpr bool operator==(const uint<N>& x, const T& y) noexcept
+    requires std::is_convertible_v<T, uint<N>>
+{
+    return x == uint<N>(y);
+}
+
 using uint256 = uint<256>;
 
 
