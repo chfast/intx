@@ -1581,14 +1581,14 @@ inline constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint25
 
 /// Define type alias uintN = uint<N> and the matching literal ""_uN.
 /// The literal operators are defined in the intx::literals namespace.
-#define DEFINE_ALIAS_AND_LITERAL(N)                  \
-    using uint##N = uint<N>;                         \
-    namespace literals                               \
-    {                                                \
-    consteval uint##N operator""_u##N(const char* s) \
-    {                                                \
-        return from_string<uint##N>(s);              \
-    }                                                \
+#define DEFINE_ALIAS_AND_LITERAL(N)                   \
+    using uint##N = uint<N>;                          \
+    namespace literals                                \
+    {                                                 \
+    consteval uint##N operator"" _u##N(const char* s) \
+    {                                                 \
+        return from_string<uint##N>(s);               \
+    }                                                 \
     }
 DEFINE_ALIAS_AND_LITERAL(128);
 DEFINE_ALIAS_AND_LITERAL(192);
