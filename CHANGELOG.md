@@ -5,6 +5,13 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.12.1] — 2024-10-09
+
+### Fixed
+
+- Fix MSVC build in preprocessor conformance mode
+  [#327](https://github.com/chfast/intx/pull/327)
+
 ## [0.12.0] — 2024-09-03
 
 ### Added
@@ -248,6 +255,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.12.1]: https://github.com/chfast/intx/releases/v0.12.1
 [0.12.0]: https://github.com/chfast/intx/releases/v0.12.0
 [0.11.0]: https://github.com/chfast/intx/releases/v0.11.0
 [0.10.1]: https://github.com/chfast/intx/releases/v0.10.1
