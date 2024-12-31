@@ -259,6 +259,37 @@ TYPED_TEST(uint_api, comparison)
     EXPECT_TRUE(d >= x);
 }
 
+TYPED_TEST(uint_api, spaceship_operator)
+{
+    auto a = uint256{1};
+    auto b = uint256{2};
+    auto c = uint256{3};
+
+    EXPECT_EQ(a <=> a, 0);
+    EXPECT_EQ(a <=> b, -1);
+    EXPECT_EQ(a <=> c, -1);
+    EXPECT_EQ(b <=> a, 1);
+    EXPECT_EQ(b <=> b, 0);
+    EXPECT_EQ(b <=> c, -1);
+    EXPECT_EQ(c <=> a, 1);
+    EXPECT_EQ(c <=> b, 1);
+    EXPECT_EQ(c <=> c, 0);
+
+    auto d = uint128{1};
+    auto e = uint128{2};
+    auto f = uint128{3};
+
+    EXPECT_EQ(d <=> d, 0);
+    EXPECT_EQ(d <=> e, -1);
+    EXPECT_EQ(e <=> d, 1);
+    EXPECT_EQ(d <=> f, -1);
+    EXPECT_EQ(f <=> d, 1);
+    EXPECT_EQ(e <=> e, 0);
+    EXPECT_EQ(e <=> f, -1);
+    EXPECT_EQ(f <=> e, 1);
+    EXPECT_EQ(f <=> f, 0);
+}
+
 TYPED_TEST(uint_api, arithmetic_op_assignment)
 {
     auto x = TypeParam{};
