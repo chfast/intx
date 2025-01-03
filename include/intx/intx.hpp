@@ -312,7 +312,10 @@ public:
     friend constexpr bool operator<=(uint x, uint y) noexcept { return !(y < x); }
     friend constexpr bool operator>(uint x, uint y) noexcept { return y < x; }
     friend constexpr bool operator>=(uint x, uint y) noexcept { return !(x < y); }
-    friend constexpr short operator<=>(uint x, uint y) noexcept { return (x < y) ? -1 : (y < x) ? 1 : 0; }
+    friend constexpr int8_t operator<=>(uint x, uint y) noexcept
+    {
+        return (x < y) ? -1 : (y < x) ? 1 : 0;
+    }
 
     friend constexpr uint operator~(uint x) noexcept { return {~x[0], ~x[1]}; }
     friend constexpr uint operator|(uint x, uint y) noexcept { return {x[0] | y[0], x[1] | y[1]}; }
@@ -1013,7 +1016,10 @@ public:
     friend constexpr bool operator>(const uint& x, const uint& y) noexcept { return y < x; }
     friend constexpr bool operator>=(const uint& x, const uint& y) noexcept { return !(x < y); }
     friend constexpr bool operator<=(const uint& x, const uint& y) noexcept { return !(y < x); }
-    friend constexpr short operator<=>(const uint& x, const uint&y) noexcept { return x < y ? -1 : x == y ? 0 : 1; }
+    friend constexpr int8_t operator<=>(const uint& x, const uint&y) noexcept
+    {
+        return x < y ? -1 : x == y ? 0 : 1;
+    }
 
     friend inline constexpr uint operator<<(const uint& x, uint64_t shift) noexcept
     {
