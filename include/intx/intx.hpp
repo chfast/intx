@@ -892,25 +892,25 @@ public:
         return static_cast<Int>(words_[0]);
     }
 
-    friend inline constexpr uint operator+(const uint& x, const uint& y) noexcept
+    friend constexpr uint operator+(const uint& x, const uint& y) noexcept
     {
         return addc(x, y).value;
     }
 
-    inline constexpr uint& operator+=(const uint& y) noexcept { return *this = *this + y; }
+    constexpr uint& operator+=(const uint& y) noexcept { return *this = *this + y; }
 
-    inline constexpr uint operator-() const noexcept { return ~*this + uint{1}; }
+    constexpr uint operator-() const noexcept { return ~*this + uint{1}; }
 
-    friend inline constexpr uint operator-(const uint& x, const uint& y) noexcept
+    friend constexpr uint operator-(const uint& x, const uint& y) noexcept
     {
         return subc(x, y).value;
     }
 
-    inline constexpr uint& operator-=(const uint& y) noexcept { return *this = *this - y; }
+    constexpr uint& operator-=(const uint& y) noexcept { return *this = *this - y; }
 
     /// Multiplication implementation using word access
     /// and discarding the high part of the result product.
-    friend inline constexpr uint operator*(const uint& x, const uint& y) noexcept
+    friend constexpr uint operator*(const uint& x, const uint& y) noexcept
     {
         uint<N> p;
         for (size_t j = 0; j < num_words; j++)
@@ -928,24 +928,24 @@ public:
         return p;
     }
 
-    inline constexpr uint& operator*=(const uint& y) noexcept { return *this = *this * y; }
+    constexpr uint& operator*=(const uint& y) noexcept { return *this = *this * y; }
 
-    friend inline constexpr uint operator/(const uint& x, const uint& y) noexcept
+    friend constexpr uint operator/(const uint& x, const uint& y) noexcept
     {
         return udivrem(x, y).quot;
     }
 
-    friend inline constexpr uint operator%(const uint& x, const uint& y) noexcept
+    friend constexpr uint operator%(const uint& x, const uint& y) noexcept
     {
         return udivrem(x, y).rem;
     }
 
-    inline constexpr uint& operator/=(const uint& y) noexcept { return *this = *this / y; }
+    constexpr uint& operator/=(const uint& y) noexcept { return *this = *this / y; }
 
-    inline constexpr uint& operator%=(const uint& y) noexcept { return *this = *this % y; }
+    constexpr uint& operator%=(const uint& y) noexcept { return *this = *this % y; }
 
 
-    inline constexpr uint operator~() const noexcept
+    constexpr uint operator~() const noexcept
     {
         uint z;
         for (size_t i = 0; i < num_words; ++i)
@@ -953,7 +953,7 @@ public:
         return z;
     }
 
-    friend inline constexpr uint operator|(const uint& x, const uint& y) noexcept
+    friend constexpr uint operator|(const uint& x, const uint& y) noexcept
     {
         uint z;
         for (size_t i = 0; i < num_words; ++i)
@@ -961,9 +961,9 @@ public:
         return z;
     }
 
-    inline constexpr uint& operator|=(const uint& y) noexcept { return *this = *this | y; }
+    constexpr uint& operator|=(const uint& y) noexcept { return *this = *this | y; }
 
-    friend inline constexpr uint operator&(const uint& x, const uint& y) noexcept
+    friend constexpr uint operator&(const uint& x, const uint& y) noexcept
     {
         uint z;
         for (size_t i = 0; i < num_words; ++i)
@@ -971,9 +971,9 @@ public:
         return z;
     }
 
-    inline constexpr uint& operator&=(const uint& y) noexcept { return *this = *this & y; }
+    constexpr uint& operator&=(const uint& y) noexcept { return *this = *this & y; }
 
-    friend inline constexpr uint operator^(const uint& x, const uint& y) noexcept
+    friend constexpr uint operator^(const uint& x, const uint& y) noexcept
     {
         uint z;
         for (size_t i = 0; i < num_words; ++i)
@@ -981,9 +981,9 @@ public:
         return z;
     }
 
-    inline constexpr uint& operator^=(const uint& y) noexcept { return *this = *this ^ y; }
+    constexpr uint& operator^=(const uint& y) noexcept { return *this = *this ^ y; }
 
-    friend inline constexpr bool operator==(const uint& x, const uint& y) noexcept
+    friend constexpr bool operator==(const uint& x, const uint& y) noexcept
     {
         uint64_t folded = 0;
         for (size_t i = 0; i < num_words; ++i)
@@ -991,7 +991,7 @@ public:
         return folded == 0;
     }
 
-    friend inline constexpr bool operator<(const uint& x, const uint& y) noexcept
+    friend constexpr bool operator<(const uint& x, const uint& y) noexcept
     {
         if constexpr (N == 256)
         {
@@ -1011,7 +1011,7 @@ public:
     friend constexpr bool operator>=(const uint& x, const uint& y) noexcept { return !(x < y); }
     friend constexpr bool operator<=(const uint& x, const uint& y) noexcept { return !(y < x); }
 
-    friend inline constexpr uint operator<<(const uint& x, uint64_t shift) noexcept
+    friend constexpr uint operator<<(const uint& x, uint64_t shift) noexcept
     {
         if (shift >= num_bits) [[unlikely]]
             return 0;
@@ -1059,13 +1059,13 @@ public:
         }
     }
 
-    friend inline constexpr uint operator<<(const uint& x, std::integral auto shift) noexcept
+    friend constexpr uint operator<<(const uint& x, std::integral auto shift) noexcept
     {
         static_assert(sizeof(shift) <= sizeof(uint64_t));
         return x << static_cast<uint64_t>(shift);
     }
 
-    friend inline constexpr uint operator<<(const uint& x, const uint& shift) noexcept
+    friend constexpr uint operator<<(const uint& x, const uint& shift) noexcept
     {
         // TODO: This optimisation should be handled by operator<.
         uint64_t high_words_fold = 0;
@@ -1078,7 +1078,7 @@ public:
         return x << shift[0];
     }
 
-    friend inline constexpr uint operator>>(const uint& x, uint64_t shift) noexcept
+    friend constexpr uint operator>>(const uint& x, uint64_t shift) noexcept
     {
         if (shift >= num_bits) [[unlikely]]
             return 0;
@@ -1126,13 +1126,13 @@ public:
         }
     }
 
-    friend inline constexpr uint operator>>(const uint& x, std::integral auto shift) noexcept
+    friend constexpr uint operator>>(const uint& x, std::integral auto shift) noexcept
     {
         static_assert(sizeof(shift) <= sizeof(uint64_t));
         return x >> static_cast<uint64_t>(shift);
     }
 
-    friend inline constexpr uint operator>>(const uint& x, const uint& shift) noexcept
+    friend constexpr uint operator>>(const uint& x, const uint& shift) noexcept
     {
         uint64_t high_words_fold = 0;
         for (size_t i = 1; i < num_words; ++i)
