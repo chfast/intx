@@ -318,14 +318,21 @@ public:
 
     friend constexpr uint operator<<(uint x, uint64_t shift) noexcept
     {
-        return (shift < 64) ?
-                   // Find the part moved from lo to hi.
-                   // For shift == 0 right shift by (64 - shift) is invalid so
-                   // split it into 2 shifts by 1 and (63 - shift).
-                   uint{x[0] << shift, (x[1] << shift) | ((x[0] >> 1) >> (63 - shift))} :
+        if (shift < 64)
+        {
+            // Find the part moved from lo to hi.
+            // For shift == 0 right shift by (64 - shift) is invalid so
+            // split it into 2 shifts by 1 and (63 - shift).
+            return {x[0] << shift, (x[1] << shift) | ((x[0] >> 1) >> (63 - shift))};
+        }
+        if (shift < 128)
+        {
+            // The lo part becomes the shifted hi part.
+            return {0, x[0] << (shift - 64)};
+        }
 
-                   // Guarantee "defined" behavior for shifts larger than 128.
-                   (shift < 128) ? uint{0, x[0] << (shift - 64)} : 0;
+        // Guarantee "defined" behavior for shifts larger than 128.
+        return 0;
     }
 
     friend constexpr uint operator<<(uint x, std::integral auto shift) noexcept
@@ -344,14 +351,21 @@ public:
 
     friend constexpr uint operator>>(uint x, uint64_t shift) noexcept
     {
-        return (shift < 64) ?
-                   // Find the part moved from lo to hi.
-                   // For shift == 0 left shift by (64 - shift) is invalid so
-                   // split it into 2 shifts by 1 and (63 - shift).
-                   uint{(x[0] >> shift) | ((x[1] << 1) << (63 - shift)), x[1] >> shift} :
+        if (shift < 64)
+        {
+            // Find the part moved from lo to hi.
+            // For shift == 0 left shift by (64 - shift) is invalid so
+            // split it into 2 shifts by 1 and (63 - shift).
+            return {(x[0] >> shift) | ((x[1] << 1) << (63 - shift)), x[1] >> shift};
+        }
+        if (shift < 128)
+        {
+            // The lo part becomes the shifted hi part.
+            return {x[1] >> (shift - 64), 0};
+        }
 
-                   // Guarantee "defined" behavior for shifts larger than 128.
-                   (shift < 128) ? uint{x[1] >> (shift - 64)} : 0;
+        // Guarantee "defined" behavior for shifts larger than 128.
+        return 0;
     }
 
     friend constexpr uint operator>>(uint x, std::integral auto shift) noexcept
