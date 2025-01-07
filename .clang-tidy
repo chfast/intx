@@ -41,6 +41,7 @@ Checks:
   - -misc-non-private-member-variables-in-classes
   - modernize-*
   - -modernize-avoid-c-arrays
+  - -modernize-use-designated-initializers
   - -modernize-use-trailing-return-type
   - performance-*
   - portability-*
@@ -50,5 +51,6 @@ Checks:
   - -readability-identifier-length
   - -readability-implicit-bool-conversion
   - -readability-magic-numbers
+  - -readability-math-missing-parentheses
   - -readability-qualified-auto
   - -readability-uppercase-literal-suffix
