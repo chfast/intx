@@ -61,7 +61,7 @@ TYPED_TEST_SUITE(uint_api, test_types, type_to_name);
 
 TYPED_TEST(uint_api, constructor)
 {
-    auto i = int{-1};
+    int i = -1;
     auto x = TypeParam{i};
     TypeParam y = i;
     auto z = TypeParam(i);
@@ -72,12 +72,12 @@ TYPED_TEST(uint_api, constructor)
 
 TYPED_TEST(uint_api, arithmetic)
 {
-    auto a = int{};
-    auto b = uint64_t{};
-    auto c = uint128{};
-    auto d = uint256{};
+    int a = 0;
+    uint64_t b = 0;
+    uint128 c = 0;
+    uint256 d = 0;
 
-    auto x = TypeParam{};
+    TypeParam x;
 
     EXPECT_TRUE(x + x == 0);
     EXPECT_TRUE(x + a == 0);
@@ -116,10 +116,10 @@ TYPED_TEST(uint_api, arithmetic)
 
 TYPED_TEST(uint_api, division)
 {
-    auto a = int{1};
-    auto b = uint64_t{1};
-    auto c = uint128{1};
-    auto d = uint256{1};
+    int a = 1;
+    uint64_t b = 1;
+    uint128 c = 1;
+    uint256 d = 1;
 
     auto x = TypeParam{1};
 
@@ -149,12 +149,12 @@ TYPED_TEST(uint_api, division)
 
 TYPED_TEST(uint_api, bitwise)
 {
-    auto a = int{};
-    auto b = uint64_t{};
-    auto c = uint128{};
-    auto d = uint256{};
+    int a = 0;
+    uint64_t b = 0;
+    uint128 c = 0;
+    uint256 d = 0;
 
-    auto x = TypeParam{};
+    TypeParam x;
 
     EXPECT_TRUE((x | x) == 0);
     EXPECT_TRUE((x | a) == 0);
@@ -192,12 +192,12 @@ TYPED_TEST(uint_api, bitwise)
 
 TYPED_TEST(uint_api, comparison)
 {
-    auto a = int{3};
-    auto b = uint64_t{5};
-    auto c = uint128{7};
-    auto d = uint256{11};
+    int a = 3;
+    uint64_t b = 5;
+    uint128 c = 7;
+    uint256 d = 11;
 
-    auto x = TypeParam{};
+    TypeParam x;
 
     EXPECT_FALSE(x == a);
     EXPECT_FALSE(a == x);
@@ -261,7 +261,7 @@ TYPED_TEST(uint_api, comparison)
 
 TYPED_TEST(uint_api, arithmetic_op_assignment)
 {
-    auto x = TypeParam{};
+    TypeParam x;
 
     EXPECT_EQ(x += 11, 11);
     EXPECT_EQ(x -= 4, 7);
@@ -279,7 +279,7 @@ TYPED_TEST(uint_api, arithmetic_op_assignment)
 
 TYPED_TEST(uint_api, bitwise_op_assignment)
 {
-    auto x = TypeParam{};
+    TypeParam x;
 
     EXPECT_EQ(x |= 0b1011, 0b1011);
     EXPECT_EQ(x &= 0b0110, 0b0010);

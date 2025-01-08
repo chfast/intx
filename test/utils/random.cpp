@@ -77,10 +77,9 @@ bool init() noexcept
     // Generate samples for shift amounts: ranges, 0-64, 0-128, ... and mix of those.
     for (size_t w = 0; w < 4; ++w)
     {
-        std::generate(
-            std::begin(samples_shift_w[w]), std::end(samples_shift_w[w]), [&rng, w]() noexcept {
-                return std::uniform_int_distribution<uint64_t>{w * 64, (w + 1) * 64 - 1}(rng);
-            });
+        std::ranges::generate(samples_shift_w[w], [&rng, w]() noexcept {
+            return std::uniform_int_distribution<uint64_t>{w * 64, (w + 1) * 64 - 1}(rng);
+        });
         std::copy_n(std::begin(samples_shift_w[w]), num_samples / 4,
             &samples_shift_mixed[(num_samples / 4) * w]);
 
@@ -89,12 +88,11 @@ bool init() noexcept
         std::copy_n(std::begin(samples_256[y_64 + w]), num_samples / 4,
             &samples_256[y_256_mixed][(num_samples / 4) * w]);
     }
-    std::shuffle(std::begin(samples_shift_mixed), std::end(samples_shift_mixed), rng);
+    std::ranges::shuffle(samples_shift_mixed, rng);
 
     auto rng_copy = rng;
-    std::shuffle(std::begin(samples_256[x_256_mixed]), std::end(samples_256[x_256_mixed]), rng);
-    std::shuffle(
-        std::begin(samples_256[y_256_mixed]), std::end(samples_256[y_256_mixed]), rng_copy);
+    std::ranges::shuffle(samples_256[x_256_mixed], rng);
+    std::ranges::shuffle(samples_256[y_256_mixed], rng_copy);
 
     return true;
 }
