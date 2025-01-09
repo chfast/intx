@@ -269,9 +269,9 @@ struct Wrapper
 
 TYPED_TEST(uint_api, spaceship_operator_with_wrapper)
 {
-    auto a = Wrapper<TypeParam>{TypeParam{1}};
-    auto b = Wrapper<TypeParam>{TypeParam{2}};
-    auto c = Wrapper<TypeParam>{TypeParam{3}};
+    Wrapper a{TypeParam{1}};
+    Wrapper b{TypeParam{2}};
+    Wrapper c{TypeParam{3}};
 
     EXPECT_EQ(a <=> b, std::strong_ordering::less);
     EXPECT_EQ(a <=> a, std::strong_ordering::equal);
@@ -287,9 +287,9 @@ TYPED_TEST(uint_api, spaceship_operator_with_wrapper)
 
 TYPED_TEST(uint_api, spaceship_operator)
 {
-    auto a = TypeParam{1};
-    auto b = TypeParam{2};
-    auto c = TypeParam{3};
+    TypeParam a{1};
+    TypeParam b{2};
+    TypeParam c{3};
 
     EXPECT_EQ(a <=> a, std::strong_ordering::equal);
     EXPECT_EQ(a <=> b, std::strong_ordering::less);

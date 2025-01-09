@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <compare>
 #include <cassert>
 #include <climits>
 #include <concepts>
@@ -1035,13 +1036,10 @@ public:
 
     friend constexpr std::strong_ordering operator<=>(const uint& x, const uint& y) noexcept
     {
-        if (x < y)
-            return std::strong_ordering::less;
+        if (x == y)
+            return std::strong_ordering::equal;
 
-        if (x > y)
-            return std::strong_ordering::greater;
-
-        return std::strong_ordering::equal;
+        return (x < y) ? std::strong_ordering::less : std::strong_ordering::greater;
     }
 
     friend constexpr uint operator<<(const uint& x, uint64_t shift) noexcept
