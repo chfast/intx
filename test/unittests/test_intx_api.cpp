@@ -269,9 +269,9 @@ struct Wrapper
 
 TYPED_TEST(uint_api, spaceship_operator_with_wrapper)
 {
-    Wrapper a{TypeParam{1}};
-    Wrapper b{TypeParam{2}};
-    Wrapper c{TypeParam{3}};
+    Wrapper<TypeParam> a{1};
+    Wrapper<TypeParam> b{2};
+    Wrapper<TypeParam> c{3};
 
     EXPECT_EQ(a <=> b, std::strong_ordering::less);
     EXPECT_EQ(a <=> a, std::strong_ordering::equal);
