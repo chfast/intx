@@ -259,35 +259,52 @@ TYPED_TEST(uint_api, comparison)
     EXPECT_TRUE(d >= x);
 }
 
+struct W
+{
+    intx::uint256 v;
+
+    friend auto operator<=>(W, W) = default;
+};
+
+struct W128
+{
+    intx::uint128 v;
+    friend auto operator<=>(W128, W128) = default;
+};
+
 TYPED_TEST(uint_api, spaceship_operator)
 {
-    auto a = uint256{1};
-    auto b = uint256{2};
-    auto c = uint256{3};
+    EXPECT_EQ(1, 1);
 
-    EXPECT_EQ(a <=> a, 0);
-    EXPECT_EQ(a <=> b, -1);
-    EXPECT_EQ(a <=> c, -1);
-    EXPECT_EQ(b <=> a, 1);
-    EXPECT_EQ(b <=> b, 0);
-    EXPECT_EQ(b <=> c, -1);
-    EXPECT_EQ(c <=> a, 1);
-    EXPECT_EQ(c <=> b, 1);
-    EXPECT_EQ(c <=> c, 0);
+    auto a = W{uint256{1}};
+    auto b = W{uint256{2}};
+    auto c = W{uint256{3}};
 
-    auto d = uint128{1};
-    auto e = uint128{2};
-    auto f = uint128{3};
+    EXPECT_EQ(a <=> b, std::strong_ordering::less);
+    EXPECT_EQ(a <=> a, std::strong_ordering::equal);
+    EXPECT_EQ(c <=> b, std::strong_ordering::greater);
 
-    EXPECT_EQ(d <=> d, 0);
-    EXPECT_EQ(d <=> e, -1);
-    EXPECT_EQ(e <=> d, 1);
-    EXPECT_EQ(d <=> f, -1);
-    EXPECT_EQ(f <=> d, 1);
-    EXPECT_EQ(e <=> e, 0);
-    EXPECT_EQ(e <=> f, -1);
-    EXPECT_EQ(f <=> e, 1);
-    EXPECT_EQ(f <=> f, 0);
+    EXPECT_TRUE(a < b);
+    EXPECT_TRUE(c > a);
+    EXPECT_TRUE(a >= a);
+    EXPECT_TRUE(b <= c);
+    EXPECT_TRUE(b == b);
+    EXPECT_TRUE(a != c);
+    
+    auto d = W128{uint128{1}};
+    auto e = W128{uint128{2}};
+    auto f = W128{uint128{3}};
+
+    EXPECT_EQ(d <=> e, std::strong_ordering::less);
+    EXPECT_EQ(f <=> f, std::strong_ordering::equal);
+    EXPECT_EQ(f <=> e, std::strong_ordering::greater);
+
+    EXPECT_TRUE(d < e);
+    EXPECT_TRUE(f > d);
+    EXPECT_TRUE(d >= d);
+    EXPECT_TRUE(e <= f);
+    EXPECT_TRUE(e == e);
+    EXPECT_TRUE(d != f);
 }
 
 TYPED_TEST(uint_api, arithmetic_op_assignment)

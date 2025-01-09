@@ -310,9 +310,16 @@ public:
     friend constexpr bool operator<=(uint x, uint y) noexcept { return !(y < x); }
     friend constexpr bool operator>(uint x, uint y) noexcept { return y < x; }
     friend constexpr bool operator>=(uint x, uint y) noexcept { return !(x < y); }
-    friend constexpr int operator<=>(uint x, uint y) noexcept
+
+    friend constexpr std::strong_ordering operator<=>(uint x, uint y) noexcept
     {
-        return (x < y) ? -1 : (y < x) ? 1 : 0;
+        if (x < y)
+            return std::strong_ordering::less;
+
+        if (x > y)
+            return std::strong_ordering::greater;
+
+        return std::strong_ordering::equal;
     }
 
     friend constexpr uint operator~(uint x) noexcept { return {~x[0], ~x[1]}; }
@@ -1028,9 +1035,16 @@ public:
     friend constexpr bool operator>(const uint& x, const uint& y) noexcept { return y < x; }
     friend constexpr bool operator>=(const uint& x, const uint& y) noexcept { return !(x < y); }
     friend constexpr bool operator<=(const uint& x, const uint& y) noexcept { return !(y < x); }
-    friend constexpr int operator<=>(const uint& x, const uint& y) noexcept
+
+    friend constexpr std::strong_ordering operator<=>(const uint& x, const uint& y) noexcept
     {
-        return x < y ? -1 : x == y ? 0 : 1;
+        if (x < y)
+            return std::strong_ordering::less;
+
+        if (x > y)
+            return std::strong_ordering::greater;
+
+        return std::strong_ordering::equal;
     }
 
     friend constexpr uint operator<<(const uint& x, uint64_t shift) noexcept
