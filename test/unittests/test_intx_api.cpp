@@ -290,7 +290,7 @@ TYPED_TEST(uint_api, spaceship_operator)
     EXPECT_TRUE(b <= c);
     EXPECT_TRUE(b == b);
     EXPECT_TRUE(a != c);
-    
+
     auto d = W128{uint128{1}};
     auto e = W128{uint128{2}};
     auto f = W128{uint128{3}};
