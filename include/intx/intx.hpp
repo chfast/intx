@@ -313,13 +313,10 @@ public:
 
     friend constexpr std::strong_ordering operator<=>(uint x, uint y) noexcept
     {
-        if (x < y)
-            return std::strong_ordering::less;
+        if (x == y)
+            return std::strong_ordering::equal;
 
-        if (x > y)
-            return std::strong_ordering::greater;
-
-        return std::strong_ordering::equal;
+        return (x < y) ? std::strong_ordering::less : std::strong_ordering::greater;
     }
 
     friend constexpr uint operator~(uint x) noexcept { return {~x[0], ~x[1]}; }
