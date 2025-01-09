@@ -7,9 +7,9 @@
 #include <algorithm>
 #include <array>
 #include <bit>
-#include <compare>
 #include <cassert>
 #include <climits>
+#include <compare>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
