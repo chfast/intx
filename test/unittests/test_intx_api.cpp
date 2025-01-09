@@ -259,6 +259,49 @@ TYPED_TEST(uint_api, comparison)
     EXPECT_TRUE(d >= x);
 }
 
+template <typename T>
+struct Wrapper
+{
+    T v;
+
+    friend auto operator<=>(Wrapper, Wrapper) = default;
+};
+
+TYPED_TEST(uint_api, spaceship_operator_with_wrapper)
+{
+    Wrapper<TypeParam> a{1};
+    Wrapper<TypeParam> b{2};
+    Wrapper<TypeParam> c{3};
+
+    EXPECT_EQ(a <=> b, std::strong_ordering::less);
+    EXPECT_EQ(a <=> a, std::strong_ordering::equal);
+    EXPECT_EQ(c <=> b, std::strong_ordering::greater);
+
+    EXPECT_TRUE(a < b);
+    EXPECT_TRUE(c > a);
+    EXPECT_TRUE(a >= a);
+    EXPECT_TRUE(b <= c);
+    EXPECT_TRUE(b == b);
+    EXPECT_TRUE(a != c);
+}
+
+TYPED_TEST(uint_api, spaceship_operator)
+{
+    TypeParam a{1};
+    TypeParam b{2};
+    TypeParam c{3};
+
+    EXPECT_EQ(a <=> a, std::strong_ordering::equal);
+    EXPECT_EQ(a <=> b, std::strong_ordering::less);
+    EXPECT_EQ(a <=> c, std::strong_ordering::less);
+    EXPECT_EQ(b <=> a, std::strong_ordering::greater);
+    EXPECT_EQ(b <=> b, std::strong_ordering::equal);
+    EXPECT_EQ(b <=> c, std::strong_ordering::less);
+    EXPECT_EQ(c <=> a, std::strong_ordering::greater);
+    EXPECT_EQ(c <=> b, std::strong_ordering::greater);
+    EXPECT_EQ(c <=> c, std::strong_ordering::equal);
+}
+
 TYPED_TEST(uint_api, arithmetic_op_assignment)
 {
     TypeParam x;
