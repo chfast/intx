@@ -1,14 +1,15 @@
 version: 2.1
 orbs:
+  codecov: codecov/codecov@5.0.3
   win: circleci/windows@5.0
 
 executors:
   linux-gcc-latest:
     docker:
-      - image: ethereum/cpp-build-env:21-gcc-13
+      - image: ethereum/cpp-build-env:23-gcc-14
   linux-clang-latest:
     docker:
-      - image: ethereum/cpp-build-env:21-clang-17
+      - image: ethereum/cpp-build-env:23-clang-18
   macos:
     macos:
       xcode: 15.4.0
@@ -96,11 +97,10 @@ commands:
       - run:
           name: "Collect coverage data (GCC)"
           working_directory: ~/build
+          # Use coveralls to eliminate branch stats (they need more work)
           command: |
-            lcov --capture --directory . --output-file coverage.lcov -j $CMAKE_BUILD_PARALLEL_LEVEL --ignore-errors mismatch,unused --exclude='/usr/*' --exclude="$HOME/.hunter/*" --exclude="$PWD/_deps/*"
-            lcov --zerocounters --directory .
-            rm -rf ~/coverage
-            genhtml coverage.lcov --output-directory ~/coverage --title $CIRCLE_PROJECT_REPONAME
+            mkdir -p ~/coverage
+            gcovr --filter ~/project --coveralls coverage.json --html ~/coverage/coverage.html --html-nested ~/coverage/coverage.html
       - store_artifacts:
           path: ~/coverage
           destination: coverage
@@ -111,34 +111,17 @@ commands:
       flags:
         type: string
     steps:
-      - run:
-          name: "Install codecov"
-          command: |
-            export CODECOV_VERSION=v0.7.1
-            curl -Os https://uploader.codecov.io/$CODECOV_VERSION/linux/codecov
-            curl -Os https://uploader.codecov.io/$CODECOV_VERSION/linux/codecov.SHA256SUM
-            curl -Os https://uploader.codecov.io/$CODECOV_VERSION/linux/codecov.SHA256SUM.sig
-            
-            gpg --no-default-keyring --keyring trustedkeys.gpg --keyserver keyserver.ubuntu.com --receive-keys 27034E7FDB850E0BBC2C62FF806BB28AED779869
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -c codecov.SHA256SUM
-            
-            chmod +x codecov
-            sudo mv codecov /usr/local/bin
-
-      - run:
-          name: "Upload to Codecov"
-          command: |
-            # Convert to relative paths
-            sed -i 's|$(pwd)/||' ~/build/coverage.lcov
-            codecov --flags <<parameters.flags>> --required --file ~/build/coverage.lcov -X gcov
+      - codecov/upload:
+          plugins: noop
+          files: ../build/coverage.json
+          flags: <<parameters.flags>>
 
 
 jobs:
 
   lint:
     docker:
-      - image: ethereum/cpp-build-env:21-lint
+      - image: ethereum/cpp-build-env:23-lint
     steps:
       - checkout
       - check_code_format
@@ -188,7 +171,6 @@ jobs:
             llvm-cov show -format=html -instr-profile intx.profdata -Xdemangler llvm-cxxfilt -region-coverage-lt=100 test/intx-unittests > coverage/missing.html
             llvm-cov show -format=html -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests > coverage/full.html
             llvm-cov export -instr-profile intx.profdata -format=lcov test/intx-unittests > coverage.lcov
-            genhtml coverage.lcov -o coverage -t $CIRCLE_PROJECT_REPONAME
       - store_artifacts:
           path: ~/build/coverage
           destination: coverage
@@ -250,7 +232,7 @@ jobs:
       BUILD_TYPE: Release
       CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_BENCHMARKING=OFF
     docker:
-      - image: ethereum/cpp-build-env:21-gcc-13-multilib
+      - image: ethereum/cpp-build-env:23-gcc-14-multilib
     steps:
       - build_and_test
 
@@ -260,7 +242,7 @@ jobs:
       CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_BENCHMARKING=OFF
       TESTS_FILTER: unittests
     docker:
-      - image: ethereum/cpp-build-env:21-gcc-13-multilib
+      - image: ethereum/cpp-build-env:23-gcc-14-multilib
     steps:
       - build_and_test
       - collect_coverage_gcc
