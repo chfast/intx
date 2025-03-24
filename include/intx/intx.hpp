@@ -1608,13 +1608,16 @@ constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod)
     return udivrem(umul(x, y), mod).rem;
 }
 
+#define INTX_JOIN2(X, Y) X##Y
+#define INTX_JOIN1(X, Y) INTX_JOIN2(X, Y)
+#define INTX_LITERAL(N) INTX_JOIN1(operator"", INTX_JOIN1(_u, N))
 /// Define type alias uintN = uint<N> and the matching literal ""_uN.
 /// The literal operators are defined in the intx::literals namespace.
 #define DEFINE_ALIAS_AND_LITERAL(N)                  \
     using uint##N = uint<N>;                         \
     namespace literals                               \
     {                                                \
-    consteval uint##N operator""_u##N(const char* s) \
+    consteval uint##N INTX_LITERAL(N)(const char* s) \
     {                                                \
         return from_string<uint##N>(s);              \
     }                                                \
@@ -1627,6 +1630,9 @@ DEFINE_ALIAS_AND_LITERAL(384);
 DEFINE_ALIAS_AND_LITERAL(448);
 DEFINE_ALIAS_AND_LITERAL(512);
 #undef DEFINE_ALIAS_AND_LITERAL
+#undef INTX_JOIN2
+#undef INTX_JOIN1
+#undef INTX_LITERAL
 
 using namespace literals;
 
