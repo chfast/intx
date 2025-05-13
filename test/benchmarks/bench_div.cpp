@@ -6,18 +6,30 @@
 #include <intx/intx.hpp>
 #include <test/utils/random.hpp>
 
-uint64_t udiv_native(uint64_t x, uint64_t y) noexcept;
-uint64_t nop(uint64_t x, uint64_t y) noexcept;
-uint64_t soft_div_unr_unrolled(uint64_t x, uint64_t y) noexcept;
-uint64_t soft_div_unr(uint64_t x, uint64_t y) noexcept;
-
-uint64_t reciprocal_2by1_noinline(uint64_t d) noexcept;
-uint64_t reciprocal_3by2_noinline(intx::uint128 d) noexcept;
-
 using namespace intx;
 
 namespace
 {
+[[gnu::noinline]] uint64_t nop(uint64_t x, uint64_t y) noexcept
+{
+    return x ^ y;
+}
+
+[[gnu::noinline]] uint64_t udiv_native(uint64_t x, uint64_t y) noexcept
+{
+    return x / y;
+}
+
+[[gnu::noinline]] auto reciprocal_2by1_noinline(uint64_t d) noexcept
+{
+    return reciprocal_2by1(d);
+}
+
+[[gnu::noinline]] auto reciprocal_3by2_noinline(uint128 d) noexcept
+{
+    return reciprocal_3by2(d);
+}
+
 inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 {
     auto shift = __builtin_clzl(du);
@@ -78,12 +90,12 @@ void reciprocal(benchmark::State& state)
     }
     benchmark::DoNotOptimize(x);
 }
-BENCHMARK_TEMPLATE(reciprocal, uint64_t, neg);
-BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_naive);
-BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_2by1);
-BENCHMARK_TEMPLATE(reciprocal, uint64_t, reciprocal_2by1_noinline);
-BENCHMARK_TEMPLATE(reciprocal, uint128, reciprocal_3by2);
-BENCHMARK_TEMPLATE(reciprocal, uint128, reciprocal_3by2_noinline);
+BENCHMARK(reciprocal<uint64_t, neg>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_naive>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_2by1>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_2by1_noinline>);
+BENCHMARK(reciprocal<uint128, reciprocal_3by2>);
+BENCHMARK(reciprocal<uint128, reciprocal_3by2_noinline>);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
 void udiv64(benchmark::State& state)
@@ -124,10 +136,7 @@ void udiv64(benchmark::State& state)
     }
 }
 
-
-BENCHMARK_TEMPLATE(udiv64, nop);
-BENCHMARK_TEMPLATE(udiv64, udiv_by_reciprocal);
-BENCHMARK_TEMPLATE(udiv64, udiv_native);
-BENCHMARK_TEMPLATE(udiv64, soft_div_unr);
-BENCHMARK_TEMPLATE(udiv64, soft_div_unr_unrolled);
+BENCHMARK(udiv64<nop>);
+BENCHMARK(udiv64<udiv_by_reciprocal>);
+BENCHMARK(udiv64<udiv_native>);
 }  // namespace

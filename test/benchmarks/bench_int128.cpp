@@ -9,13 +9,11 @@
 
 using namespace intx;
 
-uint128 div_gcc(uint128 x, uint128 y) noexcept;
-
 namespace
 {
 inline div_result<uint128> gcc_(uint128 x, uint128 y) noexcept
 {
-    return {div_gcc(x, y), 0};
+    return {builtin_uint128{x} / builtin_uint128{y}, 0};
 }
 
 inline div_result<uint128> gmp_(uint128 x, uint128 y) noexcept
@@ -25,7 +23,7 @@ inline div_result<uint128> gmp_(uint128 x, uint128 y) noexcept
 
 [[gnu::noinline]] auto intx_(uint128 x, uint128 y) noexcept
 {
-    return intx::udivrem(x, y);
+    return udivrem(x, y);
 }
 
 template <decltype(intx_) DivFn>
@@ -53,9 +51,9 @@ void udiv128(benchmark::State& state)
         benchmark::DoNotOptimize(q);
     }
 }
-BENCHMARK_TEMPLATE(udiv128, gcc_)->DenseRange(0, 3);
-BENCHMARK_TEMPLATE(udiv128, intx_)->DenseRange(0, 3);
-BENCHMARK_TEMPLATE(udiv128, gmp_)->DenseRange(0, 3);
+BENCHMARK(udiv128<gcc_>)->DenseRange(0, 3);
+BENCHMARK(udiv128<intx_>)->DenseRange(0, 3);
+BENCHMARK(udiv128<gmp_>)->DenseRange(0, 3);
 
 
 template <typename RetT, RetT (*MulFn)(uint64_t, uint64_t)>
@@ -78,5 +76,5 @@ void umul128(benchmark::State& state)
         benchmark::DoNotOptimize(ahi);
     }
 }
-BENCHMARK_TEMPLATE(umul128, intx::uint128, intx::umul);
+BENCHMARK(umul128<uint128, umul>);
 }  // namespace

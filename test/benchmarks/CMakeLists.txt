@@ -12,8 +12,6 @@ add_executable(intx-bench
     bench_div.cpp
     bench_int128.cpp
     benchmarks.cpp
-    noinline.cpp
-    utils.cpp
 )
 target_link_libraries(intx-bench PRIVATE intx intx::experimental intx::testutils benchmark::benchmark GMP::gmp)
 target_compile_options(intx-bench PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-falign-functions=32>)

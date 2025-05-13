@@ -17,15 +17,33 @@
 using namespace intx;
 using namespace intx::test;
 
-// TODO: Move them here with [[gnu::noinline]]
-uint256 add(const uint256& x, const uint256& y) noexcept;
-uint512 add(const uint512& x, const uint512& y) noexcept;
-uint256 sub(const uint256& x, const uint256& y) noexcept;
-uint512 sub(const uint512& x, const uint512& y) noexcept;
-uint256 exp(const uint256& x, const uint256& y) noexcept;
-
 namespace
 {
+[[gnu::noinline]] auto add(const uint256& x, const uint256& y) noexcept
+{
+    return x + y;
+}
+
+[[gnu::noinline]] auto add(const uint512& x, const uint512& y) noexcept
+{
+    return x + y;
+}
+
+[[gnu::noinline]] auto sub(const uint256& x, const uint256& y) noexcept
+{
+    return x - y;
+}
+
+[[gnu::noinline]] auto sub(const uint512& x, const uint512& y) noexcept
+{
+    return x - y;
+}
+
+[[gnu::noinline]] auto exp(const uint256& x, const uint256& y) noexcept
+{
+    return intx::exp(x, y);
+}
+
 template <typename ArgT, div_result<ArgT> DivFn(const ArgT&, const ArgT&)>
 void div(benchmark::State& state) noexcept
 {
@@ -58,10 +76,10 @@ void div(benchmark::State& state) noexcept
         }
     }
 }
-BENCHMARK_TEMPLATE(div, uint256, udivrem)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(div, uint256, gmp::udivrem)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(div, uint512, udivrem)->DenseRange(64, 256, 64);
-BENCHMARK_TEMPLATE(div, uint512, gmp::udivrem)->DenseRange(64, 256, 64);
+BENCHMARK(div<uint256, udivrem>)->DenseRange(64, 256, 64);
+BENCHMARK(div<uint256, gmp::udivrem>)->DenseRange(64, 256, 64);
+BENCHMARK(div<uint512, udivrem>)->DenseRange(64, 256, 64);
+BENCHMARK(div<uint512, gmp::udivrem>)->DenseRange(64, 256, 64);
 
 
 template <uint256 ModFn(const uint256&, const uint256&, const uint256&)>
@@ -98,13 +116,13 @@ void mod(benchmark::State& state)
     }
 }
 #define ARGS DenseRange(64, 256, 64)
-BENCHMARK_TEMPLATE(mod, addmod)->ARGS;
-BENCHMARK_TEMPLATE(mod, addmod_public)->ARGS;
-BENCHMARK_TEMPLATE(mod, addmod_simple)->ARGS;
-BENCHMARK_TEMPLATE(mod, addmod_prenormalize)->ARGS;
-BENCHMARK_TEMPLATE(mod, addmod_daosvik_v1)->ARGS;
-BENCHMARK_TEMPLATE(mod, addmod_daosvik_v2)->ARGS;
-BENCHMARK_TEMPLATE(mod, mulmod)->ARGS;
+BENCHMARK(mod<addmod>)->ARGS;
+BENCHMARK(mod<addmod_public>)->ARGS;
+BENCHMARK(mod<addmod_simple>)->ARGS;
+BENCHMARK(mod<addmod_prenormalize>)->ARGS;
+BENCHMARK(mod<addmod_daosvik_v1>)->ARGS;
+BENCHMARK(mod<addmod_daosvik_v2>)->ARGS;
+BENCHMARK(mod<mulmod>)->ARGS;
 #undef ARGS
 
 template <uint256 ModFn(const uint256&, const uint256&, const uint256&)>
@@ -124,12 +142,12 @@ void ecmod(benchmark::State& state)
         }
     }
 }
-BENCHMARK_TEMPLATE(ecmod, addmod_public);
-BENCHMARK_TEMPLATE(ecmod, addmod_simple);
-BENCHMARK_TEMPLATE(ecmod, addmod_prenormalize);
-BENCHMARK_TEMPLATE(ecmod, addmod_daosvik_v1);
-BENCHMARK_TEMPLATE(ecmod, addmod_daosvik_v2);
-BENCHMARK_TEMPLATE(ecmod, mulmod);
+BENCHMARK(ecmod<addmod_public>);
+BENCHMARK(ecmod<addmod_simple>);
+BENCHMARK(ecmod<addmod_prenormalize>);
+BENCHMARK(ecmod<addmod_daosvik_v1>);
+BENCHMARK(ecmod<addmod_daosvik_v2>);
+BENCHMARK(ecmod<mulmod>);
 
 
 template <unsigned N>
@@ -182,22 +200,22 @@ void binop(benchmark::State& state)
         }
     }
 }
-BENCHMARK_TEMPLATE(binop, uint256, uint256, add);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, inline_add);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, sub);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, inline_sub);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, public_mul);
-BENCHMARK_TEMPLATE(binop, uint256, uint256, gmp::mul);
+BENCHMARK(binop<uint256, uint256, add>);
+BENCHMARK(binop<uint256, uint256, inline_add>);
+BENCHMARK(binop<uint256, uint256, sub>);
+BENCHMARK(binop<uint256, uint256, inline_sub>);
+BENCHMARK(binop<uint256, uint256, public_mul>);
+BENCHMARK(binop<uint256, uint256, gmp::mul>);
 
-BENCHMARK_TEMPLATE(binop, uint512, uint256, umul_);
-BENCHMARK_TEMPLATE(binop, uint512, uint256, gmp::mul_full);
+BENCHMARK(binop<uint512, uint256, umul_>);
+BENCHMARK(binop<uint512, uint256, gmp::mul_full>);
 
-BENCHMARK_TEMPLATE(binop, uint512, uint512, add);
-BENCHMARK_TEMPLATE(binop, uint512, uint512, inline_add);
-BENCHMARK_TEMPLATE(binop, uint512, uint512, sub);
-BENCHMARK_TEMPLATE(binop, uint512, uint512, inline_sub);
-BENCHMARK_TEMPLATE(binop, uint512, uint512, public_mul);
-BENCHMARK_TEMPLATE(binop, uint512, uint512, gmp::mul);
+BENCHMARK(binop<uint512, uint512, add>);
+BENCHMARK(binop<uint512, uint512, inline_add>);
+BENCHMARK(binop<uint512, uint512, sub>);
+BENCHMARK(binop<uint512, uint512, inline_sub>);
+BENCHMARK(binop<uint512, uint512, public_mul>);
+BENCHMARK(binop<uint512, uint512, gmp::mul>);
 
 template <unsigned N>
 [[gnu::noinline]] intx::uint<N> shl_public(const intx::uint<N>& x, const uint64_t& y) noexcept
@@ -335,15 +353,15 @@ void shift(benchmark::State& state)
         }
     }
 }
-BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_public)->DenseRange(-1, 3);
-BENCHMARK_TEMPLATE(shift, uint256, uint256, shl_halves)->DenseRange(-1, 3);
-BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_public)->DenseRange(-1, 3);
-BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_halves)->DenseRange(-1, 3);
+BENCHMARK(shift<uint256, uint256, shl_public>)->DenseRange(-1, 3);
+BENCHMARK(shift<uint256, uint256, shl_halves>)->DenseRange(-1, 3);
+BENCHMARK(shift<uint256, uint64_t, shl_public>)->DenseRange(-1, 3);
+BENCHMARK(shift<uint256, uint64_t, shl_halves>)->DenseRange(-1, 3);
 #if INTX_HAS_EXTINT
-BENCHMARK_TEMPLATE(shift, uint256, uint64_t, shl_llvm)->DenseRange(-1, 3);
+BENCHMARK(shift<uint256, uint64_t, shl_llvm>)->DenseRange(-1, 3);
 #endif
-BENCHMARK_TEMPLATE(shift, uint512, uint512, shl_public)->DenseRange(-1, 3);
-BENCHMARK_TEMPLATE(shift, uint512, uint64_t, shl_public)->DenseRange(-1, 3);
+BENCHMARK(shift<uint512, uint512, shl_public>)->DenseRange(-1, 3);
+BENCHMARK(shift<uint512, uint64_t, shl_public>)->DenseRange(-1, 3);
 
 [[gnu::noinline]] bool lt_public(const uint256& x, const uint256& y) noexcept
 {
@@ -461,15 +479,15 @@ void compare(benchmark::State& state)
         }
     }
 }
-BENCHMARK_TEMPLATE(compare, lt_public)->DenseRange(0, 256, 64);
-BENCHMARK_TEMPLATE(compare, lt_sub)->DenseRange(0, 256, 64);
-BENCHMARK_TEMPLATE(compare, lt_split)->DenseRange(0, 256, 64);
-BENCHMARK_TEMPLATE(compare, lt_wordcmp)->DenseRange(0, 256, 64);
-BENCHMARK_TEMPLATE(compare, lt_ne)->DenseRange(0, 256, 64);
-BENCHMARK_TEMPLATE(compare, lt_ne2)->DenseRange(0, 256, 64);
-BENCHMARK_TEMPLATE(compare, lt_halves)->DenseRange(0, 256, 64);
+BENCHMARK(compare<lt_public>)->DenseRange(0, 256, 64);
+BENCHMARK(compare<lt_sub>)->DenseRange(0, 256, 64);
+BENCHMARK(compare<lt_split>)->DenseRange(0, 256, 64);
+BENCHMARK(compare<lt_wordcmp>)->DenseRange(0, 256, 64);
+BENCHMARK(compare<lt_ne>)->DenseRange(0, 256, 64);
+BENCHMARK(compare<lt_ne2>)->DenseRange(0, 256, 64);
+BENCHMARK(compare<lt_halves>)->DenseRange(0, 256, 64);
 #if INTX_HAS_EXTINT
-BENCHMARK_TEMPLATE(compare, lt_llvm)->DenseRange(0, 256, 64);
+BENCHMARK(compare<lt_llvm>)->DenseRange(0, 256, 64);
 #endif
 
 void exponentiation(benchmark::State& state)
@@ -555,9 +573,9 @@ void to_string(benchmark::State& state)
         }
     }
 }
-BENCHMARK_TEMPLATE(to_string, uint128);
-BENCHMARK_TEMPLATE(to_string, uint256);
-BENCHMARK_TEMPLATE(to_string, uint512);
+BENCHMARK(to_string<uint128>);
+BENCHMARK(to_string<uint256>);
+BENCHMARK(to_string<uint512>);
 
 
 template <typename Int>
@@ -586,9 +604,9 @@ void load_store_be(benchmark::State& state)
         store_be(unaligned_store_ptr, v);
     }
 }
-BENCHMARK_TEMPLATE(load_store_be, uint128);
-BENCHMARK_TEMPLATE(load_store_be, uint256);
-BENCHMARK_TEMPLATE(load_store_be, uint512);
+BENCHMARK(load_store_be<uint128>);
+BENCHMARK(load_store_be<uint256>);
+BENCHMARK(load_store_be<uint512>);
 }  // namespace
 
 BENCHMARK_MAIN();
