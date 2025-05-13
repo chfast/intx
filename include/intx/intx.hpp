@@ -13,6 +13,8 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>   // fputs
+#include <cstdlib>  // abort
 #include <cstring>
 #include <limits>
 #include <stdexcept>
