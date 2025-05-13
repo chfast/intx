@@ -46,6 +46,8 @@ TEST(div, normalize)
     EXPECT_EQ(na.divisor, v << 2);
 }
 
+namespace
+{
 template <typename Int>
 struct div_test_case
 {
@@ -55,7 +57,7 @@ struct div_test_case
     Int reminder;
 };
 
-constexpr div_test_case<uint512> div_test_cases[] = {
+const div_test_case<uint512> div_test_cases[] = {
     {2, 1, 2, 0},
     {
         0x10000000000000000_u512,
@@ -323,14 +325,10 @@ constexpr div_test_case<uint512> div_test_cases[] = {
         0x6dc100ea02272bdcf68a4a5b95f468f8_u128,
     },
 };
+}  // namespace
 
 TEST(div, udivrem_512)
 {
-    static_assert(std::ranges::all_of(div_test_cases, [](const auto& c) {
-        const auto [q, r] = udivrem(c.numerator, c.denominator);
-        return q == c.quotient && r == c.reminder;
-    }));
-
     for (auto& t : div_test_cases)
     {
         auto res = udivrem(t.numerator, t.denominator);
