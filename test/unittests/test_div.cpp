@@ -2,6 +2,7 @@
 // Copyright 2019-2020 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
+#include <experimental/div.hpp>
 #include <gtest/gtest.h>
 #include <intx/intx.hpp>
 
@@ -430,21 +431,6 @@ TEST(div, sdivrem_512)
     EXPECT_EQ(sdivrem(-n, d).rem, -1_u512);
     EXPECT_EQ(sdivrem(n, -d).quot, -4_u512);
     EXPECT_EQ(sdivrem(n, -d).rem, 1_u512);
-}
-
-inline uint64_t reciprocal_naive(uint64_t d) noexcept
-{
-    const auto u = uint128{~uint64_t{0}, ~d};
-    uint64_t v{};
-
-#if __x86_64__
-    uint64_t _{};
-    asm("divq %4" : "=d"(_), "=a"(v) : "d"(u[1]), "a"(u[0]), "g"(d));  // NOLINT(hicpp-no-assembler)
-#else
-    v = (u / d)[0];
-#endif
-
-    return v;
 }
 
 TEST(div, reciprocal)
