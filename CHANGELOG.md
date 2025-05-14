@@ -5,6 +5,29 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.13.0] — 2025-05-14
+
+## Added
+
+- Add support for C++20 spaceship operator `<=>`.
+  [#328](https://github.com/chfast/intx/pull/328)
+
+## Fixed
+
+- Build fixes for newer compilers and C++23:
+  - Assume word counts out of div normalization are not negative.
+    [#340](https://github.com/chfast/intx/pull/340)
+  - Add missing C header #include.
+    [#337](https://github.com/chfast/intx/pull/337)
+  - Don't specify deprecated float_denorm_style.
+    [#336](https://github.com/chfast/intx/pull/336)
+  - Drop constexpr tests for division.
+    [#335](https://github.com/chfast/intx/pull/335)
+  - Remove whitespace in literal operator declarations.
+    [#334](https://github.com/chfast/intx/pull/334)
+  - Remove redundant inline specifiers.
+    [#330](https://github.com/chfast/intx/pull/330)
+
 ## [0.12.1] — 2024-10-09
 
 ### Fixed
@@ -152,7 +175,7 @@ and this project adheres to [Semantic Versioning].
 - The `int128.hpp` and `intx.hpp` header files have been merged. Now the whole
   library is included in single [`intx/intx.hpp`](./include/intx/intx.hpp) file.
   [#242](https://github.com/chfast/intx/pull/242)
-- The `addmod()` implementation has optimized path for elliptic curve context.
+- The `addmod()` implementation has the optimized path for elliptic curve context.
   [#206](https://github.com/chfast/intx/pull/206)
 - The implementation of `operator==` now explicitly performs XOR folding.
   [#245](https://github.com/chfast/intx/pull/245)
@@ -164,7 +187,7 @@ and this project adheres to [Semantic Versioning].
 
 - **The internal representation of unsigned integers has been changed to be an array of 64-bit words. This provides types composed of any number of words** (e.g. `uint384`). 
   Previously only power-of-two numbers of words were allowed.
-  This is big change that affects implementation of many operators.
+  This is a big change that affects implementation of many operators.
   [#212](https://github.com/chfast/intx/pull/212)
   [#213](https://github.com/chfast/intx/pull/213)
 - Subtraction has been slightly rewritten to make it easier for compilers to optimize it.
@@ -200,7 +223,7 @@ and this project adheres to [Semantic Versioning].
 
 ### Changed
 
-- Converted to header-only library.
+- Converted to a header-only library.
   [#155](https://github.com/chfast/intx/pull/155)
   [#156](https://github.com/chfast/intx/pull/156)
 - Addition / subtraction optimizations.
@@ -250,11 +273,12 @@ and this project adheres to [Semantic Versioning].
 
 - Pedantic compiler warnings have been fixed.
   [#98](https://github.com/chfast/intx/pull/98)
-- Performance of the division algorithm increased up to 40% 
+- The performance of the division algorithm increased up to 40% 
   when dividing 256-bit values by 128-bit and 64-bit ones.
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.13.0]: https://github.com/chfast/intx/releases/v0.13.0
 [0.12.1]: https://github.com/chfast/intx/releases/v0.12.1
 [0.12.0]: https://github.com/chfast/intx/releases/v0.12.0
 [0.11.0]: https://github.com/chfast/intx/releases/v0.11.0
