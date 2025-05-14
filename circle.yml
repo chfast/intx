@@ -83,6 +83,44 @@ commands:
           name: "Install"
           command: cmake --build ~/build --target install
 
+  windows_build_and_test:
+    description: "Build & Test with MSVC on Windows"
+    parameters:
+      arch:
+        type: string
+      build_type:
+        type: string
+    steps:
+      - checkout
+      - run:
+          name: "Setup environment (bash)"
+          shell: bash
+          command: |
+            echo 'export PATH=$PATH:"/c/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin"' >> $BASH_ENV
+      - run:
+          name: 'Configure'
+          shell: powershell
+          command: |
+            $ErrorActionPreference = "Stop"
+            & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch <<parameters.arch>>
+            cmake --version
+            cmake -S . -B ~/build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=TRUE -DCMAKE_INSTALL_PREFIX=C:\install -DCMAKE_BUILD_TYPE=<<parameters.build_type>> -DHUNTER_CONFIGURATION_TYPES=<<parameters.build_type>> -DINTX_BENCHMARKING=OFF
+      - run:
+          name: 'Build'
+          shell: powershell
+          command: |
+            $ErrorActionPreference = "Stop"
+            & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch <<parameters.arch>>
+            cmake --build ~/build
+      - run:
+          name: 'Test'
+          shell: powershell
+          working_directory: ~/build
+          command: |
+            $ErrorActionPreference = "Stop"
+            & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch <<parameters.arch>>
+            ctest -j4 --output-on-failure --schedule-random
+
   benchmark:
     description: "Benchmark"
     steps:
@@ -287,35 +325,23 @@ jobs:
   windows-32bit:
     executor: win/server-2022
     steps:
-      - checkout
-      - run:
-          name: "Setup environment (bash)"
-          shell: bash
-          command: |
-            echo 'export PATH=$PATH:"/c/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin"' >> $BASH_ENV
-      - run:
-          name: 'Configure'
-          shell: powershell
-          command: |
-            $ErrorActionPreference = "Stop"
-            & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch x86
-            cmake --version
-            cmake -S . -B ~/build -G Ninja -DCMAKE_COMPILE_WARNING_AS_ERROR=TRUE -DCMAKE_INSTALL_PREFIX=C:\install -DCMAKE_BUILD_TYPE=Release -DINTX_BENCHMARKING=OFF
-      - run:
-          name: 'Build'
-          shell: powershell
-          command: |
-            $ErrorActionPreference = "Stop"
-            & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch x86
-            cmake --build ~/build
-      - run:
-          name: 'Test'
-          shell: powershell
-          working_directory: ~/build
-          command: |
-            $ErrorActionPreference = "Stop"
-            & 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1' -Arch x86
-            ctest -j4 --output-on-failure --schedule-random
+      - windows_build_and_test:
+          arch: x86
+          build_type: Release
+
+  windows-debug:
+    executor: win/server-2022
+    steps:
+      - windows_build_and_test:
+          arch: amd64
+          build_type: Debug
+
+  windows-release:
+    executor: win/server-2022
+    steps:
+      - windows_build_and_test:
+          arch: amd64
+          build_type: Release
 
   cmake-min:
     docker:
@@ -345,3 +371,5 @@ workflows:
       - arm64
       - powerpc64
       - windows-32bit
+      - windows-debug
+      - windows-release
