@@ -1502,6 +1502,8 @@ template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
     auto na = internal::normalize(u, v);
+    INTX_REQUIRE(na.num_divisor_words > 0);
+    INTX_REQUIRE(na.num_numerator_words >= 0);
 
     if (na.num_numerator_words <= na.num_divisor_words)
         return {0, static_cast<uint<N>>(u)};
