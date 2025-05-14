@@ -3,6 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #include <benchmark/benchmark.h>
+#include <experimental/div.hpp>
 #include <intx/intx.hpp>
 #include <test/utils/random.hpp>
 
@@ -54,26 +55,11 @@ void div_normalize(benchmark::State& state)
         benchmark::DoNotOptimize(x);
     }
 }
-BENCHMARK_TEMPLATE(div_normalize, internal::normalize);
+BENCHMARK(div_normalize<internal::normalize>);
 
 constexpr uint64_t neg(uint64_t x) noexcept
 {
     return ~x;
-}
-
-inline uint64_t reciprocal_naive(uint64_t d) noexcept
-{
-    const auto u = uint128{~uint64_t{0}, ~d};
-    uint64_t v{};
-
-#if __x86_64__
-    uint64_t _{};
-    asm("divq %4" : "=d"(_), "=a"(v) : "d"(u[1]), "a"(u[0]), "g"(d));  // NOLINT(hicpp-no-assembler)
-#else
-    v = (u / d)[0];
-#endif
-
-    return v;
 }
 
 template <typename T, uint64_t Fn(T)>
