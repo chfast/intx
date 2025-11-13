@@ -459,6 +459,14 @@ constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
     return {lo, hi};
 }
 
+constexpr uint64_t bit_test(uint64_t x, size_t bit_index) noexcept
+{
+    // This pattern matches BT instruction on x86.
+    // On architectures without dedicated instruction,
+    // this is likely converted to (x >> bit_index) & 1.
+    return (x & (uint64_t{1} << bit_index)) != 0;
+}
+
 constexpr unsigned clz(std::unsigned_integral auto x) noexcept
 {
     return static_cast<unsigned>(std::countl_zero(x));
@@ -1268,6 +1276,14 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
         exponent >>= 1;
     }
     return result;
+}
+
+template <unsigned N>
+constexpr bool bit_test(const uint<N>& x, size_t bit_index) noexcept
+{
+    const auto w = x[bit_index / uint<N>::word_num_bits];
+    const auto b = bit_index % uint<N>::word_num_bits;
+    return bit_test(w, b);
 }
 
 template <unsigned N>
