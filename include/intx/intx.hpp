@@ -27,21 +27,16 @@
     #pragma warning(disable : 5030)  // Allow unknown attributes.
 #endif
 
-
 #ifndef __has_builtin
     #define __has_builtin(NAME) 0
 #endif
 
+#ifndef __has_feature
+    #define __has_feature(NAME) 0
+#endif
+
 #ifdef _MSC_VER
     #include <intrin.h>
-#endif
-
-#if !defined(__has_builtin)
-    #define __has_builtin(NAME) 0
-#endif
-
-#if !defined(__has_feature)
-    #define __has_feature(NAME) 0
 #endif
 
 #if __has_builtin(__builtin_expect)
@@ -50,7 +45,7 @@
     #define INTX_UNLIKELY(EXPR) (bool{EXPR})
 #endif
 
-#if !defined(NDEBUG)
+#ifndef NDEBUG
     #define INTX_REQUIRE assert
 #else
     #define INTX_REQUIRE(X) (X) ? (void)0 : intx::unreachable()
@@ -58,7 +53,7 @@
 
 
 // Detect compiler support for 128-bit integer __int128
-#if defined(__SIZEOF_INT128__)
+#ifdef __SIZEOF_INT128__
     #define INTX_HAS_BUILTIN_INT128 1
 #else
     #define INTX_HAS_BUILTIN_INT128 0
