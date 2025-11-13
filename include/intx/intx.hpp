@@ -1498,27 +1498,29 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
 {
     auto na = internal::normalize(u, v);
     INTX_REQUIRE(na.num_divisor_words > 0);
+    INTX_REQUIRE(na.num_divisor_words <= static_cast<int>(uint<N>::num_words));
     INTX_REQUIRE(na.num_numerator_words >= 0);
+    INTX_REQUIRE(na.num_numerator_words <= static_cast<int>(uint<M>::num_words) + 1);
 
     if (na.num_numerator_words <= na.num_divisor_words)
         return {0, static_cast<uint<N>>(u)};
 
+    auto un = as_words(na.numerator);  // Will be modified.
+
+    static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
     if (na.num_divisor_words == 1)
     {
-        const auto r = internal::udivrem_by1(
-            as_words(na.numerator), na.num_numerator_words, as_words(na.divisor)[0]);
+        const auto r = internal::udivrem_by1(un, na.num_numerator_words, na.divisor[0]);
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
     if (na.num_divisor_words == 2)
     {
-        const auto d = as_words(na.divisor);
         const auto r =
-            internal::udivrem_by2(as_words(na.numerator), na.num_numerator_words, {d[0], d[1]});
+            internal::udivrem_by2(un, na.num_numerator_words, static_cast<uint128>(na.divisor));
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
-    auto un = as_words(na.numerator);  // Will be modified.
 
     uint<M> q;
     internal::udivrem_knuth(

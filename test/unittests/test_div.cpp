@@ -480,3 +480,12 @@ TEST(div, reciprocal_table)
     EXPECT_EQ(internal::reciprocal_table[0], 2045);
     EXPECT_EQ(internal::reciprocal_table[0xff], 1024);
 }
+
+TEST(div, by128)
+{
+    // This udivrem() was causing Clang and GCC analyzer failures during compilation
+    // of the division dead branch (divisor words > 2).
+    const auto x = uint320{1};
+    const auto y = uint128{2};
+    EXPECT_EQ(udivrem(x, y).rem, 1);
+}
