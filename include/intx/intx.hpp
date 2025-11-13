@@ -437,19 +437,19 @@ constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
         const auto lo = _umul128(x, y, &hi);
         return {lo, hi};
     }
-    // For constexpr fallback to portable variant.
+    // For constexpr fallback to the portable variant.
 #endif
 
     // Portable full unsigned multiplication 64 x 64 -> 128.
-    uint64_t xl = x & 0xffffffff;
-    uint64_t xh = x >> 32;
-    uint64_t yl = y & 0xffffffff;
-    uint64_t yh = y >> 32;
+    uint64_t xlo = x & 0xffffffff;
+    uint64_t xhi = x >> 32;
+    uint64_t ylo = y & 0xffffffff;
+    uint64_t yhi = y >> 32;
 
-    uint64_t t0 = xl * yl;
-    uint64_t t1 = xh * yl;
-    uint64_t t2 = xl * yh;
-    uint64_t t3 = xh * yh;
+    uint64_t t0 = xlo * ylo;
+    uint64_t t1 = xhi * ylo;
+    uint64_t t2 = xlo * yhi;
+    uint64_t t3 = xhi * yhi;
 
     uint64_t u1 = t1 + (t0 >> 32);
     uint64_t u2 = t2 + (u1 & 0xffffffff);
