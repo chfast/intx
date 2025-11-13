@@ -43,6 +43,14 @@ static_assert(clz(uint256{1}) == 255);
 static_assert(clz(uint512{0}) == 512);
 static_assert(clz(uint512{1}) == 511);
 
+static_assert(ctz(uint128{0}) == 128);
+static_assert(ctz(uint128{1}) == 0);
+static_assert(ctz(uint128{2}) == 1);
+static_assert(ctz(uint128{0xff} << 70) == 70);
+static_assert(ctz(uint256{0}) == 256);
+static_assert(ctz(uint256{1}) == 0);
+static_assert(ctz(uint256{1} << 255) == 255);
+
 TEST(uint256, div)
 {
     uint256 a = 10001;
@@ -401,4 +409,18 @@ TYPED_TEST(uint_api, explicit_conversion_to_integral_type)
     EXPECT_EQ(static_cast<signed long long>(y), -2);
     EXPECT_EQ(static_cast<unsigned long long>(x), 3u);
     EXPECT_EQ(static_cast<unsigned long long>(y), 0xfffffffffffffffe);
+}
+
+TYPED_TEST(uint_api, ctz)
+{
+    auto x = TypeParam{};
+    EXPECT_EQ(ctz(x), TypeParam::num_bits);
+    x = 1;
+    EXPECT_EQ(ctz(x), 0);
+    x <<= 64;
+    EXPECT_EQ(ctz(x), 64);
+    x = 0xff;
+    EXPECT_EQ(ctz(x), 0);
+    x <<= TypeParam::num_bits - 1;
+    EXPECT_EQ(ctz(x), TypeParam::num_bits - 1);
 }

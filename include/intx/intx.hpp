@@ -464,9 +464,14 @@ constexpr unsigned clz(std::unsigned_integral auto x) noexcept
     return static_cast<unsigned>(std::countl_zero(x));
 }
 
+constexpr unsigned ctz(std::unsigned_integral auto x) noexcept
+{
+    return static_cast<unsigned>(std::countr_zero(x));
+}
+
 constexpr unsigned clz(uint128 x) noexcept
 {
-    // In this order `h == 0` we get less instructions than in case of `h != 0`.
+    // In this order `h == 0` we get fewer instructions than in the case of `h != 0`.
     return x[1] == 0 ? clz(x[0]) + 64 : clz(x[1]);
 }
 
@@ -1296,6 +1301,17 @@ constexpr unsigned clz(const uint<N>& x) noexcept
     if (s == 0)
         return num_words * 64;
     return clz(x[s - 1]) + (num_words - s) * 64;
+}
+
+template <unsigned N>
+constexpr unsigned ctz(const uint<N>& x) noexcept
+{
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+    {
+        if (x[i] != 0)
+            return static_cast<unsigned>(i * uint<N>::word_num_bits) + ctz(x[i]);
+    }
+    return uint<N>::num_bits;
 }
 
 namespace internal
