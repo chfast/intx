@@ -424,3 +424,18 @@ TYPED_TEST(uint_api, ctz)
     x <<= TypeParam::num_bits - 1;
     EXPECT_EQ(ctz(x), TypeParam::num_bits - 1);
 }
+
+TYPED_TEST(uint_api, bit_test)
+{
+    auto x = TypeParam{};
+    EXPECT_EQ(bit_test(x, 0), 0);
+    EXPECT_EQ(bit_test(x, TypeParam::num_bits - 1), 0);
+    x = 1;
+    EXPECT_EQ(bit_test(x, 0), 1);
+    EXPECT_EQ(bit_test(x, 1), 0);
+    EXPECT_EQ(bit_test(x, TypeParam::num_bits - 1), 0);
+    x = ~x;
+    EXPECT_EQ(bit_test(x, 0), 0);
+    EXPECT_EQ(bit_test(x, 1), 1);
+    EXPECT_EQ(bit_test(x, TypeParam::num_bits - 1), 1);
+}
