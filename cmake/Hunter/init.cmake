@@ -6,13 +6,13 @@ set(HUNTER_CONFIGURATION_TYPES Release CACHE STRING "Build type of the Hunter pa
 set(HUNTER_USE_CACHE_SERVERS NO CACHE STRING "Use Hunter cache servers")
 
 file(
-    DOWNLOAD https://raw.githubusercontent.com/cpp-pm/gate/v0.10.0/cmake/HunterGate.cmake
+    DOWNLOAD https://raw.githubusercontent.com/cpp-pm/gate/v0.11.0/cmake/HunterGate.cmake
     ${INTX_DEPS_DOWNLOAD_DIR}/HunterGate.cmake
-    EXPECTED_HASH SHA256=3da4dcd5dca35679d6c822c0ac23b7b91d86d481f838bad4baca88410b4bde72
+    EXPECTED_HASH SHA256=ad0f10e9d759826b1b564df833d7db743c34ed60515499b77f5e98f9d09d355a
 )
 include(${INTX_DEPS_DOWNLOAD_DIR}/HunterGate.cmake)
 
 HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.25.6.tar.gz"
-    SHA1 "69e4a05bd514bb05cb2c5aa02ce8ac420516aaf7"
+    URL "https://github.com/cpp-pm/hunter/archive/v0.26.6.tar.gz"
+    SHA1 "e70c29f878f5d5f5cdf1b9ccd628fb872e8624a8"
 )
