@@ -54,7 +54,7 @@ inline std::vector<uint64_t> gen_uniform_seq(size_t num)
 /// may be increased if that's over better samples distribution.
 constexpr size_t num_samples = 256;
 
-enum samples_set_id
+enum samples_set_id  // NOLINT(*-use-enum-class)
 {
     x_64,         ///< Set of random samples with ~64 (1 word) significant bits.
     x_128,        ///< Set of random samples with ~128 (2 words) significant bits.
