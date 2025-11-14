@@ -176,6 +176,14 @@ jobs:
       - run:
           name: "Inspect package"
           command: tar tvf ~/build/intx*.tar.gz
+      - run:
+          name: "Install conan"
+          command: |
+            sudo pip install --break-system-packages conan
+            conan profile detect
+      - run:
+          name: "Build conan package"
+          command: conan create . -s:a=compiler.cppstd=20
 
   linux-gcc-coverage:
     environment:
