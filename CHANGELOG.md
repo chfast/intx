@@ -5,6 +5,22 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.14.0] — 2025-11-14
+
+### Added
+
+- Add `ctz()` (count trailing zeros).
+  [#350](https://github.com/chfast/intx/pull/350)
+- Add `bit_test()`.
+  [#351](https://github.com/chfast/intx/pull/351)
+- Add support for [Conan](https://conan.io) package manager.
+  [#352](https://github.com/chfast/intx/pull/352)
+
+### Fixed
+- Fix `udivrem` dead branch causing static analysis failures
+  [#349](https://github.com/chfast/intx/pull/349)
+
+
 ## [0.13.0] — 2025-05-14
 
 ## Added
@@ -278,6 +294,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.14.0]: https://github.com/chfast/intx/releases/v0.14.0
 [0.13.0]: https://github.com/chfast/intx/releases/v0.13.0
 [0.12.1]: https://github.com/chfast/intx/releases/v0.12.1
 [0.12.0]: https://github.com/chfast/intx/releases/v0.12.0
