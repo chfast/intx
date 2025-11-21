@@ -4,12 +4,12 @@ from conan.tools.files import copy
 
 class IntxConan(ConanFile):
     name = "intx"
-    version = "0.13.0"
-    description = "Extended precision integer C++ library"
+    version = "0.14.0"
+    description = "High‑performance multiprecision integer library for C++"
     url = "https://github.com/intx/intx"
     license = "Apache-2.0"
-    topics = ("integer", "arbitrary-precision", "extended-precision", "biginteger",
-              "uint128", "uint256", "uint512")
+    topics = ("integer", "multiprecision", "arbitrary-precision", "extended-precision",
+              "biginteger", "uint128", "uint256", "uint512")
 
     package_type = "header-library"
     exports_sources = "include/*"

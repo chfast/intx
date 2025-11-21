@@ -1,9 +1,10 @@
 # intx
 
 [![readme style: standard][readme style standard badge]][standard readme]
+[![Conan Center](https://img.shields.io/conan/v/intx)](https://conan.io/center/recipes/intx)
 [![GitPOAP Badge](https://public-api.gitpoap.io/v1/repo/chfast/intx/badge)](https://www.gitpoap.io/gh/chfast/intx)
 
-Extended precision integer C++ library
+High‑performance multiprecision integer library for C++
 
 The intx header-only C++20 library provides allocation-free extended precision
 integer types. They are implemented as arrays of `std::uint64_t` words
