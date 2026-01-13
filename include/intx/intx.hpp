@@ -891,6 +891,12 @@ public:
             words_[i] = x[i];
     }
 
+    #if INTX_HAS_BUILTIN_INT128
+    constexpr explicit(false) uint(builtin_uint128 x) noexcept
+      : words_{uint64_t(x), uint64_t(x >> 64)}
+    {}
+    #endif
+
     template <typename... T>
     constexpr explicit(false) uint(T... v) noexcept
         requires std::conjunction_v<std::is_convertible<T, uint64_t>...>
