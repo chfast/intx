@@ -226,3 +226,17 @@ TEST(uint256, mulmod)
     const auto b = 0x8c9f09b6227ba6542a97343c679e1d11d8bfa29228c18615c2_u256;
     EXPECT_EQ(mulmod(a, b, mod), 0xca283039a2ad0dbd3d60fbadb29e9c7a_u128);
 }
+
+#if INTX_HAS_BUILTIN_INT128
+TEST(uint256, conversion_from_builtin_uint128)
+{
+    const builtin_uint128 x = (builtin_uint128{1} << 64) | builtin_uint128{2};
+
+    const auto a = uint256{x};
+    const auto b = static_cast<uint256>(x);
+    const auto expected = uint256{uint64_t{2}, uint64_t{1}};
+
+    EXPECT_EQ(a, expected);
+    EXPECT_EQ(b, expected);
+}
+#endif
