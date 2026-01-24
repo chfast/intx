@@ -43,6 +43,13 @@ static_assert(clz(uint256{1}) == 255);
 static_assert(clz(uint512{0}) == 512);
 static_assert(clz(uint512{1}) == 511);
 
+static_assert(bit_width(uint128{0}) == 0);
+static_assert(bit_width(uint128{1}) == 1);
+static_assert(bit_width(uint128{2}) == 2);
+static_assert(bit_width(uint256{0}) == 0);
+static_assert(bit_width(uint256{1}) == 1);
+static_assert(bit_width(uint256{1} << 255) == 256);
+
 static_assert(ctz(uint128{0}) == 128);
 static_assert(ctz(uint128{1}) == 0);
 static_assert(ctz(uint128{2}) == 1);
