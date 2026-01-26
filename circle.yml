@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  codecov: codecov/codecov@5.0.3
+  codecov: codecov/codecov@5.4.3
   win: circleci/windows@5.0
 
 executors:
@@ -151,6 +151,7 @@ commands:
     steps:
       - codecov/upload:
           plugins: noop
+          disable_search: true
           files: ../build/coverage.json
           flags: <<parameters.flags>>
 
