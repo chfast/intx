@@ -477,6 +477,14 @@ constexpr unsigned ctz(std::unsigned_integral auto x) noexcept
     return static_cast<unsigned>(std::countr_zero(x));
 }
 
+/// Counts the number of bits needed to represent the value. For 0 returns 0.
+///
+/// This works like std::bit_width, but returns unsigned.
+constexpr unsigned bit_width(std::unsigned_integral auto x) noexcept
+{
+    return static_cast<unsigned>(std::numeric_limits<decltype(x)>::digits) - clz(x);
+}
+
 constexpr unsigned clz(uint128 x) noexcept
 {
     // In this order `h == 0` we get fewer instructions than in the case of `h != 0`.
@@ -1334,6 +1342,13 @@ constexpr unsigned ctz(const uint<N>& x) noexcept
             return static_cast<unsigned>(i * uint<N>::word_num_bits) + ctz(x[i]);
     }
     return uint<N>::num_bits;
+}
+
+/// Counts the number of bits needed to represent the value. For 0 returns 0.
+template <unsigned N>
+constexpr unsigned bit_width(const uint<N>& x) noexcept
+{
+    return uint<N>::num_bits - clz(x);
 }
 
 namespace internal

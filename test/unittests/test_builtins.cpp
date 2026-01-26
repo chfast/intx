@@ -29,6 +29,14 @@ static_assert(!subc(0, 0).carry);
 static_assert(subc(0, 1).value == 0xffffffffffffffff);
 static_assert(subc(0, 1).carry);
 
+TEST(builtins, bit_width_uint64)
+{
+    EXPECT_EQ(bit_width(uint64_t{0}), 0u);
+    EXPECT_EQ(bit_width(uint64_t{1}), 1u);
+    EXPECT_EQ(bit_width(uint64_t{2}), 2u);
+    EXPECT_EQ(bit_width(uint64_t{0x8000000000000000}), 64u);
+}
+
 TEST(builtins, count_significant_bytes)
 {
     static_assert(count_significant_bytes(0) == 0);
