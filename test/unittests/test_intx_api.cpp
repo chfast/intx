@@ -85,6 +85,38 @@ TYPED_TEST(uint_api, constructor)
     EXPECT_EQ(x, z);
 }
 
+TYPED_TEST(uint_api, span_constructor_full)
+{
+    const uint64_t words[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    const std::span<const uint64_t> words_span(words, TypeParam::num_words);
+    const TypeParam value{words_span};
+
+    for (size_t i = 0; i < words_span.size(); ++i)
+    {
+        EXPECT_EQ(value[i], words[i]);
+    }
+}
+
+TYPED_TEST(uint_api, span_constructor_empty)
+{
+    const std::span<const uint64_t> empty_span;
+    const TypeParam value{empty_span};
+    EXPECT_EQ(value, 0);
+}
+
+TYPED_TEST(uint_api, span_constructor_partial)
+{
+    const uint64_t words[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    const std::span<const uint64_t> words_span(words, TypeParam::num_words - 1);
+    const TypeParam value{words_span};
+
+    for (size_t i = 0; i < words_span.size(); ++i)
+    {
+        EXPECT_EQ(value[i], words[i]);
+    }
+    EXPECT_EQ(value[TypeParam::num_words - 1], 0u);
+}
+
 TYPED_TEST(uint_api, arithmetic)
 {
     int a = 0;
