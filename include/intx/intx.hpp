@@ -1282,12 +1282,11 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
     if (base == 2)
         return result << exponent;
 
-    while (exponent != 0)
+    for (size_t i = bit_width(exponent); i > 0; --i)
     {
-        if ((exponent & 1) != 0)
+        result *= result;
+        if (bit_test(exponent, i - 1))
             result *= base;
-        base *= base;
-        exponent >>= 1;
     }
     return result;
 }
