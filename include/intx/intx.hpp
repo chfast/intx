@@ -813,7 +813,7 @@ constexpr Int from_string(const char* str)
     auto x = Int{};
     int num_digits = 0;
 
-    if (s[0] == '0' && s[1] == 'x')
+    if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
     {
         s += 2;
         while (const auto c = *s++)
