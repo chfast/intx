@@ -790,19 +790,19 @@ template <typename T>
 #endif
 }
 
-constexpr int from_dec_digit(char c)
+constexpr uint8_t from_dec_digit(char c)
 {
     if (c < '0' || c > '9')
         throw_<std::invalid_argument>("invalid digit");
-    return c - '0';
+    return static_cast<uint8_t>(c - '0');
 }
 
-constexpr int from_hex_digit(char c)
+constexpr uint8_t from_hex_digit(char c)
 {
     if (c >= 'a' && c <= 'f')
-        return c - ('a' - 10);
+        return static_cast<uint8_t>(c - ('a' - 10));
     if (c >= 'A' && c <= 'F')
-        return c - ('A' - 10);
+        return static_cast<uint8_t>(c - ('A' - 10));
     return from_dec_digit(c);
 }
 
