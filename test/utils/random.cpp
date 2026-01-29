@@ -16,17 +16,17 @@ std::array<uint512, num_samples> samples_512[y_512 - x_64 + 1];
 std::array<uint64_t, num_samples> samples_shift_w[4];
 std::array<uint64_t, num_samples> samples_shift_mixed;
 
-uint64_t* as_words(uint64_t& x) noexcept
+std::span<uint64_t, 1> as_words(uint64_t& x) noexcept
 {
-    return &x;
+    return std::span<uint64_t, 1>{&x, 1};
 }
 
 bool init() noexcept
 {
     std::mt19937_64 rng{0};  // NOLINT(cert-msc51-cpp,cert-msc32-c)
 
-    const auto gen_int = [&rng](auto& out, int num_significant_words) noexcept {
-        std::generate_n(as_words(out), num_significant_words,
+    const auto gen_int = [&rng](auto& out, size_t num_significant_words) noexcept {
+        std::ranges::generate(as_words(out).subspan(0, num_significant_words),
             [&rng] { return std::uniform_int_distribution<uint64_t>{}(rng); });
     };
 

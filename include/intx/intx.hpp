@@ -1235,26 +1235,16 @@ constexpr bool slt(const uint<N>& x, const uint<N>& y) noexcept
 }
 
 
-constexpr uint64_t* as_words(uint128& x) noexcept
+template <unsigned N>
+constexpr std::span<uint64_t, uint<N>::num_words> as_words(uint<N>& x) noexcept
 {
-    return &x[0];
-}
-
-constexpr const uint64_t* as_words(const uint128& x) noexcept
-{
-    return &x[0];
+    return std::span<uint64_t, uint<N>::num_words>{&x[0], uint<N>::num_words};
 }
 
 template <unsigned N>
-constexpr uint64_t* as_words(uint<N>& x) noexcept
+constexpr std::span<const uint64_t, uint<N>::num_words> as_words(const uint<N>& x) noexcept
 {
-    return &x[0];
-}
-
-template <unsigned N>
-constexpr const uint64_t* as_words(const uint<N>& x) noexcept
-{
-    return &x[0];
+    return std::span<const uint64_t, uint<N>::num_words>{&x[0], uint<N>::num_words};
 }
 
 template <typename T>
@@ -1393,12 +1383,12 @@ template <unsigned M, unsigned N>
     constexpr auto num_numerator_words = uint<M>::num_words;
     constexpr auto num_denominator_words = uint<N>::num_words;
 
-    auto* u = as_words(numerator);
-    auto* v = as_words(denominator);
+    const auto u = as_words(numerator);
+    const auto v = as_words(denominator);
 
     normalized_div_args<M, N> na;
-    auto* un = as_words(na.numerator);
-    auto* vn = as_words(na.divisor);
+    const auto un = as_words(na.numerator);
+    const auto vn = as_words(na.divisor);
 
     auto& m = na.num_numerator_words;
     for (m = num_numerator_words; m > 0 && u[m - 1] == 0; --m)
@@ -1575,26 +1565,26 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     if (na.num_numerator_words <= na.num_divisor_words)
         return {0, static_cast<uint<N>>(u)};
 
-    auto un = as_words(na.numerator);  // Will be modified.
+    const auto un = as_words(na.numerator);  // Will be modified.
 
     static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
     if (na.num_divisor_words == 1)
     {
-        const auto r = internal::udivrem_by1(un, na.num_numerator_words, na.divisor[0]);
+        const auto r = internal::udivrem_by1(un.data(), na.num_numerator_words, na.divisor[0]);
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
     if (na.num_divisor_words == 2)
     {
-        const auto r =
-            internal::udivrem_by2(un, na.num_numerator_words, static_cast<uint128>(na.divisor));
+        const auto r = internal::udivrem_by2(
+            un.data(), na.num_numerator_words, static_cast<uint128>(na.divisor));
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
 
     uint<M> q;
-    internal::udivrem_knuth(
-        as_words(q), &un[0], na.num_numerator_words, as_words(na.divisor), na.num_divisor_words);
+    internal::udivrem_knuth(as_words(q).data(), un.data(), na.num_numerator_words,
+        as_words(na.divisor).data(), na.num_divisor_words);
 
     uint<N> r;
     auto rw = as_words(r);
