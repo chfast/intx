@@ -17,6 +17,7 @@
 #include <cstdlib>  // abort
 #include <cstring>
 #include <limits>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -227,6 +228,14 @@ public:
         requires std::is_convertible_v<T, uint64_t>
       : words_{static_cast<uint64_t>(x), 0}
     {}
+
+    /// Constructs from words with words[0] being the least significant word.
+    /// The size of the span must be less than or equal to num_words.
+    constexpr explicit uint(std::span<const uint64_t> words) noexcept
+    {
+        INTX_REQUIRE(words.size() <= num_words);
+        std::ranges::copy(words, words_);
+    }
 
 #if INTX_HAS_BUILTIN_INT128
     constexpr explicit(false) uint(builtin_uint128 x) noexcept
@@ -910,6 +919,14 @@ public:
         requires std::conjunction_v<std::is_convertible<T, uint64_t>...>
       : words_{static_cast<uint64_t>(v)...}
     {}
+
+    /// Constructs from words with words[0] being the least significant word.
+    /// The size of the span must be less than or equal to num_words.
+    constexpr explicit uint(std::span<const uint64_t> words) noexcept
+    {
+        INTX_REQUIRE(words.size() <= num_words);
+        std::ranges::copy(words, words_);
+    }
 
     constexpr uint64_t& operator[](size_t i) noexcept { return words_[i]; }
 
