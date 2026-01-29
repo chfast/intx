@@ -811,14 +811,14 @@ constexpr Int from_string(const char* str)
 {
     auto s = str;
     auto x = Int{};
-    int num_digits = 0;
+    size_t num_digits = 0;
 
     if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
     {
         s += 2;
         while (const auto c = *s++)
         {
-            if (++num_digits > int{sizeof(x) * 2})
+            if (++num_digits > sizeof(x) * 2)
                 throw_<std::out_of_range>(str);
             x = (x << uint64_t{4}) | from_hex_digit(c);
         }
@@ -1364,8 +1364,8 @@ struct normalized_div_args  // NOLINT(cppcoreguidelines-pro-type-member-init)
 {
     uint<N> divisor;
     uint<M + 64> numerator;
-    int num_divisor_words;
-    int num_numerator_words;
+    size_t num_divisor_words;
+    size_t num_numerator_words;
     unsigned shift;
 };
 
@@ -1394,12 +1394,12 @@ template <unsigned M, unsigned N>
     na.shift = clz_nonzero(v[n - 1]);  // Use clz_nonzero() to avoid clang analyzer's warning.
     if (na.shift)
     {
-        for (int i = num_denominator_words - 1; i > 0; --i)
+        for (size_t i = num_denominator_words - 1; i != 0; --i)
             vn[i] = (v[i] << na.shift) | (v[i - 1] >> (64 - na.shift));
         vn[0] = v[0] << na.shift;
 
         un[num_numerator_words] = u[num_numerator_words - 1] >> (64 - na.shift);
-        for (int i = num_numerator_words - 1; i > 0; --i)
+        for (size_t i = num_numerator_words - 1; i != 0; --i)
             un[i] = (u[i] << na.shift) | (u[i - 1] >> (64 - na.shift));
         un[0] = u[0] << na.shift;
     }
@@ -1422,7 +1422,7 @@ template <unsigned M, unsigned N>
 /// @param len  The number of numerator words.
 /// @param d    The normalized divisor.
 /// @return     The remainder.
-constexpr uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
+constexpr uint64_t udivrem_by1(uint64_t u[], size_t len, uint64_t d) noexcept
 {
     INTX_REQUIRE(len >= 2);
 
@@ -1449,7 +1449,7 @@ constexpr uint64_t udivrem_by1(uint64_t u[], int len, uint64_t d) noexcept
 /// @param len  The number of numerator words.
 /// @param d    The normalized divisor.
 /// @return     The remainder.
-constexpr uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
+constexpr uint128 udivrem_by2(uint64_t u[], size_t len, uint128 d) noexcept
 {
     INTX_REQUIRE(len >= 3);
 
@@ -1471,26 +1471,26 @@ constexpr uint128 udivrem_by2(uint64_t u[], int len, uint128 d) noexcept
 }
 
 /// s = x + y.
-constexpr bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], int len) noexcept
+constexpr bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], size_t len) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
     INTX_REQUIRE(len >= 2);
 
     bool carry = false;
-    for (int i = 0; i < len; ++i)
+    for (size_t i = 0; i < len; ++i)
         std::tie(s[i], carry) = addc(x[i], y[i], carry);
     return carry;
 }
 
 /// r = x - multiplier * y.
 constexpr uint64_t submul(
-    uint64_t r[], const uint64_t x[], const uint64_t y[], int len, uint64_t multiplier) noexcept
+    uint64_t r[], const uint64_t x[], const uint64_t y[], size_t len, uint64_t multiplier) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
     INTX_REQUIRE(len >= 1);
 
     uint64_t borrow = 0;
-    for (int i = 0; i < len; ++i)
+    for (size_t i = 0; i < len; ++i)
     {
         const auto s = x[i] - borrow;
         const auto p = umul(y[i], multiplier);
@@ -1502,14 +1502,14 @@ constexpr uint64_t submul(
 }
 
 constexpr void udivrem_knuth(
-    uint64_t q[], uint64_t u[], int ulen, const uint64_t d[], int dlen) noexcept
+    uint64_t q[], uint64_t u[], size_t ulen, const uint64_t d[], size_t dlen) noexcept
 {
     INTX_REQUIRE(dlen >= 3);
-    INTX_REQUIRE(ulen >= dlen);
+    INTX_REQUIRE(ulen > dlen);
 
     const auto divisor = uint128{d[dlen - 2], d[dlen - 1]};
     const auto reciprocal = reciprocal_3by2(divisor);
-    for (int j = ulen - dlen - 1; j >= 0; --j)
+    for (size_t j = ulen - dlen - 1; true; --j)
     {
         const auto u2 = u[j + dlen];
         const auto u1 = u[j + dlen - 1];
@@ -1540,6 +1540,8 @@ constexpr void udivrem_knuth(
         }
 
         q[j] = qhat;  // Store quotient digit.
+        if (j == 0)   // Loop exit condition.
+            break;
     }
 }
 
@@ -1549,10 +1551,9 @@ template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
     auto na = internal::normalize(u, v);
-    INTX_REQUIRE(na.num_divisor_words > 0);
-    INTX_REQUIRE(na.num_divisor_words <= static_cast<int>(uint<N>::num_words));
-    INTX_REQUIRE(na.num_numerator_words >= 0);
-    INTX_REQUIRE(na.num_numerator_words <= static_cast<int>(uint<M>::num_words) + 1);
+    INTX_REQUIRE(na.num_divisor_words != 0);
+    INTX_REQUIRE(na.num_divisor_words <= uint<N>::num_words);
+    INTX_REQUIRE(na.num_numerator_words <= uint<M>::num_words + 1);
 
     if (na.num_numerator_words <= na.num_divisor_words)
         return {0, static_cast<uint<N>>(u)};
@@ -1580,7 +1581,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
 
     uint<N> r;
     auto rw = as_words(r);
-    for (int i = 0; i < na.num_divisor_words - 1; ++i)
+    for (size_t i = 0; i < na.num_divisor_words - 1; ++i)
         rw[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
     rw[na.num_divisor_words - 1] = un[na.num_divisor_words - 1] >> na.shift;
 
