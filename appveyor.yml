@@ -2,7 +2,7 @@ version: "{build}"
 image: Visual Studio 2019
 branches:
   only:
-    - master
+    - main
     - /release\/.*/
     - appveyor
     - hunter
