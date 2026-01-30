@@ -5,6 +5,34 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.15.0] — 2026-01-30
+
+## Added
+
+- Add `bit_width()` helper.
+  [#356](https://github.com/chfast/intx/pull/356)
+- Add `load()` and `store()` helpers with `std::span<uint8_t>` parameters.
+  [#366](https://github.com/chfast/intx/pull/366)
+- Add support for `0X` prefix to `from_string()`.
+  [#361](https://github.com/chfast/intx/pull/361)
+- Add constructor from `builtin_uint128` to avoid truncation.
+  [#355](https://github.com/chfast/intx/pull/355)
+- Add constructor from `std::span<uint64_t>`.
+  [#362](https://github.com/chfast/intx/pull/362)
+
+## Changed
+
+- Git default branch changed to `main`.
+- Optimize `exp()` by traversing exponent bits from the top.
+  [#357](https://github.com/chfast/intx/pull/357)
+- Change `as_words()` to return fixed-size `std::span<uint64_t>`.
+  [#364](https://github.com/chfast/intx/pull/364)
+- Add explicit implementations of assignment operators.
+  [#353](https://github.com/chfast/intx/pull/353)
+- Use `std::span` for division internals and helper procedures.
+  [#365](https://github.com/chfast/intx/pull/365)
+
+
 ## [0.14.0] — 2025-11-14
 
 ### Added
@@ -294,6 +322,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.15.0]: https://github.com/chfast/intx/releases/v0.15.0
 [0.14.0]: https://github.com/chfast/intx/releases/v0.14.0
 [0.13.0]: https://github.com/chfast/intx/releases/v0.13.0
 [0.12.1]: https://github.com/chfast/intx/releases/v0.12.1
