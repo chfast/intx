@@ -1424,25 +1424,23 @@ template <unsigned M, unsigned N>
 }
 
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
-/// @param u    The array of a normalized numerator words. It will contain
-///             the quotient after execution.
-/// @param len  The number of numerator words.
-/// @param d    The normalized divisor.
-/// @return     The remainder.
-constexpr uint64_t udivrem_by1(uint64_t u[], size_t len, uint64_t d) noexcept
+/// @param u  The normalized numerator words. It will contain the quotient after execution.
+/// @param d  The normalized divisor.
+/// @return   The remainder.
+constexpr uint64_t udivrem_by1(std::span<uint64_t> u, uint64_t d) noexcept
 {
-    INTX_REQUIRE(len >= 2);
+    INTX_REQUIRE(u.size() >= 2);
 
     const auto reciprocal = reciprocal_2by1(d);
 
-    auto rem = u[len - 1];  // Set the top word as remainder.
-    u[len - 1] = 0;         // Reset the word being a part of the result quotient.
+    auto rem = u[u.size() - 1];  // Set the top word as remainder.
+    u[u.size() - 1] = 0;         // Reset the word being a part of the result quotient.
 
-    auto it = &u[len - 2];
+    auto it = u.end() - 2;
     while (true)
     {
         std::tie(*it, rem) = udivrem_2by1({*it, rem}, d, reciprocal);
-        if (it == &u[0])
+        if (it == u.begin())
             break;
         --it;
     }
@@ -1451,25 +1449,23 @@ constexpr uint64_t udivrem_by1(uint64_t u[], size_t len, uint64_t d) noexcept
 }
 
 /// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
-/// @param u    The array of a normalized numerator words. It will contain the
-///             quotient after execution.
-/// @param len  The number of numerator words.
-/// @param d    The normalized divisor.
-/// @return     The remainder.
-constexpr uint128 udivrem_by2(uint64_t u[], size_t len, uint128 d) noexcept
+/// @param u  The normalized numerator words. It will contain the quotient after execution.
+/// @param d  The normalized divisor.
+/// @return   The remainder.
+constexpr uint128 udivrem_by2(std::span<uint64_t> u, uint128 d) noexcept
 {
-    INTX_REQUIRE(len >= 3);
+    INTX_REQUIRE(u.size() >= 3);
 
     const auto reciprocal = reciprocal_3by2(d);
 
-    auto rem = uint128{u[len - 2], u[len - 1]};  // Set the 2 top words as remainder.
-    u[len - 1] = u[len - 2] = 0;  // Reset these words being a part of the result quotient.
+    auto rem = uint128{u[u.size() - 2], u[u.size() - 1]};  // Set the 2 top words as remainder.
+    u[u.size() - 1] = u[u.size() - 2] = 0;  // Reset the words being a part of the result quotient.
 
-    auto it = &u[len - 3];
+    auto it = u.end() - 3;
     while (true)
     {
         std::tie(*it, rem) = udivrem_3by2(rem[1], rem[0], *it, d, reciprocal);
-        if (it == &u[0])
+        if (it == u.begin())
             break;
         --it;
     }
@@ -1477,46 +1473,46 @@ constexpr uint128 udivrem_by2(uint64_t u[], size_t len, uint128 d) noexcept
     return rem;
 }
 
-/// s = x + y.
-constexpr bool add(uint64_t s[], const uint64_t x[], const uint64_t y[], size_t len) noexcept
+/// Add y to x as: x[] += y[].
+constexpr bool add(uint64_t x[], std::span<const uint64_t> y) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
-    INTX_REQUIRE(len >= 2);
+    INTX_REQUIRE(y.size() >= 2);
 
     bool carry = false;
-    for (size_t i = 0; i < len; ++i)
-        std::tie(s[i], carry) = addc(x[i], y[i], carry);
+    for (size_t i = 0; i < y.size(); ++i)
+        std::tie(x[i], carry) = addc(x[i], y[i], carry);
     return carry;
 }
 
-/// r = x - multiplier * y.
-constexpr uint64_t submul(
-    uint64_t r[], const uint64_t x[], const uint64_t y[], size_t len, uint64_t multiplier) noexcept
+/// Subtract y multiplied by multiplier from x as: x[] -= multiplier * y[].
+constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t multiplier) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
-    INTX_REQUIRE(len >= 1);
+    INTX_REQUIRE(!y.empty());
 
     uint64_t borrow = 0;
-    for (size_t i = 0; i < len; ++i)
+    for (size_t i = 0; i < y.size(); ++i)
     {
         const auto s = x[i] - borrow;
         const auto p = umul(y[i], multiplier);
         borrow = p[1] + (x[i] < s);
-        r[i] = s - p[0];
-        borrow += (s < r[i]);
+        x[i] = s - p[0];
+        borrow += (s < x[i]);
     }
     return borrow;
 }
 
 constexpr void udivrem_knuth(
-    uint64_t q[], uint64_t u[], size_t ulen, const uint64_t d[], size_t dlen) noexcept
+    uint64_t q[], std::span<uint64_t> u, std::span<const uint64_t> d) noexcept
 {
-    INTX_REQUIRE(dlen >= 3);
-    INTX_REQUIRE(ulen > dlen);
+    INTX_REQUIRE(d.size() >= 3);
+    INTX_REQUIRE(u.size() > d.size());
 
-    const auto divisor = uint128{d[dlen - 2], d[dlen - 1]};
+    const auto divisor = uint128{d[d.size() - 2], d[d.size() - 1]};
     const auto reciprocal = reciprocal_3by2(divisor);
-    for (size_t j = ulen - dlen - 1; true; --j)
+    const auto dlen = d.size();
+    for (size_t j = u.size() - dlen - 1; true; --j)
     {
         const auto u2 = u[j + dlen];
         const auto u1 = u[j + dlen - 1];
@@ -1527,7 +1523,7 @@ constexpr void udivrem_knuth(
         {
             qhat = ~uint64_t{0};
 
-            u[j + dlen] = u2 - submul(&u[j], &u[j], d, dlen, qhat);
+            u[j + dlen] = u2 - submul(&u[j], d, qhat);
         }
         else
         {
@@ -1535,14 +1531,14 @@ constexpr void udivrem_knuth(
             std::tie(qhat, rhat) = udivrem_3by2(u2, u1, u0, divisor, reciprocal);
 
             bool carry{};
-            const auto overflow = submul(&u[j], &u[j], d, dlen - 2, qhat);
+            const auto overflow = submul(&u[j], d.subspan(0, d.size() - 2), qhat);
             std::tie(u[j + dlen - 2], carry) = subc(rhat[0], overflow);
             std::tie(u[j + dlen - 1], carry) = subc(rhat[1], carry);
 
             if (INTX_UNLIKELY(carry))
             {
                 --qhat;
-                u[j + dlen - 1] += divisor[1] + add(&u[j], &u[j], d, dlen - 1);
+                u[j + dlen - 1] += divisor[1] + add(&u[j], d.subspan(0, d.size() - 1));
             }
         }
 
@@ -1558,33 +1554,34 @@ template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
     auto na = internal::normalize(u, v);
-    INTX_REQUIRE(na.num_divisor_words != 0);
-    INTX_REQUIRE(na.num_divisor_words <= uint<N>::num_words);
-    INTX_REQUIRE(na.num_numerator_words <= uint<M>::num_words + 1);
 
-    if (na.num_numerator_words <= na.num_divisor_words)
+    // The span of the normalized numerator significant words. Will be modified.
+    const auto un = as_words(na.numerator).subspan(0, static_cast<size_t>(na.num_numerator_words));
+    // The span of the normalized divisor significant words.
+    const auto dn = as_words(na.divisor).subspan(0, static_cast<size_t>(na.num_divisor_words));
+
+    INTX_REQUIRE(!dn.empty());
+    INTX_REQUIRE(dn.size() <= uint<N>::num_words);
+    INTX_REQUIRE(un.size() <= uint<M>::num_words + 1);
+
+    if (un.size() <= dn.size())
         return {0, static_cast<uint<N>>(u)};
 
-    const auto un = as_words(na.numerator);  // Will be modified.
-
     static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
-    if (na.num_divisor_words == 1)
+    if (dn.size() == 1)
     {
-        const auto r = internal::udivrem_by1(un.data(), na.num_numerator_words, na.divisor[0]);
+        const auto r = internal::udivrem_by1(un, dn[0]);
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
-    if (na.num_divisor_words == 2)
+    if (dn.size() == 2)
     {
-        const auto r = internal::udivrem_by2(
-            un.data(), na.num_numerator_words, static_cast<uint128>(na.divisor));
+        const auto r = internal::udivrem_by2(un, static_cast<uint128>(na.divisor));
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
-
 
     uint<M> q;
-    internal::udivrem_knuth(as_words(q).data(), un.data(), na.num_numerator_words,
-        as_words(na.divisor).data(), na.num_divisor_words);
+    internal::udivrem_knuth(&q[0], un, dn);
 
     uint<N> r;
     auto rw = as_words(r);
