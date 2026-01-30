@@ -954,6 +954,25 @@ public:
         return static_cast<Int>(words_[0]);
     }
 
+    constexpr uint& operator=(uint64_t v) noexcept
+    {
+        words_[0] = v;
+        for (size_t i = 1; i < num_words; ++i)
+            words_[i] = 0;
+        return *this;
+    }
+
+    template <unsigned M>
+    constexpr uint& operator=(const uint<M>& x) noexcept
+        requires(M <= N)
+    {
+        for (size_t i = 0; i < uint<M>::num_words; ++i)
+            words_[i] = x[i];
+        for (size_t i = uint<M>::num_words; i < num_words; ++i)
+            words_[i] = 0;
+        return *this;
+    }
+
     friend constexpr uint operator+(const uint& x, const uint& y) noexcept
     {
         return addc(x, y).value;
