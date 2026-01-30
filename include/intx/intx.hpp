@@ -1778,6 +1778,21 @@ inline T load(const uint8_t (&src)[M]) noexcept
     return x;
 }
 
+/// Loads an integer value from the span of bytes of big-endian order.
+/// If the size of bytes is smaller than the result, the value is zero-extended.
+template <typename T, std::size_t Extent>
+inline T load(std::span<const uint8_t, Extent> src) noexcept
+{
+    if constexpr (Extent != std::dynamic_extent)  // NOLINTNEXTLINE(bugprone-sizeof-expression)
+        static_assert(Extent <= sizeof(T), "source bytes must not exceed the value size");
+    else
+        assert(src.size() <= sizeof(T));  // source bytes must not exceed the value size
+    T x{};
+    std::memcpy(&as_bytes(x)[sizeof(T) - src.size()], src.data(), src.size());
+    x = to_big_endian(x);
+    return x;
+}
+
 template <typename IntT, typename T>
 inline IntT load(const T& t) noexcept
 {
@@ -1790,6 +1805,14 @@ inline void store(uint8_t (&dst)[sizeof(T)], const T& x) noexcept
 {
     const auto d = to_big_endian(x);
     std::memcpy(dst, &d, sizeof(d));
+}
+
+/// Stores an integer value into the span of bytes in big-endian order.
+template <typename T>
+inline void store(std::span<uint8_t, sizeof(T)> dst, const T& x) noexcept
+{
+    const auto d = to_big_endian(x);
+    std::memcpy(dst.data(), &d, sizeof(d));
 }
 
 /// Stores an SrcT value in .bytes field of type DstT. The .bytes must be an array of uint8_t
@@ -1811,6 +1834,21 @@ inline void trunc(uint8_t (&dst)[M], const uint<N>& x) noexcept
     static_assert(M < N / 8, "destination must be smaller than the source value");
     const auto d = to_big_endian(x);
     std::memcpy(dst, &as_bytes(d)[sizeof(d) - M], M);
+}
+
+/// Stores the truncated value of an integer into the span of bytes.
+/// Only the least significant bytes from big-endian representation of the uint
+/// are stored in the result up to the span size.
+template <unsigned N, std::size_t Extent>
+inline void trunc(std::span<uint8_t, Extent> dst, const uint<N>& x) noexcept
+{
+    if constexpr (Extent != std::dynamic_extent)  // NOLINTNEXTLINE(bugprone-sizeof-expression)
+        static_assert(Extent < sizeof(x), "destination must be smaller than the source value");
+    else
+        assert(dst.size() <= sizeof(x));  // destination must be not larger than the source value
+
+    const auto d = to_big_endian(x);
+    std::copy_n(&as_bytes(d)[sizeof(d) - dst.size()], dst.size(), dst.begin());
 }
 
 /// Stores the truncated value of an uint in the .bytes field of an object of type T.

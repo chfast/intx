@@ -169,11 +169,65 @@ TYPED_TEST(uint_test, be_load)
     EXPECT_EQ(x, (TypeParam{1} << (TypeParam::num_bits - 1)) | 3);
 }
 
+TYPED_TEST(uint_test, be_load_span_fixed)
+{
+    constexpr auto size = sizeof(TypeParam);
+    uint8_t data[size]{};
+    data[0] = 0x80;
+    data[size - 2] = 5;
+    data[size - 1] = 3;
+
+    const std::span<const uint8_t, size> span_full{data};
+    const auto x = be::load<TypeParam>(span_full);
+    EXPECT_EQ(x, (TypeParam{1} << (TypeParam::num_bits - 1)) | 0x0503);
+
+    const std::span<const uint8_t, size - 1> span_partial{data, size - 1};
+    const auto y = be::load<TypeParam>(span_partial);
+    EXPECT_EQ(y, TypeParam{1} << (TypeParam::num_bits - 9) | 0x05);
+
+    const std::span<const uint8_t, 0> span_empty{data, 0};
+    const auto z = be::load<TypeParam>(span_empty);
+    EXPECT_EQ(z, 0);
+}
+
+TYPED_TEST(uint_test, be_load_span_dynamic)
+{
+    constexpr auto size = sizeof(TypeParam);
+    uint8_t data[size]{};
+    data[0] = 0x80;
+    data[size - 2] = 5;
+    data[size - 1] = 3;
+
+    const std::span<const uint8_t> span_full{data};
+    const auto x = be::load<TypeParam>(span_full);
+    EXPECT_EQ(x, (TypeParam{1} << (TypeParam::num_bits - 1)) | 0x0503);
+
+    const std::span<const uint8_t> span_partial{data, size - 1};
+    const auto y = be::load<TypeParam>(span_partial);
+    EXPECT_EQ(y, TypeParam{1} << (TypeParam::num_bits - 9) | 0x05);
+
+    const std::span<const uint8_t> span_empty{data, 0};
+    const auto z = be::load<TypeParam>(span_empty);
+    EXPECT_EQ(z, 0);
+}
+
 TYPED_TEST(uint_test, be_store)
 {
     const auto x = TypeParam{0x0201};
     uint8_t data[sizeof(x)];
     be::store(data, x);
+    EXPECT_EQ(data[sizeof(x) - 1], 1);
+    EXPECT_EQ(data[sizeof(x) - 2], 2);
+    EXPECT_EQ(data[sizeof(x) - 3], 0);
+    EXPECT_EQ(data[0], 0);
+}
+
+TYPED_TEST(uint_test, be_store_span_fixed)
+{
+    const auto x = TypeParam{0x0201};
+    uint8_t data[sizeof(x)];
+    const std::span<uint8_t, sizeof(x)> span_full{data};
+    be::store(span_full, x);
     EXPECT_EQ(data[sizeof(x) - 1], 1);
     EXPECT_EQ(data[sizeof(x) - 2], 2);
     EXPECT_EQ(data[sizeof(x) - 3], 0);
@@ -187,6 +241,42 @@ TYPED_TEST(uint_test, be_trunc)
     be::trunc(out, x);
     const auto str = std::string{reinterpret_cast<char*>(out), sizeof(out)};
     EXPECT_EQ(str, "Hello Solaris!!");
+}
+
+TYPED_TEST(uint_test, be_trunc_span_fixed)
+{
+    constexpr auto x = TypeParam{0xee48656c6c6f20536f6c617269732121_u128};
+    uint8_t out[15];
+    const std::span<uint8_t, 15> span_15{out};
+    be::trunc(span_15, x);
+    auto str = std::string_view{reinterpret_cast<char*>(out), span_15.size()};
+    EXPECT_EQ(str, "Hello Solaris!!");
+    const std::span<uint8_t, 3> span_3{out, 3};
+    be::trunc(span_3, x);
+    str = std::string_view{reinterpret_cast<char*>(out), span_3.size()};
+    EXPECT_EQ(str, "s!!");
+    const std::span<uint8_t, 0> span_0{out, 0};
+    be::trunc(span_0, x);
+    str = std::string_view{reinterpret_cast<char*>(out), sizeof(out)};
+    EXPECT_EQ(str, "s!!lo Solaris!!");
+}
+
+TYPED_TEST(uint_test, be_trunc_span_dynamic)
+{
+    constexpr auto x = TypeParam{0xee48656c6c6f20536f6c617269732121_u128};
+    uint8_t out[15];
+    const std::span<uint8_t> span_15{out};
+    be::trunc(span_15, x);
+    auto str = std::string_view{reinterpret_cast<char*>(out), span_15.size()};
+    EXPECT_EQ(str, "Hello Solaris!!");
+    const std::span<uint8_t> span_3{out, 3};
+    be::trunc(span_3, x);
+    str = std::string_view{reinterpret_cast<char*>(out), span_3.size()};
+    EXPECT_EQ(str, "s!!");
+    const std::span<uint8_t> span_0{out, 0};
+    be::trunc(span_0, x);
+    str = std::string_view{reinterpret_cast<char*>(out), sizeof(out)};
+    EXPECT_EQ(str, "s!!lo Solaris!!");
 }
 
 template <size_t M>
