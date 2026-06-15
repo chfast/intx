@@ -15,6 +15,7 @@ add_executable(intx-unittests
     test_int128.cpp
     test_intx.cpp
     test_intx_api.cpp
+    test_sint.cpp
     test_suite.hpp
     test_uint256.cpp
 )

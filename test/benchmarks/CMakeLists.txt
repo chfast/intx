@@ -11,6 +11,7 @@ add_executable(intx-bench
     ../experimental/addmod.hpp
     bench_div.cpp
     bench_int128.cpp
+    bench_sint128.cpp
     benchmarks.cpp
 )
 target_link_libraries(intx-bench PRIVATE intx intx::experimental intx::testutils benchmark::benchmark GMP::gmp)
