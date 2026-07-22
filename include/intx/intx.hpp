@@ -840,9 +840,11 @@ constexpr Int from_string(const char* str)
             throw_<std::out_of_range>(str);
 
         const auto d = from_dec_digit(c);
-        x = x * Int{10} + d;
-        if (x < d)
+        // Check for overflow before multiplying, since checking after could be fooled by
+        // wraparound.
+        if (x > (std::numeric_limits<Int>::max() - d) / Int{10})
             throw_<std::out_of_range>(str);
+        x = x * Int{10} + d;
     }
     return x;
 }
