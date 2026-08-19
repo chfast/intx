@@ -510,7 +510,7 @@ constexpr uint8_t bswap(uint8_t x) noexcept
 
 constexpr uint16_t bswap(uint16_t x) noexcept
 {
-#if __has_builtin(__builtin_bswap16)
+#if __has_builtin(__builtin_bswap16) && (!defined(__riscv) || defined(__riscv_zbb))
     return __builtin_bswap16(x);
 #else
     #ifdef _MSC_VER
@@ -523,7 +523,7 @@ constexpr uint16_t bswap(uint16_t x) noexcept
 
 constexpr uint32_t bswap(uint32_t x) noexcept
 {
-#if __has_builtin(__builtin_bswap32)
+#if __has_builtin(__builtin_bswap32) && (!defined(__riscv) || defined(__riscv_zbb))
     return __builtin_bswap32(x);
 #else
     #ifdef _MSC_VER
@@ -537,7 +537,7 @@ constexpr uint32_t bswap(uint32_t x) noexcept
 
 constexpr uint64_t bswap(uint64_t x) noexcept
 {
-#if __has_builtin(__builtin_bswap64)
+#if __has_builtin(__builtin_bswap64) && (!defined(__riscv) || defined(__riscv_zbb))
     return __builtin_bswap64(x);
 #else
     #ifdef _MSC_VER
