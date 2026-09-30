@@ -1,0 +1,39 @@
+name: reciprocal-bench
+
+on:
+  push:
+    branches: [reciprocal-bench]
+  workflow_dispatch:
+
+jobs:
+  bench:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - ubuntu-24.04
+          - ubuntu-22.04-arm
+          - ubuntu-24.04-arm
+          - macos-14
+          - macos-15
+          - macos-26
+          - macos-15-intel
+        rep: [1, 2, 3]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get -q update && sudo apt-get -qy install libgmp-dev ninja-build
+      - name: Install deps (macOS)
+        if: runner.os == 'macOS'
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install gmp ninja
+      - name: Benchmark
+        env:
+          CMAKE_GENERATOR: Ninja
+        run: scripts/bench_reciprocal.sh out "gha:${{ matrix.os }}#${{ matrix.rep }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ matrix.os }}-${{ matrix.rep }}
+          path: out

@@ -361,6 +361,45 @@ jobs:
       - install_deps
       - build_and_test
 
+  bench-docker:
+    parameters:
+      rc: {type: string}
+      rep: {type: integer}
+    docker:
+      - image: cimg/base:current
+    resource_class: << parameters.rc >>
+    steps:
+      - checkout
+      - run: sudo apt-get -q update && sudo apt-get -qy install cmake g++ libgmp-dev ninja-build
+      - run: CMAKE_GENERATOR=Ninja scripts/bench_reciprocal.sh ~/out "circle:docker:<< parameters.rc >>#<< parameters.rep >>"
+      - store_artifacts: {path: ~/out, destination: bench}
+
+  bench-machine:
+    parameters:
+      rc: {type: string}
+      rep: {type: integer}
+    machine:
+      image: ubuntu-2404:current
+    resource_class: << parameters.rc >>
+    steps:
+      - checkout
+      - run: sudo apt-get -q update && sudo apt-get -qy install cmake g++ libgmp-dev ninja-build
+      - run: CMAKE_GENERATOR=Ninja scripts/bench_reciprocal.sh ~/out "circle:machine:<< parameters.rc >>#<< parameters.rep >>"
+      - store_artifacts: {path: ~/out, destination: bench}
+
+  bench-macos:
+    parameters:
+      rc: {type: string}
+      rep: {type: integer}
+    macos:
+      xcode: 16.4.0
+    resource_class: << parameters.rc >>
+    steps:
+      - checkout
+      - run: HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake gmp ninja
+      - run: CMAKE_GENERATOR=Ninja scripts/bench_reciprocal.sh ~/out "circle:macos:<< parameters.rc >>#<< parameters.rep >>"
+      - store_artifacts: {path: ~/out, destination: bench}
+
 workflows:
   version: 2
   intx:
@@ -382,3 +421,20 @@ workflows:
       - windows-32bit
       - windows-debug
       - windows-release
+  reciprocal-bench:
+    jobs:
+      - bench-docker:
+          matrix:
+            parameters:
+              rc: [medium, large, arm.medium, arm.large]
+              rep: [1, 2]
+      - bench-machine:
+          matrix:
+            parameters:
+              rc: [medium, large, arm.medium, arm.large]
+              rep: [1, 2]
+      - bench-macos:
+          matrix:
+            parameters:
+              rc: [m4pro.medium]
+              rep: [1, 2]
