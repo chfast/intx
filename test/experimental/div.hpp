@@ -79,6 +79,80 @@ inline uint64_t reciprocal_udiv(uint64_t d) noexcept
     return (q1 << 32) + q0;
 }
 
+/// Computes the reciprocal with one hardware 64-bit division and one multiplication.
+///
+/// This exploits the fixed numerator (~d : ~0).
+/// 1. The first quotient digit is q1 = floor((2^96 - 1) / d) - 2^32 because the top 96 bits
+///    of the numerator are 2^96 - 1 - d * 2^32. The estimate ~d / dh always fits 32 bits.
+/// 2. R = q1 + 2^32 is the 33-bit reciprocal of d so the second digit is estimated
+///    with a multiplication instead of the second division.
+/// All corrections are branchless.
+inline uint64_t reciprocal_udiv_mul(uint64_t d) noexcept
+{
+    INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
+
+    constexpr uint64_t mask = 0xffffffff;
+    const uint64_t dh = d >> 32;
+
+    // Step 1: q1 estimate is too big by at most 2.
+    const uint64_t n1 = ~d;
+    uint64_t q1 = n1 / dh;
+    auto r = uint128{(n1 << 32) | mask, n1 >> 32} - umul(q1, d);
+    for (int i = 0; i < 2; ++i)
+    {
+        const auto neg = r[1] >> 63;
+        q1 -= neg;
+        r += d & (0 - neg);
+    }
+    const uint64_t r1 = r[0];
+
+    // Step 2: q0 estimate is too small by at most 2.
+    const uint64_t rcp = q1 + (uint64_t{1} << 32);
+    uint64_t q0 = umul(r1, rcp)[1];
+    r = uint128{(r1 << 32) | mask, r1 >> 32} - umul(q0, d);
+    for (int i = 0; i < 2; ++i)
+    {
+        const auto ge = uint64_t{r[1] != 0} | uint64_t{r[0] >= d};
+        q0 += ge;
+        r -= d & (0 - ge);
+    }
+
+    return (q1 << 32) + q0;
+}
+
+/// The same as reciprocal_udiv_mul() but with branching corrections.
+inline uint64_t reciprocal_udiv_mul_br(uint64_t d) noexcept
+{
+    INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
+
+    constexpr uint64_t mask = 0xffffffff;
+    const uint64_t dh = d >> 32;
+    const uint64_t dl = d & mask;
+
+    const uint64_t n1 = ~d;
+    uint64_t q1 = n1 / dh;
+    uint64_t rhat = n1 - q1 * dh;
+    while (q1 * dl > ((rhat << 32) | mask))
+    {
+        --q1;
+        rhat += dh;
+        if (rhat > mask)
+            break;
+    }
+    const uint64_t r1 = (n1 << 32) + mask - q1 * d;
+
+    const uint64_t rcp = q1 + (uint64_t{1} << 32);
+    uint64_t q0 = umul(r1, rcp)[1];
+    auto r = uint128{(r1 << 32) | mask, r1 >> 32} - umul(q0, d);
+    while (r >= d)
+    {
+        ++q0;
+        r -= d;
+    }
+
+    return (q1 << 32) + q0;
+}
+
 /// The copy of the GMP algorithm from "Improved division by invariant integers".
 constexpr uint64_t reciprocal_gmp(uint64_t d) noexcept
 {

@@ -444,6 +444,8 @@ void check_reciprocal(uint64_t d)
     ASSERT_EQ(reciprocal_builtin_uint128(d), expected) << d;
     ASSERT_EQ(reciprocal_gmp(d), expected) << d;
     ASSERT_EQ(reciprocal_udiv(d), expected) << d;
+    ASSERT_EQ(reciprocal_udiv_mul(d), expected) << d;
+    ASSERT_EQ(reciprocal_udiv_mul_br(d), expected) << d;
 }
 }  // namespace
 

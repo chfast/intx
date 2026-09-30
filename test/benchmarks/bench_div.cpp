@@ -6,6 +6,7 @@
 #include <experimental/div.hpp>
 #include <intx/intx.hpp>
 #include <test/utils/random.hpp>
+#include <vector>
 
 using namespace intx;
 
@@ -62,29 +63,50 @@ constexpr uint64_t neg(uint64_t x) noexcept
     return ~x;
 }
 
+/// Returns a large set of random normalized values.
+/// It is large enough to prevent the branch predictor from learning the branch pattern.
+template <typename T>
+const std::vector<T>& get_norm_samples()
+{
+    static const auto samples = [] {
+        std::mt19937_64 rng{test::get_seed()};
+        std::vector<T> v(size_t{1} << 16);
+        for (auto& x : v)
+        {
+            if constexpr (std::is_same_v<T, uint64_t>)
+                x = rng() | 0x8000000000000000;
+            else
+                x = T{rng(), rng() | 0x8000000000000000};
+        }
+        return v;
+    }();
+    return samples;
+}
+
 template <typename T, uint64_t Fn(T)>
 void reciprocal(benchmark::State& state)
 {
-    auto samples = test::get_samples<T>(test::norm);
+    const auto& samples = get_norm_samples<T>();
 
     benchmark::ClobberMemory();
     uint64_t x = 0;
-    while (state.KeepRunningBatch(test::num_samples))
+    while (state.KeepRunningBatch(static_cast<benchmark::IterationCount>(samples.size())))
     {
         for (const auto& i : samples)
             x ^= Fn(i);
     }
     benchmark::DoNotOptimize(x);
 }
+
 /// Latency variant: each input depends on the previous result.
 template <typename T, uint64_t Fn(T)>
 void reciprocal_lat(benchmark::State& state)
 {
-    auto samples = test::get_samples<T>(test::norm);
+    const auto& samples = get_norm_samples<T>();
 
     benchmark::ClobberMemory();
     uint64_t x = 0;
-    while (state.KeepRunningBatch(test::num_samples))
+    while (state.KeepRunningBatch(static_cast<benchmark::IterationCount>(samples.size())))
     {
         for (const auto& i : samples)
             x = Fn(i ^ (x & 1));  // Keeps the input normalized.
@@ -97,6 +119,8 @@ BENCHMARK(reciprocal<uint64_t, reciprocal_native>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_builtin_uint128>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_gmp>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_udiv>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_udiv_mul>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_udiv_mul_br>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_2by1>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_2by1_noinline>);
 BENCHMARK(reciprocal<uint128, reciprocal_3by2>);
@@ -106,6 +130,8 @@ BENCHMARK(reciprocal_lat<uint64_t, reciprocal_native>);
 BENCHMARK(reciprocal_lat<uint64_t, reciprocal_builtin_uint128>);
 BENCHMARK(reciprocal_lat<uint64_t, reciprocal_gmp>);
 BENCHMARK(reciprocal_lat<uint64_t, reciprocal_udiv>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_udiv_mul>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_udiv_mul_br>);
 BENCHMARK(reciprocal_lat<uint64_t, reciprocal_2by1>);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
