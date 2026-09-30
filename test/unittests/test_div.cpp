@@ -5,6 +5,7 @@
 #include <experimental/div.hpp>
 #include <gtest/gtest.h>
 #include <intx/intx.hpp>
+#include <random>
 
 using namespace intx;
 
@@ -433,6 +434,19 @@ TEST(div, sdivrem_512)
     EXPECT_EQ(sdivrem(n, -d).rem, 1_u512);
 }
 
+namespace
+{
+void check_reciprocal(uint64_t d)
+{
+    const auto expected = reciprocal_naive(d);
+    ASSERT_EQ(reciprocal_2by1(d), expected) << d;
+    ASSERT_EQ(reciprocal_native(d), expected) << d;
+    ASSERT_EQ(reciprocal_builtin_uint128(d), expected) << d;
+    ASSERT_EQ(reciprocal_gmp(d), expected) << d;
+    ASSERT_EQ(reciprocal_udiv(d), expected) << d;
+}
+}  // namespace
+
 TEST(div, reciprocal)
 {
     static_assert(reciprocal_2by1(0x8000000000000000) == 0xffffffffffffffff);
@@ -441,17 +455,15 @@ TEST(div, reciprocal)
 
     constexpr auto d_start = uint64_t{1} << 63;
     for (uint64_t d = d_start; d < d_start + n; ++d)
-    {
-        auto v = reciprocal_2by1(d);
-        ASSERT_EQ(v, reciprocal_naive(d)) << d;
-    }
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal(d));
 
     constexpr auto d_end = ~uint64_t{0};
     for (uint64_t d = d_end; d > d_end - n; --d)
-    {
-        auto v = reciprocal_2by1(d);
-        ASSERT_EQ(v, reciprocal_naive(d)) << d;
-    }
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal(d));
+
+    std::mt19937_64 rng{0};  // NOLINT(cert-msc32-c,cert-msc51-cpp)
+    for (int i = 0; i < n; ++i)
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal(rng() | d_start));
 }
 
 TEST(div, reciprocal_3by2)
