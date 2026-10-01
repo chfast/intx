@@ -76,12 +76,35 @@ void reciprocal(benchmark::State& state)
     }
     benchmark::DoNotOptimize(x);
 }
+/// Latency variant: each input depends on the previous result.
+template <typename T, uint64_t Fn(T)>
+void reciprocal_lat(benchmark::State& state)
+{
+    auto samples = test::get_samples<T>(test::norm);
+
+    benchmark::ClobberMemory();
+    uint64_t x = 0;
+    while (state.KeepRunningBatch(test::num_samples))
+    {
+        for (const auto& i : samples)
+            x = Fn(i ^ (x & 1));  // Keeps the input normalized.
+    }
+    benchmark::DoNotOptimize(x);
+}
+
 BENCHMARK(reciprocal<uint64_t, neg>);
-BENCHMARK(reciprocal<uint64_t, reciprocal_naive>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_native>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_builtin_uint128>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_udiv>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_2by1>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_2by1_noinline>);
 BENCHMARK(reciprocal<uint128, reciprocal_3by2>);
 BENCHMARK(reciprocal<uint128, reciprocal_3by2_noinline>);
+BENCHMARK(reciprocal_lat<uint64_t, neg>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_native>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_builtin_uint128>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_udiv>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_2by1>);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
 void udiv64(benchmark::State& state)
