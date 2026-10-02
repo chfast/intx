@@ -517,6 +517,53 @@ constexpr unsigned bit_width(std::unsigned_integral auto x) noexcept
     return static_cast<unsigned>(std::numeric_limits<decltype(x)>::digits) - clz(x);
 }
 
+/// Funnel shift left: returns the high word of the 128-bit value hi:lo shifted left by shift.
+/// The shift must be less than 64.
+constexpr uint64_t fshl(uint64_t hi, uint64_t lo, unsigned shift) noexcept
+{
+    INTX_REQUIRE(shift < 64);
+    return shift == 0 ? hi : (hi << shift) | (lo >> (64 - shift));
+}
+
+/// Funnel shift right: returns the low word of the 128-bit value hi:lo shifted right by shift.
+/// The shift must be less than 64.
+constexpr uint64_t fshr(uint64_t hi, uint64_t lo, unsigned shift) noexcept
+{
+    INTX_REQUIRE(shift < 64);
+    return shift == 0 ? lo : (lo >> shift) | (hi << (64 - shift));
+}
+
+/// Left-shifts a little-endian word array x by shift bits and stores the result in r.
+/// The r must have the same size as x, or one word more to also receive the bits shifted out.
+/// The r may alias x. The shift must be less than 64.
+template <size_t RN, size_t XN>
+constexpr void shl(
+    std::span<uint64_t, RN> r, std::span<const uint64_t, XN> x, unsigned shift) noexcept
+{
+    if constexpr (RN != std::dynamic_extent && XN != std::dynamic_extent)
+        static_assert(XN != 0 && (RN == XN || RN == XN + 1));
+    INTX_REQUIRE(!x.empty() && (r.size() == x.size() || r.size() == x.size() + 1));
+    INTX_REQUIRE(shift < 64);
+    const auto n = x.size();
+    if (r.size() > n)
+        r[n] = fshl(0, x[n - 1], shift);
+    for (size_t i = n - 1; i != 0; --i)
+        r[i] = fshl(x[i], x[i - 1], shift);
+    r[0] = x[0] << shift;
+}
+
+/// Right-shifts a little-endian word array x by shift bits and stores the result in r
+/// of the same size. The bits shifted out of x are lost. The r may alias x.
+/// The shift must be less than 64.
+constexpr void shr(std::span<uint64_t> r, std::span<const uint64_t> x, unsigned shift) noexcept
+{
+    INTX_REQUIRE(!x.empty() && r.size() == x.size());
+    INTX_REQUIRE(shift < 64);
+    for (size_t i = 1; i < x.size(); ++i)
+        r[i - 1] = fshr(x[i], x[i - 1], shift);
+    r[x.size() - 1] = x[x.size() - 1] >> shift;
+}
+
 constexpr unsigned clz(uint128 x) noexcept
 {
     // In this order `h == 0` we get fewer instructions than in the case of `h != 0`.
@@ -1408,6 +1455,7 @@ constexpr unsigned clz_nonzero(uint64_t x) noexcept
     return static_cast<unsigned>(std::countl_zero(x));
 }
 
+
 template <unsigned M, unsigned N>
 struct normalized_div_args  // NOLINT(cppcoreguidelines-pro-type-member-init)
 {
@@ -1427,7 +1475,6 @@ template <unsigned M, unsigned N>
     const uint<M>& numerator, const uint<N>& denominator, size_t num_divisor_words) noexcept
 {
     constexpr auto num_numerator_words = uint<M>::num_words;
-    constexpr auto num_denominator_words = uint<N>::num_words;
 
     const auto u = as_words(numerator);
     const auto v = as_words(denominator);
@@ -1444,16 +1491,12 @@ template <unsigned M, unsigned N>
     na.num_divisor_words = n;
 
     na.shift = clz_nonzero(v[n - 1]);  // Use clz_nonzero() to avoid clang analyzer's warning.
-    if (na.shift)
+    // TODO: Confirm on Mainnet data that the non-zero shift is the likely case.
+    //   E.g. the secp256k1 field prime and group order have the shift 0.
+    if (na.shift) [[likely]]
     {
-        for (size_t i = num_denominator_words - 1; i != 0; --i)
-            vn[i] = (v[i] << na.shift) | (v[i - 1] >> (64 - na.shift));
-        vn[0] = v[0] << na.shift;
-
-        un[num_numerator_words] = u[num_numerator_words - 1] >> (64 - na.shift);
-        for (size_t i = num_numerator_words - 1; i != 0; --i)
-            un[i] = (u[i] << na.shift) | (u[i - 1] >> (64 - na.shift));
-        un[0] = u[0] << na.shift;
+        shl(vn, v, na.shift);  // The bits shifted out of v are zero.
+        shl(un, u, na.shift);
     }
     else
     {
@@ -1629,10 +1672,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     internal::udivrem_knuth(&q[0], un, dn);
 
     uint<N> r;
-    auto rw = as_words(r);
-    for (size_t i = 0; i < na.num_divisor_words - 1; ++i)
-        rw[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
-    rw[na.num_divisor_words - 1] = un[na.num_divisor_words - 1] >> na.shift;
+    shr(as_words(r).first(dn.size()), un.first(dn.size()), na.shift);
 
     return {q, r};
 }
