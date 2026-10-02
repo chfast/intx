@@ -46,6 +46,17 @@
     #define INTX_UNLIKELY(EXPR) (bool{EXPR})
 #endif
 
+// Tells the compiler the condition is true without checking it.
+#if defined(__clang__)
+    #define INTX_ASSUME(X) __builtin_assume(X)
+#elif defined(__GNUC__) && __GNUC__ >= 13
+    #define INTX_ASSUME(X) __attribute__((assume(X)))
+#elif defined(_MSC_VER)
+    #define INTX_ASSUME(X) __assume(X)
+#else
+    #define INTX_ASSUME(X) (void)0
+#endif
+
 #ifndef NDEBUG
     #define INTX_REQUIRE assert
 #else
@@ -530,7 +541,13 @@ constexpr uint64_t fshl(uint64_t hi, uint64_t lo, unsigned shift) noexcept
 constexpr uint64_t fshr(uint64_t hi, uint64_t lo, unsigned shift) noexcept
 {
     INTX_REQUIRE(shift < 64);
+#if defined(__GNUC__) && !defined(__clang__)
+    // TODO(gcc-16): Without the shift == 0 case GCC does not create a memcpy() for the shr() loop,
+    //   which GCC 16 expands as a byte loop for small sizes.
+    return (lo >> shift) | ((hi << 1) << (63 - shift));
+#else
     return shift == 0 ? lo : (lo >> shift) | (hi << (64 - shift));
+#endif
 }
 
 /// Left-shifts a little-endian word array x by shift bits and stores the result in r.
@@ -1636,12 +1653,62 @@ constexpr void udivrem_knuth(
     }
 }
 
+/// Divides u by v when both have the same size and the top word of v is not zero,
+/// i.e. the quotient fits in a single word.
+///
+/// The quotient is estimated from the top word of the normalized divisor with 2/1 division
+/// and corrected with the remainder computed on the original (not normalized) operands.
+/// This is the "small quotient" case from GMP's mpn_tdiv_qr().
+/// The top word of v must not be zero.
+template <unsigned N>
+constexpr div_result<uint<N>> udivrem_by_top_word(const uint<N>& u, const uint<N>& v) noexcept
+{
+    constexpr auto n = uint<N>::num_words;
+
+    if (u[n - 1] < v[n - 1])  // u < v.
+        return {0, u};
+
+    // The top 64 bits of the normalized divisor and the matching 2 words of the numerator.
+    const auto s = clz_nonzero(v[n - 1]);
+    const auto vt = fshl(v[n - 1], v[n - 2], s);
+    const auto ut_hi = fshl(0, u[n - 1], s);
+    const auto ut_lo = fshl(u[n - 1], u[n - 2], s);
+
+    // The estimate is at most 2 too large.
+    // TODO: This is a single 128/64 division (divq on x86-64). It is faster than the reciprocal
+    //   on new CPUs (AMD Zen 3+, Intel Ice Lake+) but much slower on Intel Skylake and older.
+    auto q = udivrem_2by1({ut_lo, ut_hi}, vt, reciprocal_2by1(vt)).quot;
+
+    auto r = u;
+    auto borrow = submul(as_words(r).data(), as_words(v), q);
+    // The correction runs at most 2 times (usually 0), so don't unroll it.
+#ifdef __GNUC__
+    #pragma GCC unroll 1
+#endif
+    while (INTX_UNLIKELY(borrow != 0))
+    {
+        --q;
+        borrow -= add(as_words(r).data(), as_words(v));
+    }
+    return {q, r};
+}
+
 }  // namespace internal
 
 template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
-    auto na = internal::normalize(u, v, count_significant_words(v));
+    size_t num_divisor_words = uint<N>::num_words;
+    if constexpr (M == N)
+    {
+        if (v[num_divisor_words - 1] != 0)  // The quotient fits in a single word.
+            return internal::udivrem_by_top_word(u, v);
+        --num_divisor_words;  // Skip the zero top word.
+    }
+    while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
+        --num_divisor_words;
+
+    auto na = internal::normalize(u, v, num_divisor_words);
 
     // The span of the normalized numerator significant words. Will be modified.
     const auto un = as_words(na.numerator).subspan(0, static_cast<size_t>(na.num_numerator_words));
@@ -1662,19 +1729,32 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
-    if (dn.size() == 2)
+    // The Knuth division handles divisors of at least 3 words.
+    // For equal sizes, the divisors with the top word set are handled above.
+    constexpr auto max_divisor_words = uint<N>::num_words - unsigned{M == N};
+    if constexpr (max_divisor_words < 3)
     {
         const auto r = internal::udivrem_by2(un, static_cast<uint128>(na.divisor));
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
+    else
+    {
+        if (dn.size() == 2)
+        {
+            const auto r = internal::udivrem_by2(un, static_cast<uint128>(na.divisor));
+            return {static_cast<uint<M>>(na.numerator), r >> na.shift};
+        }
 
-    uint<M> q;
-    internal::udivrem_knuth(&q[0], un, dn);
+        const auto n = dn.size();
+        INTX_ASSUME(n <= max_divisor_words);
+        uint<M> q;
+        internal::udivrem_knuth(&q[0], un, dn);
 
-    uint<N> r;
-    shr(as_words(r).first(dn.size()), un.first(dn.size()), na.shift);
+        uint<N> r;
+        shr(as_words(r).first(n), un.first(n), na.shift);
 
-    return {q, r};
+        return {q, r};
+    }
 }
 
 template <unsigned N>
