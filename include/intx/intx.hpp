@@ -1418,9 +1418,13 @@ struct normalized_div_args  // NOLINT(cppcoreguidelines-pro-type-member-init)
     unsigned shift;
 };
 
+/// Normalizes the division arguments.
+/// @param num_divisor_words  The number of significant words of the denominator.
+///
+/// TODO: Consider passing the denominator as std::span of its significant words.
 template <unsigned M, unsigned N>
 [[gnu::always_inline]] constexpr normalized_div_args<M, N> normalize(
-    const uint<M>& numerator, const uint<N>& denominator) noexcept
+    const uint<M>& numerator, const uint<N>& denominator, size_t num_divisor_words) noexcept
 {
     constexpr auto num_numerator_words = uint<M>::num_words;
     constexpr auto num_denominator_words = uint<N>::num_words;
@@ -1436,9 +1440,8 @@ template <unsigned M, unsigned N>
     for (m = num_numerator_words; m > 0 && u[m - 1] == 0; --m)
         ;
 
-    auto& n = na.num_divisor_words;
-    for (n = num_denominator_words; n > 0 && v[n - 1] == 0; --n)
-        ;
+    const auto n = num_divisor_words;
+    na.num_divisor_words = n;
 
     na.shift = clz_nonzero(v[n - 1]);  // Use clz_nonzero() to avoid clang analyzer's warning.
     if (na.shift)
@@ -1595,7 +1598,7 @@ constexpr void udivrem_knuth(
 template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
-    auto na = internal::normalize(u, v);
+    auto na = internal::normalize(u, v, count_significant_words(v));
 
     // The span of the normalized numerator significant words. Will be modified.
     const auto un = as_words(na.numerator).subspan(0, static_cast<size_t>(na.num_numerator_words));

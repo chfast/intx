@@ -51,7 +51,7 @@ void div_normalize(benchmark::State& state)
     for ([[maybe_unused]] auto _ : state)
     {
         benchmark::ClobberMemory();
-        auto x = NormalizeFn(u, v);
+        auto x = NormalizeFn(u, v, count_significant_words(v));
         benchmark::DoNotOptimize(x);
     }
 }
