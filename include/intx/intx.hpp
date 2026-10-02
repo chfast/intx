@@ -97,6 +97,7 @@ struct result_with_carry
     /// Initializes the value and the carry.
     ///
     /// TODO(gcc-17): This makes the type a non-aggregate, which helps GCC codegen.
+    /// https://gcc.gnu.org/PR110459
     constexpr result_with_carry(const T& v, bool c) noexcept : value{v}, carry{c} {}
 
     /// Conversion to tuple of references, to allow usage with std::tie().
