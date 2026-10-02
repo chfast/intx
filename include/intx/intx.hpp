@@ -97,6 +97,7 @@ struct result_with_carry
     /// Initializes the value and the carry.
     ///
     /// TODO(gcc-17): This makes the type a non-aggregate, which helps GCC codegen.
+    /// https://gcc.gnu.org/PR110459
     constexpr result_with_carry(const T& v, bool c) noexcept : value{v}, carry{c} {}
 
     /// Conversion to tuple of references, to allow usage with std::tie().
@@ -266,11 +267,28 @@ public:
         return static_cast<Int>(words_[0]);
     }
 
-    friend constexpr uint operator+(uint x, uint y) noexcept { return addc(x, y).value; }
+    friend constexpr uint operator+(uint x, uint y) noexcept
+    {
+#if INTX_HAS_BUILTIN_INT128 && defined(__GNUC__) && !defined(__clang__)
+        // TODO(gcc): GCC splits chains of addc() into setc and extra adds. The builtin type
+        // keeps add/adc together. https://gcc.gnu.org/PR79173
+        return builtin_uint128{x} + builtin_uint128{y};
+#else
+        return addc(x, y).value;
+#endif
+    }
 
     constexpr uint operator+() const noexcept { return *this; }
 
-    friend constexpr uint operator-(uint x, uint y) noexcept { return subc(x, y).value; }
+    friend constexpr uint operator-(uint x, uint y) noexcept
+    {
+#if INTX_HAS_BUILTIN_INT128 && defined(__GNUC__) && !defined(__clang__)
+        // TODO(gcc): See operator+.
+        return builtin_uint128{x} - builtin_uint128{y};
+#else
+        return subc(x, y).value;
+#endif
+    }
 
     constexpr uint operator-() const noexcept
     {
