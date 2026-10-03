@@ -338,6 +338,232 @@ const div_test_case<uint512> div_test_cases[] = {
         0xdc5a47249a56560d078334729ffb61da211f5d2ec622c22f88bc3b4ebae1abdac6b03621554ef71070bc1e0dc5c301bc_u512,
         0x6dc100ea02272bdcf68a4a5b95f468f8_u128,
     },
+    // Divisors with the top word not zero, i.e. single word quotients.
+    // The "estimate" is the quotient estimated from the top words of the normalized operands.
+    // 192-bit: u < v by the top word.
+    {
+        0xb260f5e964964ec144bcc91741d51805e8eea1e2ed3578a8_u512,
+        0xe2dcaa37f463b337d20b5d59db610487c89da11b62397bc7_u512,
+        0x0_u512,
+        0xb260f5e964964ec144bcc91741d51805e8eea1e2ed3578a8_u512,
+    },
+    // 192-bit: u < v with equal top words.
+    {
+        0x62e3fe85351d23832899387134f069bf953a6f229735a0_u512,
+        0x62e3fe85351d23832899387134f069bf953a6f229735a1_u512,
+        0x0_u512,
+        0x62e3fe85351d23832899387134f069bf953a6f229735a0_u512,
+    },
+    // 192-bit: top bit set, estimate 1 too big.
+    {
+        0x8ed904759531985d5d9dc9f81818e811892f902bd23f0823_u512,
+        0x8ed904759531985d5d9dc9f81818e811892f902bd23f0824_u512,
+        0x0_u512,
+        0x8ed904759531985d5d9dc9f81818e811892f902bd23f0823_u512,
+    },
+    // 192-bit: top bit set, exact estimate.
+    {
+        0xdaee4623d477b79714c8a9893992d5411b90f60d3da1c0ba_u512,
+        0xc36a9864fc741d8c339863efcf019ed91ef2be2ab7bbe1d6_u512,
+        0x1_u512,
+        0x1783adbed8039a0ae13045996a913667fc9e37e285e5dee4_u512,
+    },
+    // 192-bit: exact estimate.
+    {
+        0x612e7696a6cecc1b78e510617311d8a3c2ce6f447ed4d57b_u512,
+        0x20a61a1e0813e268e1c35de266b09f186c78b56fc8db_u512,
+        0x2fa00_u512,
+        0xcd942c39c2f48e58aed8d681f150fef2335c2f8f77b_u512,
+    },
+    // 192-bit: estimate 1 too big.
+    {
+        0x894ee23e2af8894a1023a69a6d7160205c0425f1d501c168_u512,
+        0x430a1f0a396c1bd7e8477ab1538793479_u512,
+        0x20c54a5adde5fb82_u512,
+        0x377addc94b7d268a501e0e389ebc578f6_u512,
+    },
+    // 192-bit: estimate 2 too big.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x105c6af0758d5563dab2cd31ee3151288_u512,
+        0xfa59f18cc1e434dd_u512,
+        0x9bf3f3f74e93b7d087762c18a5eb6097_u512,
+    },
+    // 192-bit: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x100000000000000000000000000000000_u512,
+        0xffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+    },
+    // 256-bit: u < v by the top word.
+    {
+        0xc858bbc8e29253805a052d8452bbf988c9155952f02595394cad46d34f83258_u512,
+        0xbd91a1b7f03edca7e2dcaa37f463b337d20b5d59db610487c89da11b62397bc7_u512,
+        0x0_u512,
+        0xc858bbc8e29253805a052d8452bbf988c9155952f02595394cad46d34f83258_u512,
+    },
+    // 256-bit: u < v with equal top words.
+    {
+        0x1a47e105825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bb_u512,
+        0x1a47e105825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bc_u512,
+        0x0_u512,
+        0x1a47e105825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bb_u512,
+    },
+    // 256-bit: top bit set, estimate 1 too big.
+    {
+        0x899950d836f675cc81e74ef5e8e25d940ed904759531985d5d9dc9f81818e810_u512,
+        0x899950d836f675cc81e74ef5e8e25d940ed904759531985d5d9dc9f81818e811_u512,
+        0x0_u512,
+        0x899950d836f675cc81e74ef5e8e25d940ed904759531985d5d9dc9f81818e810_u512,
+    },
+    // 256-bit: top bit set, exact estimate.
+    {
+        0xdc6b13ab2e47dc0e959f3a518cfe5cd12d5db79ba2a7ae1f3ac7652ccdf84404_u512,
+        0x99901c0475491bc354c56c9a9cc9af4ec9546b439f9d01298a449ebe89d9bf02_u512,
+        0x1_u512,
+        0x42daf7a6b8fec04b40d9cdb6f034ad8264094c58030aacf5b082c66e441e8502_u512,
+    },
+    // 256-bit: exact estimate.
+    {
+        0x1df2dba4c161cabaf9f631798ac493fe940e6988798b0d4262ca097f68951cc4_u512,
+        0x3f6a6abd8f17f5c4a0a61a1e0813e268e1c35de266b09f186c78b56fc8db_u512,
+        0x78e6_u512,
+        0x2_u512,
+    },
+    // 256-bit: estimate 1 too big.
+    {
+        0x72a9b8a4c0d76560fbbe938116e3e38047e1a38bd1ea041814d4954e5c47577b_u512,
+        0x32ffd03d4eac98d63534ccae8aa672352ee7af97425375be5_u512,
+        0x23f9246661a9c53b_u512,
+        0x305c6a867bec55f1dc88bc0069cb788d77f085a4abfa0f0b4_u512,
+    },
+    // 256-bit: estimate 2 too big.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x1076b3e36bb2313f55b06258e7e26f36a8483f8b8332dd331_u512,
+        0xf8ca3f4674837868_u512,
+        0xd72ecc541106e7f103d78fee414d74aa2e2edaa274503c17_u512,
+    },
+    // 256-bit: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x1000000000000000000000000000000000000000000000000_u512,
+        0xffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+    },
+    // 384-bit: u < v by the top word.
+    {
+        0x67f86286688eed8f5ec1c3d1eefb98a946ac0cee6c1a7ddcade3485d993b27e26e9487c1c77ad8c807c6144875a3ae18_u512,
+        0x70fffc69f89d044cc7ecca4e5f9d52853093a9f890f84bb8d24bb46ce859582e75b81ccf813dcbdff9e61f04c4c59129_u512,
+        0x0_u512,
+        0x67f86286688eed8f5ec1c3d1eefb98a946ac0cee6c1a7ddcade3485d993b27e26e9487c1c77ad8c807c6144875a3ae18_u512,
+    },
+    // 384-bit: u < v with equal top words.
+    {
+        0x9531985d5d9dc9f81818e811892f902bd23f0824128b2f330c5c7fd0a6a3a4506513270e269e0d37f2a74de452e6b42_u512,
+        0x9531985d5d9dc9f81818e811892f902bd23f0824128b2f330c5c7fd0a6a3a4506513270e269e0d37f2a74de452e6b43_u512,
+        0x0_u512,
+        0x9531985d5d9dc9f81818e811892f902bd23f0824128b2f330c5c7fd0a6a3a4506513270e269e0d37f2a74de452e6b42_u512,
+    },
+    // 384-bit: top bit set, estimate 1 too big.
+    {
+        0xecad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a35a099950d836f675cc81e74ef5e8e25d93_u512,
+        0xecad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a35a099950d836f675cc81e74ef5e8e25d94_u512,
+        0x0_u512,
+        0xecad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a35a099950d836f675cc81e74ef5e8e25d93_u512,
+    },
+    // 384-bit: top bit set, exact estimate.
+    {
+        0xc278a62be932c05746514092fcd67dc52c705ab1621b7e461e1ff187fa72ab370c50b95992714cfc65aeb4d48cea1f2e_u512,
+        0x81b698ac13cfba03680d5215b6c71cde4d7a663273d455ee2cd84e8187ab701fdbaf86abd786aa76bf8ded91737a6bbf_u512,
+        0x1_u512,
+        0x40c20d7fd5630653de43ee7d460f60e6def5f47eee472857f147a30672c73b1730a132adbaeaa285a620c743196fb36f_u512,
+    },
+    // 384-bit: exact estimate.
+    {
+        0x41c86ba411842d9ebe3618b44cd213073e188514669e9bde07dd425573cafef14d20c14a93928a5b997decca9ce18b2e_u512,
+        0x5367660dbc728830b988ec51e16737a23f6a6abd8f17f5c4a0a61a1e0813e268e1c35de266b09f186c78b56fc8db_u512,
+        0xc9ea_u512,
+        0x0_u512,
+    },
+    // 384-bit: estimate 1 too big.
+    {
+        0xfcf1fc03cd04b2823070a5e1a8aca0e3682b5fd037e5e965c5ff47b1d2c844cae97295385daa7f2743d055b7044b14eb_u512,
+        0x208fd558642403cb6e76588860a302fb823b4a1ff1b8a06532ae33a73a7997401853148d2c68f8713_u512,
+        0x7c4a552f237b9697_u512,
+        0x15d6df9d12e0abaefa6471bc2f220c1fc29f0e9660f1a3a02960aa82fafe82d09a8f6bf214d5c46b6_u512,
+    },
+    // 384-bit: estimate 2 too big.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x106ec41adea0575438b0d590bb0a844e52587be6b5c9bcf35873be078f3b7a50df373ca533488f876_u512,
+        0xf942686245892c8b_u512,
+        0xe0e4936c0e21a8a5c597937e7ef899ba36fd6d5b025741f286be29c8afc376e89fdfc25a29c6cfed_u512,
+    },
+    // 384-bit: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x100000000000000000000000000000000000000000000000000000000000000000000000000000000_u512,
+        0xffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+    },
+    // 512-bit: u < v by the top word.
+    {
+        0xcb14957dce1c61527ace77832dd5ad98475c61b1af3ef55c43ecf2b9fec08e901e5fa037bdba19ebabf100b0d5bc9f746b6cd23aadd763fa8d86850ebc098fd8_u512,
+        0xed10e6b8f837a7d6a6ce9740f233f6920c0a78d058c17f6b6c0046f488d4161a37e103558cb252440d05f982feebb948f46ed6dd9ca4f36e6d7cd4ed16d35266_u512,
+        0x0_u512,
+        0xcb14957dce1c61527ace77832dd5ad98475c61b1af3ef55c43ecf2b9fec08e901e5fa037bdba19ebabf100b0d5bc9f746b6cd23aadd763fa8d86850ebc098fd8_u512,
+    },
+    // 512-bit: u < v with equal top words.
+    {
+        0x6deceb9903ce9dfbd1c4bb281db208eb2a6330babb3b93f03031d023125f2057a47e104825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bc8a5cd686_u512,
+        0x6deceb9903ce9dfbd1c4bb281db208eb2a6330babb3b93f03031d023125f2057a47e104825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bc8a5cd687_u512,
+        0x0_u512,
+        0x6deceb9903ce9dfbd1c4bb281db208eb2a6330babb3b93f03031d023125f2057a47e104825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bc8a5cd686_u512,
+    },
+    // 512-bit: top bit set, estimate 1 too big.
+    {
+        0xa09f76b5a170b33839263059f28c105d1fb17c2390c192cfd3ac94af0f21ddb66cad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a359_u512,
+        0xa09f76b5a170b33839263059f28c105d1fb17c2390c192cfd3ac94af0f21ddb66cad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a35a_u512,
+        0x0_u512,
+        0xa09f76b5a170b33839263059f28c105d1fb17c2390c192cfd3ac94af0f21ddb66cad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a359_u512,
+    },
+    // 512-bit: top bit set, exact estimate.
+    {
+        0xc81117185b21d0df09736bf82db13b2f8ebf8fcd6026e5a6c815de18f38840c99ace3b175aa959cb710c431a52d63bc50ff6e16be832c17915849b2b31f68e39_u512,
+        0x94765878b25f740a9bb9f93bad21e937647faf5b715631350e02d989565843747b36767ee5b3c99aa231286cd47df12fa4ab16ac5a0d6c30774e0fe6f5e4207b_u512,
+        0x1_u512,
+        0x339abe9fa8c25cd46db972bc808f51f82a3fe071eed0b471ba13048f9d2ffd551f97c49874f59030cedb1aad7e584a956b4bcabf8e2555489e368b443c126dbe_u512,
+    },
+    // 512-bit: exact estimate.
+    {
+        0x57320feacf0c4adf29b957d736a99c58b35472afb1b74071a293c32a45ef21c790425ab3c88be5bd15f5898df6a0513d368bef652d4de2af434414d54fc577_u512,
+        0xc0397461adfcc96e4f4e30b30973b4b5367660dbc728830b988ec51e16737a23f6a6abd8f17f5c4a0a61a1e0813e268e1c35de266b09f186c78b56fc8db_u512,
+        0x742_u512,
+        0x1_u512,
+    },
+    // 512-bit: estimate 1 too big.
+    {
+        0xc67b3cd813d7c7ef94d441df6e958ed7689a222727caebf48c556d496afa07287f1b840fab03175b7e7e819957da18c180e45876e8f96d77697ac625da70e395_u512,
+        0x3590d9fbcb286b8f33c4b4341e65cf5f3fe96f0ea19bbecb28cc0211f1420596217eb678d74d102698b66cc15c739cde60033f97f4179cbe9_u512,
+        0x3b4935cf101224dc_u512,
+        0x310c00773284353aa471848a6cfa2fe0a9a5c248be12131392ebf9666333496f2f8a81a3594434aacc1de2275521a0c5a6d8c21de8eb6e359_u512,
+    },
+    // 512-bit: estimate 2 too big.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x12188287e8c5c715f8c74fc1e27e9e06f59b44e92effddeeaa842bc19796f74adfaf55496988af3fbd39630d69c9011ef256badf9a7e6529b_u512,
+        0xe25a021b64ba353f_u512,
+        0xf81c6278a3583e1403c11984fbe12de9494c4b0ade7c1da0de4f31cc3bd4b39ee63937f6eec95dae74658b21d8c02aaa30139dd76e9994da_u512,
+    },
+    // 512-bit: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000_u512,
+        0xffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+    },
 };
 }  // namespace
 
@@ -357,6 +583,21 @@ TEST(div, udivrem_384)
     {
         const auto n = static_cast<uint384>(t.numerator);
         const auto d = static_cast<uint384>(t.denominator);
+        if (n != t.numerator || d != t.denominator)
+            continue;  // Skip trimmed arguments.
+
+        const auto [quot, rem] = udivrem(n, d);
+        EXPECT_EQ(quot, t.quotient);
+        EXPECT_EQ(rem, t.reminder);
+    }
+}
+
+TEST(div, udivrem_192)
+{
+    for (auto& t : div_test_cases)
+    {
+        const auto n = static_cast<intx::uint<192>>(t.numerator);
+        const auto d = static_cast<intx::uint<192>>(t.denominator);
         if (n != t.numerator || d != t.denominator)
             continue;  // Skip trimmed arguments.
 
@@ -387,6 +628,21 @@ TEST(div, udivrem_320_by_256)
     {
         const auto n = static_cast<uint320>(t.numerator);
         const auto d = static_cast<uint256>(t.denominator);
+        if (n != t.numerator || d != t.denominator)
+            continue;  // Skip trimmed arguments.
+
+        const auto [quot, rem] = udivrem(n, d);
+        EXPECT_EQ(quot, t.quotient);
+        EXPECT_EQ(rem, t.reminder);
+    }
+}
+
+TEST(div, udivrem_320_by_128)
+{
+    for (auto& t : div_test_cases)
+    {
+        const auto n = static_cast<uint320>(t.numerator);
+        const auto d = static_cast<uint128>(t.denominator);
         if (n != t.numerator || d != t.denominator)
             continue;  // Skip trimmed arguments.
 
