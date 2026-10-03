@@ -361,6 +361,32 @@ jobs:
       - install_deps
       - build_and_test
 
+  bench-docker:
+    parameters:
+      rc: {type: string}
+      rep: {type: integer}
+    docker:
+      - image: cimg/base:current
+    resource_class: << parameters.rc >>
+    steps:
+      - checkout
+      - run: sudo apt-get -q update && sudo apt-get -qy install clang cmake libgmp-dev ninja-build
+      - run: CMAKE_GENERATOR=Ninja scripts/bench_shld.sh ~/out "circle:docker:<< parameters.rc >>#<< parameters.rep >>"
+      - store_artifacts: {path: ~/out, destination: bench}
+
+  bench-machine:
+    parameters:
+      rc: {type: string}
+      rep: {type: integer}
+    machine:
+      image: ubuntu-2404:current
+    resource_class: << parameters.rc >>
+    steps:
+      - checkout
+      - run: sudo apt-get -q update && sudo apt-get -qy install clang cmake libgmp-dev ninja-build
+      - run: CMAKE_GENERATOR=Ninja scripts/bench_shld.sh ~/out "circle:machine:<< parameters.rc >>#<< parameters.rep >>"
+      - store_artifacts: {path: ~/out, destination: bench}
+
 workflows:
   version: 2
   intx:
@@ -382,3 +408,15 @@ workflows:
       - windows-32bit
       - windows-debug
       - windows-release
+  shld-bench:
+    jobs:
+      - bench-docker:
+          matrix:
+            parameters:
+              rc: [medium, large, arm.medium]
+              rep: [1, 2]
+      - bench-machine:
+          matrix:
+            parameters:
+              rc: [medium, large, arm.medium]
+              rep: [1, 2]
