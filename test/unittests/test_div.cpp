@@ -9,6 +9,18 @@
 
 using namespace intx;
 
+TEST(div, udivrem_constexpr)
+{
+    // Knuth division (3-word divisor) with non-zero and zero normalization shift.
+    constexpr auto u = (uint256{0xfedcba9876543210} << 192) | 0x0123456789abcdef;
+    constexpr auto v1 = (uint256{0x1234} << 128) | 0x5678;
+    constexpr auto v0 = (uint256{0x8000000000000001} << 128) | 0x5678;
+    static_assert(udivrem(u, v1).quot * v1 + udivrem(u, v1).rem == u);
+    static_assert(udivrem(u, v1).rem < v1);
+    static_assert(udivrem(u, v0).quot * v0 + udivrem(u, v0).rem == u);
+    static_assert(udivrem(u, v0).rem < v0);
+}
+
 TEST(div, normalize)
 {
     uint512 u;
