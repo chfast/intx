@@ -522,6 +522,17 @@ constexpr unsigned bit_width(std::unsigned_integral auto x) noexcept
 constexpr uint64_t fshl(uint64_t hi, uint64_t lo, unsigned shift) noexcept
 {
     INTX_REQUIRE(shift < 64);
+#if defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
+    // TODO(gcc): GCC does not emit SHLD for funnel shifts. https://gcc.gnu.org/PR82261
+    if (!std::is_constant_evaluated())
+    {
+        asm("shld{q %b[s], %[lo], %[hi]| %[hi], %[lo], %b[s]}"
+            : [hi] "+rm"(hi)
+            : [lo] "r"(lo), [s] "cJ"(shift)
+            : "cc");
+        return hi;
+    }
+#endif
     return shift == 0 ? hi : (hi << shift) | (lo >> (64 - shift));
 }
 
@@ -530,6 +541,17 @@ constexpr uint64_t fshl(uint64_t hi, uint64_t lo, unsigned shift) noexcept
 constexpr uint64_t fshr(uint64_t hi, uint64_t lo, unsigned shift) noexcept
 {
     INTX_REQUIRE(shift < 64);
+#if defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
+    // TODO(gcc): GCC does not emit SHRD for funnel shifts. https://gcc.gnu.org/PR82261
+    if (!std::is_constant_evaluated())
+    {
+        asm("shrd{q %b[s], %[hi], %[lo]| %[lo], %[hi], %b[s]}"
+            : [lo] "+rm"(lo)
+            : [hi] "r"(hi), [s] "cJ"(shift)
+            : "cc");
+        return lo;
+    }
+#endif
     return shift == 0 ? lo : (lo >> shift) | (hi << (64 - shift));
 }
 
