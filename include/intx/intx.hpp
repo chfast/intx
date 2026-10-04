@@ -1658,12 +1658,62 @@ constexpr void udivrem_knuth(
     }
 }
 
+/// Divides u by v when both have the same size and the top word of v is not zero,
+/// i.e. the quotient fits in a single word.
+///
+/// The quotient is estimated from the top word of the normalized divisor with 2/1 division
+/// and corrected with the remainder computed on the original (not normalized) operands.
+/// This is the "small quotient" case from GMP's mpn_tdiv_qr().
+/// The top word of v must not be zero.
+template <unsigned N>
+constexpr div_result<uint<N>> udivrem_by_top_word(const uint<N>& u, const uint<N>& v) noexcept
+{
+    constexpr auto NUM_WORDS = uint<N>::num_words;
+
+    if (u[NUM_WORDS - 1] < v[NUM_WORDS - 1])  // u < v.
+        return {0, u};
+
+    // The top 64 bits of the normalized divisor and the matching 2 words of the numerator.
+    const auto s = clz_nonzero(v[NUM_WORDS - 1]);
+    const auto vt = fshl(v[NUM_WORDS - 1], v[NUM_WORDS - 2], s);
+    const auto ut_hi = fshl(0, u[NUM_WORDS - 1], s);
+    const auto ut_lo = fshl(u[NUM_WORDS - 1], u[NUM_WORDS - 2], s);
+
+    // The estimate is at most 2 too large.
+    // TODO: This is a single 128/64 division (divq on x86-64). It is faster than the reciprocal
+    //   on new CPUs (AMD Zen 3+, Intel Ice Lake+) but much slower on Intel Skylake and older.
+    auto q = udivrem_2by1({ut_lo, ut_hi}, vt, reciprocal_2by1(vt)).quot;
+
+    auto r = u;
+    auto borrow = submul(as_words(r).data(), as_words(v), q);
+    // The correction runs at most 2 times (usually 0), so don't unroll it.
+#ifdef __GNUC__
+    #pragma GCC unroll 1
+#endif
+    while (INTX_UNLIKELY(borrow != 0))
+    {
+        --q;
+        borrow -= add(as_words(r).data(), as_words(v));
+    }
+    return {q, r};
+}
+
 }  // namespace internal
 
 template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
-    auto na = internal::normalize(u, v, count_significant_words(v));
+    size_t num_divisor_words = uint<N>::num_words;
+    if constexpr (M == N)
+    {
+        if (v[num_divisor_words - 1] != 0)  // The quotient fits in a single word.
+            return internal::udivrem_by_top_word(u, v);
+        --num_divisor_words;  // Skip the zero top word.
+    }
+    while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
+        --num_divisor_words;
+
+    auto na = internal::normalize(u, v, num_divisor_words);
 
     // The span of the normalized numerator significant words. Will be modified.
     const auto un = as_words(na.numerator).subspan(0, static_cast<size_t>(na.num_numerator_words));
