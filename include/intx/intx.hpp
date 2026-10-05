@@ -1659,12 +1659,55 @@ constexpr void udivrem_knuth(
     }
 }
 
+/// Divides u by v when both have the same size and the top word of v is not zero,
+/// i.e. the quotient fits in a single word.
+///
+/// The quotient is estimated from the top word of the normalized divisor with 2/1 division
+/// and corrected with the remainder computed on the original (not normalized) operands.
+/// The top word of v must not be zero.
+template <unsigned N>
+constexpr div_result<uint<N>> udivrem_top1(const uint<N>& u, const uint<N>& v) noexcept
+{
+    constexpr auto TOP = uint<N>::num_words - 1;  // The top word index.
+
+    if (u[TOP] < v[TOP])  // u < v.
+        return {0, u};
+
+    // The top 64 bits of the normalized divisor and the matching 2 words of the numerator.
+    const auto s = clz_nonzero(v[TOP]);
+    const auto vt = fshl(v[TOP], v[TOP - 1], s);
+    const auto ut_hi = fshl(0, u[TOP], s);
+    const auto ut_lo = fshl(u[TOP], u[TOP - 1], s);
+
+    // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B).
+    // TODO: This is a single 128/64 division (divq on x86-64). It is faster than the reciprocal
+    //   on new CPUs (AMD Zen 3+, Intel Ice Lake+) but much slower on Intel Skylake and older.
+    auto q = udivrem_2by1({ut_lo, ut_hi}, vt, reciprocal_2by1(vt)).quot;
+
+    auto r = u;
+    auto borrow = submul(as_words(r).data(), as_words(v), q);
+    // The correction runs at most 2 times (usually 0).
+    while (borrow != 0) [[unlikely]]
+    {
+        --q;
+        borrow -= add(as_words(r).data(), as_words(v));
+    }
+    return {q, r};
+}
+
 }  // namespace internal
 
 template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
     size_t num_divisor_words = uint<N>::num_words;
+    if constexpr (M == N)
+    {
+        // For equal sizes, a divisor with the top word set gives a single word quotient.
+        if (v[num_divisor_words - 1] != 0)
+            return internal::udivrem_top1(u, v);
+        --num_divisor_words;  // Skip the zero top word.
+    }
     while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
         --num_divisor_words;
 
@@ -1689,8 +1732,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
+    // The max number of divisor words here. For equal sizes, the top divisor word is zero.
+    constexpr auto MAX_DIVISOR_WORDS = uint<N>::num_words - size_t{M == N};
     // The Knuth division handles divisors of at least 3 words.
-    constexpr auto KNUTH_REACHABLE = uint<N>::num_words >= 3;
+    constexpr auto KNUTH_REACHABLE = MAX_DIVISOR_WORDS >= 3;
     if (!KNUTH_REACHABLE || dn.size() == 2)
     {
         const auto r = internal::udivrem_by2(un, static_cast<uint128>(na.divisor));
