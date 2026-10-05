@@ -26,6 +26,7 @@
 #ifdef _MSC_VER
     #pragma warning(push)
     #pragma warning(disable : 5030)  // Allow unknown attributes.
+    #pragma warning(disable : 4127)  // Allow constant conditions (warning removed in VS 2026).
 #endif
 
 #ifndef __has_builtin
@@ -1684,19 +1685,24 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
-    if (dn.size() == 2)
+    // The Knuth division handles divisors of at least 3 words.
+    constexpr auto KNUTH_REACHABLE = uint<N>::num_words >= 3;
+    if (!KNUTH_REACHABLE || dn.size() == 2)
     {
         const auto r = internal::udivrem_by2(un, static_cast<uint128>(na.divisor));
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
-    uint<M> q;
-    internal::udivrem_knuth(&q[0], un, dn);
+    if constexpr (KNUTH_REACHABLE)
+    {
+        uint<M> q;
+        internal::udivrem_knuth(&q[0], un, dn);
 
-    uint<N> r;
-    shr(as_words(r).first(dn.size()), un.first(dn.size()), na.shift);
+        uint<N> r;
+        shr(as_words(r).first(dn.size()), un.first(dn.size()), na.shift);
 
-    return {q, r};
+        return {q, r};
+    }
 }
 
 template <unsigned N>
