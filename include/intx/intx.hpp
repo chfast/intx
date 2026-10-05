@@ -1664,7 +1664,11 @@ constexpr void udivrem_knuth(
 template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
-    auto na = internal::normalize(u, v, count_significant_words(v));
+    size_t num_divisor_words = uint<N>::num_words;
+    while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
+        --num_divisor_words;
+
+    auto na = internal::normalize(u, v, num_divisor_words);
 
     // The span of the normalized numerator significant words. Will be modified.
     const auto un = as_words(na.numerator).subspan(0, static_cast<size_t>(na.num_numerator_words));
