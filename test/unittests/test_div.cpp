@@ -11,7 +11,7 @@ using namespace intx;
 
 TEST(div, udivrem_constexpr)
 {
-    // Knuth division (3-word divisor) with non-zero and zero normalization shift.
+    // Two word quotient (3-word divisor) with non-zero and zero normalization shift.
     constexpr auto u = (uint256{0xfedcba9876543210} << 192) | 0x0123456789abcdef;
     constexpr auto v1 = (uint256{0x1234} << 128) | 0x5678;
     constexpr auto v0 = (uint256{0x8000000000000001} << 128) | 0x5678;
@@ -19,6 +19,15 @@ TEST(div, udivrem_constexpr)
     static_assert(udivrem(u, v1).rem < v1);
     static_assert(udivrem(u, v0).quot * v0 + udivrem(u, v0).rem == u);
     static_assert(udivrem(u, v0).rem < v0);
+
+    // Knuth division (uint512, 3-word divisor) with non-zero and zero normalization shift.
+    constexpr auto x = (uint512{0xfedcba9876543210} << 448) | 0x0123456789abcdef;
+    constexpr auto w1 = (uint512{0x1234} << 128) | 0x5678;
+    constexpr auto w0 = (uint512{0x8000000000000001} << 128) | 0x5678;
+    static_assert(udivrem(x, w1).quot * w1 + udivrem(x, w1).rem == x);
+    static_assert(udivrem(x, w1).rem < w1);
+    static_assert(udivrem(x, w0).quot * w0 + udivrem(x, w0).rem == x);
+    static_assert(udivrem(x, w0).rem < w0);
 }
 
 TEST(div, normalize)
