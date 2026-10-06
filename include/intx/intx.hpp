@@ -1630,7 +1630,7 @@ constexpr void udivrem_knuth(
         const auto u0 = u[j + dlen - 2];
 
         uint64_t qhat{};
-        if (INTX_UNLIKELY((uint128{u1, u2}) == divisor))  // Division overflows.
+        if (INTX_UNLIKELY(u2 == divisor[1]) && u1 == divisor[0])  // Division overflows.
         {
             qhat = ~uint64_t{0};
 
