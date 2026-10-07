@@ -576,6 +576,9 @@ void to_string(benchmark::State& state)
 BENCHMARK(to_string<uint128>);
 BENCHMARK(to_string<uint256>);
 BENCHMARK(to_string<uint512>);
+BENCHMARK(to_string<int128>);
+BENCHMARK(to_string<int256>);
+BENCHMARK(to_string<int512>);
 
 
 template <typename Int>
