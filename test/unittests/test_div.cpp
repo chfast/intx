@@ -36,8 +36,6 @@ TEST(div, normalize)
     uint512 v = 1;
     auto na = internal::normalize(u, v, count_significant_words(v));
     EXPECT_EQ(na.shift, 63u);
-    EXPECT_EQ(na.num_divisor_words, 1);
-    EXPECT_EQ(na.num_numerator_words, 0);
     EXPECT_EQ(na.numerator, 0);
     EXPECT_EQ(na.divisor, v << 63);
 
@@ -45,8 +43,6 @@ TEST(div, normalize)
     v = uint512{1212, 0, 0, 0, 12, 0, 0, 0};
     na = internal::normalize(u, v, count_significant_words(v));
     EXPECT_EQ(na.shift, 60u);
-    EXPECT_EQ(na.num_divisor_words, 5);
-    EXPECT_EQ(na.num_numerator_words, 6);
     EXPECT_EQ(na.numerator, u << 60);
     EXPECT_EQ(na.divisor, v << 60);
 
@@ -54,8 +50,6 @@ TEST(div, normalize)
     v = uint256{1, 0, 0xffffffffffffffff, 0};
     na = internal::normalize(u, v, count_significant_words(v));
     EXPECT_EQ(na.shift, 0u);
-    EXPECT_EQ(na.num_divisor_words, 3);
-    EXPECT_EQ(na.num_numerator_words, 8);
     EXPECT_EQ(na.numerator, u);
     EXPECT_EQ(na.divisor, v);
 
@@ -63,8 +57,6 @@ TEST(div, normalize)
     v = uint256{1, 0, 0x3fffffffffffffff, 0};
     na = internal::normalize(u, v, count_significant_words(v));
     EXPECT_EQ(na.shift, 2u);
-    EXPECT_EQ(na.num_divisor_words, 3);
-    EXPECT_EQ(na.num_numerator_words, 9);
     EXPECT_EQ(na.numerator, intx::uint<576>{u} << 2);
     EXPECT_EQ(na.divisor, v << 2);
 }
@@ -750,6 +742,46 @@ const div_test_case<uint512> div_test_cases[] = {
         0x119c8a24333f250a0c9e40bf12b3fe18565edaaef0eecbd2c3b951cb2bdead62c7b3b94bbf2c0d3ce4ab4705b64908af0_u512,
         0xe8935612a516f6029d059e7982a7681f_u512,
         0x1073ba611d1cb8fa852e0d25c057f598740007aa6243fc5c4febd9bec8a7d1a638f12e8091cbd59bc4d0f77cb977dacef_u512,
+    },
+    // u < v with as many words and the same top word: the top quotient word is not skipped.
+    {
+        0x50000000000000000_u512,
+        0x58000000000000000_u512,
+        0_u512,
+        0x50000000000000000_u512,
+    },
+    {
+        0x500000000000000000000000000000000_u512,
+        0x580000000000000000000000000000000_u512,
+        0_u512,
+        0x500000000000000000000000000000000_u512,
+    },
+    // The same top word of u and v, u with one more word: the top quotient word is 0.
+    {
+        0x500000000000000000000000000000000_u512,
+        0x5f000000000000000_u512,
+        0xd79435e50d79435e_u512,
+        0x1e000000000000000_u512,
+    },
+    {
+        0x5000000000000000000000000000000000000000000000000_u512,
+        0x5f0000000000000000000000000000000_u512,
+        0xd79435e50d79435e_u512,
+        0x1e0000000000000000000000000000000_u512,
+    },
+    // Zero numerator, 1-word divisor.
+    {
+        0x0_u512,
+        0x3_u512,
+        0x0_u512,
+        0x0_u512,
+    },
+    // Max 320-bit numerator, 1-word divisor: the normalization shifts out bits of the top word.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x3_u512,
+        0x55555555555555555555555555555555555555555555555555555555555555555555555555555555_u512,
+        0x0_u512,
     },
 };
 }  // namespace
