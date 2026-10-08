@@ -564,6 +564,184 @@ const div_test_case<uint512> div_test_cases[] = {
         0xffffffffffffffff_u512,
         0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
     },
+    // Divisors with one word less than the numerator, i.e. two word quotients.
+    // The "estimate" is the quotient estimated from the top 4 words of the normalized numerator
+    // and the top 2 words of the normalized divisor.
+    // 256-bit, 3-word divisor: estimate exact, not normalized, quotient < 2^64.
+    {
+        0x1f43319b8ddf9ccfd8de894c9a2736d4ae4c59fc740cce622_u512,
+        0x3911650e9aeb5af8a39ea9ba67c665412_u512,
+        0x8c3d5f169293de90_u512,
+        0x2_u512,
+    },
+    // 256-bit, 3-word divisor: estimate exact, not normalized, quotient >= 2^64.
+    {
+        0xffffffffffffffffc000000000000001fffffffffffffffba4c449881c593af6_u512,
+        0x400000000000000000000000000000007fffffffffffffff_u512,
+        0x3ffffffffffffffff_u512,
+        0x24c449881c593af5_u512,
+    },
+    // 256-bit, 3-word divisor: estimate exact, top bit set, quotient < 2^64.
+    {
+        0x720b1903e84a24cb8000000000000000e4163207d0944996996d3c6fded38aca_u512,
+        0x80000000000000000000000000000000ffffffffffffffff_u512,
+        0xe4163207d0944997_u512,
+        0x7d836e77af67d461_u512,
+    },
+    // 256-bit, 3-word divisor: estimate exact, top bit set, quotient >= 2^64.
+    {
+        0xfffffffffffffffd0000000000000001fffffffffffffff85b4c8012ede7bd12_u512,
+        0x80000000000000000000000000000000ffffffffffffffff_u512,
+        0x1fffffffffffffffa_u512,
+        0x5b4c8012ede7bd0c_u512,
+    },
+    // 256-bit, 3-word divisor: estimate 1 too big, not normalized, quotient < 2^64.
+    {
+        0x51c130321b48292a7868003552a41c81e46685b06f421a688a5ac1d1ee893e79_u512,
+        0x5d46d320a4d023ee25643fe044df4e0e475a8a078b7a2440_u512,
+        0xe060a72424114259_u512,
+        0x5d46d320a4d023ee25643fe044df4e0e475a8a078b7a2439_u512,
+    },
+    // 256-bit, 3-word divisor: estimate 1 too big, not normalized, quotient >= 2^64.
+    {
+        0xffffffffe684bc870000000000000001ffffffffcd09790a0000000065ed0d0b_u512,
+        0x400000000000000000000000000000007fffffffffffffff_u512,
+        0x3ffffffff9a12f21b_u512,
+        0x400000000000000000000000000000007fffffffffffff26_u512,
+    },
+    // 256-bit, 3-word divisor: estimate 1 too big, top bit set, quotient < 2^64.
+    {
+        0x1d77edc9d98a3a3d893b3e3c44d6f0ea4db18077a8451e7fc68589dc6caaf7bd_u512,
+        0x833f867ece1fd3d9849acfb58350a73fffffffffffffffff_u512,
+        0x397a762393550841_u512,
+        0x833f867ece1fd3d9849acfb58350a73ffffffffffffffffe_u512,
+    },
+    // 256-bit, 3-word divisor: estimate 1 too big, top bit set, quotient >= 2^64.
+    {
+        0xffffffff9e64bac460b66c5a1ea9fa734318ec426d459817eeb9469af88f321f_u512,
+        0xcfa7d815b7a1774f1a42721eaba4c70ee306f0c485f184e0_u512,
+        0x13b9973a32a8f8786_u512,
+        0xcfa7d815b7a1774f1a42721eaba4c70ee306f0c485f184df_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate exact, not normalized, quotient < 2^64.
+    {
+        0x7f28470d1a0153947c5aff26ad7b9a14e0434605decebbce7bace2ca8b48c7d0_u512,
+        0x1fa97002df975a2cfeb5394bfdbe2cbb56dd5ffeaf055fcd7_u512,
+        0x4041f5ee8bae8e67_u512,
+        0x166eebc578f4ecb4f_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate exact, not normalized, quotient >= 2^64.
+    {
+        0xfffffffffffffffc8000000000000001fffffffffffffff9132e14750879d951025ff87c44df8a21_u512,
+        0x400000000000000000000000000000007fffffffffffffffffffffffffffffff_u512,
+        0x3fffffffffffffff2_u512,
+        0x132e14750879d955025ff87c44df8a13_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate exact, top bit set, quotient < 2^64.
+    {
+        0x613805871014b58decc72e0c89099eb5bd617165bd1f85ba511070a74a41f8e451f4715491248acd_u512,
+        0xbe272124b1515fff42969a5033288e16ffffffffffffffffffffffffffffffff_u512,
+        0x82e261237776c656_u512,
+        0x511070a74a41f8e4d4d6d278089b5123_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate exact, top bit set, quotient >= 2^64.
+    {
+        0xffffffff6b71491f81d259f6c36088b0e0bac9f63d2a404b6cffb0f0f79edc8098224d42c95f4608_u512,
+        0xa121611283e2665af6540600c8fb4456ffffffffffffffffffffffffffffffff_u512,
+        0x196b9fc7f2dbc8b2d_u512,
+        0x6cffb0f0f79edc822edc49c1f71bd135_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 1 too big, not normalized, quotient < 2^64.
+    {
+        0x289751a3dba8375c56ce18730d1fbcc6238d7ed580a48bc0411dc4d9fb764dfca70796db36831b5d_u512,
+        0x5a52eab5eda64a495fafc2f118e836ce0c5f703a2f6061303fcc4053739e24f5_u512,
+        0x730b89dc2577c325_u512,
+        0x5a52eab5eda64a495fafc2f118e836ce0c5f703a2f6061303fcc4053739e24f4_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 1 too big, not normalized, quotient >= 2^64.
+    {
+        0xfffffffffffffffffffffffe9ed83899ffffffffffffffff7ffffffd3db0713000000000b093e3b3_u512,
+        0x200000000000000000000000000000003ffffffffffffffff_u512,
+        0x7fffffffffffffffffffffff4f6c1c4b_u512,
+        0x200000000000000000000000000000003fffffffffffffffe_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 1 too big, top bit set, quotient < 2^64.
+    {
+        0x7aa8d5fe90cbb1e38000000000000000f551abfd219763c6ffffffffffffffff0aae5402de689c23_u512,
+        0x80000000000000000000000000000000ffffffffffffffffffffffffffffffff_u512,
+        0xf551abfd219763c6_u512,
+        0x80000000000000000000000000000000ffffffffffffffffffffffffffffffe9_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 1 too big, top bit set, quotient >= 2^64.
+    {
+        0xffffffffb4a82bb5acafb4ecf22aa4fb529e379ce8da98e3fffffffffffffffeac690ada46dad7f2_u512,
+        0xc0fc60254e564cbf96060250ea3e7f73ffffffffffffffffffffffffffffffff_u512,
+        0x15396f525b925280c_u512,
+        0xc0fc60254e564cbf96060250ea3e7f73fffffffffffffffffffffffffffffffe_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 2 too big, not normalized, quotient >= 2^64.
+    {
+        0xffffffffffffffffffffffff7aaa72e8109055ea0b4de0be2d74eb3fb1f9146e72f04cefcc8f8f01_u512,
+        0x15b20f1e640aa1b732800484ed97b76e3ffffffffffffffff_u512,
+        0xbccb66ae048a00d8c6407af5f62d48e1_u512,
+        0x15b20f1e640aa1b732800484ed97b76e33930c7e5c2bcd7e2_u512,
+    },
+    // 256-bit, 3-word divisor: u < v.
+    {
+        0xafa927e2367467387e9b56d2f7c988046f3df106e94a_u512,
+        0xafa927e2367467387e9b56d2f7ca1132a960199b3982_u512,
+        0x0_u512,
+        0xafa927e2367467387e9b56d2f7c988046f3df106e94a_u512,
+    },
+    // 256-bit, 3-word divisor: zero remainder.
+    {
+        0x6bbb5310cfa2a336491524184459ed5f4af73f5ffb17f8d0b1a0f3443792dbe0_u512,
+        0xae7d0c31db2dcfad759a5eb16c555cbdb8_u512,
+        0x9e0ee2f7eb0fdb358ce418b47da864_u512,
+        0x0_u512,
+    },
+    // 256-bit, 3-word divisor: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x1bd328e8a6c0f3455cb3aead1c1e64483_u512,
+        0x9334e27de3e38814a87d9c2628bc32f1_u512,
+        0x10dcf197fb1a71ba86d709968b4a3eaac_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: u < v.
+    {
+        0x6c06bb7f4fa3c49356ea3283db7ec7112d4dc1628a16b9c4bc5fb5009e140_u512,
+        0x6c06bb7f4fa3c49356ea3283db7ec7112d4dc1628a16bb9c60c657880ed44_u512,
+        0x0_u512,
+        0x6c06bb7f4fa3c49356ea3283db7ec7112d4dc1628a16b9c4bc5fb5009e140_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: zero remainder.
+    {
+        0x91d4f841fedd9d1d0aad43da4376fba36b12abe18e43637e676861ce533d807be2006d505b48bfd0_u512,
+        0xfdd43013f73f7c61f2b05206e6445bb03075ea816eff8cefa41f7aab341d0_u512,
+        0x93144cb95a7ca197161_u512,
+        0x0_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x124dcac35962f8e7e37055de446a10d6bffffffffffffffff_u512,
+        0xdfc71a9e4169d4b760bcb64dc82588d6_u512,
+        0x892b6f334849dcc104f17f06570b3c6f60bcb64dc82588d5_u512,
+    },
+    // 384-bit, 5-word divisor: estimate 2 too big, not normalized, max numerator.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x1137ab187ec65205deb71b04a32d451959c3cd4a24d0f1629f8b89f18b8af879f_u512,
+        0xede5eb0289324544b53a654ff657b366_u512,
+        0xcf798469b01e40a15aa182a3b59954e1576ee12ed211355b98a04df8cd32c9a5_u512,
+    },
+    // 512-bit, 7-word divisor: estimate 2 too big, not normalized, max numerator.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x119c8a24333f250a0c9e40bf12b3fe18565edaaef0eecbd2c3b951cb2bdead62c7b3b94bbf2c0d3ce4ab4705b64908af0_u512,
+        0xe8935612a516f6029d059e7982a7681f_u512,
+        0x1073ba611d1cb8fa852e0d25c057f598740007aa6243fc5c4febd9bec8a7d1a638f12e8091cbd59bc4d0f77cb977dacef_u512,
+    },
 };
 }  // namespace
 
