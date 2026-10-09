@@ -1623,23 +1623,23 @@ constexpr void udivrem_knuth(
     const auto divisor = uint128{d[d.size() - 2], d[d.size() - 1]};
     const auto reciprocal = reciprocal_3by2(divisor);
     const auto dlen = d.size();
+    // The top 2 words of the partial remainder.
+    auto rem = uint128{u[u.size() - 2], u[u.size() - 1]};
     for (size_t j = u.size() - dlen - 1; true; --j)
     {
-        const auto u2 = u[j + dlen];
-        const auto u1 = u[j + dlen - 1];
         const auto u0 = u[j + dlen - 2];
 
         uint64_t qhat{};
-        if (INTX_UNLIKELY((uint128{u1, u2}) == divisor))  // Division overflows.
+        if (INTX_UNLIKELY(rem == divisor))  // Division overflows.
         {
             qhat = ~uint64_t{0};
 
-            u[j + dlen] = u2 - submul(&u[j], d, qhat);
+            submul(&u[j], d, qhat);
         }
         else
         {
             uint128 rhat;
-            std::tie(qhat, rhat) = udivrem_3by2(u2, u1, u0, divisor, reciprocal);
+            std::tie(qhat, rhat) = udivrem_3by2(rem[1], rem[0], u0, divisor, reciprocal);
 
             bool carry{};
             const auto overflow = submul(&u[j], d.subspan(0, d.size() - 2), qhat);
@@ -1649,9 +1649,12 @@ constexpr void udivrem_knuth(
             if (INTX_UNLIKELY(carry))
             {
                 --qhat;
-                u[j + dlen - 1] += divisor[1] + add(&u[j], d.subspan(0, d.size() - 1));
+                add(&u[j], d);
             }
         }
+        // The top 2 words of the next partial remainder. Read before the q[j] store
+        // (q may alias u) so the compiler can reuse the values just stored.
+        rem = {u[j + dlen - 2], u[j + dlen - 1]};
 
         q[j] = qhat;  // Store quotient digit.
         if (j == 0)   // Loop exit condition.
