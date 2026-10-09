@@ -347,6 +347,13 @@ const div_test_case<uint512> div_test_cases[] = {
         0xdc5a47249a56560d078334729ffb61da211f5d2ec622c22f88bc3b4ebae1abdac6b03621554ef71070bc1e0dc5c301bc_u512,
         0x6dc100ea02272bdcf68a4a5b95f468f8_u128,
     },
+    // Knuth division (uint512, 3-word divisor): the overflow case in the first 2 iterations.
+    {
+        0x91b1c7962db130311e8dee4c09d96c4b00000000000000000000000000000000000000000000000032fdce10b86d538a43d4fc5b20e3f5c0_u512,
+        0x91b1c7962db130311e8dee4c09d96c4b1cf8fa026c9f0d1a_u512,
+        0xffffffffffffffffffffffffffffffffcd179dc0762ae23e909063f2ea9c5b01_u512,
+        0x8ce87ea7de1b5dc4654bbec939f80045e62e22426ac4aaa6_u512,
+    },
     // Divisors with the top word not zero, i.e. single word quotients.
     // The "estimate" is the quotient estimated from the top words of the normalized operands.
     // 192-bit: u < v by the top word.
