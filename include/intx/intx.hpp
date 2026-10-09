@@ -1695,18 +1695,93 @@ constexpr div_result<uint<N>> udivrem_top1(const uint<N>& u, const uint<N>& v) n
     return {q, r};
 }
 
+/// Divides u by v when the significant words of v are one less than the words of u,
+/// i.e. the quotient fits in two words.
+///
+/// The quotient is estimated from the top 2 words of the normalized divisor with two 3/2
+/// divisions and corrected with the remainder, computed from the remainder of the 3/2 divisions
+/// and the low words of the original (not normalized) operands.
+/// The v must have exactly uint<M>::num_words - 1 significant words.
+template <unsigned M, unsigned N>
+constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint<N>& v) noexcept
+{
+    constexpr auto TOP = uint<M>::num_words - 1;  // The top word index of u and the words of v.
+    static_assert(TOP >= 3 && TOP <= uint<N>::num_words);
+
+    // TODO: Consider returning early for u < v as udivrem_top1() does,
+    //   e.g. for u[TOP] == 0 && u[TOP - 1] < v[TOP - 1].
+
+    // The top 128 bits of the normalized divisor and the matching 4 words of the numerator.
+    const auto s = clz_nonzero(v[TOP - 1]);
+    const uint128 vt{fshl(v[TOP - 2], v[TOP - 3], s), fshl(v[TOP - 1], v[TOP - 2], s)};
+    const auto t3 = fshl(0, u[TOP], s);
+    const auto t2 = fshl(u[TOP], u[TOP - 1], s);
+    const auto t1 = fshl(u[TOP - 1], u[TOP - 2], s);
+    const auto t0 = fshl(u[TOP - 2], u[TOP - 3], s);
+
+    // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B, base 2^128).
+    // The first division does not overflow: t3:t2 < 2^(64+s) <= 2^127 <= vt.
+    const auto reciprocal = reciprocal_3by2(vt);
+    const auto [q1, r1] = udivrem_3by2(t3, t2, t1, vt, reciprocal);
+    const auto [q0, r0] = udivrem_3by2(r1[1], r1[0], t0, vt, reciprocal);
+    auto q = uint128{q0, q1};
+
+    // With k = 64 * (TOP - 2) - s, the position of the lowest bit of vt in v:
+    // u - q * v = r0 * 2^k + u mod 2^k - q * (v mod 2^k),
+    // so q is multiplied only by the low TOP - 2 words of v.
+    std::array<uint64_t, TOP - 2> vl{};  // v mod 2^k.
+    for (size_t i = 0; i < TOP - 2; ++i)
+        vl[i] = v[i];
+    vl[TOP - 3] = (vl[TOP - 3] << s) >> s;
+
+    std::array<uint64_t, TOP> rw{};  // r0 * 2^k + u mod 2^k, less than v.
+    for (size_t i = 0; i < TOP - 2; ++i)
+        rw[i] = u[i];
+    rw[TOP - 3] = fshr(r0[0], rw[TOP - 3] << s, s);
+    rw[TOP - 2] = fshr(r0[1], r0[0], s);
+    rw[TOP - 1] = r0[1] >> s;
+
+    // r -= q * vl. The result is in (-2v, v), the borrow is its sign.
+    const auto b0 = submul(rw.data(), vl, q0);
+    const auto b1 = submul(&rw[1], vl, q1);
+    bool borrow = false;
+    std::tie(rw[TOP - 2], borrow) = subc(rw[TOP - 2], b0);
+    std::tie(rw[TOP - 1], borrow) = subc(rw[TOP - 1], b1, borrow);
+
+    // The correction runs at most 2 times (usually 0).
+    const auto vw = as_words(v).template first<TOP>();
+    while (borrow) [[unlikely]]
+    {
+        --q;
+        borrow = !add(rw.data(), vw);
+    }
+    return {q, uint<N>{rw}};
+}
+
 }  // namespace internal
 
 template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
+    // For equal sizes, a divisor with the top word set gives a single word quotient.
+    constexpr auto TOP1 = M == N;
+    // A divisor with one significant word less than the numerator gives a two word quotient.
+    // It needs at least 3 divisor words to form the normalized top 128 bits.
+    constexpr auto TOP2 =
+        (uint<M>::num_words >= 4) && (uint<M>::num_words - 1 == uint<N>::num_words - size_t{TOP1});
+
     size_t num_divisor_words = uint<N>::num_words;
-    if constexpr (M == N)
+    if constexpr (TOP1)
     {
-        // For equal sizes, a divisor with the top word set gives a single word quotient.
         if (v[num_divisor_words - 1] != 0)
             return internal::udivrem_top1(u, v);
         --num_divisor_words;  // Skip the zero top word.
+    }
+    if constexpr (TOP2)
+    {
+        if (v[num_divisor_words - 1] != 0)
+            return internal::udivrem_top2(u, v);
+        --num_divisor_words;  // Skip the zero word.
     }
     while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
         --num_divisor_words;
@@ -1732,8 +1807,8 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
         return {static_cast<uint<M>>(na.numerator), r >> na.shift};
     }
 
-    // The max number of divisor words here. For equal sizes, the top divisor word is zero.
-    constexpr auto MAX_DIVISOR_WORDS = uint<N>::num_words - size_t{M == N};
+    // The max number of divisor words here: the divisors with more words are handled above.
+    constexpr auto MAX_DIVISOR_WORDS = uint<N>::num_words - size_t{TOP1} - size_t{TOP2};
     // The Knuth division handles divisors of at least 3 words.
     constexpr auto KNUTH_REACHABLE = MAX_DIVISOR_WORDS >= 3;
     if (!KNUTH_REACHABLE || dn.size() == 2)
