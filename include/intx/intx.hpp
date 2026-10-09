@@ -1484,8 +1484,6 @@ struct normalized_div_args  // NOLINT(cppcoreguidelines-pro-type-member-init)
 {
     uint<N> divisor;
     uint<M + 64> numerator;
-    size_t num_divisor_words;
-    size_t num_numerator_words;
     unsigned shift;
 };
 
@@ -1497,8 +1495,6 @@ template <unsigned M, unsigned N>
 [[gnu::always_inline]] constexpr normalized_div_args<M, N> normalize(
     const uint<M>& numerator, const uint<N>& denominator, size_t num_divisor_words) noexcept
 {
-    constexpr auto num_numerator_words = uint<M>::num_words;
-
     const auto u = as_words(numerator);
     const auto v = as_words(denominator);
 
@@ -1506,12 +1502,7 @@ template <unsigned M, unsigned N>
     const auto un = as_words(na.numerator);
     const auto vn = as_words(na.divisor);
 
-    auto& m = na.num_numerator_words;
-    for (m = num_numerator_words; m > 0 && u[m - 1] == 0; --m)
-        ;
-
     const auto n = num_divisor_words;
-    na.num_divisor_words = n;
 
     na.shift = clz_nonzero(v[n - 1]);  // Use clz_nonzero() to avoid clang analyzer's warning.
     // TODO: Confirm on Mainnet data that the non-zero shift is the likely case.
@@ -1526,11 +1517,6 @@ template <unsigned M, unsigned N>
         na.numerator = numerator;
         na.divisor = denominator;
     }
-
-    // Add the highest word of the normalized numerator if significant.
-    if (m != 0 && (un[m] != 0 || un[m - 1] >= vn[n - 1]))
-        ++m;
-
     return na;
 }
 
@@ -1785,20 +1771,31 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     }
     while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
         --num_divisor_words;
+    const auto n = num_divisor_words;
 
-    auto na = internal::normalize(u, v, num_divisor_words);
+    // The number of significant words of the numerator, at least 1.
+    size_t m = uint<M>::num_words;
+    while (m > 1 && u[m - 1] == 0)
+        --m;
 
-    // The span of the normalized numerator significant words. Will be modified.
-    const auto un = as_words(na.numerator).subspan(0, static_cast<size_t>(na.num_numerator_words));
+    // The numerator words to divide: the m words and the word with the bits shifted out of the
+    // top by the normalization. That word is below the top divisor word, so the division can
+    // start from it. It is skipped if the top word of u is below the top word of v: then the
+    // shifted out bits are 0 and so is the top quotient word. No quotient words means u < v.
+    const auto num_numerator_words = m + size_t{u[m - 1] >= v[n - 1]};
+    if (num_numerator_words <= n)
+        return {0, static_cast<uint<N>>(u)};
+
+    auto na = internal::normalize(u, v, n);
+
+    // The span of the normalized numerator words to divide (modified in place).
+    const auto un = as_words(na.numerator).subspan(0, num_numerator_words);
     // The span of the normalized divisor significant words.
-    const auto dn = as_words(na.divisor).subspan(0, static_cast<size_t>(na.num_divisor_words));
+    const auto dn = as_words(na.divisor).subspan(0, n);
 
     INTX_REQUIRE(!dn.empty());
     INTX_REQUIRE(dn.size() <= uint<N>::num_words);
     INTX_REQUIRE(un.size() <= uint<M>::num_words + 1);
-
-    if (un.size() <= dn.size())
-        return {0, static_cast<uint<N>>(u)};
 
     static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
     if (dn.size() == 1)
