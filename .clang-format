@@ -42,5 +42,8 @@ IndentWidth:     4
 MaxEmptyLinesToKeep: 2
 PenaltyBreakAssignment: 1
 PenaltyBreakComment: 50
+# With the default 1000000, long tables with many lines over the column limit
+# (e.g. div_test_cases in test_div.cpp) are reflowed with extra indentation.
+PenaltyExcessCharacter: 100000
 TabWidth:        4
 ...

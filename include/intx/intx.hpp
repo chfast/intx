@@ -1659,24 +1659,29 @@ constexpr void udivrem_knuth(
     }
 }
 
-/// Divides u by v when both have the same size and the top word of v is not zero,
-/// i.e. the quotient fits in a single word.
+/// Divides u by v when the quotient fits in a single word: v has TOP + 1 significant words
+/// and u has at most one more word, which is less than v[TOP].
 ///
 /// The quotient is estimated from the top word of the normalized divisor with 2/1 division
 /// and corrected with the remainder computed on the original (not normalized) operands.
-/// The top word of v must not be zero.
-template <unsigned N>
-constexpr div_result<uint<N>> udivrem_top1(const uint<N>& u, const uint<N>& v) noexcept
+/// The word v[TOP] must not be zero.
+template <size_t TOP, unsigned M, unsigned N>
+constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint<N>& v) noexcept
 {
-    constexpr auto TOP = uint<N>::num_words - 1;  // The top word index.
+    static_assert(TOP >= 1 && TOP < uint<N>::num_words);
+    static_assert(uint<M>::num_words == TOP + 1 || uint<M>::num_words == TOP + 2);
 
-    if (u[TOP] < v[TOP])  // u < v.
-        return {0, u};
+    uint64_t ue = 0;  // The extra word of u above the significant words of v.
+    if constexpr (uint<M>::num_words == TOP + 2)
+        ue = u[TOP + 1];
+
+    if (uint128{u[TOP], ue} < v[TOP])  // u < v.
+        return {0, static_cast<uint<N>>(u)};
 
     // The top 64 bits of the normalized divisor and the matching 2 words of the numerator.
     const auto s = clz_nonzero(v[TOP]);
     const auto vt = fshl(v[TOP], v[TOP - 1], s);
-    const auto ut_hi = fshl(0, u[TOP], s);
+    const auto ut_hi = fshl(ue, u[TOP], s);  // Less than vt because ue < v[TOP].
     const auto ut_lo = fshl(u[TOP], u[TOP - 1], s);
 
     // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B).
@@ -1684,14 +1689,19 @@ constexpr div_result<uint<N>> udivrem_top1(const uint<N>& u, const uint<N>& v) n
     //   on new CPUs (AMD Zen 3+, Intel Ice Lake+) but much slower on Intel Skylake and older.
     auto q = udivrem_2by1({ut_lo, ut_hi}, vt, reciprocal_2by1(vt)).quot;
 
-    auto r = u;
-    auto borrow = submul(as_words(r).data(), as_words(v), q);
+    // The remainder u - q * v fits in the TOP + 1 words of v, so the borrow out of them
+    // is ue, or ue + 1 or ue + 2 when the estimate is too large.
+    auto r = static_cast<uint<N>>(u);
+    const auto vw = as_words(v).template first<TOP + 1>();
+    auto borrow = submul(as_words(r).data(), vw, q) - ue;
     // The correction runs at most 2 times (usually 0).
     while (borrow != 0) [[unlikely]]
     {
         --q;
-        borrow -= add(as_words(r).data(), as_words(v));
+        borrow -= add(as_words(r).data(), vw);
     }
+    if constexpr (TOP + 1 < uint<N>::num_words)
+        r[TOP + 1] = 0;  // Clear the extra word copied from u.
     return {q, r};
 }
 
@@ -1707,9 +1717,6 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
 {
     constexpr auto TOP = uint<M>::num_words - 1;  // The top word index of u and the words of v.
     static_assert(TOP >= 3 && TOP <= uint<N>::num_words);
-
-    // TODO: Consider returning early for u < v as udivrem_top1() does,
-    //   e.g. for u[TOP] == 0 && u[TOP - 1] < v[TOP - 1].
 
     // The top 128 bits of the normalized divisor and the matching 4 words of the numerator.
     const auto s = clz_nonzero(v[TOP - 1]);
@@ -1774,13 +1781,19 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     if constexpr (TOP1)
     {
         if (v[num_divisor_words - 1] != 0)
-            return internal::udivrem_top1(u, v);
+            return internal::udivrem_top1<uint<N>::num_words - 1>(u, v);
         --num_divisor_words;  // Skip the zero top word.
     }
     if constexpr (TOP2)
     {
-        if (v[num_divisor_words - 1] != 0)
+        constexpr auto TOP = uint<M>::num_words - 2;  // The top word index of v.
+        if (v[TOP] != 0)
+        {
+            // The quotient fits in a single word if the top word of u is less than v[TOP].
+            if (u[TOP + 1] < v[TOP])
+                return internal::udivrem_top1<TOP>(u, v);
             return internal::udivrem_top2(u, v);
+        }
         --num_divisor_words;  // Skip the zero word.
     }
     while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
