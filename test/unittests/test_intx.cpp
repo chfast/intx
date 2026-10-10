@@ -348,6 +348,15 @@ TYPED_TEST(uint_test, string_conversions)
     }
 }
 
+TYPED_TEST(uint_test, from_string_decimal_overflow)
+{
+    // A decimal string with as many digits as TypeParam::max() but consisting of all 9s
+    // is always greater than max() and must be rejected, not silently wrapped around.
+    const auto digits = to_string(std::numeric_limits<TypeParam>::max()).size();
+    const auto s = std::string(digits, '9');
+    EXPECT_THROW_MESSAGE(from_string<TypeParam>(s), std::out_of_range, s.c_str());
+}
+
 TYPED_TEST(uint_test, to_string_base)
 {
     auto x = TypeParam{1024};
