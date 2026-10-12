@@ -952,21 +952,44 @@ inline std::string to_string(uint<N> x, int base = 10)
     if (base < 2 || base > 36)
         throw_<std::invalid_argument>("invalid base");
 
-    if (x == 0)
-        return "0";
+    constexpr auto WORD_MAX = std::numeric_limits<uint64_t>::max();
+    const auto b = static_cast<uint64_t>(base);
+    // The digits, written from the end. The base 2 needs the most: N digits.
+    std::array<char, N> s;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    auto it = s.end();
+    const auto put_digit = [&it, b](uint64_t& r) {
+        *--it = "0123456789abcdefghijklmnopqrstuvwxyz"[r % b];
+        r /= b;
+    };
 
-    auto s = std::string{};
-    while (x != 0)
+    if (x > WORD_MAX)
     {
-        // TODO: Use constexpr udivrem_1?
-        const auto res = udivrem(x, uint<N>{base});
-        const auto d = int(res.rem);
-        const auto c = d < 10 ? '0' + d : 'a' + d - 10;
-        s.push_back(char(c));
-        x = res.quot;
+        // Divide by the largest power of the base fitting in a word, base^digits: each division
+        // produces a chunk of digits, until the rest fits in a word.
+        auto power = b;
+        size_t digits = 1;
+        while (power <= WORD_MAX / b)
+        {
+            power *= b;
+            ++digits;
+        }
+        const auto divisor = uint<N>{power};
+        do
+        {
+            const auto res = udivrem(x, divisor);
+            x = res.quot;
+            auto r = static_cast<uint64_t>(res.rem);
+            for (size_t i = 0; i < digits; ++i)
+                put_digit(r);
+        } while (x > WORD_MAX);
     }
-    std::ranges::reverse(s);
-    return s;
+
+    // The leading digits, at least one.
+    auto r = static_cast<uint64_t>(x);
+    do
+        put_digit(r);
+    while (r != 0);
+    return {it, s.end()};
 }
 
 template <unsigned N>

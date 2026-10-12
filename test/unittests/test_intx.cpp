@@ -358,6 +358,14 @@ TYPED_TEST(uint_test, to_string_base)
     EXPECT_EQ(to_string(x, 36), "sg");
     EXPECT_EQ(to_string(x, 2), "10000000000");
     EXPECT_EQ(to_string(x, 8), "2000");
+    EXPECT_EQ(to_string(TypeParam{0}, 2), "0");
+
+    // Numbers of multiple chunks of digits.
+    constexpr auto num_bits = TypeParam::num_bits;
+    const auto max = ~TypeParam{0};
+    EXPECT_EQ(hex(max), std::string(num_bits / 4, 'f'));
+    EXPECT_EQ(hex(TypeParam{1} << (num_bits - 1)), "8" + std::string(num_bits / 4 - 1, '0'));
+    EXPECT_EQ(to_string(max, 2), std::string(num_bits, '1'));
 }
 
 TYPED_TEST(uint_test, as_bytes)
