@@ -994,6 +994,8 @@ inline std::string to_string(uint<N> x, int base = 10)
 
     if (base == 10)
         return internal::to_string_10(x);
+    if (base == 16)
+        return hex(x);
 
     constexpr auto WORD_MAX = std::numeric_limits<uint64_t>::max();
     const auto b = static_cast<uint64_t>(base);
@@ -1038,7 +1040,13 @@ inline std::string to_string(uint<N> x, int base = 10)
 template <unsigned N>
 inline std::string hex(uint<N> x)
 {
-    return to_string(x, 16);
+    // The digits are the nibbles of the number: no division is needed. Zero has one digit.
+    const auto num_digits = std::max((bit_width(x) + 3) / 4, 1u);
+    std::array<char, N / 4> s;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    auto it = s.end();
+    for (size_t i = 0; i < num_digits; ++i)
+        *--it = "0123456789abcdef"[(x[i / 16] >> (4 * (i % 16))) & 0xf];
+    return {it, s.end()};
 }
 
 template <unsigned N>

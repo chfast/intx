@@ -359,6 +359,10 @@ TYPED_TEST(uint_test, to_string_base)
     EXPECT_EQ(to_string(x, 2), "10000000000");
     EXPECT_EQ(to_string(x, 8), "2000");
     EXPECT_EQ(to_string(TypeParam{0}, 2), "0");
+    EXPECT_EQ(hex(TypeParam{0}), "0");
+    EXPECT_EQ(hex(TypeParam{0xfedcba9876543210}), "fedcba9876543210");
+    EXPECT_EQ(hex(TypeParam{1} << 64), "1" + std::string(16, '0'));
+    EXPECT_EQ(hex((TypeParam{1} << 64) | 1), "1" + std::string(15, '0') + "1");
 
     // Decimal: two chunks of 19 digits, without and with a leading digit.
     const auto e38 = TypeParam{10000000000000000000u} * 10000000000000000000u;
