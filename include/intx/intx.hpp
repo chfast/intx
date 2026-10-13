@@ -445,19 +445,6 @@ public:
 using uint128 = uint<128>;
 
 
-/// Optimized addition.
-///
-/// This keeps the multiprecision addition until CodeGen so the pattern is not
-/// broken during other optimizations.
-constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
-{
-#if INTX_HAS_BUILTIN_INT128
-    return builtin_uint128{x} + builtin_uint128{y};
-#else
-    return x + y;  // Fallback to generic addition.
-#endif
-}
-
 /// Full unsigned multiplication 64 x 64 -> 128.
 constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 {
@@ -721,7 +708,7 @@ constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
     auto q = umul(v, u[1]);
-    q = fast_add(q, u);
+    q += u;
 
     ++q[1];
 
@@ -746,7 +733,7 @@ constexpr div_result<uint64_t, uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
     auto q = umul(v, u2);
-    q = fast_add(q, {u1, u2});
+    q += uint128{u1, u2};
 
     auto r1 = u1 - (q[1] * d[1]);
 
