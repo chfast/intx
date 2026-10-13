@@ -117,6 +117,20 @@ TEST(uint256, simple_udiv)
     }
 }
 
+TEST(uint256, to_string_chunks)
+{
+    // Decimal: 19 digits per chunk, divided by 10^19.
+    constexpr auto e19 = uint256{10000000000000000000u};
+    EXPECT_EQ(to_string(uint256{1} << 64), "18446744073709551616");
+    EXPECT_EQ(to_string(e19), "10000000000000000000");
+    EXPECT_EQ(to_string(e19 * e19 + 1), "100000000000000000000000000000000000001");
+    EXPECT_EQ(to_string(~uint256{0}),
+        "115792089237316195423570985008687907853269984665640564039457584007913129639935");
+
+    // Base 36: the divisor 36^12 is not normalized, unlike 10^19.
+    EXPECT_EQ(to_string(~uint256{0}, 36), "6dp5qcb22im238nr3wvp0ic7q99w035jmy2iw7i6n43d37jtof");
+}
+
 TEST(uint512, literal)
 {
     auto x = 1_u512;
