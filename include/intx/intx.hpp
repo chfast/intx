@@ -1965,6 +1965,45 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
         return {q, uint<N>{rw}};
 }
 
+/// Divides u by v of 2 significant words, using all words of u. The top word of u must not be
+/// greater than v[1].
+///
+/// Then the top 2 words of u are less than 2 * v, so the top quotient word is 0 or 1 and is
+/// computed by subtraction. Each next quotient word is computed with 3/2 division of the top 2
+/// words of the remainder and the next word of the normalized u, shifted on the fly.
+template <unsigned M, unsigned N>
+constexpr div_result<uint<M>, uint<N>> udivrem_by2_full(const uint<M>& u, const uint<N>& v) noexcept
+{
+    constexpr auto TOP = uint<M>::num_words - 1;  // The top word index of u.
+    static_assert(TOP >= 2);
+    const auto vt = static_cast<uint128>(v);
+    INTX_REQUIRE(vt[1] != 0 && v == uint<N>{vt});
+    INTX_REQUIRE(u[TOP] <= vt[1]);
+
+    const auto s = clz_nonzero(vt[1]);
+    const uint128 d{vt[0] << s, fshl(vt[1], vt[0], s)};  // The normalized divisor.
+    const auto reciprocal = reciprocal_3by2(d);
+
+    // The result words are stored in place: GCC copies a local quotient or remainder with 16-byte
+    // loads, which stall on the 8-byte stores of the words just computed.
+    div_result<uint<M>, uint<N>> res;
+    auto t = uint128{u[TOP - 1], u[TOP]};  // The top 2 words of u, then the remainder.
+    if (t >= vt)
+    {
+        t -= vt;
+        res.quot[TOP - 1] = 1;
+    }
+    uint128 r{fshl(t[0], u[TOP - 2], s), fshl(t[1], t[0], s)};  // The normalized top 2 words.
+    for (size_t i = TOP - 1; i != 0; --i)
+    {
+        const auto un = i > 1 ? fshl(u[i - 1], u[i - 2], s) : u[0] << s;  // The normalized word.
+        std::tie(res.quot[i - 1], r) = udivrem_3by2(r[1], r[0], un, d, reciprocal);
+    }
+    res.rem[0] = fshr(r[1], r[0], s);
+    res.rem[1] = r[1] >> s;
+    return res;
+}
+
 }  // namespace internal
 
 template <unsigned M, unsigned N>
@@ -2006,12 +2045,18 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
                     return {0, static_cast<uint<N>>(u)};
                 return internal::udivrem_top2<TOP>(u, v);
             }
-            // With equal top words the quotient has up to 129 bits, e.g. addmod() with a modulus
-            // in [2^128, 2^129) and a carry. udivrem_top2() takes it for TOP 3.
             if constexpr (TOP == 3)
             {
+                // With equal top words the quotient has up to 129 bits, e.g. addmod() with a
+                // modulus in [2^128, 2^129) and a carry.
                 if (u[TOP + 1] == v[TOP - 1] && v[TOP - 1] != 0)
                     return internal::udivrem_top2<TOP, true>(u, v);
+
+                // A divisor with 2 significant words and the top word of u not greater than v[1]
+                // (in addmod() u[4] <= 1 <= v[1]): divide all words of u, unless u[4] is 0 and
+                // u[3] < v[1]. The division below then takes fewer words.
+                if (v[2] == 0 && v[1] != 0 && u[4] <= v[1] && (u[4] != 0 || u[3] >= v[1]))
+                    return internal::udivrem_by2_full(u, v);
             }
         }
     }
