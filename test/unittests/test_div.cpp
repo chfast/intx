@@ -42,6 +42,12 @@ TEST(div, udivrem_constexpr)
     constexpr auto b = (uint256{0x5678} << 128) | 0x9abc;
     static_assert(udivrem(y, b).quot == 0x35e46de99c43b950c4e1604fefb77712_u320);
     static_assert(udivrem(y, b).rem == 0x2fd0220c07080c9523fd7b0747f214f88b7_u256);
+
+    // 4-word quotient with a 2-word divisor and a numerator three words wider (as in addmod()).
+    constexpr auto x2 = (uint320{1} << 256) | (uint320{0xffff} << 192) | 0x0123456789abcdef;
+    constexpr auto c = (uint256{1} << 64) | 0x9abc;
+    static_assert(udivrem(x2, c).quot == 0x10000000000006542ffffffffc2cb54cc000024fea1ab022f_u320);
+    static_assert(udivrem(x2, c).rem == 0xeac6ed27f0c5ed6b_u256);
 }
 
 TEST(div, normalize)
@@ -1029,6 +1035,87 @@ const div_test_case<uint512> div_test_cases[] = {
         0x100000000000000000000000000000001_u512,
         0xffffffffffffffffffffffffffffffff_u512,
         0x3_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 3-word quotient, not normalized.
+    {
+        0xc8e643394826d6ef3db82abd7d235e6d15e65250d14e3338a6b8bd800584771e624a446b1_u512,
+        0x470cebe09f42cc0ea1a7cda157_u512,
+        0x2d3daf5314062138a1a8458350f273b9ecccfe695201fc47_u512,
+        0x6ddf3cc547e273db7b073e390_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 3-word quotient, top bit set.
+    {
+        0x353b075a16c6658c6bf3e46d7d62450b2bdfe86678226125ded6e3df5ee1ac6ef814cfded051a4f4_u512,
+        0xce50f2524772f726ec18885c642c0021_u512,
+        0x420c9b34be435d9998fbcbf430da6f9fd681576f42f4121b_u512,
+        0x4f6357a5e7a7584f8444d7cd86374f79_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 256-bit numerator, the top word not less than the top
+    // word of the divisor.
+    {
+        0xaa73faa64ba12a3cb9b404c48b5ded9ab2b0085a07e90d7f999a863f0fbcbcb1_u512,
+        0x143034a55eb7570ad887e598_u512,
+        0x87172d4bde7988117e5765f901272a16f1aa087d7_u512,
+        0x8b0b83295f36cca9c87c209_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top words equal, 3-word quotient.
+    {
+        0x17ff50c96410c4fbcda1f8dea473c057df2a2796b45f6de3020537a3d584d1707_u512,
+        0x1c21f87ff86b9dcfd_u512,
+        0xda5e85c3d64f8b7c33e52a061327061183177ef40124b429_u512,
+        0x1888b34720492ce82_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 4-word quotient (as in addmod()).
+    {
+        0x1845b0840325ed44240a9c5320e687cb5ab0a38b89bfeb7d65b7a77f837521d4d_u512,
+        0x12666dff3f3d88b76_u512,
+        0x151b2c9a85136eba53febb0ce188ba0a6bc56e5ff9c18df67_u512,
+        0x887291947ea636d3_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 4-word quotient, the top word of the numerator not less
+    // than the top word of the divisor.
+    {
+        0x85bcb9084e286dc4603286a8349c8786285c67a6fddaaa497b3d113b470045a607c64fbd81fcdca0_u512,
+        0x7feafb024fdf462572f8f_u512,
+        0x10ba565a2e96afc1a4532805ad2fb42fc164f8ca8dee84234c481f52f574_u512,
+        0x7798c189777fbf52974d4_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top 2 words of the numerator equal the divisor.
+    {
+        0xca484762cb4208e2b2b75b83e2867b999cf4dab5f7224f984a6815265ea119338153001e85b8_u512,
+        0xca484762cb4208e2b2b75b83e286_u512,
+        0x100000000000000000000000000009c6c4a9f0214e70473f2_u512,
+        0xc4400448497202e003f3ca98310c_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: max 3-word quotient.
+    {
+        0x3c38330acb57b5f23bd7a7ac40e3dffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x3c38330acb57b5f23bd7a7ac40e3e_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x3c38330acb57b5f23bd7a7ac40e3d_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top 2 words of the numerator equal the top word of
+    // the divisor.
+    {
+        0x11090581bde8241ddcc0a217532851cbff8a72131016d1e37ca6bb616f18_u512,
+        0x11090581bde8cfed2d2bdb1af9fc_u512,
+        0xfffffffffff5ea1930b6134b734e2416_u512,
+        0x3061c790883f7c09eb9bd208370_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top 2 words of the numerator less than the top word
+    // of the divisor.
+    {
+        0x1bda0f84cfcb8220178a0ea30fdcb0b092557891d86152e07a0142437171_u512,
+        0x1bda0f84cfcc389ee113bbe30d0f_u512,
+        0xfffffffffff97297f42391bf756fe57e_u512,
+        0x14c833c323fadb10919d2953990f_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x10000000000000000_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0xffffffffffffffff_u512,
     },
     // 384-bit, 4-word divisor: estimate exact, not normalized.
     {
