@@ -29,6 +29,18 @@ TEST(div, udivrem_constexpr)
     static_assert(udivrem(x, w0).quot * w0 + udivrem(x, w0).rem == x);
     static_assert(udivrem(x, w0).rem < w0);
 
+    // Knuth division specialized for 3- and 4-word divisors (512/256, as in mulmod()).
+    constexpr auto p3 = (uint256{0x1234} << 128) | 0x5678;
+    constexpr auto p4 = (uint256{0x8000000000000001} << 192) | 0x5678;
+    static_assert(
+        udivrem(x, p3).quot ==
+        0xe0042813be5dc83d872441ec39220f5da0f06e3b98056d12aa376c19626eb0328b15e10883c9381140e959b2ed5be_u512);
+    static_assert(udivrem(x, p3).rem == 0x82ed957425a7bca0d7ec2d62d250fe9c8df_u256);
+    static_assert(udivrem(x, p4).quot ==
+                  0x1fdb97530eca8641c048d159e26af37c7f6e5d4c3b2a19070123456789abb86c9_u512);
+    static_assert(udivrem(x, p4).rem ==
+                  0x317e4b17e4b4228d789abcdf0120ad530eca8641fdbea559e38e38e4027d19b7_u256);
+
     // Single word quotient with a numerator one word wider than the divisor (as in addmod()),
     // and u < v with the same top words, where the estimate is 1 too big.
     constexpr auto y = (uint320{0x1234} << 256) | 0x0123456789abcdef;
@@ -1244,6 +1256,21 @@ const div_test_case<uint512> div_test_cases[] = {
         0x49dbcd5ffffffffffffffffdbc496cb8e81973e3898d190f9ebdacce58cda1495e60af58fd630f1f29d0da9_u512,
         0xb6c02d1ac0ea2ff159d8a985194354d8633a0c962_u512,
         0x7c026a7be4726b592e759ac25c48cc32c18290562d25fa7e5003413e87a8194c09011f84b10ec52dae7aa6_u512,
+    },
+    // 4-word divisor, the top bit set: u = (v - 1) * 2^192 + y, the Knuth division overflows
+    // (the top remainder words equal the top divisor words) in a later step.
+    {
+        0x9d7f3c1a5b2e6084f1c3a7e5920b4d6f8a1c3e5b7d9f0e2c4a6b8d0f1e3c5a781f2e3d4c5b6a79880123456789abcdef0fedcba987654321_u512,
+        0x9d7f3c1a5b2e6084f1c3a7e5920b4d6f8a1c3e5b7d9f0e2c4a6b8d0f1e3c5a79_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x9d7f3c1a5b2e608410f1e531ed75c6f78b3f83c3074adc1b5a5958b8a5a19d9a_u512,
+    },
+    // 4-word divisor, not normalized: the Knuth division overflows in a later step.
+    {
+        0x13afe7834b65cc109e3874fcb24169adf14387cb6fb3e1c5894d71a1e3c78b3000000000000000000000000000000000000000000000077_u512,
+        0x13afe7834b65cc109e3874fcb24169adf14387cb6fb3e1c5894d71a1e3c78b4_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x13afe7834b65cc009e3874fcb24169adf14387cb6fb3e1c5894d71a1e3c792b_u512,
     },
 };
 }  // namespace
