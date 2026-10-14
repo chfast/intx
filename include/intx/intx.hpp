@@ -1732,29 +1732,34 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
     return {q, r};
 }
 
-/// Divides u by v when the significant words of v are one less than the words of u,
-/// i.e. the quotient fits in two words.
+/// Divides u by v when the quotient fits in two words: v has TOP significant words
+/// and u has one more word, or two more words with the top one less than v[TOP - 1].
 ///
 /// The quotient is estimated from the top 2 words of the normalized divisor with two 3/2
 /// divisions and corrected with the remainder, computed from the remainder of the 3/2 divisions
 /// and the low words of the original (not normalized) operands.
-/// The v must have exactly uint<M>::num_words - 1 significant words.
-template <unsigned M, unsigned N>
+/// The word v[TOP - 1] must not be zero.
+template <size_t TOP, unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint<N>& v) noexcept
 {
-    constexpr auto TOP = uint<M>::num_words - 1;  // The top word index of u and the words of v.
     static_assert(TOP >= 3 && TOP <= uint<N>::num_words);
+    static_assert(uint<M>::num_words == TOP + 1 || uint<M>::num_words == TOP + 2);
+
+    uint64_t ue = 0;  // The second word of u above the significant words of v, 0 for the shorter u.
+    if constexpr (uint<M>::num_words == TOP + 2)
+        ue = u[TOP + 1];
+    INTX_REQUIRE(ue < v[TOP - 1]);
 
     // The top 128 bits of the normalized divisor and the matching 4 words of the numerator.
     const auto s = clz_nonzero(v[TOP - 1]);
     const uint128 vt{fshl(v[TOP - 2], v[TOP - 3], s), fshl(v[TOP - 1], v[TOP - 2], s)};
-    const auto t3 = fshl(0, u[TOP], s);
+    const auto t3 = fshl(ue, u[TOP], s);  // Less than vt[1] because ue < v[TOP - 1].
     const auto t2 = fshl(u[TOP], u[TOP - 1], s);
     const auto t1 = fshl(u[TOP - 1], u[TOP - 2], s);
     const auto t0 = fshl(u[TOP - 2], u[TOP - 3], s);
 
     // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B, base 2^128).
-    // The first division does not overflow: t3:t2 < 2^(64+s) <= 2^127 <= vt.
+    // The first division does not overflow because t3 < vt[1].
     const auto reciprocal = reciprocal_3by2(vt);
     const auto [q1, r1] = udivrem_3by2(t3, t2, t1, vt, reciprocal);
     const auto [q0, r0] = udivrem_3by2(r1[1], r1[0], t0, vt, reciprocal);
@@ -1819,9 +1824,21 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
             // The quotient fits in a single word if the top word of u is less than v[TOP].
             if (u[TOP + 1] < v[TOP])
                 return internal::udivrem_top1<TOP>(u, v);
-            return internal::udivrem_top2(u, v);
+            return internal::udivrem_top2<TOP + 1>(u, v);
         }
         --num_divisor_words;  // Skip the zero word.
+
+        // A divisor with two significant words less than u, the top one v[TOP - 1], also gives
+        // a two word quotient if the top word of u is less than v[TOP - 1].
+        if constexpr (TOP >= 3)
+        {
+            if (u[TOP + 1] < v[TOP - 1])
+            {
+                if ((u[TOP + 1] | u[TOP]) == 0 && u[TOP - 1] < v[TOP - 1])  // u < v.
+                    return {0, static_cast<uint<N>>(u)};
+                return internal::udivrem_top2<TOP>(u, v);
+            }
+        }
     }
     while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
         --num_divisor_words;
