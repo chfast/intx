@@ -450,7 +450,7 @@ constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 {
 #if INTX_HAS_BUILTIN_INT128
     return builtin_uint128{x} * builtin_uint128{y};
-#elif defined(_MSC_VER) && _MSC_VER >= 1925 && defined(_M_X64)
+#elif defined(_MSC_VER) && defined(_M_X64)
     if (!std::is_constant_evaluated())
     {
         unsigned __int64 hi = 0;
