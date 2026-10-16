@@ -27,6 +27,18 @@
     #pragma warning(push)
     #pragma warning(disable : 5030)  // Allow unknown attributes.
     #pragma warning(disable : 4127)  // Allow constant conditions (warning removed in VS 2026).
+#elif defined(__clang__)
+    #pragma clang diagnostic push
+    // Allow attributes of other compilers (clang 20 reports msvc:: ones as unknown).
+    #pragma clang diagnostic ignored "-Wignored-attributes"
+    #pragma clang diagnostic ignored "-Wunknown-attributes"
+#elif defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #if __GNUC__ >= 13
+        #pragma GCC diagnostic ignored_attributes "msvc::forceinline"
+    #else
+        #pragma GCC diagnostic ignored "-Wattributes"
+    #endif
 #endif
 
 #ifndef __has_builtin
@@ -65,7 +77,7 @@ namespace intx
 {
 /// Mark a possible code path as unreachable (invokes undefined behavior).
 /// TODO(C++23): Use std::unreachable().
-[[noreturn]] inline void unreachable() noexcept
+[[noreturn, gnu::always_inline, msvc::forceinline]] inline void unreachable() noexcept
 {
 #if __has_builtin(__builtin_unreachable)
     __builtin_unreachable();
@@ -2216,4 +2228,8 @@ inline void store(uint8_t* dst, const uint256& x) noexcept
 
 #ifdef _MSC_VER
     #pragma warning(pop)
+#elif defined(__clang__)
+    #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+    #pragma GCC diagnostic pop
 #endif
