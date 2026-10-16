@@ -86,8 +86,16 @@ void reciprocal_lat(benchmark::State& state)
     uint64_t x = 0;
     while (state.KeepRunningBatch(test::num_samples))
     {
+        // All input bits depend on the previous result, so the whole computation is on the chain
+        // (with only the lowest bit, the table lookup and most Newton steps would run ahead).
+        // The OR keeps the input normalized.
         for (const auto& i : samples)
-            x = Fn(i ^ (x & 1));  // Keeps the input normalized.
+        {
+            if constexpr (std::is_same_v<T, uint128>)
+                x = Fn((i ^ uint128{x, x}) | (uint128{1} << 127));
+            else
+                x = Fn((i ^ x) | 0x8000000000000000);
+        }
     }
     benchmark::DoNotOptimize(x);
 }
@@ -105,6 +113,7 @@ BENCHMARK(reciprocal_lat<uint64_t, reciprocal_native>);
 BENCHMARK(reciprocal_lat<uint64_t, reciprocal_builtin_uint128>);
 BENCHMARK(reciprocal_lat<uint64_t, reciprocal_udiv>);
 BENCHMARK(reciprocal_lat<uint64_t, reciprocal_2by1>);
+BENCHMARK(reciprocal_lat<uint128, reciprocal_3by2>);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
 void udiv64(benchmark::State& state)
