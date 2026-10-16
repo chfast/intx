@@ -688,53 +688,64 @@ constexpr uint64_t reciprocal_approx(uint64_t d) noexcept
     const auto v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
     return v2;
 }
+
+/// Computes the reciprocal (2^(N+64)-1) / d - 2^64, where N is the number of bits in T.
+template <typename T>
+constexpr uint64_t reciprocal(T d) noexcept
+    requires std::is_same_v<T, uint64_t> || std::is_same_v<T, uint128>
+{
+    constexpr bool WIDE = std::is_same_v<T, uint128>;  // The 3/2 reciprocal.
+
+    uint64_t d1 = 0;  // The top word.
+    if constexpr (WIDE)
+        d1 = d[1];
+    else
+        d1 = d;
+
+    // v2 of Algorithm 2 from "Improved division by invariant integers" for the top word.
+    const auto v2 = reciprocal_approx(d1);
+
+    // The next Newton step: v3 = v2 * 2^31 + v2 * e / 2^65, e = (2^97 - v2 * d1) / 2 (Algorithm 2).
+    const auto d1_odd = d1 & 1;
+    const auto d63 = (d1 >> 1) + d1_odd;  // ceil(d1/2)
+    auto e = ((v2 >> 1) & (0 - d1_odd)) - (v2 * d63);
+    if constexpr (WIDE)
+    {
+        // The error against the whole d instead of the adjustments of Algorithm 6. The -1 keeps e
+        // below the exact error; e >= 2^30 - 1 (checked for every v2), so it does not wrap.
+        e = e - 1 - (umul(v2, d[0])[1] >> 1);
+    }
+    const auto v3 = (umul(v2, e)[1] >> 1) + (v2 << 31);  // The reciprocal or one less.
+
+    // The exact correction: subtract floor((2^64 + v3 + 1) * d / 2^N), which is 2^64 - 1 or 2^64.
+    const auto p1 = umul(v3, d1);
+    if constexpr (WIDE)
+    {
+        // For d1 = 2^64 - 1 and d0 >= 0xbffffffe60000000, v3 wraps to 2^64 - 1 and the floor is
+        // 2^65 - 1: v is still 0.
+        const auto d0 = d[0];
+        const auto p0 = umul(v3, d0);
+        const uint64_t c = (p0[0] + d0) < d0;
+        const auto s = uint128{d0} + d1 + p1[0] + p0[1] + c;  // The carries (0-3) in s[1].
+        return v3 - d1 - p1[1] - s[1];
+    }
+    else
+    {
+        return v3 - p1[1] - ((p1[0] + d1) < d1) - d1;  // v3 - hi(v3 * d + d) - d
+    }
+}
 }  // namespace internal
 
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
-///
-/// Based on Algorithm 2 from "Improved division by invariant integers".
 constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
-    const auto v2 = internal::reciprocal_approx(d);
-    const auto d0 = d & 1;
-    const auto d63 = (d >> 1) + d0;  // ceil(d/2)
-    const auto e = ((v2 >> 1) & (0 - d0)) - (v2 * d63);
-    const auto v3 = (umul(v2, e)[1] >> 1) + (v2 << 31);
-
-    const auto p = umul(v3, d);
-    const auto v4 = v3 - p[1] - ((p[0] + d) < d) - d;  // v3 - hi(v3 * d + d) - d
-    return v4;
+    return internal::reciprocal(d);
 }
 
+/// Computes the reciprocal (2^192 - 1) / d - 2^64 for normalized d.
 constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 {
-    auto v = reciprocal_2by1(d[1]);
-    auto p = d[1] * v;
-    p += d[0];
-    if (p < d[0])
-    {
-        --v;
-        if (p >= d[1])
-        {
-            --v;
-            p -= d[1];
-        }
-        p -= d[1];
-    }
-
-    const auto t = umul(v, d[0]);
-
-    p += t[1];
-    if (p < t[1])
-    {
-        --v;
-        if (p >= d[1])
-        {
-            if (p > d[1] || t[0] >= d[0])
-                --v;
-        }
-    }
-    return v;
+    return internal::reciprocal(d);
 }
 
 constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
