@@ -945,11 +945,55 @@ constexpr Int from_string(const std::string& s)
     return from_string<Int>(s.c_str());
 }
 
+namespace internal
+{
+/// Converts x to a decimal string. It divides x by 10^19, the largest power of 10 fitting in a
+/// word, to get a chunk of 19 digits per division, until the rest fits in a word. 10^19 has the
+/// top bit set, so the division needs no normalization, and its reciprocal is a compile-time
+/// constant.
+template <unsigned N>
+inline std::string to_string_10(uint<N> x)
+{
+    constexpr auto WORD_MAX = std::numeric_limits<uint64_t>::max();
+    constexpr auto DIGITS = size_t{19};
+    constexpr auto POWER = uint64_t{10000000000000000000u};
+    static_assert(POWER > WORD_MAX / 10);  // The largest power of 10 in a word.
+    constexpr auto RECIPROCAL = reciprocal_2by1(POWER);
+
+    // The digits, written from the end. N chars are enough: N bits have fewer than N digits.
+    std::array<char, N> s;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    auto it = s.end();
+    const auto put_digit = [&it](uint64_t& r) {
+        *--it = static_cast<char>('0' + r % 10);
+        r /= 10;
+    };
+    while (x > WORD_MAX)
+    {
+        const auto w = as_words(x).first(count_significant_words(x));
+        uint64_t r = 0;
+        for (auto i = w.size(); i != 0; --i)
+            std::tie(w[i - 1], r) = udivrem_2by1({w[i - 1], r}, POWER, RECIPROCAL);
+        for (size_t i = 0; i < DIGITS; ++i)
+            put_digit(r);
+    }
+
+    // The leading digits, at least one.
+    auto r = static_cast<uint64_t>(x);
+    do
+        put_digit(r);
+    while (r != 0);
+    return {it, s.end()};
+}
+}  // namespace internal
+
 template <unsigned N>
 inline std::string to_string(uint<N> x, int base = 10)
 {
     if (base < 2 || base > 36)
         throw_<std::invalid_argument>("invalid base");
+
+    if (base == 10)
+        return internal::to_string_10(x);
 
     constexpr auto WORD_MAX = std::numeric_limits<uint64_t>::max();
     const auto b = static_cast<uint64_t>(base);
