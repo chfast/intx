@@ -6,6 +6,9 @@
 #include <gtest/gtest.h>
 #include <intx/intx.hpp>
 #include <test/utils/random.hpp>
+#include <array>
+#include <random>
+#include <vector>
 
 using namespace intx;
 
@@ -1433,12 +1436,97 @@ TEST(div, reciprocal_3by2)
     EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0xffffffffffffffff}), 1u);
     EXPECT_EQ(reciprocal_3by2({0x0000000000000001, 0xffffffffffffffff}), 0u);
     EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xffffffffffffffff}), 0u);
+
+    // Algorithm 6 from "Improved division by invariant integers" needs all 4 adjustments here.
+    static_assert(reciprocal_3by2({0xfffffffffffffffe, 0x8000000000000001}) == 0xfffffffffffffff8);
+    EXPECT_EQ(reciprocal_3by2({0xfffffffffffffffe, 0x8000000000000001}), 0xfffffffffffffff8u);
+    // The smallest error of v2 against the top word (e2); with the low word 2^64 - 1 it gives
+    // the smallest eps.
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0xffffffff7fffffff}), 0x0000000080000001u);
+    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xffffffff7fffffff}), 0x0000000080000000u);
+    // The top word 2^64 - 1: v3 is 0 up to the low word 0xbffffffe5fffffff and 2^64 - 1 from
+    // 0xbffffffe60000000 on, where the reciprocal 0 is computed as one more than 2^64 - 1.
+    EXPECT_EQ(reciprocal_3by2({0xbffffffe5fffffff, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xbffffffe60000000, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xbfffffffffffffff, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xc000000000000000, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xc000000000000001, 0xffffffffffffffff}), 0u);
+    // The top word 3/4 * 2^64.
+    EXPECT_EQ(reciprocal_3by2({0x7fffffffffffffff, 0xc000000000000000}), 0x5555555555555554u);
+    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0xc000000000000000}), 0x5555555555555554u);
+    // A small e2 and the largest low word for its hi(v2 * d0): eps is just below the scaled error
+    // of v2 here, so without the -1 in its computation v3 would be one too large.
+    EXPECT_EQ(reciprocal_3by2({0xec232984255f1740, 0x98ca5c9324ffffff}), 0xaced60fc0000bc1fu);
+    EXPECT_EQ(reciprocal_3by2({0x90f23b9f45d3b376, 0x98ca5c9324ffffff}), 0xaced60fc0000bc20u);
+    // (2^64 + v + 1) * d exceeds 2^192 by less than 2^64 (d = ceil(2^131 / 13), ceil(2^129 / 3)):
+    // the carry from the lowest word decides the correction.
+    EXPECT_EQ(reciprocal_3by2({0xd89d89d89d89d89e, 0x9d89d89d89d89d89}), 0x9fffffffffffffffu);
+    EXPECT_EQ(reciprocal_3by2({0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa}), 0x7fffffffffffffffu);
+}
+
+namespace
+{
+/// Checks that v = reciprocal_3by2(d) satisfies (2^64 + v) * d <= 2^192 - 1 < (2^64 + v + 1) * d,
+/// using only multiplication and subtraction.
+void check_reciprocal_3by2(uint128 d)
+{
+    constexpr auto max192 = (uint256{1} << 192) - 1;
+    const auto v = reciprocal_3by2(d);
+    const auto p = ((uint256{1} << 64) | v) * uint256{d};
+    ASSERT_LE(p, max192) << hex(d);
+    ASSERT_LT(max192 - p, uint256{d}) << hex(d);
+}
+}  // namespace
+
+TEST(div, reciprocal_3by2_property)
+{
+    constexpr std::array<uint64_t, 11> edges{0, 1, 2, 0x7fffffffffffffff, 0x8000000000000000,
+        0x8000000000000001, 0xbfffffffffffffff, 0xc000000000000000, 0xc000000000000001,
+        0xfffffffffffffffe, 0xffffffffffffffff};
+
+    // The top word extremes, the smallest e2 and every table index boundary.
+    std::vector<uint64_t> d1s{0x8000000000000000, 0x8000000000000001, 0xffffffff7fffffff,
+        0xfffffffffffffffe, 0xffffffffffffffff};
+    for (uint64_t i = 257; i < 512; ++i)
+        d1s.insert(d1s.end(), {(i << 55) - 1, i << 55, (i << 55) + 1});
+    for (const auto d1 : d1s)
+    {
+        for (const auto d0 : edges)
+            ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, d1}));
+        for (const auto d0 : {d1 - 1, d1, d1 + 1, ~d1})
+            ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, d1}));
+    }
+
+    // The top word 2^64 - 1 with the low word around the wrap of v3 (see above).
+    for (uint64_t d0 = 0xbffffffe60000000 - 1000; d0 != 0xbffffffe60000000 + 1000; ++d0)
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, 0xffffffffffffffff}));
+
+    // Not test::lcg: its low bits repeat with a short period, so every other word would be even.
+    std::mt19937_64 rng{test::get_seed()};
+    for (size_t i = 0; i < 1000000; ++i)
+    {
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({rng(), rng() | 0x8000000000000000}));
+        // The top word from 0xffffffff00000000, which includes the smallest e2.
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({rng(), ~(rng() >> 32)}));
+    }
 }
 
 TEST(div, reciprocal_table)
 {
-    EXPECT_EQ(internal::reciprocal_table[0], 2045);
-    EXPECT_EQ(internal::reciprocal_table[0xff], 1024);
+    // The entries hold v0 as (v0 * 2^11 - 1) * 2^32 + v0^2, for v0 = 2045 and 1024.
+    EXPECT_EQ(internal::reciprocal_table[0], 0x003fe7ff003fd009);
+    EXPECT_EQ(internal::reciprocal_table[0xff], 0x001fffff00100000);
+}
+
+TEST(div, reciprocal_v2)
+{
+    // v2 of Algorithm 2 from "Improved division by invariant integers". The last one changes with
+    // an off-by-one v0 in the middle of the table or an extra -1 in v1, which the tests of the
+    // final reciprocals do not catch.
+    EXPECT_EQ(internal::reciprocal_v2(0x8000000000000000), 0x3ffffffffu);
+    EXPECT_EQ(internal::reciprocal_v2(0xffffffff7fffffff), 0x200000001u);
+    EXPECT_EQ(internal::reciprocal_v2(0xffffffffffffffff), 0x1ffffffffu);
+    EXPECT_EQ(internal::reciprocal_v2(0x887fffffffffffff), 0x3c03c03c0u);
 }
 
 TEST(div, by128)

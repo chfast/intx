@@ -653,13 +653,29 @@ constexpr uint128 bswap(uint128 x) noexcept
 
 namespace internal
 {
-/// Reciprocal lookup table.
+/// Reciprocal lookup table, indexed by the 8 bits below the top bit of a normalized d.
+///
+/// An entry holds the 11-bit approximation v0 of Algorithm 2 from "Improved division by invariant
+/// integers" as (v0 * 2^11 - 1) * 2^32 + v0^2, so the first Newton step does not square v0.
 constexpr auto reciprocal_table = []() noexcept {
-    std::array<uint16_t, 256> table{};
+    std::array<uint64_t, 256> table{};
     for (size_t i = 0; i < table.size(); ++i)
-        table[i] = static_cast<uint16_t>(0x7fd00 / (i + 256));
+    {
+        const uint64_t v0 = 0x7fd00 / (i + 256);
+        table[i] = (((v0 << 11) - 1) << 32) | (v0 * v0);
+    }
     return table;
 }();
+
+/// Computes v2 of Algorithm 2 from "Improved division by invariant integers" for normalized d:
+/// the approximation of 2^97 / d from below (by less than 2) from the table and two Newton steps.
+constexpr uint64_t reciprocal_v2(uint64_t d) noexcept
+{
+    const auto t = reciprocal_table[static_cast<size_t>((d >> 55) - 256)];
+    const uint64_t d40 = (d >> 24) + 1;
+    const uint64_t v1 = (t >> 32) - (uint64_t{static_cast<uint32_t>(t)} * d40 >> 40);
+    return (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
+}
 }  // namespace internal
 
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
@@ -669,52 +685,53 @@ constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
     INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
 
-    const uint64_t d9 = d >> 55;
-    const uint32_t v0 = internal::reciprocal_table[static_cast<size_t>(d9 - 256)];
-
-    const uint64_t d40 = (d >> 24) + 1;
-    const uint64_t v1 = (v0 << 11) - uint32_t(uint32_t{v0 * v0} * d40 >> 40) - 1;
-
-    const uint64_t v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
+    const uint64_t v2 = internal::reciprocal_v2(d);
 
     const uint64_t d0 = d & 1;
     const uint64_t d63 = (d >> 1) + d0;  // ceil(d/2)
     const uint64_t e = ((v2 >> 1) & (0 - d0)) - (v2 * d63);
     const uint64_t v3 = (umul(v2, e)[1] >> 1) + (v2 << 31);
 
-    const uint64_t v4 = v3 - (umul(v3, d) + d)[1] - d;
+    const auto p = umul(v3, d);
+    const uint64_t v4 = v3 - p[1] - ((p[0] + d) < d) - d;  // v3 - hi(v3 * d + d) - d
     return v4;
 }
 
+/// Computes the reciprocal (2^192 - 1) / d - 2^64 for normalized d.
+///
+/// Algorithm 6 from "Improved division by invariant integers" adjusts the 2/1 reciprocal of the
+/// top word d1 in up to 4 data-dependent steps. Here v2 of Algorithm 2 for d1 instead goes through
+/// the next Newton step against the whole d. That gives the reciprocal or one less, and one exact
+/// correction finishes it.
 constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 {
-    auto v = reciprocal_2by1(d[1]);
-    auto p = d[1] * v;
-    p += d[0];
-    if (p < d[0])
-    {
-        --v;
-        if (p >= d[1])
-        {
-            --v;
-            p -= d[1];
-        }
-        p -= d[1];
-    }
+    INTX_REQUIRE(d[1] & 0x8000000000000000);  // Must be normalized.
 
-    const auto t = umul(v, d[0]);
+    const auto d1 = d[1];
+    const auto d0 = d[0];
+    const uint64_t v2 = internal::reciprocal_v2(d1);
 
-    p += t[1];
-    if (p < t[1])
-    {
-        --v;
-        if (p >= d[1])
-        {
-            if (p > d[1] || t[0] >= d[0])
-                --v;
-        }
-    }
-    return v;
+    // The Newton step: v3 = v2 * 2^31 + v2 * eps / 2^65, where eps is the error 2^161 - v2 * d
+    // of v2 against d scaled by 2^-65 and rounded down (by at most 1.5). It is computed from
+    // e2 = 2^97 - v2 * d1 as e - floor(hi(v2 * d0) / 2) with e = floor(e2 / 2) - 1; the -1 keeps
+    // eps below the exact value. The bounds of Algorithm 2 give eps >= 2^23 - 1, so the
+    // subtraction does not wrap; an exhaustive check over all 2^39 values of (d1 >> 24) + 1,
+    // which alone determine v2, shows eps >= 2^30 - 1.
+    const uint64_t d1_odd = d1 & 1;
+    const uint64_t d63 = (d1 >> 1) + d1_odd;  // ceil(d1/2)
+    const uint64_t e = ((v2 >> 1) & (0 - d1_odd)) - (v2 * d63) - 1;
+    const uint64_t eps = e - (umul(v2, d0)[1] >> 1);
+    const uint64_t v3 = (umul(v2, eps)[1] >> 1) + (v2 << 31);  // The reciprocal or one less.
+
+    // The correction: v = v3 - floor((2^64 + v3 + 1) * d / 2^128) mod 2^64, where the floor is
+    // 2^64 - 1 (v = v3 + 1) or 2^64 (v = v3). The reciprocal is 0 for d1 = 2^64 - 1 and any
+    // d0 > 0; from d0 = 0xbffffffe60000000 on, v3 is 2^64 - 1, the floor is 2^65 - 1 and the
+    // result is still 0.
+    const auto p1 = umul(v3, d1);
+    const auto p0 = umul(v3, d0);
+    const uint64_t c = (p0[0] + d0) < d0;
+    const auto s = uint128{d0} + d1 + p1[0] + p0[1] + c;  // The high word gets the carries (0-3).
+    return v3 - d1 - p1[1] - s[1];
 }
 
 constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
