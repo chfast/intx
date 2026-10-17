@@ -1392,6 +1392,7 @@ void check_reciprocal(uint64_t d)
 {
     const auto expected = reciprocal_naive(d);
     ASSERT_EQ(reciprocal_2by1(d), expected) << d;
+    ASSERT_EQ(internal::reciprocal_2by1_portable(d), expected) << d;
     ASSERT_EQ(reciprocal_native(d), expected) << d;
     ASSERT_EQ(reciprocal_builtin_uint128(d), expected) << d;
     ASSERT_EQ(reciprocal_udiv(d), expected) << d;
@@ -1401,6 +1402,7 @@ void check_reciprocal(uint64_t d)
 TEST(div, reciprocal)
 {
     static_assert(reciprocal_2by1(0x8000000000000000) == 0xffffffffffffffff);
+    static_assert(reciprocal_2by1(0xffffffffffffffff) == 1);
 
     constexpr auto n = 1000000;
 
@@ -1416,6 +1418,47 @@ TEST(div, reciprocal)
     for (int i = 0; i < n; ++i)
         ASSERT_NO_FATAL_FAILURE(check_reciprocal(rng() | d_start));
 }
+
+#if INTX_HAS_DIV_WIDE_X86
+TEST(div, div_wide_x86)
+{
+    struct test_case
+    {
+        uint64_t hi;
+        uint64_t lo;
+        uint64_t d;
+        uint64_t quot;
+        uint64_t rem;
+    };
+    constexpr test_case test_cases[] = {
+        {0x0000000000000000, 0x0000000000000000, 0x0000000000000001, 0x0000000000000000, 0},
+        {0x0000000000000000, 0xffffffffffffffff, 0x0000000000000001, 0xffffffffffffffff, 0},
+        {0x0000000000000000, 0x0000000000003039, 0x0000000000000001, 0x0000000000003039, 0},
+        {0xfffffffffffffffe, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff,
+            0xfffffffffffffffe},
+        {0x0000000000000000, 0xffffffffffffffff, 0xffffffffffffffff, 0x0000000000000001, 0},
+        {0xfffffffffffffffe, 0x0000000000000000, 0xffffffffffffffff, 0xfffffffffffffffe,
+            0xfffffffffffffffe},
+        {0x7fffffffffffffff, 0xffffffffffffffff, 0x8000000000000000, 0xffffffffffffffff,
+            0x7fffffffffffffff},
+        {0xfedcba987654320f, 0xffffffffffffffff, 0xfedcba9876543210, 0xffffffffffffffff,
+            0xfedcba987654320f},
+        {0x0000000000001234, 0x56789abcdef01234, 0x0000000000012345, 0x100005b0020590a8,
+            0x0000000000011cec},
+        {0x0123456789abcdef, 0xfedcba9876543210, 0x8000000000000001, 0x02468acf13579bdf,
+            0x7c962fc962fc9631},
+        {0x0000000000000000, 0x0000000000000007, 0x0000000000000003, 0x0000000000000002, 1},
+        {0x0000000000000002, 0x0000000000000003, 0x0000000000000005, 0x6666666666666667, 0},
+    };
+
+    for (const auto& t : test_cases)
+    {
+        const auto r = internal::div_wide_x86(t.hi, t.lo, t.d);
+        EXPECT_EQ(r.quot, t.quot) << t.hi << ":" << t.lo << " / " << t.d;
+        EXPECT_EQ(r.rem, t.rem) << t.hi << ":" << t.lo << " / " << t.d;
+    }
+}
+#endif
 
 TEST(div, reciprocal_3by2)
 {
