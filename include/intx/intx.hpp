@@ -1746,35 +1746,76 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
 
 /// Divides u by v when the quotient fits in two words: v has TOP significant words
 /// and u has one more word, or two more words with the top one less than v[TOP - 1].
+/// With EQUAL (TOP 3 only) the top word of u equals v[TOP - 1]: the quotient has up to 129 bits.
 ///
 /// The quotient is estimated from the top 2 words of the normalized divisor with two 3/2
 /// divisions and corrected with the remainder, computed from the remainder of the 3/2 divisions
 /// and the low words of the original (not normalized) operands.
 /// The word v[TOP - 1] must not be zero.
-template <size_t TOP, unsigned M, unsigned N>
+template <size_t TOP, bool EQUAL = false, unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint<N>& v) noexcept
 {
     static_assert(TOP >= 3 && TOP <= uint<N>::num_words);
     static_assert(uint<M>::num_words == TOP + 1 || uint<M>::num_words == TOP + 2);
+    static_assert(!EQUAL || (TOP == 3 && uint<M>::num_words == TOP + 2));
 
     uint64_t ue = 0;  // The second word of u above the significant words of v, 0 for the shorter u.
     if constexpr (uint<M>::num_words == TOP + 2)
         ue = u[TOP + 1];
-    INTX_REQUIRE(ue < v[TOP - 1]);
+    INTX_REQUIRE(EQUAL ? ue == v[TOP - 1] : ue < v[TOP - 1]);
 
     // The top 128 bits of the normalized divisor and the matching 4 words of the numerator.
     const auto s = clz_nonzero(v[TOP - 1]);
     const uint128 vt{fshl(v[TOP - 2], v[TOP - 3], s), fshl(v[TOP - 1], v[TOP - 2], s)};
-    const auto t3 = fshl(ue, u[TOP], s);  // Less than vt[1] because ue < v[TOP - 1].
-    const auto t2 = fshl(u[TOP], u[TOP - 1], s);
-    const auto t1 = fshl(u[TOP - 1], u[TOP - 2], s);
+    auto t3 = fshl(ue, u[TOP], s);  // Less than vt[1] if ue < v[TOP - 1].
+    auto t2 = fshl(u[TOP], u[TOP - 1], s);
+    auto t1 = fshl(u[TOP - 1], u[TOP - 2], s);
     const auto t0 = fshl(u[TOP - 2], u[TOP - 3], s);
 
+    uint64_t qe = 0;     // The quotient bit 128.
+    bool clamp = false;  // The top 2 words of the normalized u equal vt.
+    if constexpr (EQUAL)
+    {
+        // The quotient is below 2^129. Subtract v * 2^128 if u is not less: in the normalized u
+        // these are the top 3 words minus the normalized v. Then u < v * 2^128.
+        bool less = false;  // u < v * 2^128: the borrow of the subtraction.
+        uint64_t d3 = 0;
+        uint64_t d2 = 0;
+        uint64_t d1 = 0;
+        std::tie(d1, less) = subc(t1, v[0] << s);
+        std::tie(d2, less) = subc(t2, vt[0], less);
+        std::tie(d3, less) = subc(t3, vt[1], less);
+        if (!less)
+        {
+            t3 = d3;
+            t2 = d2;
+            t1 = d1;
+            qe = 1;
+        }
+        // The top 2 words can still equal vt (not exceed it): the first division would overflow.
+        // The quotient is then 2^128 - 1 or 1 less (the estimate is clamped).
+        clamp = uint128{t2, t3} == vt;
+    }
+
     // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B, base 2^128).
-    // The first division does not overflow because t3 < vt[1].
-    const auto reciprocal = reciprocal_3by2(vt);
-    const auto [q1, r1] = udivrem_3by2(t3, t2, t1, vt, reciprocal);
-    const auto [q0, r0] = udivrem_3by2(r1[1], r1[0], t0, vt, reciprocal);
+    // The first division does not overflow because t3:t2 < vt (when not clamped).
+    uint64_t q1 = 0;
+    uint64_t q0 = 0;
+    uint128 r0;
+    bool r0h = false;  // The bit 128 of r0 (when clamped).
+    if (clamp) [[unlikely]]
+    {
+        q1 = q0 = ~uint64_t{0};
+        // t3:t2:t1:t0 - (2^128 - 1) * vt = t1:t0 + vt.
+        std::tie(r0, r0h) = addc(uint128{t0, t1}, vt);
+    }
+    else
+    {
+        const auto reciprocal = reciprocal_3by2(vt);
+        uint128 r1;
+        std::tie(q1, r1) = udivrem_3by2(t3, t2, t1, vt, reciprocal);
+        std::tie(q0, r0) = udivrem_3by2(r1[1], r1[0], t0, vt, reciprocal);
+    }
     auto q = uint128{q0, q1};
 
     // With k = 64 * (TOP - 2) - s, the position of the lowest bit of vt in v:
@@ -1790,7 +1831,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
         rw[i] = u[i];
     rw[TOP - 3] = fshr(r0[0], rw[TOP - 3] << s, s);
     rw[TOP - 2] = fshr(r0[1], r0[0], s);
-    rw[TOP - 1] = r0[1] >> s;
+    if constexpr (EQUAL)
+        rw[TOP - 1] = fshr(uint64_t{r0h}, r0[1], s);  // Without r0h if s is 0.
+    else
+        rw[TOP - 1] = r0[1] >> s;
 
     // r -= q * vl. The result is in (-2v, v), the borrow is its sign.
     const auto b0 = submul(rw.data(), vl, q0);
@@ -1798,6 +1842,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
     bool borrow = false;
     std::tie(rw[TOP - 2], borrow) = subc(rw[TOP - 2], b0);
     std::tie(rw[TOP - 1], borrow) = subc(rw[TOP - 1], b1, borrow);
+    // With r0h the result is not negative: r0 * 2^k >= 2^(128 + k) > q * vl. Then a borrow out
+    // of rw comes only from the r0h missing in rw for s 0.
+    if constexpr (EQUAL)
+        borrow = borrow && !r0h;
 
     // The correction runs at most 2 times (usually 0).
     const auto vw = as_words(v).template first<TOP>();
@@ -1806,7 +1854,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
         --q;
         borrow = !add(rw.data(), vw);
     }
-    return {q, uint<N>{rw}};
+    if constexpr (EQUAL)
+        return {uint<M>{q[0], q[1], qe}, uint<N>{rw}};
+    else
+        return {q, uint<N>{rw}};
 }
 
 }  // namespace internal
@@ -1849,6 +1900,13 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
                 if ((u[TOP + 1] | u[TOP]) == 0 && u[TOP - 1] < v[TOP - 1])  // u < v.
                     return {0, static_cast<uint<N>>(u)};
                 return internal::udivrem_top2<TOP>(u, v);
+            }
+            // With equal top words the quotient has up to 129 bits, e.g. addmod() with a modulus
+            // in [2^128, 2^129) and a carry. udivrem_top2() takes it for TOP 3.
+            if constexpr (TOP == 3)
+            {
+                if (u[TOP + 1] == v[TOP - 1] && v[TOP - 1] != 0)
+                    return internal::udivrem_top2<TOP, true>(u, v);
             }
         }
     }
