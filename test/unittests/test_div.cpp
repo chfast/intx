@@ -1117,6 +1117,22 @@ const div_test_case<uint512> div_test_cases[] = {
         0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
         0xffffffffffffffff_u512,
     },
+    // 320-bit by 256-bit, 2-word divisor: the top word of the numerator one greater than the top
+    // word of the divisor, 2 in the top quotient word.
+    {
+        0x28000000000000005000000000000000600000000000000080000000000000009_u512,
+        0x10000000000000007_u512,
+        0x27ffffffffffffff3800000000000005d7ffffffffffffd79_u512,
+        0x80000000000011ba_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: the top word of the numerator greater than the top word
+    // of the divisor, but not than its second word.
+    {
+        0x30000000000000007000000000000000000000000000000000000000000000009_u512,
+        0x180000000000000000000000000000005_u512,
+        0x20000000000000004aaaaaaaaaaaaaaa3_u512,
+        0x17fffffffffffffe8aaaaaaaaaaaaaada_u512,
+    },
     // 384-bit, 4-word divisor: estimate exact, not normalized.
     {
         0x63e9c20000000000000000f7931913c16330e70001f51b6102a73000000000000000000000000000000000_u512,
