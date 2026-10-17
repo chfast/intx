@@ -1630,10 +1630,18 @@ constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t mu
     return submul(x, x, y, multiplier);
 }
 
-constexpr void udivrem_knuth(
-    uint64_t q[], std::span<uint64_t> u, std::span<const uint64_t> d) noexcept
+/// The Knuth division of the normalized u by the normalized d: the quotient goes to q and
+/// the remainder replaces the low words of u.
+/// DIVISOR_WORDS fixes the number of divisor words at compile time, so the loops over them
+/// unroll. The default takes the size of d.
+template <size_t DIVISOR_WORDS = std::dynamic_extent>
+constexpr void udivrem_knuth(uint64_t q[], std::span<uint64_t> u,
+    std::type_identity_t<std::span<const uint64_t, DIVISOR_WORDS>> d) noexcept
 {
-    INTX_REQUIRE(d.size() >= 3);
+    if constexpr (DIVISOR_WORDS == std::dynamic_extent)
+        INTX_REQUIRE(d.size() >= 3);
+    else
+        static_assert(DIVISOR_WORDS >= 3);
     INTX_REQUIRE(u.size() > d.size());
 
     const auto divisor = uint128{d[d.size() - 2], d[d.size() - 1]};
@@ -1900,7 +1908,19 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     if constexpr (KNUTH_REACHABLE)
     {
         uint<M> q;
-        internal::udivrem_knuth(&q[0], un, dn);
+        // Unrolled for 3- and 4-word divisors: 512/256 (mulmod()), 384/256, 384/320, 384/384.
+        // In 320/256 the Knuth division is not reached by addmod() sums.
+        if constexpr (MAX_DIVISOR_WORDS == 4)
+        {
+            if (dn.size() == 3)
+                internal::udivrem_knuth<3>(&q[0], un, dn.template first<3>());
+            else
+                internal::udivrem_knuth<4>(&q[0], un, dn.template first<4>());
+        }
+        else
+        {
+            internal::udivrem_knuth(&q[0], un, dn);
+        }
 
         uint<N> r;
         shr(as_words(r).first(dn.size()), un.first(dn.size()), na.shift);
