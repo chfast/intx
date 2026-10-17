@@ -38,6 +38,23 @@ TEST(div, udivrem_constexpr)
     static_assert(udivrem(uint320{z - 1}, z).quot == 0);
     static_assert(udivrem(uint320{z - 1}, z).rem == z - 1);
 
+    // Single word quotient of equal widths (the top divisor word set) with non-zero
+    // and zero normalization shift.
+    constexpr auto m = ~uint256{};
+    constexpr auto t1 = (uint256{0x1234} << 192) | 0x5678;
+    constexpr auto t0 = (uint256{0x8000000000000001} << 192) | 0x5678;
+    static_assert(udivrem(m, t1).quot == 0xe1042cd3d4ee3);
+    static_assert(udivrem(m, t1).rem == 0x3e3fffffffffffffffffffffffffffffffb3ff1efbd32c2c397_u256);
+    static_assert(udivrem(m, t0).quot == 1);
+    static_assert(udivrem(m, t0).rem ==
+                  0x7ffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffa987_u256);
+
+    // The largest single word quotient of the wider numerator: u[4] = v[3] - 1.
+    constexpr auto y1 = (uint320{0x1233} << 256) | m;
+    static_assert(udivrem(y1, t1).quot == 0xffffffffffffffff);
+    static_assert(
+        udivrem(y1, t1).rem == 0x1233ffffffffffffffffffffffffffffa9880000000000005677_u256);
+
     // Two word quotient with a numerator two words wider than the divisor (as in addmod()).
     constexpr auto b = (uint256{0x5678} << 128) | 0x9abc;
     static_assert(udivrem(y, b).quot == 0x35e46de99c43b950c4e1604fefb77712_u320);
