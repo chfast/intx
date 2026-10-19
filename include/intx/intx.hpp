@@ -653,13 +653,41 @@ constexpr uint128 bswap(uint128 x) noexcept
 
 namespace internal
 {
-/// Reciprocal lookup table.
-constexpr auto reciprocal_table = []() noexcept {
-    std::array<uint16_t, 256> table{};
+/// An entry of RECIPROCAL_TABLE: post-processed 11-bit approximation "v0" of
+/// Algorithm 2 from "Improved division by invariant integers".
+struct alignas(uint64_t) reciprocal_table_entry
+{
+    uint32_t squared;  ///< v0^2.
+    uint32_t scaled;   ///< v0 * 2^11 - 1.
+};
+
+/// Reciprocal lookup table, indexed by the 8 bits below the top bit of a normalized d.
+///
+/// The hidden visibility gives one copy per shared library, accessed directly. Without it the
+/// inline variable is exported and read through the GOT, also with -fvisibility-inlines-hidden.
+[[gnu::visibility("hidden")]] inline constexpr auto RECIPROCAL_TABLE = []() noexcept {
+    std::array<reciprocal_table_entry, 256> table{};
     for (size_t i = 0; i < table.size(); ++i)
-        table[i] = static_cast<uint16_t>(0x7fd00 / (i + 256));
+    {
+        const auto v0 = static_cast<uint32_t>(0x7fd00 / (i + 256));
+        table[i] = {v0 * v0, (v0 << 11) - 1};
+    }
     return table;
 }();
+
+/// Computes "v2" of Algorithm 2 from "Improved division by invariant integers" for normalized d:
+/// the approximation of 2^97 / d from below (by less than 2) from the table and two Newton steps.
+constexpr uint64_t reciprocal_approx(uint64_t d) noexcept
+{
+    INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
+
+    const auto d9 = d >> 55;
+    const auto& [v0v0, v0s] = RECIPROCAL_TABLE[static_cast<size_t>(d9 - 256)];
+    const auto d40 = (d >> 24) + 1;
+    const auto v1 = v0s - (uint64_t{v0v0} * d40 >> 40);
+    const auto v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
+    return v2;
+}
 }  // namespace internal
 
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
@@ -667,22 +695,14 @@ constexpr auto reciprocal_table = []() noexcept {
 /// Based on Algorithm 2 from "Improved division by invariant integers".
 constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
-    INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
+    const auto v2 = internal::reciprocal_approx(d);
+    const auto d0 = d & 1;
+    const auto d63 = (d >> 1) + d0;  // ceil(d/2)
+    const auto e = ((v2 >> 1) & (0 - d0)) - (v2 * d63);
+    const auto v3 = (umul(v2, e)[1] >> 1) + (v2 << 31);
 
-    const uint64_t d9 = d >> 55;
-    const uint32_t v0 = internal::reciprocal_table[static_cast<size_t>(d9 - 256)];
-
-    const uint64_t d40 = (d >> 24) + 1;
-    const uint64_t v1 = (v0 << 11) - uint32_t(uint32_t{v0 * v0} * d40 >> 40) - 1;
-
-    const uint64_t v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
-
-    const uint64_t d0 = d & 1;
-    const uint64_t d63 = (d >> 1) + d0;  // ceil(d/2)
-    const uint64_t e = ((v2 >> 1) & (0 - d0)) - (v2 * d63);
-    const uint64_t v3 = (umul(v2, e)[1] >> 1) + (v2 << 31);
-
-    const uint64_t v4 = v3 - (umul(v3, d) + d)[1] - d;
+    const auto p = umul(v3, d);
+    const auto v4 = v3 - p[1] - ((p[0] + d) < d) - d;  // v3 - hi(v3 * d + d) - d
     return v4;
 }
 
