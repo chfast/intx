@@ -73,6 +73,13 @@
     #define INTX_HAS_BUILTIN_INT128 0
 #endif
 
+// Detect the x86-64 128/64 division instruction for internal::div_wide_x86()
+#if defined(__x86_64__) || defined(_M_X64)
+    #define INTX_HAS_DIV_WIDE_X86 1
+#else
+    #define INTX_HAS_DIV_WIDE_X86 0
+#endif
+
 namespace intx
 {
 /// Mark a possible code path as unreachable (invokes undefined behavior).
@@ -555,6 +562,31 @@ constexpr uint64_t fshr(uint64_t hi, uint64_t lo, unsigned shift) noexcept
     return shift == 0 ? lo : (lo >> shift) | (hi << (64 - shift));
 }
 
+#if INTX_HAS_DIV_WIDE_X86
+namespace internal
+{
+/// Divides the 128-bit hi:lo by d with the x86-64 division instruction. Requires hi < d.
+///
+/// The name follows div_wide() proposed for the C++ standard library in P3161.
+[[gnu::always_inline]] inline div_result<uint64_t> div_wide_x86(
+    uint64_t hi, uint64_t lo, uint64_t d) noexcept
+{
+    INTX_REQUIRE(hi < d);
+
+    #if defined(_MSC_VER) && !defined(__clang__)
+    unsigned __int64 r = 0;
+    const auto q = _udiv128(hi, lo, d, &r);
+    #else
+    uint64_t q = lo;  // The low word of the dividend, then the quotient.
+    uint64_t r = hi;  // The high word of the dividend, then the remainder.
+    asm("div %[d]" : "+a"(q), "+d"(r) : [d] "r"(d) : "cc");  // NOLINT(hicpp-no-assembler)
+    #endif
+
+    return {q, r};
+}
+}  // namespace internal
+#endif
+
 /// Left-shifts a little-endian word array x by shift bits and stores the result in r.
 /// The r must have the same size as x, or one word more to also receive the bits shifted out.
 /// The r may alias x. The shift must be less than 64.
@@ -739,6 +771,15 @@ constexpr uint64_t reciprocal(T d) noexcept
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
 constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
+    INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
+
+#if INTX_HAS_DIV_WIDE_X86
+    // On x86-64 this is a single 128/64 division instruction.
+    // Historically, this instruction was very slow, but it better/same latency
+    // as portable procedure on AMD Zen (2017) and Intel Ice Lake (2021).
+    if (!std::is_constant_evaluated())
+        return internal::div_wide_x86(~d, ~uint64_t{0}, d).quot;
+#endif
     return internal::reciprocal(d);
 }
 
