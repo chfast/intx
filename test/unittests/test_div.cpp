@@ -1437,8 +1437,20 @@ TEST(div, reciprocal_3by2)
 
 TEST(div, reciprocal_table)
 {
-    EXPECT_EQ(internal::reciprocal_table[0], 2045);
-    EXPECT_EQ(internal::reciprocal_table[0xff], 1024);
+    // The entries hold v0 = 2045 and 1024 as v0^2 and v0 * 2^11 - 1.
+    EXPECT_EQ(internal::RECIPROCAL_TABLE[0].squared, 0x3fd009u);
+    EXPECT_EQ(internal::RECIPROCAL_TABLE[0].scaled, 0x3fe7ffu);
+    EXPECT_EQ(internal::RECIPROCAL_TABLE[0xff].squared, 0x100000u);
+    EXPECT_EQ(internal::RECIPROCAL_TABLE[0xff].scaled, 0x1fffffu);
+}
+
+TEST(div, reciprocal_approx)
+{
+    // A bad table entry can make v2 slightly wrong and the final reciprocals still exact.
+    EXPECT_EQ(internal::reciprocal_approx(0x8000000000000000), 0x3ffffffffu);
+    EXPECT_EQ(internal::reciprocal_approx(0xffffffff7fffffff), 0x200000001u);
+    EXPECT_EQ(internal::reciprocal_approx(0xffffffffffffffff), 0x1ffffffffu);
+    EXPECT_EQ(internal::reciprocal_approx(0x887fffffffffffff), 0x3c03c03c0u);
 }
 
 TEST(div, by128)
