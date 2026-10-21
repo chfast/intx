@@ -813,6 +813,16 @@ constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) n
     return {q[1], r};
 }
 
+/// Divides u by normalized d. Requires u[1] < d.
+constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d) noexcept
+{
+#if INTX_HAS_DIV_WIDE_X86
+    if (!std::is_constant_evaluated())
+        return internal::div_wide_x86(u[1], u[0], d);
+#endif
+    return udivrem_2by1(u, d, reciprocal_2by1(d));
+}
+
 constexpr div_result<uint64_t, uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
@@ -1780,13 +1790,11 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
     // The top 64 bits of the normalized divisor and the matching 2 words of the numerator.
     const auto s = clz_nonzero(v[TOP]);
     const auto vt = fshl(v[TOP], v[TOP - 1], s);
-    const auto ut_hi = fshl(ue, u[TOP], s);  // Less than vt because ue < v[TOP].
+    const auto ut_hi = fshl(ue, u[TOP], s);  // Less than vt: all callers ensure ue < v[TOP].
     const auto ut_lo = fshl(u[TOP], u[TOP - 1], s);
 
     // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B).
-    // TODO: This is a single 128/64 division (divq on x86-64). It is faster than the reciprocal
-    //   on new CPUs (AMD Zen 3+, Intel Ice Lake+) but much slower on Intel Skylake and older.
-    auto q = udivrem_2by1({ut_lo, ut_hi}, vt, reciprocal_2by1(vt)).quot;
+    auto q = udivrem_2by1({ut_lo, ut_hi}, vt).quot;
 
     // The remainder u - q * v fits in the TOP + 1 words of v, so the borrow out of them
     // is ue, or ue + 1 or ue + 2 when the estimate is too large.
