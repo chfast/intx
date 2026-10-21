@@ -11,6 +11,11 @@ executors:
     docker:
       - image: ethereum/cpp-build-env:24-clang-20
   macos:
+    resource_class: m4pro.medium
+    macos:
+      xcode: 26.5
+  macos-xcode-min:
+    resource_class: m4pro.medium
     macos:
       xcode: 16.4.0
 
@@ -343,7 +348,9 @@ jobs:
     environment:
       BUILD_TYPE: Coverage
       TESTS_FILTER: unittests
-    executor: macos
+    # The codecov orb installs gpg with Homebrew, which fails on the macOS 26 image of Xcode 26:
+    # https://github.com/codecov/codecov-circleci-orb/issues/268
+    executor: macos-xcode-min
     steps:
       - run:
           name: "Install deps"
