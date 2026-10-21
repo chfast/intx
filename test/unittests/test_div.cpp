@@ -1433,6 +1433,80 @@ TEST(div, reciprocal_3by2)
     EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0xffffffffffffffff}), 1u);
     EXPECT_EQ(reciprocal_3by2({0x0000000000000001, 0xffffffffffffffff}), 0u);
     EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xffffffffffffffff}), 0u);
+
+    // Algorithm 6 from "Improved division by invariant integers" needs all 4 adjustments here.
+    static_assert(reciprocal_3by2({0xfffffffffffffffe, 0x8000000000000001}) == 0xfffffffffffffff8);
+    EXPECT_EQ(reciprocal_3by2({0xfffffffffffffffe, 0x8000000000000001}), 0xfffffffffffffff8u);
+    // The smallest error of v2 against the top word (e2); with the low word 2^64 - 1 it gives
+    // the smallest error e against the whole divisor.
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0xffffffff7fffffff}), 0x0000000080000001u);
+    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xffffffff7fffffff}), 0x0000000080000000u);
+    // The top word 2^64 - 1: v3 is 0 up to the low word 0xbffffffe5fffffff and 2^64 - 1 from
+    // 0xbffffffe60000000 on, where the reciprocal 0 is computed as one more than 2^64 - 1.
+    EXPECT_EQ(reciprocal_3by2({0xbffffffe5fffffff, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xbffffffe60000000, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xbfffffffffffffff, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xc000000000000000, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xc000000000000001, 0xffffffffffffffff}), 0u);
+    // The top word 3/4 * 2^64.
+    EXPECT_EQ(reciprocal_3by2({0x7fffffffffffffff, 0xc000000000000000}), 0x5555555555555554u);
+    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0xc000000000000000}), 0x5555555555555554u);
+    // A small e2 and the largest low word for its hi(v2 * d0): e is just below the scaled error
+    // of v2 here, so without the -1 in its computation v3 would be one too large.
+    EXPECT_EQ(reciprocal_3by2({0xec232984255f1740, 0x98ca5c9324ffffff}), 0xaced60fc0000bc1fu);
+    EXPECT_EQ(reciprocal_3by2({0x90f23b9f45d3b376, 0x98ca5c9324ffffff}), 0xaced60fc0000bc20u);
+    // (2^64 + v + 1) * d exceeds 2^192 by less than 2^64 (d = ceil(2^131 / 13), ceil(2^129 / 3)):
+    // the carry from the lowest word decides the correction.
+    EXPECT_EQ(reciprocal_3by2({0xd89d89d89d89d89e, 0x9d89d89d89d89d89}), 0x9fffffffffffffffu);
+    EXPECT_EQ(reciprocal_3by2({0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa}), 0x7fffffffffffffffu);
+}
+
+namespace
+{
+/// Checks that v = reciprocal_3by2(d) satisfies (2^64 + v) * d <= 2^192 - 1 < (2^64 + v + 1) * d,
+/// using only multiplication and subtraction.
+void check_reciprocal_3by2(uint128 d)
+{
+    constexpr auto max192 = (uint256{1} << 192) - 1;
+    const auto v = reciprocal_3by2(d);
+    const auto p = ((uint256{1} << 64) | v) * uint256{d};
+    ASSERT_LE(p, max192) << hex(d);
+    ASSERT_LT(max192 - p, uint256{d}) << hex(d);
+}
+}  // namespace
+
+TEST(div, reciprocal_3by2_property)
+{
+    constexpr std::array<uint64_t, 11> edges{0, 1, 2, 0x7fffffffffffffff, 0x8000000000000000,
+        0x8000000000000001, 0xbfffffffffffffff, 0xc000000000000000, 0xc000000000000001,
+        0xfffffffffffffffe, 0xffffffffffffffff};
+
+    // The top word extremes, the smallest e2 and every table index boundary.
+    std::vector<uint64_t> d1s{0x8000000000000000, 0x8000000000000001, 0xffffffff7fffffff,
+        0xfffffffffffffffe, 0xffffffffffffffff};
+    for (uint64_t i = 257; i < 512; ++i)
+        d1s.insert(d1s.end(), {(i << 55) - 1, i << 55, (i << 55) + 1});
+    for (const auto d1 : d1s)
+    {
+        for (const auto d0 : edges)
+            ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, d1}));
+        for (const auto d0 : {d1 - 1, d1, d1 + 1, ~d1})
+            ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, d1}));
+    }
+
+    // The top word 2^64 - 1 with the low word around the wrap of v3 (see above).
+    for (uint64_t d0 = 0xbffffffe60000000 - 1000; d0 != 0xbffffffe60000000 + 1000; ++d0)
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, 0xffffffffffffffff}));
+
+    // Other divisors, the last two with the top word from 0xffffffff00000000, the region of the
+    // smallest e2.
+    for (const auto d : {uint128{0x2f405f660b24c7ce, 0xb628f5e7f7a5f217},
+             uint128{0x759f1eddb8cbc544, 0x99ae04f2d520b32f},
+             uint128{0xb0909490d73d8fd3, 0x9235a73b9cd89148},
+             uint128{0x8e483e56ab28bbe9, 0xacc238641966f12a},
+             uint128{0xf4408d1f67dbac9c, 0xffffffff9792acb9},
+             uint128{0x3a73c2784d3b88a9, 0xffffffff87f9167b}})
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2(d));
 }
 
 TEST(div, reciprocal_table)
