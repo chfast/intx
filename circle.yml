@@ -143,6 +143,28 @@ commands:
           path: ~/coverage
           destination: coverage
 
+  collect_coverage_clang:
+    description: "Collect coverage data (clang)"
+    steps:
+      - run:
+          name: "Collect coverage data (clang)"
+          working_directory: ~/build
+          command: |
+            ARGS="test/intx-unittests -Xdemangler llvm-cxxfilt -instr-profile=intx.profdata"
+
+            mkdir ~/coverage
+            llvm-profdata merge -sparse *.profraw -o intx.profdata
+
+            llvm-cov export -format=lcov $ARGS -skip-expansions -skip-branches > ~/coverage/coverage.lcov
+
+            llvm-cov show $ARGS -format=html -show-directory-coverage -show-line-counts-or-regions -o ~/coverage/html
+
+            llvm-cov report $ARGS > ~/coverage/report.txt
+            llvm-cov report $ARGS -use-color
+      - store_artifacts:
+          path: ~/coverage
+          destination: coverage
+
   upload_coverage:
     description: "Upload coverage data"
     parameters:
@@ -152,7 +174,7 @@ commands:
       - codecov/upload:
           plugins: noop
           disable_search: true
-          files: ../build/coverage.json
+          files: ../build/coverage.json,../coverage/coverage.lcov
           flags: <<parameters.flags>>
 
 
@@ -206,21 +228,7 @@ jobs:
     steps:
       - install_deps
       - build_and_test
-      - run:
-          name: "Coverage"
-          working_directory: ~/build
-          command: |
-            mkdir coverage
-            find -name '*.profraw'
-            llvm-profdata merge *.profraw -o intx.profdata
-            llvm-cov report -use-color -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests
-            llvm-cov report -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests > coverage/report.txt
-            llvm-cov show -format=html -instr-profile intx.profdata -Xdemangler llvm-cxxfilt -region-coverage-lt=100 test/intx-unittests > coverage/missing.html
-            llvm-cov show -format=html -instr-profile intx.profdata -Xdemangler llvm-cxxfilt test/intx-unittests > coverage/full.html
-            llvm-cov export -instr-profile intx.profdata -format=lcov test/intx-unittests > coverage.lcov
-      - store_artifacts:
-          path: ~/build/coverage
-          destination: coverage
+      - collect_coverage_clang
 
 
   linux-clang-sanitizers:
@@ -331,6 +339,25 @@ jobs:
       - build_and_test
       - benchmark
 
+  macos-coverage:
+    environment:
+      BUILD_TYPE: Coverage
+      TESTS_FILTER: unittests
+    executor: macos
+    steps:
+      - run:
+          name: "Install deps"
+          command: |
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake gmp
+      - build_and_test
+      - run:
+          name: "Use the LLVM tools of Xcode"
+          command: |
+            echo "export PATH=\"$(dirname "$(xcrun -f llvm-cov)"):\$PATH\"" >> "$BASH_ENV"
+      - collect_coverage_clang
+      - upload_coverage:
+          flags: macos
+
   windows-32bit:
     executor: win/server-2022
     steps:
@@ -376,6 +403,7 @@ workflows:
       - linux-32bit-coverage
       - fuzzing
       - macos
+      - macos-coverage
       - cmake-min
       - arm64
       - powerpc64
