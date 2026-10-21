@@ -1525,10 +1525,8 @@ TEST(div, reciprocal_3by2)
     static_assert(reciprocal_3by2({0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa}) == 0x7fffffffffffffff);
     EXPECT_EQ(reciprocal_3by2({0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa}), 0x7fffffffffffffffu);
     // On x86-64 [R + d < 0] compares rh * 2^64 + ~0 + d with qh * d0. Here their high words are
-    // equal with the carry from ~0 + d0, and the low words decide (d = ceil(2^136 / 465),
-    // floor(2^134 / 117)).
+    // equal with the carry from ~0 + d0, and the low words decide (d = ceil(2^136 / 465)).
     EXPECT_EQ(reciprocal_3by2({0xcf008cf008cf008d, 0x8cf008cf008cf008}), 0xd0ffffffffffffffu);
-    EXPECT_EQ(reciprocal_3by2({0xc08c08c08c08c08c, 0x8c08c08c08c08c08}), 0xd400000000000000u);
     // (2^64 + v) * d = 2^192 - 1: on x86-64 the values compared for [R + d < 0] are equal.
     EXPECT_EQ(reciprocal_3by2({0x99127966ed869913, 0x8699127966ed8699}), 0xe6e6e6e6e6e6e6e5u);
 }

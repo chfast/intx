@@ -802,10 +802,11 @@ constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
         // The remainder R = rh * 2^64 + ~0 - p is in [-2d, d): v = qh - [R < 0] - [R + d < 0].
         const uint64_t neg0 = rh < p[1];  // ~0 >= p[0], so the high words decide.
 
-        // rh * 2^64 + ~0 + d = s * 2^64 + d0 - 1 with s up to 65 bits. If s[1] is set, this is at
-        // least 2^128 > p: s saturates to ~0 > p[1], which keeps the comparison false.
-        const auto s = uint128{rh} + d1 + (d0 != 0);
-        const uint64_t neg1 = uint128{d0 - 1, s[0] | (0 - s[1])} < p;
+        // R + d < 0 is rh * 2^64 + ~0 + d < p, where ~0 + d0 is d0 - 1 with the carry d0 != 0.
+        // If c is set, the sum is at least 2^128 > p: s saturates to ~0 > p[1], keeping it false.
+        const auto [s, c] = addc(rh, d1, d0 != 0);
+        const auto s_sat = s | (0 - uint64_t{c});  // ~0 if c is set, otherwise s.
+        const uint64_t neg1 = uint128{d0 - 1, s_sat} < p;
         return qh - neg0 - neg1;
     }
 #endif
