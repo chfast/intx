@@ -65,6 +65,13 @@ TEST(div, udivrem_constexpr)
     constexpr auto c = (uint256{1} << 64) | 0x9abc;
     static_assert(udivrem(x2, c).quot == 0x10000000000006542ffffffffc2cb54cc000024fea1ab022f_u320);
     static_assert(udivrem(x2, c).rem == 0xeac6ed27f0c5ed6b_u256);
+
+    // Equal top words: the quotient bit 128 and the clamped estimate (as in addmod()).
+    constexpr auto c3 = (uint256{1} << 128) | 1;
+    static_assert(udivrem((uint320{c3} << 128) + 5, c3).quot == uint320{1} << 128);
+    static_assert(udivrem((uint320{c3} << 128) + 5, c3).rem == 5);
+    static_assert(udivrem(uint320{1} << 256, c3).quot == (uint320{1} << 128) - 1);
+    static_assert(udivrem(uint320{1} << 256, c3).rem == 1);
 }
 
 TEST(div, normalize)
@@ -993,7 +1000,8 @@ const div_test_case<uint512> div_test_cases[] = {
         0x1eba6612999710c8695c9adfffdab3da8de90a144696229ca0158cd38c42f50491187c215f72b5d5fc702404935e0cd1c5a3d0a60c_u512,
     },
     // Divisors with two words less than the numerator: two word quotients if the top word of
-    // the numerator is less than the top word of the divisor, otherwise the Knuth division.
+    // the numerator is less than the top word of the divisor, quotients up to 129 bits if they
+    // are equal (320-bit by 256-bit), otherwise the Knuth division.
     // The "estimate" is the quotient estimated from the top 4 words of the normalized numerator
     // and the top 2 words of the normalized divisor.
     // 320-bit by 256-bit, 3-word divisor: estimate exact, not normalized.
@@ -1045,13 +1053,112 @@ const div_test_case<uint512> div_test_cases[] = {
         0xffffffffffffffffffffffffffffffff_u512,
         0x20ffffffffffffffffffffffffffffffff_u512,
     },
-    // 320-bit by 256-bit, 3-word divisor: the top words equal, the Knuth division
-    // (addmod(2^256 - 1, 3, 2^128 + 1)).
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, not
+    // normalized (addmod(2^256 - 1, 3, 2^128 + 1)).
     {
         0x10000000000000000000000000000000000000000000000000000000000000002_u512,
         0x100000000000000000000000000000001_u512,
         0xffffffffffffffffffffffffffffffff_u512,
         0x3_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the quotient above 2^128, estimate
+    // exact, not normalized.
+    {
+        0x10000000fffffffff0000000000000000000000000000000041e37238a349cf67_u512,
+        0x1000000000000000000000000000fffff_u512,
+        0x10000000ffffffffefffffffffff00000_u512,
+        0xff000010000fffff41e37338a339cf67_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the quotient above 2^128, estimate 1
+    // too big, not normalized.
+    {
+        0x1ffffffffffffffff0000000000000000000200000000000000000000000fffff_u512,
+        0x1001fffffffffffff0000007fffffffff_u512,
+        0x1ffc007ff001ffc017f9014fc808beb06_u512,
+        0xe941c3bb8a168c7399a91fc809beb05_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the quotient above 2^128, estimate
+    // exact, top bit set.
+    {
+        0x9d204d6519f1dcdb19fa5f429c43382affffffffffffffffb9feb3bf91f71fb40000000000000100_u512,
+        0x9d204d6519f1dcdb0000000000000003ffffffffffffffff_u512,
+        0x100000000000000002a5335e9616fa0f0_u512,
+        0x6ad1021fc54312b010b1dc1a0c389bf42a5335e9616fa1f0_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: max quotient.
+    {
+        0x1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x100000000000000000000000000000000_u512,
+        0x1ffffffffffffffffffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: estimate exact, not normalized.
+    {
+        0x114164db4b1b0fa7237ff0ac3b271495500003fffffffffff0000000002000000_u512,
+        0x1269c3c7f2132c2d60000000000000000_u512,
+        0xefe786085ff619e786a575e4b57c6720_u512,
+        0xc3e53cd0bf9b8b3f0000000002000000_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: estimate 1 too big, not normalized.
+    {
+        0x167b4d26a3acf1c0cffffffffffffffff000000003fffffff7e8504a0420e21dc_u512,
+        0x1f13eb79cd5a82fa600000000007fffff_u512,
+        0xb930a6ca39e515856af612df59a77ae3_u512,
+        0x1c2001f7a510e3e4979ce43c22a359cbf_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: estimate 2 too big, not normalized.
+    {
+        0x100000000000000000004000000000000000000000000ffffffffffffffff0000000000010000_u512,
+        0x10000000000006f71019139b08683ffffffffffffffff_u512,
+        0xffffffffffff908efe72c64fa9ff313c_u512,
+        0x947a5befcd3f9d2d3b8c8f64c59dfe72c64faa00313c_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: estimate 2 too big, top bit set.
+    {
+        0x800000000000000100000000003fffff20000000000000000000000000000000c5634a1d558db562_u512,
+        0x8000000000000001ffffffffffffffffffffffffffffffff_u512,
+        0xfffffffffffffffe0000000000800006_u512,
+        0x1ffffffffefffff4fffffffffffffffec5634a1d560db568_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, 1 too big, not
+    // normalized.
+    {
+        0x1048301d1df0de61ffffffffffffffff000007ffffffffff00000000000000000000003fffffffff_u512,
+        0x1048301d1df0de61ffffffffffffffff1fffffffffffffff_u512,
+        0xfffffffffffffffffffffffffffffffe_u512,
+        0x90683a3be1bcc3fffffffffffffffe4000003ffffffffd_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, 1 too big, top
+    // bit set.
+    {
+        0x80000000000000010000000000000000003fffffffffffff1b68fb3a20f334bdffffffffffffffff_u512,
+        0x80000000000000010000000000000000ffffffffffffffff_u512,
+        0xfffffffffffffffffffffffffffffffe_u512,
+        0x400000000000021b68fb3a20f334bffffffffffffffffd_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, the remainder
+    // of the top words above 2^128, not normalized.
+    {
+        0x11000000000000000fffffffffffffffeffffffffffffffff8659809ec6db32bc_u512,
+        0x11000000000000000ffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+        0x110000000000000008659809ec6db32bb_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, the remainder
+    // of the top words above 2^128, top bit set.
+    {
+        0xffffffffffffffff6078a7bdc1291028000000ffffffffff1fffffffffffffff0000000000000000_u512,
+        0xffffffffffffffff6078a7bdc12910280000010000000000_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+        0xfffffffffffffffe8078a7bdc12910270000010000000000_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: the top word of the numerator greater than the top word
+    // of the divisor, three word quotient (the Knuth division).
+    {
+        0x300000000000000000000000000000000fedcba9876543210f0e1d2c3b4a59687_u512,
+        0x100000000000000002468ace013579bdf_u512,
+        0x2ffffffffffffffff92c5f95fc5f92c64_u512,
+        0xe658cdc470edd7fa0b8cdfee0bb5f6b_u512,
     },
     // 320-bit by 256-bit, 2-word divisor: 3-word quotient, not normalized.
     {
@@ -1311,6 +1418,21 @@ TEST(div, udivrem_256)
     {
         const auto n = static_cast<uint256>(t.numerator);
         const auto d = static_cast<uint256>(t.denominator);
+        if (n != t.numerator || d != t.denominator)
+            continue;  // Skip trimmed arguments.
+
+        const auto [quot, rem] = udivrem(n, d);
+        EXPECT_EQ(quot, t.quotient);
+        EXPECT_EQ(rem, t.reminder);
+    }
+}
+
+TEST(div, udivrem_320)
+{
+    for (auto& t : div_test_cases)
+    {
+        const auto n = static_cast<uint320>(t.numerator);
+        const auto d = static_cast<uint320>(t.denominator);
         if (n != t.numerator || d != t.denominator)
             continue;  // Skip trimmed arguments.
 
