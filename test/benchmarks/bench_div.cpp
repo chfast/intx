@@ -107,6 +107,7 @@ BENCHMARK(reciprocal<uint64_t, reciprocal_udiv>);
 BENCHMARK(reciprocal<uint64_t, internal::reciprocal<uint64_t>>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_2by1>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_2by1_noinline>);
+BENCHMARK(reciprocal<uint128, internal::reciprocal<uint128>>);
 BENCHMARK(reciprocal<uint128, reciprocal_3by2>);
 BENCHMARK(reciprocal<uint128, reciprocal_3by2_noinline>);
 BENCHMARK(reciprocal_lat<uint64_t, neg>);
@@ -115,6 +116,7 @@ BENCHMARK(reciprocal_lat<uint64_t, reciprocal_builtin_uint128>);
 BENCHMARK(reciprocal_lat<uint64_t, reciprocal_udiv>);
 BENCHMARK(reciprocal_lat<uint64_t, internal::reciprocal<uint64_t>>);
 BENCHMARK(reciprocal_lat<uint64_t, reciprocal_2by1>);
+BENCHMARK(reciprocal_lat<uint128, internal::reciprocal<uint128>>);
 BENCHMARK(reciprocal_lat<uint128, reciprocal_3by2>);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>

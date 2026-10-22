@@ -786,6 +786,30 @@ constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 /// Computes the reciprocal (2^192 - 1) / d - 2^64 for normalized d.
 constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 {
+    INTX_REQUIRE(d[1] & 0x8000000000000000);  // Must be normalized.
+
+#if INTX_HAS_DIV_WIDE_X86
+    if (!std::is_constant_evaluated())
+    {
+        // The reciprocal is the 3/2 division of ~d * 2^64 + ~0 by d. On x86-64 the 128/64 division
+        // of ~d by the top word d1 gives the quotient or up to 2 more (Knuth, TAOCP Vol. 2, 4.3.1,
+        // Theorem B), and its remainder corrects it.
+        const auto d1 = d[1];
+        const auto d0 = d[0];
+        const auto [qh, rh] = internal::div_wide_x86(~d1, ~d0, d1);
+        const auto p = umul(qh, d0);
+
+        // The remainder R = rh * 2^64 + ~0 - p is in [-2d, d): v = qh - [R < 0] - [R + d < 0].
+        const uint64_t neg0 = rh < p[1];  // ~0 >= p[0], so the high words decide.
+
+        // R + d < 0 is rh * 2^64 + ~0 + d < p, where ~0 + d0 is d0 - 1 with the carry d0 != 0.
+        // If c is set, the sum is at least 2^128 > p: s saturates to ~0 > p[1], keeping it false.
+        const auto [s, c] = addc(rh, d1, d0 != 0);
+        const auto s_sat = s | (0 - uint64_t{c});  // ~0 if c is set, otherwise s.
+        const uint64_t neg1 = uint128{d0 - 1, s_sat} < p;
+        return qh - neg0 - neg1;
+    }
+#endif
     return internal::reciprocal(d);
 }
 

@@ -1512,23 +1512,34 @@ TEST(div, reciprocal_3by2)
     EXPECT_EQ(reciprocal_3by2({0x7fffffffffffffff, 0xc000000000000000}), 0x5555555555555554u);
     EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0xc000000000000000}), 0x5555555555555554u);
     // A small e2 and the largest low word for its hi(v2 * d0): e is just below the scaled error
-    // of v2 here, so without the -1 in its computation v3 would be one too large.
+    // of v2 here, so without the -1 in its computation v3 would be one too large. The
+    // static_asserts check the portable code, which x86-64 runs only in constant evaluation.
+    static_assert(reciprocal_3by2({0xec232984255f1740, 0x98ca5c9324ffffff}) == 0xaced60fc0000bc1f);
     EXPECT_EQ(reciprocal_3by2({0xec232984255f1740, 0x98ca5c9324ffffff}), 0xaced60fc0000bc1fu);
+    static_assert(reciprocal_3by2({0x90f23b9f45d3b376, 0x98ca5c9324ffffff}) == 0xaced60fc0000bc20);
     EXPECT_EQ(reciprocal_3by2({0x90f23b9f45d3b376, 0x98ca5c9324ffffff}), 0xaced60fc0000bc20u);
     // (2^64 + v + 1) * d exceeds 2^192 by less than 2^64 (d = ceil(2^131 / 13), ceil(2^129 / 3)):
     // the carry from the lowest word decides the correction.
+    static_assert(reciprocal_3by2({0xd89d89d89d89d89e, 0x9d89d89d89d89d89}) == 0x9fffffffffffffff);
     EXPECT_EQ(reciprocal_3by2({0xd89d89d89d89d89e, 0x9d89d89d89d89d89}), 0x9fffffffffffffffu);
+    static_assert(reciprocal_3by2({0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa}) == 0x7fffffffffffffff);
     EXPECT_EQ(reciprocal_3by2({0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa}), 0x7fffffffffffffffu);
+    // On x86-64 [R + d < 0] compares rh * 2^64 + ~0 + d with qh * d0. Here their high words are
+    // equal with the carry from ~0 + d0, and the low words decide (d = ceil(2^136 / 465)).
+    EXPECT_EQ(reciprocal_3by2({0xcf008cf008cf008d, 0x8cf008cf008cf008}), 0xd0ffffffffffffffu);
+    // (2^64 + v) * d = 2^192 - 1: on x86-64 the values compared for [R + d < 0] are equal.
+    EXPECT_EQ(reciprocal_3by2({0x99127966ed869913, 0x8699127966ed8699}), 0xe6e6e6e6e6e6e6e5u);
 }
 
 namespace
 {
 /// Checks that v = reciprocal_3by2(d) satisfies (2^64 + v) * d <= 2^192 - 1 < (2^64 + v + 1) * d,
-/// using only multiplication and subtraction.
+/// using only multiplication and subtraction, and that the portable code gives the same v.
 void check_reciprocal_3by2(uint128 d)
 {
     constexpr auto max192 = (uint256{1} << 192) - 1;
     const auto v = reciprocal_3by2(d);
+    ASSERT_EQ(internal::reciprocal(d), v) << hex(d);
     const auto p = ((uint256{1} << 64) | v) * uint256{d};
     ASSERT_LE(p, max192) << hex(d);
     ASSERT_LT(max192 - p, uint256{d}) << hex(d);
