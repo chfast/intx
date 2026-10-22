@@ -161,7 +161,7 @@ constexpr result_with_carry<uint64_t> addc(uint64_t x, uint64_t y, bool carry = 
     const auto carry1 = s < x;
     const auto t = s + carry;
     const auto carry2 = t < s;
-    return {t, carry1 || carry2};
+    return {t, static_cast<bool>(carry1 | carry2)};
 }
 
 /// Subtraction with carry (borrow).
@@ -190,7 +190,7 @@ constexpr result_with_carry<uint64_t> subc(uint64_t x, uint64_t y, bool carry = 
     const auto carry1 = x < y;
     const auto e = d - carry;
     const auto carry2 = d < uint64_t{carry};
-    return {e, carry1 || carry2};
+    return {e, static_cast<bool>(carry1 | carry2)};
 }
 
 /// Addition with carry.
