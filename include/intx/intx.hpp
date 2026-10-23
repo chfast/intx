@@ -1600,9 +1600,29 @@ constexpr unsigned bit_width(const uint<N>& x) noexcept
 namespace internal
 {
 /// Counts the number of zero leading bits in nonzero argument x.
+///
+/// On x86-64 without lzcnt the count is bsr, which keeps its destination for a zero source, so the
+/// CPU waits for the destination register's previous value. X86_BREAK_BSR_DEPENDENCY zeroes it
+/// first, for callers where compilers pick a register holding a recent result.
+template <bool X86_BREAK_BSR_DEPENDENCY = false>
 constexpr unsigned clz_nonzero(uint64_t x) noexcept
 {
     INTX_REQUIRE(x != 0);
+#if defined(__x86_64__) && !defined(__LZCNT__) && defined(__GNUC__)
+    if constexpr (X86_BREAK_BSR_DEPENDENCY)
+    {
+        if (!std::is_constant_evaluated() && !__builtin_constant_p(x))
+        {
+            uint64_t r;                 // NOLINT(*-init-variables)
+            asm("xor %k[r], %k[r]\n\t"  // NOLINT(*-no-assembler)
+                "bsr {%[x], %[r]|%[r], %[x]}"
+                : [r] "=&r"(r)
+                : [x] "r"(x)
+                : "cc");
+            return static_cast<unsigned>(r ^ 63);
+        }
+    }
+#endif
     return static_cast<unsigned>(std::countl_zero(x));
 }
 
@@ -1812,7 +1832,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
     }
 
     // The top 64 bits of the normalized divisor and the matching 2 words of the numerator.
-    const auto s = clz_nonzero(v[TOP]);
+    const auto s = clz_nonzero<true>(v[TOP]);
     const auto vt = fshl(v[TOP], v[TOP - 1], s);
     const auto ut_hi = fshl(ue, u[TOP], s);  // Less than vt: all callers ensure ue < v[TOP].
     const auto ut_lo = fshl(u[TOP], u[TOP - 1], s);
@@ -1869,7 +1889,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
     INTX_REQUIRE(EQUAL ? ue == v[TOP - 1] : ue < v[TOP - 1]);
 
     // The top 128 bits of the normalized divisor and the matching 4 words of the numerator.
-    const auto s = clz_nonzero(v[TOP - 1]);
+    const auto s = clz_nonzero<true>(v[TOP - 1]);
     const uint128 vt{fshl(v[TOP - 2], v[TOP - 3], s), fshl(v[TOP - 1], v[TOP - 2], s)};
     auto t3 = fshl(ue, u[TOP], s);  // Less than vt[1] if ue < v[TOP - 1].
     auto t2 = fshl(u[TOP], u[TOP - 1], s);
