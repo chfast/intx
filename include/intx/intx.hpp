@@ -1756,8 +1756,11 @@ constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t mu
     return submul(x, x, y, multiplier);
 }
 
-constexpr void udivrem_knuth(
-    uint64_t q[], std::span<uint64_t> u, std::span<const uint64_t> d) noexcept
+/// A fixed size of d (DIVISOR_WORDS) lets the loops over the divisor words unroll. d is not
+/// deduced, so spans of non-const words convert to it.
+template <size_t DIVISOR_WORDS = std::dynamic_extent>
+constexpr void udivrem_knuth(uint64_t q[], std::span<uint64_t> u,
+    std::type_identity_t<std::span<const uint64_t, DIVISOR_WORDS>> d) noexcept
 {
     INTX_REQUIRE(d.size() >= 3);
     INTX_REQUIRE(u.size() > d.size());
@@ -2083,7 +2086,13 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     if constexpr (KNUTH_REACHABLE)
     {
         uint<M> q;
-        internal::udivrem_knuth(&q[0], un, dn);
+        // If the max divisor has 4 words, e.g. 512/256 (mulmod()), use the 3- and 4-word instances.
+        if constexpr (MAX_DIVISOR_WORDS != 4)
+            internal::udivrem_knuth(&q[0], un, dn);
+        else if (dn.size() == 3)
+            internal::udivrem_knuth<3>(&q[0], un, dn.template first<3>());
+        else
+            internal::udivrem_knuth<4>(&q[0], un, dn.template first<4>());
 
         uint<N> r;
         shr(as_words(r).first(dn.size()), un.first(dn.size()), na.shift);
