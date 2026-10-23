@@ -85,6 +85,18 @@ TEST(div, udivrem_constexpr)
     static_assert(udivrem((uint320{c3} << 128) + 5, c3).rem == 5);
     static_assert(udivrem(uint320{1} << 256, c3).quot == (uint320{1} << 128) - 1);
     static_assert(udivrem(uint320{1} << 256, c3).rem == 1);
+
+    // 1-word divisor: the shift 48 (320/256 and 256/256), the shift 0 and a 1-word numerator.
+    static_assert(udivrem(x2, uint256{0x9abc}).quot ==
+                  0x1a789e9ec67b83d00560803840511165c63fd9f29bfbc2ae98b05485a6fcd_u320);
+    static_assert(udivrem(x2, uint256{0x9abc}).rem == 0x6163);
+    static_assert(udivrem(m, uint256{0x9abc}).quot ==
+                  0x1a789e9ec67b6957813a585b9d74f982ef1e94d93fedcd12f2d78b2793d72_u256);
+    static_assert(udivrem(m, uint256{0x9abc}).rem == 0x4c47);
+    static_assert(udivrem(m, uint256{0x8000000000000001}).quot ==
+                  0x1fffffffffffffffc0000000000000007fffffffffffffff0_u256);
+    static_assert(udivrem(m, uint256{0x8000000000000001}).rem == 0xf);
+    static_assert(udivrem(uint256{7}, uint256{3}) == div_result<uint256>{2, 1});
 }
 
 TEST(div, normalize)
@@ -1173,6 +1185,20 @@ const div_test_case<uint512> div_test_cases[] = {
         0x2ffffffffffffffff92c5f95fc5f92c64_u512,
         0xe658cdc470edd7fa0b8cdfee0bb5f6b_u512,
     },
+    // 320-bit by 256-bit, 1-word divisor equal to the top word of the numerator.
+    {
+        0x123456789abcdeffedcba98765432100f1e2d3c4b5a69788796a5b4c3d2e1f00123456789abcdef_u512,
+        0x123456789abcdef_u512,
+        0x100000000000000e0000000000000d2fd4985c1fe3b3d536162534435e114129e_u512,
+        0xa447ec577be66d_u512,
+    },
+    // 320-bit by 256-bit, 1-word divisor one greater than the top word of the numerator.
+    {
+        0x80000000ffffffffffffffff123456789abcdef0a5a5a5a5a5a5a5a50fedcba987654321_u512,
+        0x80000001_u512,
+        0xfffffffffffffffffffffffe2468acf4eca863f771fa835c67564491512f0e30_u512,
+        0x363634f1_u512,
+    },
     // 320-bit by 256-bit, 2-word divisor: 3-word quotient, not normalized.
     {
         0xc8e643394826d6ef3db82abd7d235e6d15e65250d14e3338a6b8bd800584771e624a446b1_u512,
@@ -1622,6 +1648,20 @@ TEST(div, div_wide_x86)
     }
 }
 #endif
+
+TEST(div, udivrem_by1_in_place)
+{
+    // A normalized divisor and the top word below it, as evmone's modexp calls it.
+    std::array<uint64_t, 3> u{0x0123456789abcdef, 0xfedcba9876543210, 0x7fffffffffffffff};
+    EXPECT_EQ(
+        internal::udivrem_by1(std::span<uint64_t>{u}, u, 0x8000000000000001), 0x369d0369d0369cb);
+    EXPECT_EQ(u, (std::array<uint64_t, 3>{0xfdb97530eca86424, 0xfffffffffffffffd, 0}));
+
+    // Not normalized, the top quotient word not 0, the static extent.
+    u = {0x0123456789abcdef, 0xfedcba9876543210, 0xff};
+    EXPECT_EQ(internal::udivrem_by1(std::span<uint64_t, 3>{u}, u, 0x10), 0xf);
+    EXPECT_EQ(u, (std::array<uint64_t, 3>{0x00123456789abcde, 0xffedcba987654321, 0xf}));
+}
 
 TEST(div, reciprocal_3by2)
 {
