@@ -1668,29 +1668,47 @@ template <unsigned M, unsigned N>
     return na;
 }
 
-/// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
-/// @param u  The normalized numerator words. It will contain the quotient after execution.
-/// @param d  The normalized divisor.
-/// @return   The remainder.
-constexpr uint64_t udivrem_by1(std::span<uint64_t> u, uint64_t d) noexcept
+/// Divides u by d: the quotient goes to q, which may be u, and the remainder is returned.
+/// The words of u are normalized on the fly, so u and d need not be normalized. d must not be 0.
+template <size_t N>
+constexpr uint64_t udivrem_by1(
+    std::span<uint64_t, N> q, std::span<const uint64_t, N> u, uint64_t d) noexcept
 {
-    INTX_REQUIRE(u.size() >= 2);
+    INTX_REQUIRE(!u.empty() && q.size() == u.size() && d != 0);
 
-    const auto reciprocal = reciprocal_2by1(d);
+    const auto s = clz_nonzero<true>(d);
+    const auto dn = d << s;  // The normalized divisor.
+    const auto reciprocal = reciprocal_2by1(dn);
 
-    auto rem = u[u.size() - 1];  // Set the top word as remainder.
-    u[u.size() - 1] = 0;         // Reset the word being a part of the result quotient.
+    const auto top = u.size() - 1;
+    auto r = top != 0 ? fshl(u[top], u[top - 1], s) : u[0] << s;  // The normalized top word.
+    if (u[top] >= d)  // The top quotient word is not 0: also divide the bits shifted out of u.
+        std::tie(q[top], r) = udivrem_2by1({r, fshl(0, u[top], s)}, dn, reciprocal);
+    else
+        q[top] = 0;
+    for (size_t i = top; i > 1; --i)
+        std::tie(q[i - 1], r) = udivrem_2by1({fshl(u[i - 1], u[i - 2], s), r}, dn, reciprocal);
+    if (top != 0)
+        std::tie(q[0], r) = udivrem_2by1({u[0] << s, r}, dn, reciprocal);
+    return r >> s;
+}
 
-    auto it = u.end() - 2;
-    while (true)
-    {
-        std::tie(*it, rem) = udivrem_2by1({*it, rem}, d, reciprocal);
-        if (it == u.begin())
-            break;
-        --it;
-    }
+/// Divides u by d in place: u is replaced by the quotient and the remainder is returned.
+template <size_t N>
+constexpr uint64_t udivrem_by1(std::span<uint64_t, N> u, uint64_t d) noexcept
+{
+    return udivrem_by1(u, std::span<const uint64_t, N>{u}, d);
+}
 
-    return rem;
+/// Divides the words u by d into the result of udivrem<M, N>(). The result is built in place:
+/// GCC copies a local result with wide loads, which stall on the stores of the words just computed.
+template <unsigned M, unsigned N, size_t W>
+constexpr div_result<uint<M>, uint<N>> udivrem_by1(
+    std::span<const uint64_t, W> u, uint64_t d) noexcept
+{
+    div_result<uint<M>, uint<N>> res;
+    res.rem[0] = udivrem_by1(std::span<uint64_t, W>{&res.quot[0], u.size()}, u, d);
+    return res;
 }
 
 /// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
@@ -2035,6 +2053,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
             {
                 if (u[TOP + 1] == v[TOP - 1] && v[TOP - 1] != 0)
                     return internal::udivrem_top2<TOP, true>(u, v);
+
+                // A 1-word divisor: divide all words of u (in addmod() the top one is at most 1).
+                if (v[TOP - 1] == 0 && v[TOP - 2] == 0)
+                    return internal::udivrem_by1<M, N>(as_words(u), v[0]);
             }
         }
     }
@@ -2055,6 +2077,9 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     if (num_numerator_words <= n)
         return {0, static_cast<uint<N>>(u)};
 
+    if (n == 1)
+        return internal::udivrem_by1<M, N>(as_words(u).first(m), v[0]);
+
     auto na = internal::normalize(u, v, n);
 
     // The span of the normalized numerator words to divide (modified in place).
@@ -2067,11 +2092,6 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     INTX_REQUIRE(un.size() <= uint<M>::num_words + 1);
 
     static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
-    if (dn.size() == 1)
-    {
-        const auto r = internal::udivrem_by1(un, dn[0]);
-        return {static_cast<uint<M>>(na.numerator), r >> na.shift};
-    }
 
     // The max number of divisor words here: the divisors with more words are handled above.
     constexpr auto MAX_DIVISOR_WORDS = uint<N>::num_words - size_t{TOP1} - size_t{TOP2};
