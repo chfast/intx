@@ -1669,28 +1669,49 @@ template <unsigned M, unsigned N>
 }
 
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
-/// @param u  The normalized numerator words. It will contain the quotient after execution.
-/// @param d  The normalized divisor.
+/// @param q  The quotient words. It may be u.
+/// @param u  The numerator words.
+/// @param d  The divisor.
 /// @return   The remainder.
-constexpr uint64_t udivrem_by1(std::span<uint64_t> u, uint64_t d) noexcept
+template <size_t W>
+constexpr uint64_t udivrem_by1(std::span<uint64_t, W> q,
+    std::type_identity_t<std::span<const uint64_t, W>> u, uint64_t d) noexcept
 {
     INTX_REQUIRE(u.size() >= 2);
+    INTX_REQUIRE(q.size() == u.size());
+    INTX_REQUIRE(d != 0);
 
-    const auto reciprocal = reciprocal_2by1(d);
+    const auto s = clz_nonzero<true>(d);
+    const auto dn = d << s;  // The normalized divisor.
+    const auto reciprocal = reciprocal_2by1(dn);
 
-    auto rem = u[u.size() - 1];  // Set the top word as remainder.
-    u[u.size() - 1] = 0;         // Reset the word being a part of the result quotient.
-
-    auto it = u.end() - 2;
-    while (true)
+    const auto top = u.size() - 1;
+    auto w = u[top - 1];            // The next word to divide.
+    auto rem = fshl(u[top], w, s);  // The normalized top word.
+    if (u[top] >= d)  // The top quotient word is not 0: also divide the bits shifted out of u.
+        std::tie(q[top], rem) = udivrem_2by1({rem, fshl(0, u[top], s)}, dn, reciprocal);
+    else
+        q[top] = 0;
+    for (auto i = top - 1; i != 0; --i)
     {
-        std::tie(*it, rem) = udivrem_2by1({*it, rem}, d, reciprocal);
-        if (it == u.begin())
-            break;
-        --it;
+        const auto lo = u[i - 1];
+        std::tie(q[i], rem) = udivrem_2by1({fshl(w, lo, s), rem}, dn, reciprocal);
+        w = lo;
     }
+    std::tie(q[0], rem) = udivrem_2by1({w << s, rem}, dn, reciprocal);
 
-    return rem;
+    return rem >> s;
+}
+
+/// Divides the words u by d into the result of udivrem<M, N>(), built in the return slot.
+template <unsigned M, unsigned N, size_t W>
+constexpr div_result<uint<M>, uint<N>> udivrem_by1(
+    std::span<const uint64_t, W> u, uint64_t d) noexcept
+{
+    INTX_REQUIRE(u.size() <= uint<M>::num_words);
+    div_result<uint<M>, uint<N>> res;
+    res.rem[0] = udivrem_by1(std::span<uint64_t, W>{&res.quot[0], u.size()}, u, d);
+    return res;
 }
 
 /// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
@@ -2035,6 +2056,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
             {
                 if (u[TOP + 1] == v[TOP - 1] && v[TOP - 1] != 0)
                     return internal::udivrem_top2<TOP, true>(u, v);
+
+                // A 1-word divisor: divide all words of u (in addmod() the top one is at most 1).
+                if (v[TOP - 1] == 0 && v[TOP - 2] == 0)
+                    return internal::udivrem_by1<M, N>(as_words(u), v[0]);
             }
         }
     }
@@ -2055,6 +2080,9 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     if (num_numerator_words <= n)
         return {0, static_cast<uint<N>>(u)};
 
+    if (n == 1)  // Divide at least 2 words: the words above m are 0.
+        return internal::udivrem_by1<M, N>(as_words(u).first(std::max(m, size_t{2})), v[0]);
+
     auto na = internal::normalize(u, v, n);
 
     // The span of the normalized numerator words to divide (modified in place).
@@ -2067,11 +2095,6 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     INTX_REQUIRE(un.size() <= uint<M>::num_words + 1);
 
     static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
-    if (dn.size() == 1)
-    {
-        const auto r = internal::udivrem_by1(un, dn[0]);
-        return {static_cast<uint<M>>(na.numerator), r >> na.shift};
-    }
 
     // The max number of divisor words here: the divisors with more words are handled above.
     constexpr auto MAX_DIVISOR_WORDS = uint<N>::num_words - size_t{TOP1} - size_t{TOP2};
