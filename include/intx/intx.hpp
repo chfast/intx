@@ -2057,8 +2057,8 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
                 if (u[TOP + 1] == v[TOP - 1] && v[TOP - 1] != 0)
                     return internal::udivrem_top2<TOP, true>(u, v);
 
-                // A 1-word divisor: divide all words of u (in addmod() the top one is at most 1).
-                if (v[TOP - 1] == 0 && v[TOP - 2] == 0)
+                // A 1-word divisor: divide all words of u unless the top 2 are 0.
+                if (v[TOP - 1] == 0 && v[TOP - 2] == 0 && (u[TOP + 1] != 0 || u[TOP] != 0))
                     return internal::udivrem_by1<M, N>(as_words(u), v[0]);
             }
         }

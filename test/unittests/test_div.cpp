@@ -97,6 +97,10 @@ TEST(div, udivrem_constexpr)
                   0x1fffffffffffffffc0000000000000007fffffffffffffff0_u256);
     static_assert(udivrem(m, uint256{0x8000000000000001}).rem == 0xf);
     static_assert(udivrem(uint256{7}, uint256{3}) == div_result<uint256>{2, 1});
+    // A 320-bit numerator with the top 2 words 0.
+    static_assert(
+        udivrem(uint320{b}, uint256{0x9abc}).quot == 0x8f0edd3b11a7f3cc66e2d0831d71aa70_u320);
+    static_assert(udivrem(uint320{b}, uint256{0x9abc}).rem == 0x107c);
 }
 
 TEST(div, normalize)
