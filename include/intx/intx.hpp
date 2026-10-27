@@ -2050,115 +2050,119 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
             const auto res = udivrem(u, static_cast<uint128>(v));
             return {res.quot, res.rem};
         }
+        return {0, u};  // u < v.
     }
-
-    // For equal sizes, a divisor with the top word set gives a single word quotient.
-    constexpr auto TOP1 = M == N;
-    // A divisor with one significant word less than the numerator gives a two word quotient.
-    // It needs at least 3 divisor words to form the normalized top 128 bits.
-    constexpr auto TOP2 =
-        (uint<M>::num_words >= 4) && (uint<M>::num_words - 1 == uint<N>::num_words - size_t{TOP1});
-
-    size_t num_divisor_words = uint<N>::num_words;
-    if constexpr (TOP1)
+    else
     {
-        if (v[num_divisor_words - 1] != 0)
-            return internal::udivrem_top1<uint<N>::num_words - 1>(u, v);
-        --num_divisor_words;  // Skip the zero top word.
-    }
-    if constexpr (TOP2)
-    {
-        constexpr auto TOP = uint<M>::num_words - 2;  // The top word index of v.
-        if (v[TOP] != 0)
+        // For equal sizes, a divisor with the top word set gives a single word quotient.
+        constexpr auto TOP1 = M == N;
+        // A divisor with one significant word less than the numerator gives a two word quotient.
+        // It needs at least 3 divisor words to form the normalized top 128 bits.
+        constexpr auto TOP2 = (uint<M>::num_words >= 4) &&
+                              (uint<M>::num_words - 1 == uint<N>::num_words - size_t{TOP1});
+
+        size_t num_divisor_words = uint<N>::num_words;
+        if constexpr (TOP1)
         {
-            // The quotient fits in a single word if the top word of u is less than v[TOP].
-            if (u[TOP + 1] < v[TOP])
-                return internal::udivrem_top1<TOP>(u, v);
-            return internal::udivrem_top2<TOP + 1>(u, v);
+            if (v[num_divisor_words - 1] != 0)
+                return internal::udivrem_top1<uint<N>::num_words - 1>(u, v);
+            --num_divisor_words;  // Skip the zero top word.
         }
-        --num_divisor_words;  // Skip the zero word.
-
-        // A divisor with two significant words less than u, the top one v[TOP - 1], also gives
-        // a two word quotient if the top word of u is less than v[TOP - 1].
-        if constexpr (TOP >= 3)
+        if constexpr (TOP2)
         {
-            if (u[TOP + 1] < v[TOP - 1])
+            constexpr auto TOP = uint<M>::num_words - 2;  // The top word index of v.
+            if (v[TOP] != 0)
             {
-                if ((u[TOP + 1] | u[TOP]) == 0 && u[TOP - 1] < v[TOP - 1])  // u < v.
-                    return {0, static_cast<uint<N>>(u)};
-                return internal::udivrem_top2<TOP>(u, v);
+                // The quotient fits in a single word if the top word of u is less than v[TOP].
+                if (u[TOP + 1] < v[TOP])
+                    return internal::udivrem_top1<TOP>(u, v);
+                return internal::udivrem_top2<TOP + 1>(u, v);
             }
-            // With equal top words the quotient has up to 129 bits, e.g. addmod() with a modulus
-            // in [2^128, 2^129) and a carry. udivrem_top2() takes it for TOP 3.
-            if constexpr (TOP == 3)
-            {
-                if (u[TOP + 1] == v[TOP - 1] && v[TOP - 1] != 0)
-                    return internal::udivrem_top2<TOP, true>(u, v);
+            --num_divisor_words;  // Skip the zero word.
 
-                // A 1- or 2-word divisor: divide all words of u unless the top 2 are 0.
-                if (v[TOP - 1] == 0 && (u[TOP + 1] != 0 || u[TOP] != 0))
+            // A divisor with two significant words less than u, the top one v[TOP - 1], also gives
+            // a two word quotient if the top word of u is less than v[TOP - 1].
+            if constexpr (TOP >= 3)
+            {
+                if (u[TOP + 1] < v[TOP - 1])
                 {
-                    if (v[TOP - 2] == 0)
-                        return internal::udivrem_by1<M, N>(as_words(u), v[0]);
-                    return internal::udivrem_by2<M, N>(as_words(u), static_cast<uint128>(v));
+                    if ((u[TOP + 1] | u[TOP]) == 0 && u[TOP - 1] < v[TOP - 1])  // u < v.
+                        return {0, static_cast<uint<N>>(u)};
+                    return internal::udivrem_top2<TOP>(u, v);
+                }
+                // With equal top words the quotient has up to 129 bits, e.g. addmod() with a
+                // modulus in [2^128, 2^129) and a carry. udivrem_top2() takes it for TOP 3.
+                if constexpr (TOP == 3)
+                {
+                    if (u[TOP + 1] == v[TOP - 1] && v[TOP - 1] != 0)
+                        return internal::udivrem_top2<TOP, true>(u, v);
+
+                    // A 1- or 2-word divisor: divide all words of u unless the top 2 are 0.
+                    if (v[TOP - 1] == 0 && (u[TOP + 1] != 0 || u[TOP] != 0))
+                    {
+                        if (v[TOP - 2] == 0)
+                            return internal::udivrem_by1<M, N>(as_words(u), v[0]);
+                        return internal::udivrem_by2<M, N>(as_words(u), static_cast<uint128>(v));
+                    }
                 }
             }
         }
-    }
-    while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
-        --num_divisor_words;
-    const auto n = num_divisor_words;
+        while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
+            --num_divisor_words;
+        const auto n = num_divisor_words;
 
-    // The number of significant words of the numerator, at least 1.
-    size_t m = uint<M>::num_words;
-    while (m > 1 && u[m - 1] == 0)
-        --m;
+        // The number of significant words of the numerator, at least 1.
+        size_t m = uint<M>::num_words;
+        while (m > 1 && u[m - 1] == 0)
+            --m;
 
-    // The numerator words to divide: the m words and the word with the bits shifted out of the
-    // top by the normalization. That word is below the top divisor word, so the division can
-    // start from it. It is skipped if the top word of u is below the top word of v: then the
-    // shifted out bits are 0 and so is the top quotient word. No quotient words means u < v.
-    const auto num_numerator_words = m + size_t{u[m - 1] >= v[n - 1]};
-    if (num_numerator_words <= n)
-        return {0, static_cast<uint<N>>(u)};
+        // The numerator words to divide: the m words and the word with the bits shifted out of the
+        // top by the normalization. That word is below the top divisor word, so the division can
+        // start from it. It is skipped if the top word of u is below the top word of v: then the
+        // shifted out bits are 0 and so is the top quotient word. No quotient words means u < v.
+        const auto num_numerator_words = m + size_t{u[m - 1] >= v[n - 1]};
+        if (num_numerator_words <= n)
+            return {0, static_cast<uint<N>>(u)};
 
-    static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
-    if (n == 1)  // Divide at least 2 words: the words above m are 0.
-        return internal::udivrem_by1<M, N>(as_words(u).first(std::max(m, size_t{2})), v[0]);
+        static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
+        if (n == 1)  // Divide at least 2 words: the words above m are 0.
+            return internal::udivrem_by1<M, N>(as_words(u).first(std::max(m, size_t{2})), v[0]);
 
-    // The max number of divisor words here: the divisors with more words are handled above.
-    constexpr auto MAX_DIVISOR_WORDS = uint<N>::num_words - size_t{TOP1} - size_t{TOP2};
-    // The Knuth division handles divisors of at least 3 words.
-    constexpr auto KNUTH_REACHABLE = MAX_DIVISOR_WORDS >= 3;
-    if (!KNUTH_REACHABLE || n == 2)  // Divide at least 3 words: the words above m are 0.
-        return internal::udivrem_by2<M, N>(
-            as_words(u).first(std::max(m, size_t{3})), static_cast<uint128>(v));
+        // The max number of divisor words here: the divisors with more words are handled above.
+        constexpr auto MAX_DIVISOR_WORDS = uint<N>::num_words - size_t{TOP1} - size_t{TOP2};
+        // The Knuth division handles divisors of at least 3 words.
+        constexpr auto KNUTH_REACHABLE = MAX_DIVISOR_WORDS >= 3;
+        if (!KNUTH_REACHABLE || n == 2)  // Divide at least 3 words: the words above m are 0.
+            return internal::udivrem_by2<M, N>(
+                as_words(u).first(std::max(m, size_t{3})), static_cast<uint128>(v));
 
-    if constexpr (KNUTH_REACHABLE)
-    {
-        auto na = internal::normalize(u, v, n);
+        if constexpr (KNUTH_REACHABLE)
+        {
+            auto na = internal::normalize(u, v, n);
 
-        // The span of the normalized numerator words to divide (modified in place).
-        const auto un = as_words(na.numerator).subspan(0, num_numerator_words);
-        // The span of the normalized divisor significant words.
-        const auto dn = as_words(na.divisor).subspan(0, n);
+            // The span of the normalized numerator words to divide (modified in place).
+            const auto un = as_words(na.numerator).subspan(0, num_numerator_words);
+            // The span of the normalized divisor significant words.
+            const auto dn = as_words(na.divisor).subspan(0, n);
 
-        INTX_REQUIRE(dn.size() <= uint<N>::num_words);
-        INTX_REQUIRE(un.size() <= uint<M>::num_words + 1);
+            INTX_REQUIRE(dn.size() <= uint<N>::num_words);
+            INTX_REQUIRE(un.size() <= uint<M>::num_words + 1);
 
-        uint<M> q;
-        // If the max divisor has 4 words, e.g. 512/256 (mulmod()), use the 3- and 4-word instances.
-        if constexpr (MAX_DIVISOR_WORDS != 4)
-            internal::udivrem_knuth(&q[0], un, dn);
-        else if (dn.size() == 3)
-            internal::udivrem_knuth<3>(&q[0], un, dn.template first<3>());
-        else
-            internal::udivrem_knuth<4>(&q[0], un, dn.template first<4>());
+            uint<M> q;
+            // If the max divisor has 4 words, e.g. 512/256 (mulmod()),
+            // use the 3- and 4-word instances.
+            if constexpr (MAX_DIVISOR_WORDS != 4)
+                internal::udivrem_knuth(&q[0], un, dn);
+            else if (dn.size() == 3)
+                internal::udivrem_knuth<3>(&q[0], un, dn.template first<3>());
+            else
+                internal::udivrem_knuth<4>(&q[0], un, dn.template first<4>());
 
-        uint<N> r;
-        shr(as_words(r).first(dn.size()), un.first(dn.size()), na.shift);
+            uint<N> r;
+            shr(as_words(r).first(dn.size()), un.first(dn.size()), na.shift);
 
-        return {q, r};
+            return {q, r};
+        }
     }
 }
 
