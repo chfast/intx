@@ -1,0 +1,24 @@
+# The mutants of include/intx/intx.hpp that no test can kill, all equivalent.
+#
+# An entry <mutator>:<text>, as in the sanitizers' runtime suppressions (<check>:<pattern>), makes the
+# CircleCI job append "// mull-ignore: <mutator>" to a line containing <text> (a plain substring, no
+# wildcards) for the Mull build. Each entry marks one line: the job fails if the number of lines
+# containing <text> is not the number of entries <mutator>:<text>.
+
+# Equivalent by algebra, checked exhaustively at smaller word sizes: reciprocal_3by2(), udivrem_2by1().
+cxx_sub_to_add:uint128{d0 - 1, s_sat} < p
+cxx_gt_to_ge:const auto c = r > q[0];
+
+# Comparisons that agree at their boundary: to_string(), operator<<, operator>>.
+cxx_le_to_lt:while (power <= WORD_MAX / b)
+cxx_ge_to_gt:if (shift >= num_bits) [[unlikely]]
+cxx_ge_to_gt:if (shift >= num_bits) [[unlikely]]
+
+# Conditions choosing between paths with equal results: to_string(), exp(), udivrem_by2(), udivrem_top1(),
+# udivrem(), addmod().
+cxx_le_to_gt:while (power <= WORD_MAX / b)
+cxx_replace_scalar_call_zr:if (base == 2)
+cxx_le_to_lt:if (u[top] <= d[1])
+cxx_replace_scalar_call_zr:if (uint128{u[TOP], ue} < v[TOP])
+cxx_ne_to_eq:if (v[TOP - 1] == 0 && (u[TOP + 1] != 0 || u[TOP] != 0))
+cxx_le_to_lt:if ((mod[3] != 0) && (x[3] <= mod[3]) && (y[3] <= mod[3]))
