@@ -177,6 +177,9 @@ TEST(uint256, exp)
     EXPECT_EQ(exp(3_u256, 2_u256), 9);
     EXPECT_EQ(exp(3_u256, 20181229_u256),
         83674153047243082998136072363356897816464308069321161820168341056719375264851_u256);
+    // The max exponent: 3^(2^256 - 1) is the inverse of 3 mod 2^256.
+    EXPECT_EQ(exp(3_u256, ~0_u256),
+        0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab_u256);
 }
 
 constexpr decltype(&addmod) addmod_impls[] = {
@@ -204,6 +207,12 @@ TEST(uint256, addmod)
         const auto a = 0xdce049946eccbbf77ed1e8e2a3c89e15a8e897df2194150700f5096dea864cdb_u256;
         const auto b = 0x397dd0df188eaffbf5216c6be56fe49002fbdc23b95a58a60f69e56f6f87f424_u256;
         EXPECT_EQ(impl(a, b, mod), 0x7533da49e8c499530049fbf08733976b_u128);
+        // Arguments of at least 2 * mod.
+        const auto c = 1_u256 << 255;
+        const auto m = (1_u256 << 192) + 1;
+        EXPECT_EQ(impl(c, 0, m), 0xffffffffffffffffffffffffffffffff8000000000000001_u256);
+        EXPECT_EQ(impl(0, c, m), 0xffffffffffffffffffffffffffffffff8000000000000001_u256);
+        EXPECT_EQ(impl(100, 0, 7), 2);
     }
 }
 
