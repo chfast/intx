@@ -836,6 +836,13 @@ const div_test_case<uint512> div_test_cases[] = {
         0_u512,
         0x500000000000000000000000000000000_u512,
     },
+    // u > v with as many words and the same top word: the quotient 1.
+    {
+        0x580000000000000000000000000000000_u512,
+        0x500000000000000000000000000000000_u512,
+        1_u512,
+        0x80000000000000000000000000000000_u512,
+    },
     // The same top word of u and v, u with one more word: the top quotient word is 0.
     {
         0x500000000000000000000000000000000_u512,
@@ -861,6 +868,13 @@ const div_test_case<uint512> div_test_cases[] = {
         0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
         0x3_u512,
         0x55555555555555555555555555555555555555555555555555555555555555555555555555555555_u512,
+        0x0_u512,
+    },
+    // 1-word divisor, zero remainder: the 2/1 division estimate 1 too small.
+    {
+        0x8000000000000001fffffffffffffffa_u512,
+        0x8000000000000003_u512,
+        0xfffffffffffffffe_u512,
         0x0_u512,
     },
     // Divisors with one word less than the numerator and the top word of the numerator less
@@ -1536,6 +1550,13 @@ TEST(div, reciprocal)
         ASSERT_NO_FATAL_FAILURE(check_reciprocal(rng() | d_start));
 }
 
+TEST(div, reciprocal_2by1)
+{
+    // The smallest and the largest divisor.
+    ASSERT_NO_FATAL_FAILURE(check_reciprocal(0x8000000000000000));
+    ASSERT_NO_FATAL_FAILURE(check_reciprocal(0xffffffffffffffff));
+}
+
 #if INTX_HAS_DIV_WIDE_X86
 TEST(div, div_wide_x86)
 {
@@ -1685,6 +1706,9 @@ TEST(div, reciprocal_3by2_property)
     // The top word 2^64 - 1 with the low word around the wrap of v3 (see above).
     for (uint64_t d0 = 0xbffffffe60000000 - 1000; d0 != 0xbffffffe60000000 + 1000; ++d0)
         ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, 0xffffffffffffffff}));
+
+    // e just below the scaled error of v2 (see above).
+    ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({0xec232984255f1740, 0x98ca5c9324ffffff}));
 
     // Other divisors, the last two with the top word from 0xffffffff00000000, the region of the
     // smallest e2.

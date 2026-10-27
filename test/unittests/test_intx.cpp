@@ -94,6 +94,12 @@ TYPED_TEST(uint_test, negation_overflow)
     EXPECT_EQ(-m, m);
 }
 
+TYPED_TEST(uint_test, carry_in)
+{
+    EXPECT_EQ(addc(~TypeParam{0}, TypeParam{0}, true).value, 0);
+    EXPECT_EQ(subc(TypeParam{0}, TypeParam{0}, true).value, ~TypeParam{0});
+}
+
 TYPED_TEST(uint_test, count_significant_words_64)
 {
     TypeParam x;
@@ -346,6 +352,9 @@ TYPED_TEST(uint_test, string_conversions)
         auto x = from_string<TypeParam>(s);
         EXPECT_EQ(x, v);
     }
+
+    // The most hex digits that fit.
+    EXPECT_EQ(from_string<TypeParam>("0x" + hex(~TypeParam{0})), ~TypeParam{0});
 }
 
 TYPED_TEST(uint_test, to_string_base)
