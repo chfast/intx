@@ -1429,22 +1429,16 @@ const div_test_case<uint512> div_test_cases[] = {
 };
 }  // namespace
 
-TEST(div, udivrem_512)
+namespace
 {
+template <unsigned M, unsigned N>
+void test_udivrem()
+{
+    SCOPED_TRACE(testing::Message() << "udivrem<" << M << ", " << N << ">");
     for (auto& t : div_test_cases)
     {
-        auto res = udivrem(t.numerator, t.denominator);
-        EXPECT_EQ(res.quot, t.quotient);
-        EXPECT_EQ(res.rem, t.reminder);
-    }
-}
-
-TEST(div, udivrem_384)
-{
-    for (auto& t : div_test_cases)
-    {
-        const auto n = static_cast<uint384>(t.numerator);
-        const auto d = static_cast<uint384>(t.denominator);
+        const auto n = static_cast<intx::uint<M>>(t.numerator);
+        const auto d = static_cast<intx::uint<N>>(t.denominator);
         if (n != t.numerator || d != t.denominator)
             continue;  // Skip trimmed arguments.
 
@@ -1454,93 +1448,23 @@ TEST(div, udivrem_384)
     }
 }
 
-TEST(div, udivrem_192)
+template <unsigned M, unsigned... N>
+void test_udivrem_by_sizes(std::integer_sequence<unsigned, N...> /*divisor_sizes*/)
 {
-    for (auto& t : div_test_cases)
-    {
-        const auto n = static_cast<intx::uint<192>>(t.numerator);
-        const auto d = static_cast<intx::uint<192>>(t.denominator);
-        if (n != t.numerator || d != t.denominator)
-            continue;  // Skip trimmed arguments.
-
-        const auto [quot, rem] = udivrem(n, d);
-        EXPECT_EQ(quot, t.quotient);
-        EXPECT_EQ(rem, t.reminder);
-    }
+    (test_udivrem<M, N>(), ...);
 }
 
-TEST(div, udivrem_256)
+template <unsigned... M, typename Sizes>
+void test_udivrem_all_sizes(std::integer_sequence<unsigned, M...> /*numerator_sizes*/, Sizes sizes)
 {
-    for (auto& t : div_test_cases)
-    {
-        const auto n = static_cast<uint256>(t.numerator);
-        const auto d = static_cast<uint256>(t.denominator);
-        if (n != t.numerator || d != t.denominator)
-            continue;  // Skip trimmed arguments.
-
-        const auto [quot, rem] = udivrem(n, d);
-        EXPECT_EQ(quot, t.quotient);
-        EXPECT_EQ(rem, t.reminder);
-    }
+    (test_udivrem_by_sizes<M>(sizes), ...);
 }
+}  // namespace
 
-TEST(div, udivrem_320)
+TEST(div, udivrem_all_sizes)
 {
-    for (auto& t : div_test_cases)
-    {
-        const auto n = static_cast<uint320>(t.numerator);
-        const auto d = static_cast<uint320>(t.denominator);
-        if (n != t.numerator || d != t.denominator)
-            continue;  // Skip trimmed arguments.
-
-        const auto [quot, rem] = udivrem(n, d);
-        EXPECT_EQ(quot, t.quotient);
-        EXPECT_EQ(rem, t.reminder);
-    }
-}
-
-TEST(div, udivrem_320_by_256)
-{
-    for (auto& t : div_test_cases)
-    {
-        const auto n = static_cast<uint320>(t.numerator);
-        const auto d = static_cast<uint256>(t.denominator);
-        if (n != t.numerator || d != t.denominator)
-            continue;  // Skip trimmed arguments.
-
-        const auto [quot, rem] = udivrem(n, d);
-        EXPECT_EQ(quot, t.quotient);
-        EXPECT_EQ(rem, t.reminder);
-    }
-}
-
-TEST(div, udivrem_320_by_128)
-{
-    for (auto& t : div_test_cases)
-    {
-        const auto n = static_cast<uint320>(t.numerator);
-        const auto d = static_cast<uint128>(t.denominator);
-        if (n != t.numerator || d != t.denominator)
-            continue;  // Skip trimmed arguments.
-
-        const auto [quot, rem] = udivrem(n, d);
-        EXPECT_EQ(quot, t.quotient);
-        EXPECT_EQ(rem, t.reminder);
-    }
-}
-
-TEST(div, udivrem_512_by_256)
-{
-    for (auto& t : div_test_cases)
-    {
-        const auto d = static_cast<uint256>(t.denominator);
-        if (d != t.denominator)
-            continue;  // Skip trimmed divisors.
-
-        const auto [quot, rem] = udivrem(t.numerator, d);
-        EXPECT_EQ(quot, t.quotient);
-        EXPECT_EQ(rem, t.reminder);
-    }
+    using sizes = std::integer_sequence<unsigned, 128, 192, 256, 320, 384, 448, 512>;
+    test_udivrem_all_sizes(sizes{}, sizes{});
 }
 
 
