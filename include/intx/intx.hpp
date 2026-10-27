@@ -1627,47 +1627,6 @@ constexpr unsigned clz_nonzero(uint64_t x) noexcept
 }
 
 
-template <unsigned M, unsigned N>
-struct normalized_div_args  // NOLINT(cppcoreguidelines-pro-type-member-init)
-{
-    uint<N> divisor;
-    uint<M + 64> numerator;
-    unsigned shift;
-};
-
-/// Normalizes the division arguments.
-/// @param num_divisor_words  The number of significant words of the denominator.
-///
-/// TODO: Consider passing the denominator as std::span of its significant words.
-template <unsigned M, unsigned N>
-[[gnu::always_inline]] constexpr normalized_div_args<M, N> normalize(
-    const uint<M>& numerator, const uint<N>& denominator, size_t num_divisor_words) noexcept
-{
-    const auto u = as_words(numerator);
-    const auto v = as_words(denominator);
-
-    normalized_div_args<M, N> na;
-    const auto un = as_words(na.numerator);
-    const auto vn = as_words(na.divisor);
-
-    const auto n = num_divisor_words;
-
-    na.shift = clz_nonzero(v[n - 1]);  // Use clz_nonzero() to avoid clang analyzer's warning.
-    // TODO: Confirm on Mainnet data that the non-zero shift is the likely case.
-    //   E.g. the secp256k1 field prime and group order have the shift 0.
-    if (na.shift) [[likely]]
-    {
-        shl(vn, v, na.shift);  // The bits shifted out of v are zero.
-        shl(un, u, na.shift);
-    }
-    else
-    {
-        na.numerator = numerator;
-        na.divisor = denominator;
-    }
-    return na;
-}
-
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
 /// @param q  The quotient words. It may be u.
 /// @param u  The numerator words.
@@ -1806,10 +1765,12 @@ constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t mu
     return submul(x, x, y, multiplier);
 }
 
+/// Divides the normalized words u by d with the Knuth algorithm, in place: the low d.size() words
+/// of u become the normalized remainder.
 /// A fixed size of d (DIVISOR_WORDS) lets the loops over the divisor words unroll. d is not
 /// deduced, so spans of non-const words convert to it.
 template <size_t DIVISOR_WORDS = std::dynamic_extent>
-constexpr void udivrem_knuth(uint64_t q[], std::span<uint64_t> u,
+constexpr void udivrem_knuth_normalized(uint64_t q[], std::span<uint64_t> u,
     std::type_identity_t<std::span<const uint64_t, DIVISOR_WORDS>> d) noexcept
 {
     INTX_REQUIRE(d.size() >= 3);
@@ -1856,6 +1817,73 @@ constexpr void udivrem_knuth(uint64_t q[], std::span<uint64_t> u,
         if (j == 0)   // Loop exit condition.
             break;
     }
+}
+
+/// Divides arbitrary long unsigned integer by unsigned integer of at least 3 words with the Knuth
+/// algorithm. The words are normalized into un and dn.
+/// @param q   The quotient words: u.size() - d.size() + 1 of them, outside un. The ones for the
+///            zero top words of u are not written.
+/// @param r   The remainder words: d.size() of them.
+/// @param u   The numerator words. The top ones may be 0.
+/// @param m   The number of significant words of u: more than d.size(), or d.size() if
+///            u[m - 1] >= d.back().
+/// @param d   The divisor words. The top one must not be 0.
+/// @param un  The storage for the normalized numerator: u.size() + 1 words.
+/// @param dn  The storage for the normalized divisor.
+template <size_t D = std::dynamic_extent, size_t W>
+[[gnu::always_inline]] constexpr void udivrem_knuth(uint64_t q[],
+    std::type_identity_t<std::span<uint64_t, D>> r, std::span<const uint64_t, W> u, size_t m,
+    std::type_identity_t<std::span<const uint64_t, D>> d, uint64_t un[],
+    std::type_identity_t<std::span<uint64_t, D>> dn) noexcept
+{
+    INTX_REQUIRE(d.size() >= 3);
+    INTX_REQUIRE(r.size() == d.size());
+    INTX_REQUIRE(dn.size() == d.size());
+    INTX_REQUIRE(u.size() >= d.size());
+    INTX_REQUIRE(d.back() != 0);
+
+    const auto dlen = d.size();
+    // Use clz_nonzero() to avoid clang analyzer's warning.
+    const auto shift = clz_nonzero(d.back());
+    constexpr auto UN = W == std::dynamic_extent ? W : W + 1;
+    if (shift != 0)
+    {
+        shl(dn, d, shift);  // The bits shifted out of d are zero.
+        shl(std::span<uint64_t, UN>{un, u.size() + 1}, u, shift);
+    }
+    else
+    {
+        std::copy(d.begin(), d.end(), dn.begin());
+        std::copy(u.begin(), u.end(), un);
+        un[u.size()] = 0;
+    }
+
+    INTX_REQUIRE(m <= u.size());
+    INTX_REQUIRE(u[m - 1] != 0);
+    // If the top word of u is less than the top word of d, the top quotient word is 0
+    // and so are the bits shifted out of u.
+    const auto ulen = m + size_t{u[m - 1] >= d.back()};  // The normalized words to divide.
+    INTX_REQUIRE(ulen > dlen);                           // At least 1 quotient word.
+    q[m - dlen] = 0;  // The top quotient word if it is not computed below.
+
+    udivrem_knuth_normalized<D>(q, std::span{un, ulen}, dn);
+    shr(r, std::span<const uint64_t>{un, dlen}, shift);
+}
+
+/// Divides the words u by d into the result of udivrem<M, N>(), built in the return slot.
+template <unsigned M, unsigned N, size_t W, size_t D>
+constexpr div_result<uint<M>, uint<N>> udivrem_knuth(
+    std::span<const uint64_t, W> u, size_t m, std::span<const uint64_t, D> d) noexcept
+{
+    INTX_REQUIRE(u.size() <= uint<M>::num_words);
+    div_result<uint<M>, uint<N>> res;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+    std::array<uint64_t, uint<M>::num_words + 1> un;
+    std::array<uint64_t, uint<N>::num_words> dn;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    const auto r = std::span<uint64_t, D>{&res.rem[0], d.size()};
+    udivrem_knuth<D>(
+        &res.quot[0], r, u, m, d, un.data(), std::span<uint64_t, D>{dn.data(), d.size()});
+    return res;
 }
 
 /// Divides u by v when the quotient fits in a single word: v has TOP + 1 significant words
@@ -2128,8 +2156,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
         if (n == 1)  // Divide at least 2 words: the words above m are 0.
             return internal::udivrem_by1<M, N>(as_words(u).first(std::max(m, size_t{2})), v[0]);
 
-        // The max number of divisor words here: the divisors with more words are handled above.
-        constexpr auto MAX_DIVISOR_WORDS = uint<N>::num_words - size_t{TOP1} - size_t{TOP2};
+        // The max number of divisor words here: the divisors with more words are handled above,
+        // and the ones with more words than u are greater than u.
+        constexpr auto MAX_DIVISOR_WORDS =
+            std::min(uint<N>::num_words - size_t{TOP1} - size_t{TOP2}, uint<M>::num_words);
         // The Knuth division handles divisors of at least 3 words.
         constexpr auto KNUTH_REACHABLE = MAX_DIVISOR_WORDS >= 3;
         if (!KNUTH_REACHABLE || n == 2)  // Divide at least 3 words: the words above m are 0.
@@ -2138,30 +2168,15 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
 
         if constexpr (KNUTH_REACHABLE)
         {
-            auto na = internal::normalize(u, v, n);
-
-            // The span of the normalized numerator words to divide (modified in place).
-            const auto un = as_words(na.numerator).subspan(0, num_numerator_words);
-            // The span of the normalized divisor significant words.
-            const auto dn = as_words(na.divisor).subspan(0, n);
-
-            INTX_REQUIRE(dn.size() <= uint<N>::num_words);
-            INTX_REQUIRE(un.size() <= uint<M>::num_words + 1);
-
-            uint<M> q;
+            const auto uw = as_words(u);
             // If the max divisor has 4 words, e.g. 512/256 (mulmod()),
             // use the 3- and 4-word instances.
             if constexpr (MAX_DIVISOR_WORDS != 4)
-                internal::udivrem_knuth(&q[0], un, dn);
-            else if (dn.size() == 3)
-                internal::udivrem_knuth<3>(&q[0], un, dn.template first<3>());
+                return internal::udivrem_knuth<M, N>(uw, m, as_words(v).first(n));
+            else if (n == 3)
+                return internal::udivrem_knuth<M, N>(uw, m, as_words(v).template first<3>());
             else
-                internal::udivrem_knuth<4>(&q[0], un, dn.template first<4>());
-
-            uint<N> r;
-            shr(as_words(r).first(dn.size()), un.first(dn.size()), na.shift);
-
-            return {q, r};
+                return internal::udivrem_knuth<M, N>(uw, m, as_words(v).template first<4>());
         }
     }
 }

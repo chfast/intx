@@ -411,6 +411,25 @@ TYPED_TEST(uint_api, explicit_conversion_to_smaller_uint)
     }
 }
 
+TYPED_TEST(uint_api, assignment_from_smaller_uint)
+{
+    if constexpr (TypeParam::num_bits > 128)
+    {
+        using SmallerType = intx::uint<TypeParam::num_bits - 64>;
+        SmallerType y;
+        for (size_t i = 0; i < SmallerType::num_words; ++i)
+            y[i] = i + 1;
+
+        auto x = ~TypeParam{};
+        x = y;
+        for (size_t i = 0; i < SmallerType::num_words; ++i)
+        {
+            EXPECT_EQ(x[i], i + 1);
+        }
+        EXPECT_EQ(x[TypeParam::num_words - 1], 0);
+    }
+}
+
 TYPED_TEST(uint_api, explicit_conversion_to_integral_type)
 {
     static_assert(
