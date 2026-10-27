@@ -3,6 +3,13 @@ orbs:
   codecov: codecov/codecov@6.1.0
   win: circleci/windows@5.0
 
+parameters:
+  mutation:
+    description: "Run only the Mull mutation testing: diff (the lines changed since main) or full."
+    type: enum
+    enum: [none, diff, full]
+    default: none
+
 executors:
   linux-gcc-latest:
     docker:
@@ -332,6 +339,59 @@ jobs:
           paths:
             - ~/corpus
 
+  mutation:
+    docker:
+      - image: cimg/base:current-26.04
+    resource_class: large
+    environment:
+      MULL_CONFIG: /home/circleci/mull.yml
+      UBSAN_OPTIONS: halt_on_error=1
+    steps:
+      - checkout
+      - run:
+          name: "Configure Mull"
+          command: |
+            cp mull.yml $MULL_CONFIG
+            if [ << pipeline.parameters.mutation >> = diff ]; then
+              git fetch -q https://github.com/chfast/intx main
+              echo "gitDiffRef: $(git merge-base FETCH_HEAD HEAD)" >> $MULL_CONFIG
+              echo "gitProjectRoot: $PWD" >> $MULL_CONFIG
+            fi
+            # The hashes of the report's inputs make the config the report cache key.
+            git rev-parse HEAD:circle.yml HEAD:CMakeLists.txt HEAD:cmake HEAD:include HEAD:test | sed 's/^/# /' >> $MULL_CONFIG
+            cat $MULL_CONFIG
+      - restore_cache:
+          keys:
+            - mull-v1-{{ checksum "/home/circleci/mull.yml" }}
+      - run:
+          name: "Install Mull"
+          command: |
+            if [ -f ~/mull/intx.txt ]; then exit; fi
+            curl -sSfL -o /tmp/mull-21.deb https://dl.cloudsmith.io/public/mull-project/mull-stable/deb/ubuntu/pool/resolute/main/M/Mu/mull-21_0.35.0/Mull-21-0.35.0-LLVM-21.1.8-ubuntu-amd64-26.04.deb
+            sudo apt-get -q update
+            sudo apt-get -qy install --no-install-recommends clang-21 libclang-rt-21-dev ninja-build /tmp/mull-21.deb
+      - run:
+          name: "Build"
+          command: |
+            if [ -f ~/mull/intx.txt ]; then exit; fi
+            cmake -B ~/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-21 -DINTX_BENCHMARKING=OFF -DSANITIZE=address,shift -DCMAKE_CXX_FLAGS="-fpass-plugin=/usr/lib/mull-ir-frontend-21 -grecord-command-line"
+            cmake --build ~/build --target intx-unittests
+      - run:
+          name: "Mutation testing"
+          command: |
+            if [ ! -f ~/mull/intx.txt ]; then
+              mkdir -p ~/mull
+              timeout 40m mull-runner-21 --workers 4 --allow-surviving --reporters IDE --reporters Elements --reporters SQLite --report-dir ~/mull --report-name intx ~/build/test/intx-unittests --gtest_fail_fast --gtest_brief=1 --gtest_filter=-div.reciprocal:Uint256Test.string_conversions
+            fi
+            if [ -f ~/mull/intx.txt ]; then cat ~/mull/intx.txt; fi  # No report without mutants.
+      - save_cache:
+          key: mull-v1-{{ checksum "/home/circleci/mull.yml" }}
+          paths:
+            - ~/mull
+      - store_artifacts:
+          path: ~/mull
+          destination: mutation
+
   macos:
     environment:
       BUILD_TYPE: Release
@@ -398,6 +458,8 @@ jobs:
 workflows:
   version: 2
   intx:
+    when:
+      equal: [none, << pipeline.parameters.mutation >>]
     jobs:
       - lint
       - build-minimal
@@ -417,3 +479,9 @@ workflows:
       - windows-32bit
       - windows-debug
       - windows-release
+  mutation:
+    when:
+      not:
+        equal: [none, << pipeline.parameters.mutation >>]
+    jobs:
+      - mutation
