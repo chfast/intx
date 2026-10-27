@@ -142,6 +142,7 @@ constexpr result_with_carry<uint64_t> addc(uint64_t x, uint64_t y, bool carry = 
 #if __has_builtin(__builtin_addcll)
     if (!std::is_constant_evaluated())
     {
+        // mull-ignore-next: cxx_init_const
         unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
         const auto s = __builtin_addcll(x, y, carry, &carryout);
         static_assert(sizeof(s) == sizeof(uint64_t));
@@ -171,6 +172,7 @@ constexpr result_with_carry<uint64_t> subc(uint64_t x, uint64_t y, bool carry = 
 #if __has_builtin(__builtin_subcll) && __apple_build_version__ != 14030022
     if (!std::is_constant_evaluated())
     {
+        // mull-ignore-next: cxx_init_const
         unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
         const auto d = __builtin_subcll(x, y, carry, &carryout);
         static_assert(sizeof(d) == sizeof(uint64_t));
@@ -730,6 +732,7 @@ constexpr uint64_t reciprocal(T d) noexcept
 {
     constexpr bool WIDE = std::is_same_v<T, uint128>;  // The 3/2 reciprocal.
 
+    // mull-ignore-next: cxx_init_const
     uint64_t d1 = 0;  // The top word.
     if constexpr (WIDE)
         d1 = d[1];
@@ -808,6 +811,7 @@ constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
         // If c is set, the sum is at least 2^128 > p: s saturates to ~0 > p[1], keeping it false.
         const auto [s, c] = addc(rh, d1, d0 != 0);
         const auto s_sat = s | (0 - uint64_t{c});  // ~0 if c is set, otherwise s.
+        // mull-ignore-next: cxx_sub_to_add
         const uint64_t neg1 = uint128{d0 - 1, s_sat} < p;
         return qh - neg0 - neg1;
     }
@@ -830,7 +834,7 @@ constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) n
     // The first correction, taken about half the time, is branch-free: q[1] - 1 and r + d if
     // r > q[0]. r gets a mask because GCC turns two ternaries into a branch.
     // The second correction is rare.
-    const auto c = r > q[0];
+    const auto c = r > q[0];  // mull-ignore: cxx_gt_to_ge
     q[1] = c ? q[1] - 1 : q[1];
     r += d & (uint64_t{0} - uint64_t{c});
 
@@ -1132,7 +1136,7 @@ inline std::string to_string(uint<N> x, int base = 10)
         // produces a chunk of digits, until the rest fits in a word.
         auto power = b;
         size_t digits = 1;
-        while (power <= WORD_MAX / b)
+        while (power <= WORD_MAX / b)  // mull-ignore: cxx_le_to_gt, cxx_le_to_lt
         {
             power *= b;
             ++digits;
@@ -1376,7 +1380,7 @@ public:
 
     friend constexpr uint operator<<(const uint& x, uint64_t shift) noexcept
     {
-        if (shift >= num_bits) [[unlikely]]
+        if (shift >= num_bits) [[unlikely]]  // mull-ignore: cxx_ge_to_gt
             return 0;
 
         if constexpr (N == 256)
@@ -1443,7 +1447,7 @@ public:
 
     friend constexpr uint operator>>(const uint& x, uint64_t shift) noexcept
     {
-        if (shift >= num_bits) [[unlikely]]
+        if (shift >= num_bits) [[unlikely]]  // mull-ignore: cxx_ge_to_gt
             return 0;
 
         if constexpr (N == 256)
@@ -1747,7 +1751,8 @@ constexpr uint128 udivrem_by2(std::span<uint64_t, Q> q,
     const auto reciprocal = reciprocal_3by2(dn);
 
     const auto top = u.size() - 1;
-    uint128 rem;         // The normalized remainder.
+    uint128 rem;  // The normalized remainder.
+    // mull-ignore-next: cxx_le_to_lt
     if (u[top] <= d[1])  // The top quotient word is 0 or 1: subtract d at most once.
     {
         auto t = uint128{u[top - 1], u[top]};
@@ -1789,7 +1794,7 @@ constexpr bool add(uint64_t x[], std::span<const uint64_t> y) noexcept
     // OPT: Add MinLen template parameter and unroll first loop iterations.
     INTX_REQUIRE(y.size() >= 2);
 
-    bool carry = false;
+    bool carry = false;  // mull-ignore: cxx_init_const
     for (size_t i = 0; i < y.size(); ++i)
         std::tie(x[i], carry) = addc(x[i], y[i], carry);
     return carry;
@@ -1803,8 +1808,8 @@ constexpr uint64_t submul(
     // OPT: Add MinLen template parameter and unroll first loop iterations.
     INTX_REQUIRE(!y.empty());
 
-    uint64_t k = 0;  // The high word of the product.
-    bool borrow = false;
+    uint64_t k = 0;       // The high word of the product.
+    bool borrow = false;  // mull-ignore: cxx_init_const
     for (size_t i = 0; i < y.size(); ++i)
     {
         const auto p = umul(y[i], multiplier) + k;
@@ -1840,6 +1845,7 @@ constexpr void udivrem_knuth_normalized(uint64_t q[], std::span<uint64_t> u,
     {
         const auto u0 = u[j + dlen - 2];
 
+        // mull-ignore-next: cxx_init_const
         uint64_t qhat{};
         if (INTX_UNLIKELY(rem == divisor))  // Division overflows.
         {
@@ -1853,7 +1859,7 @@ constexpr void udivrem_knuth_normalized(uint64_t q[], std::span<uint64_t> u,
             uint128 rhat;
             std::tie(qhat, rhat) = udivrem_3by2(rem[1], rem[0], u0, divisor, reciprocal);
 
-            bool carry{};
+            bool carry{};  // mull-ignore: cxx_init_const
             const auto overflow = submul(&u[j], d.subspan(0, d.size() - 2), qhat);
             std::tie(u[j + dlen - 2], carry) = subc(rhat[0], overflow);
             std::tie(u[j + dlen - 1], carry) = subc(rhat[1], carry);
@@ -1988,7 +1994,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
             return static_cast<uint<N>>(u);
     }();
     const auto vw = as_words(v).template first<TOP + 1>();
-    uint64_t borrow = 0;
+    uint64_t borrow = 0;  // mull-ignore: cxx_init_const
     if constexpr (WIDER)
         borrow = submul(as_words(r).data(), as_words(u).data(), vw, q) - ue;
     else
@@ -2032,16 +2038,18 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
     auto t1 = fshl(u[TOP - 1], u[TOP - 2], s);
     const auto t0 = fshl(u[TOP - 2], u[TOP - 3], s);
 
-    uint64_t qe = 0;     // The quotient bit 128.
+    uint64_t qe = 0;  // The quotient bit 128.
+    // mull-ignore-next: cxx_init_const
     bool clamp = false;  // The top 2 words of the normalized u equal vt.
     if constexpr (EQUAL)
     {
         // The quotient is below 2^129. Subtract v * 2^128 if u is not less: in the normalized u
         // these are the top 3 words minus the normalized v. Then u < v * 2^128.
+        // mull-ignore-next: cxx_init_const
         bool less = false;  // u < v * 2^128: the borrow of the subtraction.
-        uint64_t d3 = 0;
-        uint64_t d2 = 0;
-        uint64_t d1 = 0;
+        uint64_t d3 = 0;    // mull-ignore: cxx_init_const
+        uint64_t d2 = 0;    // mull-ignore: cxx_init_const
+        uint64_t d1 = 0;    // mull-ignore: cxx_init_const
         std::tie(d1, less) = subc(t1, v[0] << s);
         std::tie(d2, less) = subc(t2, vt[0], less);
         std::tie(d3, less) = subc(t3, vt[1], less);
@@ -2059,9 +2067,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
 
     // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B, base 2^128).
     // The first division does not overflow because t3:t2 < vt (when not clamped).
-    uint64_t q1 = 0;
-    uint64_t q0 = 0;
+    uint64_t q1 = 0;  // mull-ignore: cxx_init_const
+    uint64_t q0 = 0;  // mull-ignore: cxx_init_const
     uint128 r0;
+    // mull-ignore-next: cxx_init_const
     bool r0h = false;  // The bit 128 of r0 (when clamped).
     if (clamp) [[unlikely]]
     {
@@ -2089,6 +2098,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
     vl[TOP - 3] = (vl[TOP - 3] << s) >> s;
 
     std::array<uint64_t, TOP> rw{};  // r0 * 2^k + u mod 2^k, less than v.
+    // mull-ignore-next: cxx_lt_to_le
     for (size_t i = 0; i < TOP - 2; ++i)
         rw[i] = u[i];
     rw[TOP - 3] = fshr(r0[0], rw[TOP - 3] << s, s);
@@ -2101,7 +2111,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
     // r -= q * vl. The result is in (-2v, v), the borrow is its sign.
     const auto b0 = submul(rw.data(), vl, q0);
     const auto b1 = submul(&rw[1], vl, q1);
-    bool borrow = false;
+    bool borrow = false;  // mull-ignore: cxx_init_const
     std::tie(rw[TOP - 2], borrow) = subc(rw[TOP - 2], b0);
     std::tie(rw[TOP - 1], borrow) = subc(rw[TOP - 1], b1, borrow);
     // With r0h the result is not negative: r0 * 2^k >= 2^(128 + k) > q * vl. Then a borrow out
@@ -2182,6 +2192,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
                         return internal::udivrem_top2<TOP, true>(u, v);
 
                     // A 1- or 2-word divisor: divide all words of u unless the top 2 are 0.
+                    // mull-ignore-next: cxx_ne_to_eq
                     if (v[TOP - 1] == 0 && (u[TOP + 1] != 0 || u[TOP] != 0))
                     {
                         if (v[TOP - 2] == 0)
@@ -2195,13 +2206,14 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
                 }
             }
         }
+        // mull-ignore-next: cxx_gt_to_ge
         while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)
             --num_divisor_words;
         const auto n = num_divisor_words;
 
         // The number of significant words of the numerator, at least 1.
         size_t m = uint<M>::num_words;
-        while (m > 1 && u[m - 1] == 0)
+        while (m > 1 && u[m - 1] == 0)  // mull-ignore: cxx_gt_to_le
             --m;
 
         // The numerator words to divide: the m words and the word with the bits shifted out of the
@@ -2285,7 +2297,7 @@ constexpr uint256 addmod(const uint256& x, const uint256& y, const uint256& mod)
     // Fast path for mod >= 2^192, with x and y at most slightly bigger than mod.
     // This is always the case when x and y are already reduced modulo mod.
     // Based on https://github.com/holiman/uint256/pull/86.
-    if ((mod[3] != 0) && (x[3] <= mod[3]) && (y[3] <= mod[3]))
+    if ((mod[3] != 0) && (x[3] <= mod[3]) && (y[3] <= mod[3]))  // mull-ignore: cxx_le_to_lt
     {
         // Normalize x in case it is bigger than mod.
         auto xn = x;

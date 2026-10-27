@@ -1,0 +1,4 @@
+mutators:
+  - cxx_all
+includePaths:
+  - .*/include/intx/.*
