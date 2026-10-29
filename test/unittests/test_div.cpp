@@ -38,7 +38,7 @@ TEST(div, udivrem_constexpr)
     static_assert(udivrem(u3, p3).rem == p3 - (uint256{1} << 128) + 0x77);
     static_assert(udivrem(u4, p4).quot == (uint512{1} << 192) - 1);
     static_assert(udivrem(u4, p4).rem == p4 - (uint256{1} << 192) + 0x77);
-    // 192/256 reaches the 3-word instance too.
+    // 192/256, with the divisor words limited to the numerator words.
     static_assert(udivrem(static_cast<uint192>(p3 * 5 + 7), p3).quot == 5);
     static_assert(udivrem(static_cast<uint192>(p3 * 5 + 7), p3).rem == 7);
 
@@ -124,37 +124,6 @@ TEST(div, udivrem_constexpr)
     static_assert(udivrem(~uint128{}, uint192{~uint128{}}) == div_result<uint128, uint192>{1, 0});
     static_assert(
         udivrem(~uint128{}, uint192{1} << 128) == div_result<uint128, uint192>{0, ~uint128{}});
-}
-
-TEST(div, normalize)
-{
-    uint512 u;
-    uint512 v = 1;
-    auto na = internal::normalize(u, v, count_significant_words(v));
-    EXPECT_EQ(na.shift, 63u);
-    EXPECT_EQ(na.numerator, 0);
-    EXPECT_EQ(na.divisor, v << 63);
-
-    u = uint512{1313, 0, 0, 0, 1414, 0, 0, 0};
-    v = uint512{1212, 0, 0, 0, 12, 0, 0, 0};
-    na = internal::normalize(u, v, count_significant_words(v));
-    EXPECT_EQ(na.shift, 60u);
-    EXPECT_EQ(na.numerator, u << 60);
-    EXPECT_EQ(na.divisor, v << 60);
-
-    u = uint512{3} << 510;
-    v = uint256{1, 0, 0xffffffffffffffff, 0};
-    na = internal::normalize(u, v, count_significant_words(v));
-    EXPECT_EQ(na.shift, 0u);
-    EXPECT_EQ(na.numerator, u);
-    EXPECT_EQ(na.divisor, v);
-
-    u = uint512{7} << 509;
-    v = uint256{1, 0, 0x3fffffffffffffff, 0};
-    na = internal::normalize(u, v, count_significant_words(v));
-    EXPECT_EQ(na.shift, 2u);
-    EXPECT_EQ(na.numerator, intx::uint<576>{u} << 2);
-    EXPECT_EQ(na.divisor, v << 2);
 }
 
 namespace
@@ -1670,6 +1639,30 @@ TEST(div, udivrem_by2_in_place)
     EXPECT_EQ(internal::udivrem_by2(std::span<uint64_t, 3>{w}, w, {0x5, 0x10}),
         (uint128{0x17e4b17e4b17e63}));
     EXPECT_EQ(w, (std::array<uint64_t, 3>{0xffedcba98765431c, 0xf, 0}));
+}
+
+TEST(div, udivrem_knuth_dynamic_extent)
+{
+    // Spans of the dynamic extent and separate storage, as evmone's modexp calls it.
+    // Not normalized, the top quotient word not 0.
+    const std::array<uint64_t, 5> u{
+        0x1111111111111111, 0x2222222222222222, 0x3333333333333333, 0x4444444444444444, 5};
+    const std::array<uint64_t, 3> d{0x0123456789abcdef, 0xfedcba9876543210, 3};
+    std::array<uint64_t, 3> q{0xbad, 0xbad, 0xbad};
+    std::array<uint64_t, 3> r{};
+    std::array<uint64_t, 6> un{};
+    std::array<uint64_t, 3> dn{};
+    internal::udivrem_knuth(q.data(), r, std::span<const uint64_t>{u}, u.size(), d, un.data(), dn);
+    EXPECT_EQ(q, (std::array<uint64_t, 3>{0x7f2bfe557925c44a, 0x51710cd071e782b4, 1}));
+    EXPECT_EQ(r, (std::array<uint64_t, 3>{0x6f2f1f3601318dfb, 0xc9a46a02e85147b1, 3}));
+
+    // The shift 0, a zero top word of u and the next one below the top word of d.
+    const std::array<uint64_t, 5> w{1, 2, 3, 0x7fffffffffffffff, 0};
+    const std::array<uint64_t, 3> e{5, 6, 0x8000000000000001};
+    q = {0xbad, 0xbad, 0xbad};
+    internal::udivrem_knuth(q.data(), r, std::span<const uint64_t>{w}, 4, e, un.data(), dn);
+    EXPECT_EQ(q, (std::array<uint64_t, 3>{0xfffffffffffffffc, 0, 0xbad}));
+    EXPECT_EQ(r, (std::array<uint64_t, 3>{0x15, 0x15, 1}));
 }
 
 TEST(div, reciprocal_3by2)

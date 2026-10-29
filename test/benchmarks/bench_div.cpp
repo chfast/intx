@@ -42,21 +42,6 @@ inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 }
 
 
-template <decltype(internal::normalize<512, 512>) NormalizeFn>
-void div_normalize(benchmark::State& state)
-{
-    auto u = uint512{1324254353, 0, 4343242153453, 0, 100324254353, 0, 48882153453, 0};
-    auto v = uint512{1333354353, 0, 4343242156663, 0, 16666654353, 0, 48882100453, 0};
-
-    for ([[maybe_unused]] auto _ : state)
-    {
-        benchmark::ClobberMemory();
-        auto x = NormalizeFn(u, v, count_significant_words(v));
-        benchmark::DoNotOptimize(x);
-    }
-}
-BENCHMARK(div_normalize<internal::normalize>);
-
 constexpr uint64_t neg(uint64_t x) noexcept
 {
     return ~x;
