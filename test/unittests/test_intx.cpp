@@ -369,6 +369,11 @@ TYPED_TEST(uint_test, to_string_base)
     EXPECT_EQ(to_string(x, 8), "2000");
     EXPECT_EQ(to_string(TypeParam{0}, 2), "0");
 
+    // Decimal: two chunks of 19 digits, without and with a leading digit.
+    const auto e38 = TypeParam{10000000000000000000u} * 10000000000000000000u;
+    EXPECT_EQ(to_string(e38 - 1), std::string(38, '9'));
+    EXPECT_EQ(to_string(e38), "1" + std::string(38, '0'));
+
     // Numbers of multiple chunks of digits.
     constexpr auto num_bits = TypeParam::num_bits;
     const auto max = ~TypeParam{0};
