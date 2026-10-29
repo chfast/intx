@@ -15,6 +15,7 @@ constexpr uint64_t minimal[] = {
     0x7fffffffffffffff,
     0x8000000000000000,
     0xaaaaaaaaaaaaaaaa,
+    0xfffffffffffffffd,
     0xfffffffffffffffe,
     0xffffffffffffffff,
 };
