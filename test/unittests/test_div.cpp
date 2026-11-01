@@ -1630,15 +1630,16 @@ TEST(div, udivrem_by2_in_place)
     // A normalized divisor and the top words below it, as evmone's modexp calls it.
     std::array<uint64_t, 4> u{
         0x0123456789abcdef, 0xfedcba9876543210, 0x1111111111111111, 0x7fffffffffffffff};
-    EXPECT_EQ(internal::udivrem_by2(std::span<uint64_t>{u}, u, {0x23, 0x8000000000000001}),
+    EXPECT_EQ(internal::udivrem_by2(std::span<uint64_t>{u}.first(3), u, {0x23, 0x8000000000000001}),
         (uint128{0x56789abcdf012ba0, 0x5cba9876543210b2}));
-    EXPECT_EQ(u, (std::array<uint64_t, 4>{0x22222222222221e5, 0xfffffffffffffffc, 0, 0}));
+    EXPECT_EQ(u,
+        (std::array<uint64_t, 4>{0x22222222222221e5, 0xfffffffffffffffc, 0, 0x7fffffffffffffff}));
 
     // Not normalized, the top quotient word above 1, the static extent.
     std::array<uint64_t, 3> w{0x0123456789abcdef, 0xfedcba9876543210, 0xff};
-    EXPECT_EQ(internal::udivrem_by2(std::span<uint64_t, 3>{w}, w, {0x5, 0x10}),
+    EXPECT_EQ(internal::udivrem_by2(std::span<uint64_t, 2>{w.data(), 2}, w, {0x5, 0x10}),
         (uint128{0x17e4b17e4b17e63}));
-    EXPECT_EQ(w, (std::array<uint64_t, 3>{0xffedcba98765431c, 0xf, 0}));
+    EXPECT_EQ(w, (std::array<uint64_t, 3>{0xffedcba98765431c, 0xf, 0xff}));
 }
 
 TEST(div, udivrem_knuth_dynamic_extent)
