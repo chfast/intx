@@ -1876,11 +1876,11 @@ template <size_t D = std::dynamic_extent, size_t W>
 }
 
 /// Divides the words u by d into the result of udivrem<M, N>(), built in the return slot.
-template <unsigned M, unsigned N, size_t W, size_t D>
+template <unsigned M, unsigned N, size_t D>
 constexpr div_result<uint<M>, uint<N>> udivrem_knuth(
-    std::span<const uint64_t, W> u, size_t m, std::span<const uint64_t, D> d) noexcept
+    std::span<const uint64_t, uint<M>::num_words> u, size_t m,
+    std::span<const uint64_t, D> d) noexcept
 {
-    INTX_REQUIRE(u.size() <= uint<M>::num_words);
     div_result<uint<M>, uint<N>> res;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     std::array<uint64_t, uint<M>::num_words + 1> un;
