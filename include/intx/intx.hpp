@@ -1674,16 +1674,19 @@ constexpr div_result<uint<M>, uint<N>> udivrem_by1(
 }
 
 /// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
-/// @param q  The quotient words. It may be u.
+/// @tparam Q The fixed size of q, one less than the size of u, or std::dynamic_extent. u is not
+///           deduced, so spans of non-const words convert to it.
+/// @param q  The quotient words: u.size() - 1 of them. It may be u.
 /// @param u  The numerator words.
 /// @param d  The divisor.
 /// @return   The remainder.
-template <size_t W>
-constexpr uint128 udivrem_by2(std::span<uint64_t, W> q,
-    std::type_identity_t<std::span<const uint64_t, W>> u, uint128 d) noexcept
+template <size_t Q>
+constexpr uint128 udivrem_by2(std::span<uint64_t, Q> q,
+    std::type_identity_t<std::span<const uint64_t, Q == std::dynamic_extent ? Q : Q + 1>> u,
+    uint128 d) noexcept
 {
     INTX_REQUIRE(u.size() >= 3);
-    INTX_REQUIRE(q.size() == u.size());
+    INTX_REQUIRE(q.size() == u.size() - 1);
     INTX_REQUIRE(d[1] != 0);
 
     const auto s = clz_nonzero<true>(d[1]);
@@ -1706,7 +1709,6 @@ constexpr uint128 udivrem_by2(std::span<uint64_t, W> q,
         std::tie(q[top - 1], rem) = udivrem_3by2(fshl(0, u[top], s), fshl(u[top], u[top - 1], s),
             fshl(u[top - 1], u[top - 2], s), dn, reciprocal);
     }
-    q[top] = 0;
     for (auto i = top - 2; i != 0; --i)
         std::tie(q[i], rem) = udivrem_3by2(rem[1], rem[0], fshl(u[i], u[i - 1], s), dn, reciprocal);
     std::tie(q[0], rem) = udivrem_3by2(rem[1], rem[0], u[0] << s, dn, reciprocal);
@@ -1721,7 +1723,8 @@ constexpr div_result<uint<M>, uint<N>> udivrem_by2(
 {
     INTX_REQUIRE(u.size() <= uint<M>::num_words);
     div_result<uint<M>, uint<N>> res;
-    const auto r = udivrem_by2(std::span<uint64_t, W>{&res.quot[0], u.size()}, u, d);
+    constexpr auto Q = W == std::dynamic_extent ? W : W - 1;
+    const auto r = udivrem_by2(std::span<uint64_t, Q>{&res.quot[0], u.size() - 1}, u, d);
     res.rem[0] = r[0];
     res.rem[1] = r[1];
     return res;
