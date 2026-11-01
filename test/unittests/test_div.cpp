@@ -9,6 +9,24 @@
 
 using namespace intx;
 
+namespace
+{
+/// Checks udivrem() of the significant words of x and y against udivrem(x, y).
+template <unsigned M, unsigned N>
+constexpr bool udivrem_spans_agree(const intx::uint<M>& x, const intx::uint<N>& y)
+{
+    const auto m = count_significant_words(x);
+    const auto n = count_significant_words(y);
+    std::array<uint64_t, intx::uint<M>::num_words> q{};
+    std::array<uint64_t, intx::uint<N>::num_words> r{};
+    std::array<uint64_t, intx::uint<M>::num_words + intx::uint<N>::num_words + 1> scratch{};
+    udivrem(std::span{q}.first(m - n + 1), std::span{r}.first(n), as_words(x).first(m),
+        as_words(y).first(n), scratch);
+    return udivrem(x, y) ==
+           div_result<intx::uint<M>, intx::uint<N>>{intx::uint<M>{q}, intx::uint<N>{r}};
+}
+}  // namespace
+
 TEST(div, udivrem_constexpr)
 {
     // Two word quotient (3-word divisor) with non-zero and zero normalization shift.
@@ -124,6 +142,13 @@ TEST(div, udivrem_constexpr)
     static_assert(udivrem(~uint128{}, uint192{~uint128{}}) == div_result<uint128, uint192>{1, 0});
     static_assert(
         udivrem(~uint128{}, uint192{1} << 128) == div_result<uint128, uint192>{0, ~uint128{}});
+
+    // Word spans with 1-, 2-, 3-, 4- and 5-word divisors.
+    static_assert(udivrem_spans_agree(u3, uint256{0x5678}));
+    static_assert(udivrem_spans_agree(u3, (uint256{0x1234} << 64) | 0x5678));
+    static_assert(udivrem_spans_agree(u3, p3));
+    static_assert(udivrem_spans_agree(u4, p4));
+    static_assert(udivrem_spans_agree(x, (w1 << 128) | w0));
 }
 
 namespace
@@ -1613,7 +1638,7 @@ TEST(div, div_wide_x86)
 
 TEST(div, udivrem_by1_in_place)
 {
-    // A normalized divisor and the top word below it, as evmone's modexp calls it.
+    // A normalized divisor and the top word below it, the dynamic extent.
     std::array<uint64_t, 3> u{0x0123456789abcdef, 0xfedcba9876543210, 0x7fffffffffffffff};
     EXPECT_EQ(
         internal::udivrem_by1(std::span<uint64_t>{u}, u, 0x8000000000000001), 0x369d0369d0369cb);
@@ -1627,7 +1652,7 @@ TEST(div, udivrem_by1_in_place)
 
 TEST(div, udivrem_by2_in_place)
 {
-    // A normalized divisor and the top words below it, as evmone's modexp calls it.
+    // A normalized divisor and the top words below it, the dynamic extent.
     std::array<uint64_t, 4> u{
         0x0123456789abcdef, 0xfedcba9876543210, 0x1111111111111111, 0x7fffffffffffffff};
     EXPECT_EQ(internal::udivrem_by2(std::span<uint64_t>{u}.first(3), u, {0x23, 0x8000000000000001}),
@@ -1642,9 +1667,28 @@ TEST(div, udivrem_by2_in_place)
     EXPECT_EQ(w, (std::array<uint64_t, 3>{0xffedcba98765431c, 0xf, 0xff}));
 }
 
+TEST(div, udivrem_spans)
+{
+    // The test cases with more numerator words than divisor words.
+    for (const auto& t : div_test_cases)
+    {
+        const auto m = count_significant_words(t.numerator);
+        const auto n = count_significant_words(t.denominator);
+        if (m <= n)
+            continue;
+        std::array<uint64_t, 8> q{};
+        std::array<uint64_t, 8> r{};
+        std::array<uint64_t, 17> scratch{};
+        udivrem(std::span{q}.first(m - n + 1), std::span{r}.first(n),
+            as_words(t.numerator).first(m), as_words(t.denominator).first(n), scratch);
+        EXPECT_EQ(uint512{q}, t.quotient);
+        EXPECT_EQ(uint512{r}, t.reminder);
+    }
+}
+
 TEST(div, udivrem_knuth_dynamic_extent)
 {
-    // Spans of the dynamic extent and separate storage, as evmone's modexp calls it.
+    // Spans of the dynamic extent and separate storage, as udivrem() of word spans calls it.
     // Not normalized, the top quotient word not 0.
     const std::array<uint64_t, 5> u{
         0x1111111111111111, 0x2222222222222222, 0x3333333333333333, 0x4444444444444444, 5};
