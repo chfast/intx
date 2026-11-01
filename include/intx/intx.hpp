@@ -596,7 +596,8 @@ constexpr void shl(
 {
     if constexpr (RN != std::dynamic_extent && XN != std::dynamic_extent)
         static_assert(XN != 0 && (RN == XN || RN == XN + 1));
-    INTX_REQUIRE(!x.empty() && (r.size() == x.size() || r.size() == x.size() + 1));
+    INTX_REQUIRE(!x.empty());
+    INTX_REQUIRE(r.size() == x.size() || r.size() == x.size() + 1);
     INTX_REQUIRE(shift < 64);
     const auto n = x.size();
     if (r.size() > n)
@@ -611,7 +612,8 @@ constexpr void shl(
 /// The shift must be less than 64.
 constexpr void shr(std::span<uint64_t> r, std::span<const uint64_t> x, unsigned shift) noexcept
 {
-    INTX_REQUIRE(!x.empty() && r.size() == x.size());
+    INTX_REQUIRE(!x.empty());
+    INTX_REQUIRE(r.size() == x.size());
     INTX_REQUIRE(shift < 64);
     for (size_t i = 1; i < x.size(); ++i)
         r[i - 1] = fshr(x[i], x[i - 1], shift);
