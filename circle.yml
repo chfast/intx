@@ -182,6 +182,38 @@ commands:
           files: ../build/coverage.json,../coverage/coverage.lcov
           flags: <<parameters.flags>>
 
+  fuzz:
+    description: "Fuzz with the cached corpus"
+    parameters:
+      arch:
+        type: string
+      forks:
+        type: integer
+    steps:
+      - restore_cache:
+          name: "Restore fuzzing corpus"
+          key: corpus-<<parameters.arch>>
+      - run:
+          name: "Fuzzing"
+          working_directory: ~/build
+          command: |
+            # The -fork parent exits without freeing its list of worker threads.
+            echo leak:fuzzer::FuzzWithFork > ~/lsan.supp
+            LSAN_OPTIONS=suppressions=$HOME/lsan.supp \
+            test/intx-fuzzer ~/corpus -create_missing_dirs=1 -fork=<<parameters.forks>> -use_value_profile=1 -max_len=4096 -entropic_scale_per_exec_time=1 -max_total_time=300 2>&1 | sed '/NEW_FUNC/d'
+      - run:
+          name: "Minimize fuzzing corpus"
+          working_directory: ~/build
+          command: |
+            test/intx-fuzzer -merge=1 -create_missing_dirs=1 -use_value_profile=1 -max_len=4096 ~/corpus-min ~/corpus
+            rm -rf ~/corpus
+            mv ~/corpus-min ~/corpus
+      - save_cache:
+          name: "Save fuzzing corpus"
+          key: corpus-<<parameters.arch>>-{{ epoch }}
+          paths:
+            - ~/corpus
+
 
 jobs:
 
@@ -318,19 +350,29 @@ jobs:
       - install_deps
       - build_and_test
       - benchmark
-      - restore_cache:
-          keys:
-            - corpus
+      - fuzz:
+          arch: amd64
+          forks: 4
+
+  fuzzing-arm64:
+    environment:
+      BUILD_TYPE: Release
+      CMAKE_OPTIONS: -DINTX_FUZZING=ON
+      CC: clang-20
+      CXX: clang++-20
+    machine:
+      image: ubuntu-2404:2026.05.1
+      resource_class: arm.medium
+    steps:
       - run:
-          name: "Fuzzing"
-          working_directory: ~/build
+          name: "Install dependencies"
           command: |
-            mkdir -p ~/corpus
-            test/intx-fuzzer ~/corpus -fork=4 -use_value_profile=1 -max_len=129 -runs=1000000
-      - save_cache:
-          key: corpus-{{ epoch }}
-          paths:
-            - ~/corpus
+            sudo apt -q update
+            sudo apt install -qy clang-20 libclang-rt-20-dev libstdc++-14-dev libgmp-dev
+      - build_and_test
+      - fuzz:
+          arch: arm64
+          forks: 2
 
   macos:
     environment:
@@ -409,6 +451,7 @@ workflows:
       - linux-32bit
       - linux-32bit-coverage
       - fuzzing
+      - fuzzing-arm64
       - macos
       - macos-coverage
       - cmake-min
