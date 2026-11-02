@@ -1770,6 +1770,23 @@ constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t mu
     return submul(x, x, y, multiplier);
 }
 
+/// Corrects the estimate q of the single-word quotient of (ue, x[]) / v[], at most 2 too large:
+/// computes the remainder r[] = (ue, x[]) - q * v[] of v.size() words and returns the quotient.
+/// r may be x.
+[[gnu::always_inline]] constexpr uint64_t udivrem_1q_correct(
+    uint64_t r[], const uint64_t x[], uint64_t ue, std::span<const uint64_t> v, uint64_t q) noexcept
+{
+    // The borrow out of the v.size() words is ue, or ue + 1 or ue + 2 when q is too large.
+    auto borrow = submul(r, x, v, q) - ue;
+    // The correction runs at most 2 times (usually 0).
+    while (borrow != 0) [[unlikely]]
+    {
+        --q;
+        borrow -= add(r, v);
+    }
+    return q;
+}
+
 /// Divides the normalized words u by d with the Knuth algorithm, in place: the low d.size() words
 /// of u become the normalized remainder.
 /// A fixed size of d (DIVISOR_WORDS) lets the loops over the divisor words unroll. d is not
@@ -1926,8 +1943,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
     // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B).
     auto q = udivrem_2by1({ut_lo, ut_hi}, vt).quot;
 
-    // The remainder u - q * v fits in the TOP + 1 words of v, so the borrow out of them
-    // is ue, or ue + 1 or ue + 2 when the estimate is too large.
+    // The remainder u - q * v fits in the TOP + 1 words of v.
     // For the wider numerator the remainder is computed from u without a copy: GCC copies u
     // with 16-byte loads, which stall on the 8-byte stores of the sum in addmod().
     // The other types keep the copy: without it clang saves registers before the u < v return.
@@ -1938,17 +1954,8 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
             return static_cast<uint<N>>(u);
     }();
     const auto vw = as_words(v).template first<TOP + 1>();
-    uint64_t borrow = 0;
-    if constexpr (WIDER)
-        borrow = submul(as_words(r).data(), as_words(u).data(), vw, q) - ue;
-    else
-        borrow = submul(as_words(r).data(), vw, q) - ue;
-    // The correction runs at most 2 times (usually 0).
-    while (borrow != 0) [[unlikely]]
-    {
-        --q;
-        borrow -= add(as_words(r).data(), vw);
-    }
+    const auto x = WIDER ? as_words(u).data() : as_words(r).data();
+    q = udivrem_1q_correct(as_words(r).data(), x, ue, vw, q);
     if constexpr (TOP + 1 < uint<N>::num_words)
         r[TOP + 1] = 0;  // Clear the extra word copied from u.
     return {q, r};
