@@ -1752,16 +1752,15 @@ constexpr uint64_t submul(
     // OPT: Add MinLen template parameter and unroll first loop iterations.
     INTX_REQUIRE(!y.empty());
 
-    uint64_t borrow = 0;
+    uint64_t k = 0;  // The high word of the product.
+    bool borrow = false;
     for (size_t i = 0; i < y.size(); ++i)
     {
-        const auto s = x[i] - borrow;
-        const auto p = umul(y[i], multiplier);
-        borrow = p[1] + (x[i] < s);
-        r[i] = s - p[0];
-        borrow += (s < r[i]);
+        const auto p = umul(y[i], multiplier) + k;
+        k = p[1];
+        std::tie(r[i], borrow) = subc(x[i], p[0], borrow);
     }
-    return borrow;
+    return k + uint64_t{borrow};
 }
 
 /// Subtract y multiplied by multiplier from x as: x[] -= multiplier * y[].
