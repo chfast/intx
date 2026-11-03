@@ -143,4 +143,19 @@ inline Int addmod(const Int& x, const Int& y, const Int& mod) noexcept
     return rem;
 }
 
+template <typename Int>
+inline Int mulmod(const Int& x, const Int& y, const Int& mod) noexcept
+{
+    constexpr size_t gmp_limbs = sizeof(Int) / sizeof(mp_limb_t);
+    const auto mod_limbs = static_cast<mp_size_t>(count_significant_words(mod));
+
+    mp_limb_t prod[2 * gmp_limbs];
+    mpn_mul_n(prod, (mp_srcptr)&x, (mp_srcptr)&y, gmp_limbs);
+
+    mp_limb_t quot[2 * gmp_limbs];
+    Int rem;
+    mpn_tdiv_qr(quot, (mp_ptr)&rem, 0, prod, 2 * gmp_limbs, (mp_srcptr)&mod, mod_limbs);
+    return rem;
+}
+
 }  // namespace intx::gmp
