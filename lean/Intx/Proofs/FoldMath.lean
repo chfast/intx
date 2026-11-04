@@ -9,8 +9,9 @@ The number theory of `internal::mulmod_fold<N>()`, apart from the model. With `B
 
 * one fold of the `(N + 1)`-word `R = t * B ^ N + u * P + low` and the next word `a` gives
   `R' = a + B * low + u * C0 + t * C1`, which is `R * B + a` modulo `D` and less than `B ^ (N + 1)`;
-* if `q ≥ 1`, the deficit `B ^ (N + 1) - R` at least halves with each fold; if `q = 0`, the top
-  word of `R` grows by at most 1; so after the folds `R ≤ B ^ (N + 1) - 2 * B ^ N`;
+* if `q ≥ 1`, the deficit `B ^ (N + 1) - R` shrinks at most by the factor `D / B ^ N ≥ 1/2` with
+  each fold; if `q = 0`, the top word of `R` grows by at most 1; so after the folds
+  `R < (1 - 2^-7) * B ^ (N + 1)`;
 * then the Barrett estimate `floor(floor(R / P) * (B + q) / B ^ 2)` is `floor(R / D)` or 1 less.
 -/
 
@@ -84,6 +85,57 @@ theorem fold_q0 (B P D C0 C1 a low u t : Nat) (hD : D + C0 = B * P) (hq : B * C0
     omega
   rw [Nat.mul_add]
   nlinarith
+
+/-- `B ^ 8 ≤ (B + 2 ^ (s + 1)) ^ 7 * (B - 2 ^ s)` for `B = 2 ^ 64` and every shift `s`. -/
+theorem fold_n1_pow (s : Fin 64) :
+    (2 ^ 64) ^ 8 ≤ (2 ^ 64 + 2 ^ (s.val + 1)) ^ 7 * (2 ^ 64 - 2 ^ s.val) := by
+  revert s
+  decide +kernel
+
+/-- The bound after the 7 folds of `N = 1` with `q ≥ 1`: the deficit shrinks by the factor
+`D / B ≥ 1/2 + 2 ^ s / B` per fold, and `R0 < 2 ^ s * B`. -/
+theorem fold_bound_n1 (B T H D R0 R : Nat) (hB : B = 2 * H) (hT : T ≤ H) (hT0 : 0 < T)
+    (hD : H + T ≤ D) (hR0 : R0 < T * B) (hR : R < B * B)
+    (hpow : B ^ 8 ≤ (B + 2 * T) ^ 7 * (B - T))
+    (hinv : D ^ 7 * (B * B - R0) ≤ B ^ 7 * (B * B - R)) :
+    128 * R < 127 * (B * B) := by
+  have h1 : (B + 2 * T) ^ 7 = 2 ^ 7 * (H + T) ^ 7 := by
+    rw [hB, ← mul_pow]; ring_nf
+  have h2 : B * (B - T) < B * B - R0 := by
+    have : B * (B - T) + T * B = B * B := by
+      rw [Nat.mul_comm T B, ← Nat.mul_add, Nat.sub_add_cancel (by omega)]
+    omega
+  have h3 : (H + T) ^ 7 ≤ D ^ 7 := Nat.pow_le_pow_left hD 7
+  have h4 : B ^ 7 * (B * B) < B ^ 7 * (128 * (B * B - R)) :=
+    calc B ^ 7 * (B * B) = B * B ^ 8 := by ring
+      _ ≤ B * ((B + 2 * T) ^ 7 * (B - T)) := Nat.mul_le_mul_left _ hpow
+      _ = 2 ^ 7 * (H + T) ^ 7 * (B * (B - T)) := by rw [h1]; ring
+      _ < 2 ^ 7 * (H + T) ^ 7 * (B * B - R0) := Nat.mul_lt_mul_of_pos_left h2 (by positivity)
+      _ ≤ 2 ^ 7 * D ^ 7 * (B * B - R0) := Nat.mul_le_mul_right _ (Nat.mul_le_mul_left _ h3)
+      _ ≤ 2 ^ 7 * (B ^ 7 * (B * B - R)) := by
+        rw [Nat.mul_assoc]; exact Nat.mul_le_mul_left _ hinv
+      _ = B ^ 7 * (128 * (B * B - R)) := by ring
+  have := Nat.lt_of_mul_lt_mul_left h4
+  omega
+
+/-- The bound after the `k ≤ 6` folds of `N ≥ 2` with `q ≥ 1`: the deficit at most halves per fold
+(`B ^ N ≤ 2 * D`), and `R0 < B ^ (N + 1) / 2`. -/
+theorem fold_bound_n2 (k B BN D R0 R : Nat) (hk : k + 1 ≤ 7) (hBN : 0 < BN) (hD : BN ≤ 2 * D)
+    (hR0 : 2 * R0 < B * BN) (hR : R < B * BN)
+    (hinv : D ^ k * (B * BN - R0) ≤ BN ^ k * (B * BN - R)) :
+    128 * R < 127 * (B * BN) := by
+  have h1 : BN ^ k ≤ 2 ^ k * D ^ k := by rw [← mul_pow]; exact Nat.pow_le_pow_left hD k
+  have h2 : 2 ^ (k + 1) ≤ 2 ^ 7 := Nat.pow_le_pow_right (by norm_num) hk
+  have h3 : BN ^ k * (B * BN) < BN ^ k * (128 * (B * BN - R)) :=
+    calc BN ^ k * (B * BN) < BN ^ k * (2 * (B * BN - R0)) :=
+          Nat.mul_lt_mul_of_pos_left (by omega) (by positivity)
+      _ ≤ 2 ^ k * D ^ k * (2 * (B * BN - R0)) := Nat.mul_le_mul_right _ h1
+      _ = 2 ^ (k + 1) * (D ^ k * (B * BN - R0)) := by ring
+      _ ≤ 2 ^ (k + 1) * (BN ^ k * (B * BN - R)) := Nat.mul_le_mul_left _ hinv
+      _ ≤ 2 ^ 7 * (BN ^ k * (B * BN - R)) := Nat.mul_le_mul_right _ h2
+      _ = BN ^ k * (128 * (B * BN - R)) := by ring
+  have := Nat.lt_of_mul_lt_mul_left h3
+  omega
 
 /-- The Barrett estimate: with `B ^ (N + 1) = (B + q) * D + C1` and `R ≤ B ^ (N + 1) - 2 * B ^ N`,
 `Qh = floor(floor(R / P) * (B + q) / B ^ 2)` has `Qh * D ≤ R < (Qh + 2) * D`. -/

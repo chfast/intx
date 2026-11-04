@@ -6,10 +6,12 @@ set_option warningAsError true
 # Proofs: `mulmod()`
 
 The main theorem `mulmod_correct`: the model of `mulmod()` computes `x * y mod m` for every nonzero
-`m`, without undefined behavior, with and without the `div` instruction (`Platform`). `mulmod_fold_spec` follows `internal::mulmod_fold<N>()` through
-its code: the normalized modulus `d`, `C0`, the power-of-2 case, `q` and `C1` from the division,
-the folds (`Intx.fold_congr`, `Intx.fold_deficit`, `Intx.fold_q0`), the Barrett estimate
-(`Intx.barrett`) and the final corrections.
+`m`, without undefined behavior, with and without the `div` instruction (`Platform`).
+`mulmod_fold_spec` follows `internal::mulmod_fold<N>()` through its code: the normalized modulus
+`d`, `C0`, the power-of-2 case, `q` and `C1` from the division, the folds (`Intx.fold_congr`,
+`Intx.fold_deficit`, `Intx.fold_q0`), which keep `R` below `(1 - 2^-7) * B ^ (N + 1)`
+(`Intx.fold_bound_n1`, `Intx.fold_bound_n2`), the Barrett estimate (`Intx.barrett`) and the final
+corrections.
 -/
 
 namespace Intx.Model
@@ -234,10 +236,9 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
       ∃ r, jp3 (q, c1) = some r ∧ val r.toList = val x.toList * val y.toList % val m.toList := by
     intro q c1 hq hc1
     simp (config := { zeta := false }) only [jp3]
-    have hpwl : val pw.toList < 2 ^ 512 * 2 ^ 63 := by
-      have h2 : 2 ^ s.val ≤ 2 ^ 63 := Nat.pow_le_pow_right (by norm_num) (by omega)
+    have hpwl : val pw.toList < 2 ^ 512 * 2 ^ s.val := by
       rw [hpw]
-      exact Nat.mul_lt_mul_of_lt_of_le hXY h2 (by positivity)
+      exact Nat.mul_lt_mul_of_lt_of_le hXY (le_refl _) (by positivity)
     -- The top N + 1 words of the shifted product.
     refine ex_bind (fun r : Vector Word (N + 1) => val r.toList = val pw.toList / 2 ^ (64 * (8 - N)))
       (ex_mono (forIn'_rco0_ex
@@ -264,28 +265,50 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
     have hC0D' : val d.toList + val c0.toList = 2 ^ 64 * 2 ^ (64 * (N - 1)) := by
       rw [hc0, ← hBN]; omega
     have hqC : 2 ^ 64 * val c0.toList = q.toNat * val d.toList + val c1.toList := by omega
+    -- Before the folds: the top N + 1 words of the product, less than 2^s * B^N.
+    have hR0s : val rr.toList < 2 ^ s.val * 2 ^ (64 * N) := by
+      simp only [rr]
+      rw [hr0, Nat.div_lt_iff_lt_mul (by positivity)]
+      have e : (2 : ℕ) ^ 512 * 2 ^ s.val = 2 ^ s.val * 2 ^ (64 * N) * 2 ^ (64 * (8 - N)) := by
+        rw [← pow_add, ← pow_add, ← pow_add]; congr 1; omega
+      exact e ▸ hpwl
+    have hR0 : val rr.toList < 2 ^ 63 * 2 ^ (64 * N) :=
+      lt_of_lt_of_le hR0s (Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by norm_num) (by omega)))
+    -- For N = 1, d is not 2^63 (q < B) and a multiple of 2^s: d ≥ 2^63 + 2^s.
+    have hd1s : N = 1 → 2 ^ 63 + 2 ^ s.val ≤ val d.toList := by
+      intro hN1
+      have hBN1 : (2 : ℕ) ^ (64 * N) = 2 ^ 64 := by rw [hN1]
+      have hd63 : 2 ^ 63 ≤ val d.toList := by
+        have := hDge; rw [hBN1, ← hd] at this; omega
+      have hne : val d.toList ≠ 2 ^ 63 := by
+        intro h
+        have hql := q.toNat_lt
+        rw [hc0, hBN1, h] at hq
+        rw [h] at hc1
+        have := Nat.mul_le_mul_right (2 ^ 63) (show q.toNat + 1 ≤ 2 ^ 64 by omega)
+        rw [Nat.add_mul, Nat.one_mul] at this
+        omega
+      obtain ⟨k, hk⟩ : 2 ^ s.val ∣ val d.toList := ⟨val m.toList, by rw [hd, Nat.mul_comm]⟩
+      have h63 : (2 : ℕ) ^ 63 = 2 ^ s.val * 2 ^ (63 - s.val) := by
+        rw [← pow_add]; congr 1; omega
+      have hk1 : 2 ^ (63 - s.val) < k := by
+        have h1 : 2 ^ s.val * 2 ^ (63 - s.val) < 2 ^ s.val * k := by rw [← h63, ← hk]; omega
+        exact Nat.lt_of_mul_lt_mul_left h1
+      have := Nat.mul_le_mul_left (2 ^ s.val) (show 2 ^ (63 - s.val) + 1 ≤ k by omega)
+      rw [Nat.mul_add, Nat.mul_one, ← h63, ← hk] at this
+      omega
     refine ex_bind (fun r : Vector Word (N + 1) =>
         val r.toList % val d.toList = val pw.toList % val d.toList ∧
-        val r.toList + 2 * 2 ^ (64 * N) ≤ 2 ^ 64 * 2 ^ (64 * N))
+        128 * val r.toList < 127 * (2 ^ 64 * 2 ^ (64 * N)))
       (ex_mono (forIn'_rco0_ex
         (fun k (r : Vector Word (N + 1)) =>
           val r.toList % val d.toList = val pw.toList / 2 ^ (64 * (8 - N - k)) % val d.toList ∧
-          (1 ≤ q.toNat → 2 ^ 64 * 2 ^ (64 * N) ≤ 2 ^ (k + 1) * (2 ^ 64 * 2 ^ (64 * N) - val r.toList)) ∧
+          (1 ≤ q.toNat → val d.toList ^ k * (2 ^ 64 * 2 ^ (64 * N) - val rr.toList) ≤
+            (2 ^ (64 * N)) ^ k * (2 ^ 64 * 2 ^ (64 * N) - val r.toList)) ∧
           (q.toNat = 0 → val r.toList < (2 ^ 63 + k) * 2 ^ (64 * N)))
         ?_ ?_) ?_) ?_
-    · -- Before the folds: the top N + 1 words of the product, less than 2^63 * B^N.
-      have hR0 : val rr.toList < 2 ^ 63 * 2 ^ (64 * N) := by
-        simp only [rr]
-        rw [hr0, Nat.div_lt_iff_lt_mul (by positivity)]
-        have e : (2 : ℕ) ^ 512 * 2 ^ 63 = 2 ^ 63 * 2 ^ (64 * N) * 2 ^ (64 * (8 - N)) := by
-          rw [← pow_add, ← pow_add, ← pow_add]; congr 1; omega
-        exact e ▸ hpwl
-      refine ⟨by simp only [rr, Nat.sub_zero]; rw [hr0], fun _ => ?_, fun _ => ?_⟩
-      · have : 2 * 2 ^ 63 = 2 ^ 64 := by norm_num
-        have : 2 * (2 ^ 63 * 2 ^ (64 * N)) = 2 ^ 64 * 2 ^ (64 * N) := by rw [← Nat.mul_assoc, this]
-        rw [show 0 + 1 = 1 by rfl, pow_one]
-        omega
-      · simpa using hR0
+    · refine ⟨by simp only [rr, Nat.sub_zero]; rw [hr0], fun _ => by simp, fun _ => ?_⟩
+      simpa using hR0
     · intro j b hj hm ⟨hI1, hI2, hI3⟩
       lift_lets
       intro rb acc0
@@ -443,23 +466,20 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
         rw [hpwt]
         unfold Nat.ModEq at h3
         rw [h3, Nat.add_comm, Nat.mul_comm]
-      · -- The deficit at least halves.
+      · -- The deficit shrinks at most by the factor d / B^N.
         have hdef := fold_deficit (2 ^ 64) (2 ^ (64 * (N - 1))) (val d.toList) (val c0.toList)
           (val c1.toList) q.toNat (pw[8 - N - j - 1]'(by omega)).toNat
           (val b.toList % 2 ^ (64 * (N - 1))) b[N - 1].toNat b[N].toNat hC0D' hqC hc1 hq1
           (UInt64.toNat_lt _) hlow (UInt64.toNat_lt _) (UInt64.toNat_lt _)
         rw [← hbsplit, ← hRv, ← hBN] at hdef
-        have h1 : 2 ^ (64 * N) * (2 ^ 64 * 2 ^ (64 * N) - val b.toList) ≤
-            2 ^ (64 * N) * (2 * (2 ^ 64 * 2 ^ (64 * N) - val rr'.toList)) := by
-          calc 2 ^ (64 * N) * (2 ^ 64 * 2 ^ (64 * N) - val b.toList)
-              ≤ (2 * val d.toList) * (2 ^ 64 * 2 ^ (64 * N) - val b.toList) := Nat.mul_le_mul_right _ hBP2
-            _ = 2 * (val d.toList * (2 ^ 64 * 2 ^ (64 * N) - val b.toList)) := by ring
-            _ ≤ 2 * (2 ^ (64 * N) * (2 ^ 64 * 2 ^ (64 * N) - val rr'.toList)) := Nat.mul_le_mul_left _ hdef
-            _ = 2 ^ (64 * N) * (2 * (2 ^ 64 * 2 ^ (64 * N) - val rr'.toList)) := by ring
-        have h2 := Nat.le_of_mul_le_mul_left h1 (by positivity)
-        calc 2 ^ 64 * 2 ^ (64 * N) ≤ 2 ^ (j + 1) * (2 ^ 64 * 2 ^ (64 * N) - val b.toList) := hI2 hq1
-          _ ≤ 2 ^ (j + 1) * (2 * (2 ^ 64 * 2 ^ (64 * N) - val rr'.toList)) := Nat.mul_le_mul_left _ h2
-          _ = 2 ^ (j + 1 + 1) * (2 ^ 64 * 2 ^ (64 * N) - val rr'.toList) := by ring
+        calc val d.toList ^ (j + 1) * (2 ^ 64 * 2 ^ (64 * N) - val rr.toList)
+            = val d.toList * (val d.toList ^ j * (2 ^ 64 * 2 ^ (64 * N) - val rr.toList)) := by ring
+          _ ≤ val d.toList * ((2 ^ (64 * N)) ^ j * (2 ^ 64 * 2 ^ (64 * N) - val b.toList)) :=
+            Nat.mul_le_mul_left _ (hI2 hq1)
+          _ = (2 ^ (64 * N)) ^ j * (val d.toList * (2 ^ 64 * 2 ^ (64 * N) - val b.toList)) := by ring
+          _ ≤ (2 ^ (64 * N)) ^ j * (2 ^ (64 * N) * (2 ^ 64 * 2 ^ (64 * N) - val rr'.toList)) :=
+            Nat.mul_le_mul_left _ hdef
+          _ = (2 ^ (64 * N)) ^ (j + 1) * (2 ^ 64 * 2 ^ (64 * N) - val rr'.toList) := by ring
       · -- The top word grows by at most 1.
         have hq0' : 2 ^ 64 * val c0.toList = val c1.toList := by rw [hqC, hq0]; simp
         have hf0 := fold_q0 (2 ^ 64) (2 ^ (64 * (N - 1))) (val d.toList) (val c0.toList)
@@ -472,7 +492,7 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
         calc val rr'.toList < 2 ^ (64 * N) * (b[N].toNat + 2) := hf0
           _ ≤ 2 ^ (64 * N) * (2 ^ 63 + (j + 1)) := Nat.mul_le_mul_left _ (by omega)
           _ = (2 ^ 63 + (j + 1)) * 2 ^ (64 * N) := by ring
-    · -- After the folds.
+    · -- After the folds: R < (1 - 2^-7) * B^(N + 1).
       intro r ⟨hI1, hI2, hI3⟩
       have hrl : val r.toList < 2 ^ 64 * 2 ^ (64 * N) := by
         have := val_toList_lt r
@@ -484,10 +504,17 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
           Nat.mul_le_mul_right _ (by omega)
         omega
       · have h := hI2 hq1
-        have : 2 ^ (8 - N + 1) * (2 ^ 64 * 2 ^ (64 * N) - val r.toList) ≤
-            2 ^ 8 * (2 ^ 64 * 2 ^ (64 * N) - val r.toList) :=
-          Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by norm_num) (by omega))
-        omega
+        by_cases hN1 : N = 1
+        · have hBN1 : (2 : ℕ) ^ (64 * N) = 2 ^ 64 := by rw [hN1]
+          have hpow := fold_n1_pow s
+          rw [pow_succ 2 s.val, Nat.mul_comm (2 ^ s.val) 2] at hpow
+          rw [show 8 - N = 7 by omega, hBN1] at h
+          rw [hBN1] at hrl hR0s ⊢
+          exact fold_bound_n1 (2 ^ 64) (2 ^ s.val) (2 ^ 63) (val d.toList) (val rr.toList)
+            (val r.toList) (by norm_num) (Nat.pow_le_pow_right (by norm_num) (by omega))
+            (by positivity) (hd1s hN1) hR0s hrl hpow h
+        · exact fold_bound_n2 (8 - N) (2 ^ 64) (2 ^ (64 * N)) (val d.toList) (val rr.toList)
+            (val r.toList) (by omega) (by positivity) (by rw [hd]; exact hDge) (by omega) hrl h
     · -- The Barrett step.
       intro R ⟨hRm, hRb⟩
       lift_lets
