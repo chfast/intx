@@ -357,6 +357,22 @@ TYPED_TEST(uint_test, string_conversions)
     EXPECT_EQ(from_string<TypeParam>("0x" + hex(~TypeParam{0})), ~TypeParam{0});
 }
 
+TYPED_TEST(uint_test, from_string_overflow)
+{
+    const auto max = std::numeric_limits<TypeParam>::max();
+    const auto dec = to_string(max);
+    const auto hex_digits = hex(max);
+    EXPECT_EQ(from_string<TypeParam>(dec), max);
+    EXPECT_EQ(from_string<TypeParam>("00" + dec), max);
+    EXPECT_EQ(from_string<TypeParam>("0x00" + hex_digits), max);
+
+    auto max_plus_1 = dec;  // The max() = 2^N - 1 ends with the digit 5.
+    ++max_plus_1.back();
+    for (const auto& s : {max_plus_1, std::string(dec.size(), '9'), dec + "0",
+             "0x1" + std::string(hex_digits.size(), '0')})
+        EXPECT_THROW_MESSAGE(from_string<TypeParam>(s), std::out_of_range, s.c_str());
+}
+
 TYPED_TEST(uint_test, to_string_base)
 {
     auto x = TypeParam{1024};
