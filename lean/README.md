@@ -2,7 +2,7 @@
 
 A machine-checked proof that `intx::mulmod()` computes `x * y mod m` for every nonzero `m`, without
 undefined behavior. It covers `internal::mulmod_fold<N>()` for `N` from 1 to 4 and the helpers it
-calls, from the word operations up.
+calls, from the word operations up, with and without the x86-64 `div` instruction.
 
 ## Audit map
 
@@ -31,8 +31,11 @@ calls, from the word operations up.
     iterations its comment promises, and the proof shows they are enough.
   * The word operations have the semantics of their portable code; the builtins and the x86-64
     asm compute the same.
-  * `udivrem_2by1()` is the x86-64 `div` instruction. Constant evaluation and the other
-    architectures use the reciprocal instead; that path is not proved yet.
+  * The code paths that the build and the context select are the argument `P : Platform` of the
+    model. With `P.div_wide_x86`, `udivrem_2by1()` and `reciprocal_2by1()` use the x86-64 `div`
+    instruction (`INTX_HAS_DIV_WIDE_X86` outside constant evaluation). Without it they use the
+    reciprocal of `internal::reciprocal()`, as constant evaluation and the other architectures do.
+    The main theorem holds for both.
   * The uninitialized arrays are zeros: the C++ code writes every word of them before reading it.
 
 ## Build and check
@@ -43,6 +46,15 @@ lake build
 lake env lean Checks.lean
 scripts/difftest.sh 1000000
 scripts/check-source.py
+```
+
+The differential test checks the model on both paths against the C++ results of the build. The
+vectors of a build without the `div` instruction, such as aarch64 under qemu, go in a file:
+
+```sh
+aarch64-linux-gnu-g++ -std=c++20 -O2 -static -I ../include scripts/difftest.cpp -o gen-a64
+qemu-aarch64 ./gen-a64 1000000 > vectors-a64.txt
+VECTORS=vectors-a64.txt scripts/difftest.sh
 ```
 
 ## Updates

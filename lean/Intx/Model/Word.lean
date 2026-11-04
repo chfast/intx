@@ -31,6 +31,12 @@ asm (`shld`, `shrd`, `bsr`) that the C++ code uses at run time compute the same 
 
 namespace Intx.Model
 
+/-- The code paths that the C++ code selects by the build and the context: with `div_wide_x86`,
+`udivrem_2by1()` and `reciprocal_2by1()` use the x86-64 `div` instruction (`INTX_HAS_DIV_WIDE_X86`
+outside constant evaluation), otherwise the reciprocal of `internal::reciprocal()`. -/
+structure Platform where
+  div_wide_x86 : Bool
+
 /-- `INTX_REQUIRE(c)`: release builds make a false `c` undefined behavior
 (`__builtin_unreachable()`), and the code after it may assume `c`. -/
 def require (c : Prop) [Decidable c] : Option (PLift c) := if h : c then some ⟨h⟩ else none
@@ -106,14 +112,53 @@ def U128.add (a b : U128) : U128 :=
 
 instance : Add U128 := ⟨U128.add⟩
 
-/-- `operator<(uint128, uint128)`: the comparison of the numbers. -/
-def U128.lt (a b : U128) : Bool :=
-  decide (a.hi.toNat * 2 ^ 64 + a.lo.toNat < b.hi.toNat * 2 ^ 64 + b.lo.toNat)
+/-- `operator<(uint128, uint128)`. GCC and clang compare the builtin type `unsigned __int128`;
+the other builds run this portable code.
 
-/-- `umul(uint64_t x, uint64_t y)`: the 128-bit product, `builtin_uint128{x} * builtin_uint128{y}`. -/
+```cpp
+return (unsigned{x[1] < y[1]} | (unsigned{x[1] == y[1]} & unsigned{x[0] < y[0]})) != 0;
+```
+-/
+def U128.lt (x y : U128) : Bool :=
+  decide (x[1] < y[1]) || (decide (x[1] = y[1]) && decide (x[0] < y[0]))
+
+/-- `umul(uint64_t x, uint64_t y)`: the 128-bit product. GCC and clang compute it with
+`unsigned __int128`, and MSVC on x86-64 with `_umul128()` outside constant evaluation; the other
+builds run this portable code.
+
+```cpp
+uint64_t xlo = x & 0xffffffff;
+uint64_t xhi = x >> 32;
+uint64_t ylo = y & 0xffffffff;
+uint64_t yhi = y >> 32;
+
+uint64_t t0 = xlo * ylo;
+uint64_t t1 = xhi * ylo;
+uint64_t t2 = xlo * yhi;
+uint64_t t3 = xhi * yhi;
+
+uint64_t u1 = t1 + (t0 >> 32);
+uint64_t u2 = t2 + (u1 & 0xffffffff);
+
+uint64_t lo = (u2 << 32) | (t0 & 0xffffffff);
+uint64_t hi = t3 + (u2 >> 32) + (u1 >> 32);
+return {lo, hi};
+```
+-/
 def umul (x y : Word) : U128 :=
-  let p := x.toNat * y.toNat
-  ⟨UInt64.ofNat p, UInt64.ofNat (p / 2 ^ 64)⟩
+  let xlo := x &&& 0xffffffff
+  let xhi := x >>> 32
+  let ylo := y &&& 0xffffffff
+  let yhi := y >>> 32
+  let t0 := xlo * ylo
+  let t1 := xhi * ylo
+  let t2 := xlo * yhi
+  let t3 := xhi * yhi
+  let u1 := t1 + (t0 >>> 32)
+  let u2 := t2 + (u1 &&& 0xffffffff)
+  let lo := (u2 <<< 32) ||| (t0 &&& 0xffffffff)
+  let hi := t3 + (u2 >>> 32) + (u1 >>> 32)
+  ⟨lo, hi⟩
 
 /-- `fshl(hi, lo, shift)`: the high word of `hi:lo` shifted left.
 
