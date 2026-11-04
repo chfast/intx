@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
 #include <memory>
 #include <new>
 #include <span>
@@ -88,6 +89,10 @@ enum Op : uint8_t
     from_words,      // [w]: construct uint<w> from the words of the top item.
     load_be_bytes,   // [w]: load uint<w> from the bytes of the top item.
     trunc_be_bytes,  // Store x truncated to the bytes of the item below it.
+
+    cmp,        // Pushes the bits of all comparisons of x and y and of bool(x).
+    assign_op,  // [1 byte]: x op= y, or ++x, x++, --x, x--, +x with y dropped.
+    bytes_io,   // [1 byte]: store x with a byte API and load it back, or check hex(x).
     num_ops
 };
 
@@ -150,6 +155,9 @@ constexpr OpInfo op_info[] = {
     {from_words, "from_words", 1, 1, true, 0},
     {load_be_bytes, "load_be_bytes", 1, 1, true, 0},
     {trunc_be_bytes, "trunc_be_bytes", 2, 1, false, 0},
+    {cmp, "cmp", 2, 1, false, 0},
+    {assign_op, "assign_op", 2, 1, false, 1},
+    {bytes_io, "bytes_io", 1, 1, false, 1},
 };
 static_assert(std::size(op_info) == num_ops);
 static_assert([] {
@@ -234,14 +242,6 @@ struct Item
         return s;
     }
 
-    /// Returns the value zero-extended to the maximum width.
-    [[nodiscard]] intx::uint<MAX_WORDS * 64> get_extended() const noexcept
-    {
-        intx::uint<MAX_WORDS * 64> x;
-        with_width(words, [&]<unsigned N> { x = get<N>(); });
-        return x;
-    }
-
     template <unsigned N>
     void set(const intx::uint<N>& x) noexcept
     {
@@ -310,6 +310,37 @@ void export_bytes(uint8_t* out, mpz_srcptr z, size_t num_bytes, int order) noexc
     const auto n = (mpz_sizeinbase(z, 2) + 7) / 8;
     mpz_export(order < 0 ? out : out + (num_bytes - n), nullptr, order, 1, 0, 0, z);
 }
+
+/// Sets r to x shifted left or right by the amount, the result of num_bits bits.
+void shift(mpz_ptr r, mpz_srcptr x, mpz_srcptr amount, unsigned num_bits, bool left) noexcept
+{
+    if (mpz_cmp_ui(amount, num_bits) >= 0)
+        mpz_set_ui(r, 0);
+    else if (left)
+    {
+        mpz_mul_2exp(r, x, mpz_get_ui(amount));
+        wrap(r, num_bits);
+    }
+    else
+        mpz_fdiv_q_2exp(r, x, mpz_get_ui(amount));
+}
+
+/// Packs the bits into an integer, the first one is the lowest.
+constexpr uint64_t pack_bits(std::initializer_list<bool> bits) noexcept
+{
+    uint64_t r = 0;
+    unsigned i = 0;
+    for (const auto bit : bits)
+        r |= uint64_t{bit} << i++;
+    return r;
+}
+
+/// A struct with the .bytes field, like evmc::bytes32.
+template <size_t Size>
+struct Bytes
+{
+    uint8_t bytes[Size];
+};
 
 class Machine
 {
@@ -498,9 +529,13 @@ bool Machine::exec(const Instr& in) noexcept
             mpz_import(r.z, num_bytes, 1, 1, 0, 0, in.payload);
             break;
         case push_small:
-            r.set(T{in.imm});
+        {
+            T v;
+            v = uint64_t{in.imm};
+            r.set(v);
             mpz_set_ui(r.z, in.imm);
             break;
+        }
         default:  // push_pow2
             r.set(T{1} << (in.imm % N));
             mpz_set_ui(r.z, 0);
@@ -518,7 +553,17 @@ bool Machine::exec(const Instr& in) noexcept
     case cast:  // The words are truncated or zero-extended.
     {
         auto& a = stack_[sp_ - 1];
-        a.set(static_cast<T>(a.get_extended()));
+        with_width(a.words, [&]<unsigned M> {
+            const auto x = a.get<M>();
+            if constexpr (M <= N)
+            {
+                T r;
+                r = x;
+                a.set(r);
+            }
+            else
+                a.set(static_cast<T>(x));
+        });
         wrap(a.z, N);
         check(a);
         return true;
@@ -646,12 +691,12 @@ bool Machine::exec(const Instr& in) noexcept
         switch (in.op)
         {
         case shli:
-            a.set(x << uint64_t{in.imm});
+            a.set(x << in.imm);
             mpz_mul_2exp(a.z, a.z, in.imm);
             wrap(a.z, N);
             break;
         case shri:
-            a.set(x >> uint64_t{in.imm});
+            a.set(x >> in.imm);
             mpz_fdiv_q_2exp(a.z, a.z, in.imm);
             break;
         case bit_not:
@@ -709,6 +754,62 @@ bool Machine::exec(const Instr& in) noexcept
                 fail("from_string (dec)", &a);
             if (base == 16 && from_string<T>("0x" + s) != x)
                 fail("from_string (hex)", &a);
+            break;
+        }
+        case bytes_io:
+        {
+            uint8_t expected[num_bytes];
+            const auto variant = in.imm % 6;
+            if (variant == 5)
+            {
+                std::string hex_expected(mpz_sizeinbase(a.z, 16) + 1, '\0');
+                mpz_get_str(hex_expected.data(), 16, a.z);
+                hex_expected.resize(hex_expected.find('\0'));
+                if (intx::hex(x) != hex_expected)
+                    fail("hex", &a);
+                break;
+            }
+            if (variant == 4)  // Truncated to the lower half.
+            {
+                constexpr auto H = num_bytes / 2;
+                uint8_t half[H];
+                be::trunc(half, x);
+                const auto t = be::trunc<Bytes<H>>(x);
+                wrap(a.z, H * 8);
+                export_bytes(expected, a.z, H, 1);
+                if (std::memcmp(half, expected, H) != 0 || std::memcmp(t.bytes, expected, H) != 0)
+                    fail("be::trunc", &a);
+                a.set(be::load<T>(half));
+                break;
+            }
+            uint8_t bytes[num_bytes];
+            T loaded;
+            switch (variant)
+            {
+            case 0:
+                le::store(bytes, x);
+                loaded = le::load<T>(bytes);
+                break;
+            case 1:
+                be::store(bytes, x);
+                loaded = be::load<T>(bytes);
+                break;
+            case 2:
+                be::store(std::span<uint8_t, num_bytes>{bytes}, x);
+                loaded = be::load<T>(std::span<const uint8_t, num_bytes>{bytes});
+                break;
+            default:
+            {
+                const auto t = be::store<Bytes<num_bytes>>(x);
+                std::memcpy(bytes, t.bytes, num_bytes);
+                loaded = be::load<T>(t);
+                break;
+            }
+            }
+            export_bytes(expected, a.z, num_bytes, variant == 0 ? -1 : 1);
+            if (std::memcmp(bytes, expected, num_bytes) != 0)
+                fail("store", &a);
+            a.set(loaded);
             break;
         }
         default:  // store_le, store_be
@@ -841,15 +942,7 @@ bool Machine::exec(const Instr& in) noexcept
     case shl:
     case shr:
         r.set(in.op == shl ? x << y : x >> y);
-        if (mpz_cmp_ui(b.z.z, N) >= 0)
-            mpz_set_ui(r.z, 0);
-        else if (in.op == shl)
-        {
-            mpz_mul_2exp(r.z, r.z, mpz_get_ui(b.z));
-            wrap(r.z, N);
-        }
-        else
-            mpz_fdiv_q_2exp(r.z, r.z, mpz_get_ui(b.z));
+        shift(r.z, r.z, b.z, N, in.op == shl);
         break;
     case bit_and:
         r.set(x & y);
@@ -879,6 +972,95 @@ bool Machine::exec(const Instr& in) noexcept
         to_signed(t2_, b.z, N);
         mpz_set_ui(r.z, mpz_cmp(t1_, t2_) < 0);
         break;
+    case cmp:
+    {
+        const auto c = x <=> y;
+        r.set(T{pack_bits({(x < y), (x <= y), (x > y), (x >= y), (x == y), (x != y), (c < 0),
+            (c > 0), static_cast<bool>(x)})});
+        const auto e = mpz_cmp(r.z, b.z);
+        const auto nz = mpz_sgn(r.z.z) != 0;
+        mpz_set_ui(
+            r.z, pack_bits({e < 0, e <= 0, e > 0, e >= 0, e == 0, e != 0, e < 0, e > 0, nz}));
+        break;
+    }
+    case assign_op:
+    {
+        auto v = x;
+        const auto k = in.imm % 15;
+        switch (k)
+        {
+        case 0:
+            v += y;
+            mpz_add(r.z, r.z, b.z);
+            break;
+        case 1:
+            v -= y;
+            mpz_sub(r.z, r.z, b.z);
+            break;
+        case 2:
+            v *= y;
+            mpz_mul(r.z, r.z, b.z);
+            break;
+        case 3:
+            if (y == 0)
+                return false;
+            v /= y;
+            mpz_tdiv_q(r.z, r.z, b.z);
+            break;
+        case 4:
+            if (y == 0)
+                return false;
+            v %= y;
+            mpz_tdiv_r(r.z, r.z, b.z);
+            break;
+        case 5:
+            v |= y;
+            mpz_ior(r.z, r.z, b.z);
+            break;
+        case 6:
+            v &= y;
+            mpz_and(r.z, r.z, b.z);
+            break;
+        case 7:
+            v ^= y;
+            mpz_xor(r.z, r.z, b.z);
+            break;
+        case 8:
+            v <<= y;
+            shift(r.z, r.z, b.z, N, true);
+            break;
+        case 9:
+            v >>= y;
+            shift(r.z, r.z, b.z, N, false);
+            break;
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        {
+            // Only uint128 has the increment and decrement operators.
+            const auto is_inc = k < 12;
+            if constexpr (requires { ++v; })
+            {
+                if (k % 2 == 0)
+                    is_inc ? ++v : --v;
+                else if ((is_inc ? v++ : v--) != x)
+                    fail("postfix increment or decrement");
+            }
+            else
+                v = is_inc ? v + 1 : v - 1;
+            (is_inc ? mpz_add_ui : mpz_sub_ui)(r.z, r.z, 1);
+            break;
+        }
+        default:
+            if constexpr (requires { +v; })
+                v = +v;
+            break;
+        }
+        r.set(v);
+        wrap(r.z, N);
+        break;
+    }
     default:  // eq
         r.set(T{uint64_t{x == y}});
         mpz_set_ui(r.z, mpz_cmp(r.z, b.z) == 0);
