@@ -6,7 +6,7 @@ set_option warningAsError true
 # Proofs: `mulmod()`
 
 The main theorem `mulmod_correct`: the model of `mulmod()` computes `x * y mod m` for every nonzero
-`m`, without undefined behavior. `mulmod_fold_spec` follows `internal::mulmod_fold<N>()` through
+`m`, without undefined behavior, with and without the `div` instruction (`Platform`). `mulmod_fold_spec` follows `internal::mulmod_fold<N>()` through
 its code: the normalized modulus `d`, `C0`, the power-of-2 case, `q` and `C1` from the division,
 the folds (`Intx.fold_congr`, `Intx.fold_deficit`, `Intx.fold_q0`), the Barrett estimate
 (`Intx.barrett`) and the final corrections.
@@ -51,9 +51,9 @@ theorem val_div_pow2 (v : Vector Word 4) :
   rw [this, val_div_pow_top v 3 rfl]
 
 set_option maxHeartbeats 4000000 in
-theorem mulmod_fold_spec (N : Nat) (x y m : U256) (hN : 1 ≤ N ∧ N ≤ 4) (hm : m[N - 1] ≠ 0)
-    (hmN : val m.toList < 2 ^ (64 * N)) :
-    ∃ r, mulmod_fold N x y m hN = some r ∧
+theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N ∧ N ≤ 4)
+    (hm : m[N - 1] ≠ 0) (hmN : val m.toList < 2 ^ (64 * N)) :
+    ∃ r, mulmod_fold P N x y m hN = some r ∧
       val r.toList = val x.toList * val y.toList % val m.toList := by
   obtain ⟨s, hs, hs1, hs2⟩ := clz_nonzero_spec m[N - 1] hm
   unfold mulmod_fold
@@ -660,7 +660,11 @@ theorem mulmod_fold_spec (N : Nat) (x y m : U256) (hN : 1 ≤ N ∧ N ≤ 4) (hm
       have hd0 : d[0].toNat = val d.toList := by
         rw [getElem_toNat']; simp only [Nat.mul_zero, Nat.pow_zero, Nat.div_one]
         exact Nat.mod_eq_of_lt (by rw [← hB1]; exact hdl)
-      obtain ⟨q, c10, hdiv, hq, hc10⟩ := udivrem_2by1_spec ⟨c0b'[0], c0b'[1]⟩ d[0]
+      have hd063 : 2 ^ 63 ≤ d[0].toNat := by
+        have := hdt63
+        rw [hdt, show N - 1 = 0 by omega] at this
+        rw [hd0]; simpa using this
+      obtain ⟨q, c10, hdiv, hq, hc10⟩ := udivrem_2by1_spec P ⟨c0b'[0], c0b'[1]⟩ d[0] hd063
         (by rw [UInt64.lt_iff_toNat_lt]; show c0b'[1].toNat < d[0].toNat; rw [hhi, hd0]; exact hC0D)
       have hU : (⟨c0b'[0], c0b'[1]⟩ : U128).toNat = 2 ^ 64 * val c0.toList := by
         simp only [U128.toNat_mk, hlo, hhi]; ring
@@ -691,7 +695,7 @@ theorem mulmod_fold_spec (N : Nat) (x y m : U256) (hN : 1 ≤ N ∧ N ≤ 4) (hm
         rcases Nat.lt_or_ge (val c0.toList / 2 ^ (64 * (N - 1))) (val d.toList / 2 ^ (64 * (N - 1))) with h | h
         · exact h
         · exfalso; apply hpow; apply UInt64.toNat_inj.mp; rw [hc0t, hdt]; omega
-      obtain ⟨quot, rem, hdiv, hq, hr⟩ := udivrem_top1_spec (N - 1) c0b' (ofSpan N d (by omega))
+      obtain ⟨quot, rem, hdiv, hq, hr⟩ := udivrem_top1_spec P (N - 1) c0b' (ofSpan N d (by omega))
         (by omega) (by omega) (by omega) (by omega)
         (by rw [hsd (N - 1) (by omega)]; exact hdt63)
         (by
@@ -722,8 +726,9 @@ end Intx.Model
 namespace Intx
 
 open Model in
-/-- `mulmod()` computes `x * y mod m` for every nonzero `m`, without undefined behavior. -/
-theorem mulmod_correct : MulmodCorrect Model.mulmod := by
+/-- `mulmod()` computes `x * y mod m` for every nonzero `m`, without undefined behavior, on every
+code path. -/
+theorem mulmod_correct (P : Platform) : MulmodCorrect (Model.mulmod P) := by
   intro x y m hm
   have h3t : val m.toList / 2 ^ (64 * 3) = m[3].toNat := val_div_pow_top m 3 rfl
   have h2t : val m.toList / 2 ^ (64 * 2) = m[2].toNat + 2 ^ 64 * m[3].toNat := by
@@ -738,17 +743,17 @@ theorem mulmod_correct : MulmodCorrect Model.mulmod := by
   unfold mulmod
   by_cases h3 : m[3] ≠ 0
   · rw [if_pos h3]
-    exact mulmod_fold_spec 4 x y m (by omega) h3 (val_toList_lt m)
+    exact mulmod_fold_spec P 4 x y m (by omega) h3 (val_toList_lt m)
   rw [if_neg h3]
   have h3' : m[3].toNat = 0 := (hz _).mp (by simpa using h3)
   by_cases h2 : m[2] ≠ 0
   · rw [if_pos h2]
-    exact mulmod_fold_spec 3 x y m (by omega) h2 (val_lt_of_div_eq_zero _ _ (by rw [h3t, h3']))
+    exact mulmod_fold_spec P 3 x y m (by omega) h2 (val_lt_of_div_eq_zero _ _ (by rw [h3t, h3']))
   rw [if_neg h2]
   have h2' : m[2].toNat = 0 := (hz _).mp (by simpa using h2)
   by_cases h1 : m[1] ≠ 0
   · rw [if_pos h1]
-    exact mulmod_fold_spec 2 x y m (by omega) h1
+    exact mulmod_fold_spec P 2 x y m (by omega) h1
       (val_lt_of_div_eq_zero _ _ (by rw [h2t, h2', h3']; simp))
   rw [if_neg h1]
   have h1' : m[1].toNat = 0 := (hz _).mp (by simpa using h1)
@@ -759,6 +764,6 @@ theorem mulmod_correct : MulmodCorrect Model.mulmod := by
     apply hm
     rw [h0t, (hz _).mp h0, Nat.div_eq_of_lt hlt]
     simp
-  exact mulmod_fold_spec 1 x y m (by omega) h0 hlt
+  exact mulmod_fold_spec P 1 x y m (by omega) h0 hlt
 
 end Intx

@@ -71,7 +71,8 @@ return res;
 The fold loop counts `k` from 0, so `j` is `8 - N - k`. In `acc[N] += addmul(...)` and
 `r[N] -= submul(...)` the call is sequenced before the read of the left operand (C++17). The
 `uint128` arguments of the generic `umul()` are its words. -/
-def mulmod_fold (N : Nat) (x y m : U256) (_hN : 1 ≤ N ∧ N ≤ 4 := by omega) : Option U256 := do
+def mulmod_fold (P : Platform) (N : Nat) (x y m : U256) (_hN : 1 ≤ N ∧ N ≤ 4 := by omega) :
+    Option U256 := do
   let ⟨_⟩ ← require (m[N - 1] ≠ 0)
 
   let s ← clz_nonzero m[N - 1]
@@ -86,10 +87,10 @@ def mulmod_fold (N : Nat) (x y m : U256) (_hN : 1 ≤ N ∧ N ≤ 4 := by omega)
     return andWords (resize 4 p) (subWords m (resize 4 #v[1]))
 
   let (q, c1) ← if _h : N = 1 then do
-      let (q, c10) ← udivrem_2by1 ⟨c0b[0], c0b[1]⟩ d[0]
+      let (q, c10) ← udivrem_2by1 P ⟨c0b[0], c0b[1]⟩ d[0]
       pure (q, (Vector.replicate N 0).set 0 c10)
     else do
-      let (quot, rem) ← udivrem_top1 (N - 1) c0b (ofSpan N d)
+      let (quot, rem) ← udivrem_top1 P (N - 1) c0b (ofSpan N d)
       pure (quot[0], copy rem (Vector.replicate N 0))
 
   let pw : Vector Word 9 := shl 9 (span p 0 8) s
@@ -136,10 +137,10 @@ if (mod[1] != 0)
 return internal::mulmod_fold<1>(x, y, mod);
 ```
 -/
-def mulmod (x y m : U256) : Option U256 :=
-  if m[3] ≠ 0 then mulmod_fold 4 x y m
-  else if m[2] ≠ 0 then mulmod_fold 3 x y m
-  else if m[1] ≠ 0 then mulmod_fold 2 x y m
-  else mulmod_fold 1 x y m
+def mulmod (P : Platform) (x y m : U256) : Option U256 :=
+  if m[3] ≠ 0 then mulmod_fold P 4 x y m
+  else if m[2] ≠ 0 then mulmod_fold P 3 x y m
+  else if m[1] ≠ 0 then mulmod_fold P 2 x y m
+  else mulmod_fold P 1 x y m
 
 end Intx.Model

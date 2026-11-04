@@ -3,7 +3,7 @@ version = "0.1.0"
 defaultTargets = ["Intx"]
 
 # Mathlib at the release tag matching lean-toolchain. The proofs use its lemmas about Nat
-# arithmetic and its tactics (omega, linarith, nlinarith, positivity, bv_decide).
+# arithmetic and its tactics (linarith, nlinarith, linear_combination, positivity, ring).
 [[require]]
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4.git"

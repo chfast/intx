@@ -63,18 +63,93 @@ theorem U128.toNat_add (a b : U128) : (a + b).toNat = (a.toNat + b.toNat) % 2 ^ 
   omega
 
 theorem U128.lt_eq (a b : U128) : U128.lt a b = decide (a.toNat < b.toNat) := by
-  simp only [U128.lt, U128.toNat]
-  congr 1
-  apply propext
-  omega
+  have := a.lo.toNat_lt
+  have := b.lo.toNat_lt
+  simp only [U128.lt, U128.toNat, U128.getElem_zero, U128.getElem_one, UInt64.lt_iff_toNat_lt,
+    ← UInt64.toNat_inj]
+  by_cases h1 : a.hi.toNat < b.hi.toNat <;> by_cases h2 : a.hi.toNat = b.hi.toNat <;>
+    by_cases h3 : a.lo.toNat < b.lo.toNat <;> simp [h1, h2, h3] <;> omega
 
-theorem umul_toNat (x y : Word) : (umul x y).toNat = x.toNat * y.toNat := by
+theorem toNat_and_low32 (x : Word) : (x &&& 0xffffffff).toNat = x.toNat % 2 ^ 32 := by
+  rw [UInt64.toNat_and]
+  have : (0xffffffff : Word).toNat = 2 ^ 32 - 1 := rfl
+  rw [this, Nat.and_two_pow_sub_one_eq_mod]
+
+theorem toNat_shr32 (x : Word) : (x >>> 32).toNat = x.toNat / 2 ^ 32 := by
+  rw [UInt64.toNat_shiftRight, Nat.shiftRight_eq_div_pow]; rfl
+
+/-- The portable `umul()` computes the 128-bit product. -/
+theorem umul_spec (x y : Word) :
+    (umul x y).lo.toNat + 2 ^ 64 * (umul x y).hi.toNat = x.toNat * y.toNat := by
   have hx := x.toNat_lt
   have hy := y.toNat_lt
-  have : x.toNat * y.toNat < 2 ^ 64 * 2 ^ 64 := Nat.mul_lt_mul'' hx hy
-  simp only [umul, U128.toNat, UInt64.toNat_ofNat']
-  rw [Nat.mod_eq_of_lt (Nat.div_lt_of_lt_mul this)]
-  exact Nat.mod_add_div _ _
+  -- The 32-bit halves.
+  have hxa := toNat_and_low32 x
+  have hxb := toNat_shr32 x
+  have hya := toNat_and_low32 y
+  have hyb := toNat_shr32 y
+  generalize ha : x.toNat % 2 ^ 32 = a at hxa
+  generalize hb : x.toNat / 2 ^ 32 = b at hxb
+  generalize hc : y.toNat % 2 ^ 32 = c at hya
+  generalize he : y.toNat / 2 ^ 32 = e at hyb
+  have hx' : x.toNat = 2 ^ 32 * b + a := by rw [← ha, ← hb]; exact (Nat.div_add_mod _ _).symm
+  have hy' : y.toNat = 2 ^ 32 * e + c := by rw [← hc, ← he]; exact (Nat.div_add_mod _ _).symm
+  have ha' : a < 2 ^ 32 := by rw [← ha]; exact Nat.mod_lt _ (by positivity)
+  have hc' : c < 2 ^ 32 := by rw [← hc]; exact Nat.mod_lt _ (by positivity)
+  have hb' : b < 2 ^ 32 := by rw [← hb]; exact Nat.div_lt_of_lt_mul (by simpa using hx)
+  have he' : e < 2 ^ 32 := by rw [← he]; exact Nat.div_lt_of_lt_mul (by simpa using hy)
+  have hac : a * c ≤ (2 ^ 32 - 1) * (2 ^ 32 - 1) := Nat.mul_le_mul (by omega) (by omega)
+  have hbc : b * c ≤ (2 ^ 32 - 1) * (2 ^ 32 - 1) := Nat.mul_le_mul (by omega) (by omega)
+  have hae : a * e ≤ (2 ^ 32 - 1) * (2 ^ 32 - 1) := Nat.mul_le_mul (by omega) (by omega)
+  have hbe : b * e ≤ (2 ^ 32 - 1) * (2 ^ 32 - 1) := Nat.mul_le_mul (by omega) (by omega)
+  simp only [umul]
+  -- The products and sums do not wrap.
+  have ht0 : ((x &&& (0xffffffff : Word)) * (y &&& (0xffffffff : Word)) : Word).toNat = a * c := by
+    rw [UInt64.toNat_mul, hxa, hya, Nat.mod_eq_of_lt (by omega)]
+  have ht1 : ((x >>> (32 : Word)) * (y &&& (0xffffffff : Word)) : Word).toNat = b * c := by
+    rw [UInt64.toNat_mul, hxb, hya, Nat.mod_eq_of_lt (by omega)]
+  have ht2 : ((x &&& (0xffffffff : Word)) * (y >>> (32 : Word)) : Word).toNat = a * e := by
+    rw [UInt64.toNat_mul, hxa, hyb, Nat.mod_eq_of_lt (by omega)]
+  have ht3 : ((x >>> (32 : Word)) * (y >>> (32 : Word)) : Word).toNat = b * e := by
+    rw [UInt64.toNat_mul, hxb, hyb, Nat.mod_eq_of_lt (by omega)]
+  generalize ((x &&& (0xffffffff : Word)) * (y &&& (0xffffffff : Word)) : Word) = t0 at ht0 ⊢
+  generalize ((x >>> (32 : Word)) * (y &&& (0xffffffff : Word)) : Word) = t1 at ht1 ⊢
+  generalize ((x &&& (0xffffffff : Word)) * (y >>> (32 : Word)) : Word) = t2 at ht2 ⊢
+  generalize ((x >>> (32 : Word)) * (y >>> (32 : Word)) : Word) = t3 at ht3 ⊢
+  have hu1 : (t1 + (t0 >>> (32 : Word)) : Word).toNat = b * c + a * c / 2 ^ 32 := by
+    rw [UInt64.toNat_add, toNat_shr32, ht1, ht0]
+    have : a * c / 2 ^ 32 < 2 ^ 32 := Nat.div_lt_of_lt_mul (by omega)
+    exact Nat.mod_eq_of_lt (by omega)
+  generalize (t1 + (t0 >>> (32 : Word)) : Word) = u1 at hu1 ⊢
+  have hu2 : (t2 + (u1 &&& (0xffffffff : Word)) : Word).toNat = a * e + (b * c + a * c / 2 ^ 32) % 2 ^ 32 := by
+    rw [UInt64.toNat_add, toNat_and_low32, ht2, hu1]
+    have : (b * c + a * c / 2 ^ 32) % 2 ^ 32 < 2 ^ 32 := Nat.mod_lt _ (by positivity)
+    exact Nat.mod_eq_of_lt (by omega)
+  generalize (t2 + (u1 &&& (0xffffffff : Word)) : Word) = u2 at hu2 ⊢
+  have hu1l : b * c + a * c / 2 ^ 32 < 2 ^ 64 := by
+    have : a * c / 2 ^ 32 < 2 ^ 32 := Nat.div_lt_of_lt_mul (by omega)
+    omega
+  have hlo : (u2 <<< (32 : Word) ||| t0 &&& (0xffffffff : Word)).toNat =
+      2 ^ 32 * (u2.toNat % 2 ^ 32) + a * c % 2 ^ 32 := by
+    rw [UInt64.toNat_or, UInt64.toNat_shiftLeft, toNat_and_low32, ht0, Nat.shiftLeft_eq]
+    have e32 : (32 : Word).toNat % 64 = 32 := rfl
+    rw [e32, show (2 : ℕ) ^ 64 = 2 ^ 32 * 2 ^ 32 by norm_num, Nat.mul_comm u2.toNat,
+      Nat.mul_mod_mul_left]
+    exact (Nat.two_pow_add_eq_or_of_lt (Nat.mod_lt _ (by positivity)) _).symm
+  have hhi : (t3 + u2 >>> (32 : Word) + u1 >>> (32 : Word)).toNat =
+      b * e + u2.toNat / 2 ^ 32 + u1.toNat / 2 ^ 32 := by
+    rw [UInt64.toNat_add, UInt64.toNat_add, toNat_shr32, toNat_shr32, ht3, hu2, hu1]
+    have h1 : (a * e + (b * c + a * c / 2 ^ 32) % 2 ^ 32) / 2 ^ 32 < 2 ^ 32 := by
+      have : (b * c + a * c / 2 ^ 32) % 2 ^ 32 < 2 ^ 32 := Nat.mod_lt _ (by positivity)
+      exact Nat.div_lt_of_lt_mul (by omega)
+    have h2 : (b * c + a * c / 2 ^ 32) / 2 ^ 32 < 2 ^ 32 := Nat.div_lt_of_lt_mul (by omega)
+    rw [Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)]
+  have hR : (2 ^ 32 * b + a) * (2 ^ 32 * e + c) =
+      2 ^ 64 * (b * e) + 2 ^ 32 * (b * c) + 2 ^ 32 * (a * e) + a * c := by ring
+  rw [hlo, hhi, hu2, hu1, hx', hy', hR]
+  omega
+
+theorem umul_toNat (x y : Word) : (umul x y).toNat = x.toNat * y.toNat := umul_spec x y
 
 /-- The sum of a product and two words fits in `uint128`. -/
 theorem umul_add_add_toNat (x y a b : Word) :

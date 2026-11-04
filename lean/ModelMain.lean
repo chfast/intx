@@ -1,10 +1,11 @@
-import Intx
+import Intx.Model.MulmodFold
 set_option warningAsError true
 /-!
 # The differential test of the model
 
 Reads the lines `x y m r` of hexadecimal numbers, `r` the result of the C++ `mulmod(x, y, m)`, and
-checks that the model gives `r` and that `r` is `x * y % m`. See `scripts/difftest.sh`.
+checks that the model gives `r` and that `r` is `x * y % m`, on both platform paths (the x86-64
+`div` instruction and the portable reciprocal). See `scripts/difftest.sh`.
 -/
 
 open Intx
@@ -31,10 +32,12 @@ def main : IO UInt32 := do
     match (line.splitOn " ").mapM parseHex? with
     | some [x, y, m, r] =>
       count := count + 1
-      let got := (Model.mulmod (ofNat256 x) (ofNat256 y) (ofNat256 m)).map (val ·.toList)
-      if got != some r || r != x * y % m then
-        failures := failures + 1
-        IO.eprintln s!"mismatch: {line}: model {got}, x * y % m = {x * y % m}"
+      for div_wide_x86 in [true, false] do
+        let P : Model.Platform := ⟨div_wide_x86⟩
+        let got := (Model.mulmod P (ofNat256 x) (ofNat256 y) (ofNat256 m)).map (val ·.toList)
+        if got != some r || r != x * y % m then
+          failures := failures + 1
+          IO.eprintln s!"mismatch (div_wide_x86 {div_wide_x86}): {line}: model {got}, x * y % m = {x * y % m}"
     | _ =>
       IO.eprintln s!"bad line: {line}"
       return 2

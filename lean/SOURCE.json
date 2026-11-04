@@ -119,6 +119,36 @@
     "sha256": "a6efe89acc4b09b3188014b650145f3ded88b247e01af11c54186c61978eb038"
   },
   {
+    "name": "internal::reciprocal_table_entry",
+    "pattern": "^struct alignas\\(uint64_t\\) reciprocal_table_entry$",
+    "sha256": "8415f226cba8d49a3732ea8c8f84d5b2c675af040b08f55cc0b0bf97f5a36d66"
+  },
+  {
+    "name": "internal::RECIPROCAL_TABLE",
+    "pattern": "inline constexpr auto RECIPROCAL_TABLE = \\[\\]\\(\\) noexcept",
+    "sha256": "5f40c5242bdb64c68e51d6fa5a11d1ffa3c3112acefcc618d59f030a549d6b01"
+  },
+  {
+    "name": "internal::reciprocal_approx()",
+    "pattern": "^constexpr uint64_t reciprocal_approx\\(uint64_t d\\) noexcept$",
+    "sha256": "4f076351dba25402eb80b31e0a9e086ba2ee92920919b551c8ec755124a525d3"
+  },
+  {
+    "name": "internal::reciprocal()",
+    "pattern": "^constexpr uint64_t reciprocal\\(T d\\) noexcept$",
+    "sha256": "c18b29bf184db153283f1f94db01111933cf016f5ee58eb2730f9759091b783f"
+  },
+  {
+    "name": "reciprocal_2by1()",
+    "pattern": "^constexpr uint64_t reciprocal_2by1\\(uint64_t d\\) noexcept$",
+    "sha256": "b46917c30016d69570361d84a7989cb8f73cdee789acace6a3e70e4c32b22c73"
+  },
+  {
+    "name": "udivrem_2by1(uint128, uint64_t, uint64_t)",
+    "pattern": "^constexpr div_result<uint64_t> udivrem_2by1\\(uint128 u, uint64_t d, uint64_t v\\) noexcept$",
+    "sha256": "f299b7a8888e88ce9a16bd486ed9a5669c8ff7eb23afcde0d31f78347d2a48a4"
+  },
+  {
     "name": "udivrem_2by1(uint128, uint64_t)",
     "pattern": "^constexpr div_result<uint64_t> udivrem_2by1\\(uint128 u, uint64_t d\\) noexcept",
     "sha256": "2ba330c98d05d78d7485a023e077e6eeaed82a3df7cdf6d1ff078f1fbe83b656"
