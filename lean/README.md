@@ -1,0 +1,51 @@
+# The proof of `mulmod()`
+
+A machine-checked proof that `intx::mulmod()` computes `x * y mod m` for every nonzero `m`, without
+undefined behavior. It covers `internal::mulmod_fold<N>()` for `N` from 1 to 4 and the helpers it
+calls, from the word operations up.
+
+## Audit map
+
+| file | review |
+|---|---|
+| [`Intx/Spec.lean`](Intx/Spec.lean) | The statement `MulmodCorrect`, which the main theorem proves for the model. It uses only the Lean core. |
+| [`Intx/Model/`](Intx/Model/) | The C++ code rendered in Lean. Compare it with `include/intx/intx.hpp`: each definition shows its C++ code. |
+| [`Intx/ProofSupport/`](Intx/ProofSupport/), [`Intx/Proofs/`](Intx/Proofs/) | The proof, checked by Lean. The main theorem is `Intx.mulmod_correct` in [`Intx/Proofs/MulmodFold.lean`](Intx/Proofs/MulmodFold.lean). |
+| [`Checks/`](Checks/) | The axioms the main theorem depends on. |
+| [`SOURCE.json`](SOURCE.json) | The hashes of the modeled C++ definitions. |
+
+## What the proof trusts
+
+* Lean and Mathlib.
+* The model renders the C++ code faithfully. Lean cannot read C++, so this is checked by review, by
+  the differential test against the compiled C++ (`scripts/difftest.sh`) and by the hashes of the
+  modeled definitions (`scripts/check-source.py`), which make a later change of the C++ code fail
+  the check until the model is updated.
+* The modeling choices, documented in the model:
+  * The C++ types are Lean types: `uint64_t` is `UInt64`, an array or a `uint<64 * n>` is a
+    `Vector` of `n` words and a shift amount is a `Fin 64`. The array sizes, the indices, the
+    `static_assert`s and the `INTX_REQUIRE`s on sizes are proved when the model is compiled.
+  * The undefined behavior that depends on values, a false `INTX_REQUIRE` (an assumption of the
+    compiler in release builds) or a `div` that faults, makes the model return `none`, and the main
+    theorem shows that it does not happen. The correction loop of `udivrem_top1()` gets the 2
+    iterations its comment promises, and the proof shows they are enough.
+  * The word operations have the semantics of their portable code; the builtins and the x86-64
+    asm compute the same.
+  * `udivrem_2by1()` is the x86-64 `div` instruction. Constant evaluation and the other
+    architectures use the reciprocal instead; that path is not proved yet.
+  * The uninitialized arrays are zeros: the C++ code writes every word of them before reading it.
+
+## Build and check
+
+```sh
+lake exe cache get
+lake build
+lake env lean Checks.lean
+scripts/difftest.sh 1000000
+scripts/check-source.py
+```
+
+## Updates
+
+After a change of the modeled C++ code, update the model and the proofs, run the differential
+test, and record the new hashes with `scripts/check-source.py --update`.

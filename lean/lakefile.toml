@@ -1,0 +1,25 @@
+name = "intx"
+version = "0.1.0"
+defaultTargets = ["Intx"]
+
+# Mathlib at the release tag matching lean-toolchain. The proofs use its lemmas about Nat
+# arithmetic and its tactics (omega, linarith, nlinarith, positivity, bv_decide).
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.31.0"
+
+# The specification, the model of the C++ and the proofs.
+[[lean_lib]]
+name = "Intx"
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
+
+# CI-only axiom-footprint guards, kept out of the default targets.
+[[lean_lib]]
+name = "Checks"
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
+
+# Evaluates the model on test vectors for the differential test against the C++ (scripts/difftest.sh).
+[[lean_exe]]
+name = "intxmodel"
+root = "ModelMain"
