@@ -633,8 +633,6 @@ bool Machine::exec(const Instr& in) noexcept
         auto& b = stack_[sp_ - 1];
         auto& r = stack_[sp_ - 2];
         const auto y = b.get<N>();
-        if (y == 0)
-            return false;
         with_width(r.words, [&]<unsigned M> {
             const auto x = r.get<M>();
             if constexpr (M == N)
@@ -649,7 +647,13 @@ bool Machine::exec(const Instr& in) noexcept
                 b.set(rem);
             }
         });
-        mpz_tdiv_qr(r.z, b.z, r.z, b.z);
+        if (y == 0)  // The EVM semantics.
+        {
+            mpz_set_ui(r.z, 0);
+            mpz_set_ui(b.z, 0);
+        }
+        else
+            mpz_tdiv_qr(r.z, b.z, r.z, b.z);
         check(r);
         check(b);
         return true;
@@ -901,8 +905,6 @@ bool Machine::exec(const Instr& in) noexcept
             const auto& c = stack_[sp_ - 2];
             auto& r = stack_[sp_ - 3];
             const auto mv = m.get<N>();
-            if (mv == 0)
-                return false;
             if (in.op == addmod)
             {
                 r.set(intx::addmod(r.get<N>(), c.get<N>(), mv));
@@ -913,7 +915,10 @@ bool Machine::exec(const Instr& in) noexcept
                 r.set(intx::mulmod(r.get<N>(), c.get<N>(), mv));
                 mpz_mul(r.z, r.z, c.z);
             }
-            mpz_mod(r.z, r.z, m.z);
+            if (mv == 0)  // The EVM semantics.
+                mpz_set_ui(r.z, 0);
+            else
+                mpz_mod(r.z, r.z, m.z);
             sp_ -= 2;
             check(r);
         }
@@ -955,11 +960,15 @@ bool Machine::exec(const Instr& in) noexcept
         }
         default:  // sdivrem
         {
-            if (y == 0)
-                return false;
             const auto [q, rem] = intx::sdivrem(x, y);
             r.set(q);
             b.set(rem);
+            if (y == 0)  // The EVM semantics.
+            {
+                mpz_set_ui(r.z, 0);
+                mpz_set_ui(b.z, 0);
+                break;
+            }
             to_signed(t1_, r.z, N);
             to_signed(t2_, b.z, N);
             mpz_tdiv_qr(r.z, b.z, t1_, t2_);
@@ -1062,16 +1071,18 @@ bool Machine::exec(const Instr& in) noexcept
             mpz_mul(r.z, r.z, b.z);
             break;
         case 3:
-            if (y == 0)
-                return false;
             v /= y;
-            mpz_tdiv_q(r.z, r.z, b.z);
+            if (y == 0)  // The EVM semantics.
+                mpz_set_ui(r.z, 0);
+            else
+                mpz_tdiv_q(r.z, r.z, b.z);
             break;
         case 4:
-            if (y == 0)
-                return false;
             v %= y;
-            mpz_tdiv_r(r.z, r.z, b.z);
+            if (y == 0)  // The EVM semantics.
+                mpz_set_ui(r.z, 0);
+            else
+                mpz_tdiv_r(r.z, r.z, b.z);
             break;
         case 5:
             v |= y;

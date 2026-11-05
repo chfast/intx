@@ -879,11 +879,13 @@ constexpr div_result<uint64_t, uint128> udivrem_3by2(
     return {q[1], r};
 }
 
+/// Divides x by y. A division by 0 gives 0 as the quotient and the remainder.
 constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 {
     if (y[1] == 0)
     {
-        INTX_REQUIRE(y[0] != 0);  // Division by 0.
+        if (y[0] == 0) [[unlikely]]
+            return {0, 0};
 
         const auto lsh = clz(y[0]);
         const auto rsh = (64 - lsh) % 64;
@@ -924,6 +926,7 @@ constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
     return {res.quot, res.rem >> lsh};
 }
 
+/// Divides x by y as signed numbers. A division by 0 gives 0 as the quotient and the remainder.
 constexpr div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
 {
     constexpr auto sign_mask = uint128{1} << 127;
@@ -2072,6 +2075,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
 
 }  // namespace internal
 
+/// Divides u by v. A division by 0 gives 0 as the quotient and the remainder.
 template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {
@@ -2133,13 +2137,17 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
                     if (v[TOP - 1] == 0 && (u[TOP + 1] != 0 || u[TOP] != 0))
                     {
                         if (v[TOP - 2] == 0)
+                        {
+                            if (v[0] == 0) [[unlikely]]
+                                return {0, 0};
                             return internal::udivrem_by1<M, N>(as_words(u), v[0]);
+                        }
                         return internal::udivrem_by2<M, N>(as_words(u), static_cast<uint128>(v));
                     }
                 }
             }
         }
-        while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)  // The divisor is not zero.
+        while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)
             --num_divisor_words;
         const auto n = num_divisor_words;
 
@@ -2158,7 +2166,11 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
 
         static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
         if (n == 1)  // Divide at least 2 words: the words above m are 0.
+        {
+            if (v[0] == 0) [[unlikely]]
+                return {0, 0};
             return internal::udivrem_by1<M, N>(as_words(u).first(std::max(m, size_t{2})), v[0]);
+        }
 
         // The max number of divisor words here: the divisors with more words are handled above,
         // and the ones with more words than u are greater than u.
@@ -2185,6 +2197,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     }
 }
 
+/// Divides u by v as signed numbers. A division by 0 gives 0 as the quotient and the remainder.
 template <unsigned N>
 constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
@@ -2218,6 +2231,7 @@ constexpr uint<N> bswap(const uint<N>& x) noexcept
 }
 
 
+/// Computes (x + y) % mod without the overflow of x + y. A modulus of 0 gives 0.
 constexpr uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     // Fast path for mod >= 2^192, with x and y at most slightly bigger than mod.
@@ -2252,6 +2266,7 @@ constexpr uint256 addmod(const uint256& x, const uint256& y, const uint256& mod)
     return udivrem(n, mod).rem;
 }
 
+/// Computes (x * y) % mod with the 512-bit product. A modulus of 0 gives 0.
 constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     return udivrem(umul(x, y), mod).rem;
