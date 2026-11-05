@@ -1297,19 +1297,7 @@ public:
 
     friend constexpr bool operator<(const uint& x, const uint& y) noexcept
     {
-        if constexpr (N == 256)
-        {
-            auto xp = uint128{x[2], x[3]};
-            auto yp = uint128{y[2], y[3]};
-            if (xp == yp)
-            {
-                xp = uint128{x[0], x[1]};
-                yp = uint128{y[0], y[1]};
-            }
-            return xp < yp;
-        }
-        else
-            return subc(x, y).carry;
+        return subc(x, y).carry;
     }
     friend constexpr bool operator>(const uint& x, const uint& y) noexcept { return y < x; }
     friend constexpr bool operator>=(const uint& x, const uint& y) noexcept { return !(x < y); }
