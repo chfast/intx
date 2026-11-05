@@ -817,6 +817,9 @@ constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 
 constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
+    assert(d & 0x8000000000000000);  // Must be normalized.
+    assert(u[1] < d);
+
     auto q = umul(v, u[1]);
     q += u;
 
@@ -852,6 +855,9 @@ constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d) noexcept
 constexpr div_result<uint64_t, uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
+    assert(d[1] & 0x8000000000000000);  // Must be normalized.
+    assert((uint128{u1, u2} < d));
+
     auto q = umul(v, u2);
     q += uint128{u1, u2};
 
