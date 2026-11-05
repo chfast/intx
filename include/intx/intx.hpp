@@ -865,18 +865,18 @@ constexpr div_result<uint64_t, uint128> udivrem_3by2(
 
     auto t = umul(d[0], q[1]);
 
-    auto r = uint128{u0, r1} - t - d;
-    r1 = r[1];
+    const auto rd = uint128{u0, r1} - t;  // The remainder for q1.
+    auto r = rd - d;                      // The remainder for q1 + 1.
 
-    ++q[1];
+    // The first correction, taken about half the time, selects q1 and r + d if r[1] >= q[0].
+    // The masks select without a branch: a ternary on uint128 is a branch with GCC.
+    // The second correction is rare.
+    const auto c = r[1] >= q[0];
+    const auto mask = uint64_t{0} - uint64_t{c};
+    r = {(rd[0] & mask) | (r[0] & ~mask), (rd[1] & mask) | (r[1] & ~mask)};
+    q[1] += uint64_t{!c};
 
-    if (r1 >= q[0])
-    {
-        --q[1];
-        r += d;
-    }
-
-    if (r >= d)
+    if (r >= d) [[unlikely]]
     {
         ++q[1];
         r -= d;
