@@ -1566,6 +1566,190 @@ constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
     return p;
 }
 
+namespace internal
+{
+/// Computes the multiplicative inverse of the odd number a modulo 2^N.
+template <unsigned N>
+constexpr uint<N> inv_odd(const uint<N>& a) noexcept
+{
+    // For odd a: a*a == 1 (mod 8), so x = a is correct in the low 3 bits.
+    // Each Newton iteration doubles the number of correct bits.
+    auto x = a;
+    for (unsigned bits = 3; bits < N; bits *= 2)
+        x *= uint<N>{2} - a * x;
+    return x;
+}
+
+/// The parameters and precomputed coefficients of the 2-adic exponentiation of odd numbers
+/// modulo 2^N, see exp_odd_2adic().
+template <unsigned N>
+struct exp_2adic
+{
+    /// The number of low exponent bits handled with the plain square-and-multiply.
+    /// Increasing t makes the series shorter (its terms vanish faster), but the plain part longer.
+    /// The cost is minimal when (t+2)^2 ~ 4N/3. For N = 256 benchmarks give a flat minimum for
+    /// t in 16..22 (t = 17 here), for N = 128 and 512 the formula is also at the optimum.
+    static constexpr unsigned t = [] {
+        unsigned x = 0;
+        while ((x + 2) * (x + 2) * 3 < N * 4)  // (t+2)^2 ~ 4N/3
+            ++x;
+        return x < 8 ? 8 : (x > 60 ? 60 : x);
+    }();
+
+    /// The 2-adic valuation of v = u^(2^t) - 1 is at least s, where u is odd with u == 1 (mod 4).
+    static constexpr unsigned s = t + 2;
+
+    /// The exponents of 2 in the terms of the series, may be >= N (such terms vanish):
+    /// log:  the term k is  (-1)^(k+1) y^k 2^(s*k - v2(k)) / odd(k)
+    /// exp:  the term k is  z^k 2^(s*k - v2(k!)) / odd(k!)
+    static constexpr unsigned log_valuation(unsigned k) noexcept
+    {
+        return s * k - static_cast<unsigned>(std::countr_zero(k));
+    }
+
+    static constexpr unsigned exp_valuation(unsigned k) noexcept
+    {
+        unsigned v = 0;
+        for (unsigned i = 2; i <= k; ++i)
+            v += static_cast<unsigned>(std::countr_zero(i));
+        return s * k - v;
+    }
+
+    /// Both valuations are >= (s-1)*k + 1, so the terms with k > max_terms vanish.
+    static constexpr unsigned max_terms = N / (s - 1) + 1;
+
+    /// The number of non-vanishing terms k >= 1 of the series.
+    static constexpr unsigned num_log_terms = [] {
+        unsigned n = 0;
+        for (unsigned k = 1; k <= max_terms; ++k)
+        {
+            if (log_valuation(k) < N)
+                n = k;
+        }
+        return n;
+    }();
+
+    static constexpr unsigned num_exp_terms = [] {
+        unsigned n = 0;
+        for (unsigned k = 1; k <= max_terms; ++k)
+        {
+            if (exp_valuation(k) < N)
+                n = k;
+        }
+        return n;
+    }();
+
+    /// The plain square-and-multiply is used for exponents up to this number of bits.
+    /// The estimated cost in multiplications is 1.5 * bits for the plain algorithm and
+    /// 1.5 * t + num_log_terms + num_exp_terms + 2 for the series. For N = 256 the benchmarks
+    /// show the break-even at 41 bits (about 190 ns), for N = 128 at 20 and for N = 512 at 46.
+    static constexpr unsigned threshold =
+        N == 256 ? 40 : (3 * t + 2 * num_log_terms + 2 * num_exp_terms + 4) / 3;
+
+    /// log_coeffs[k-1] = (-1)^(k+1) * inv(odd(k)) * 2^(s*k - v2(k) - s)
+    /// i.e. the coefficients of log(1 + 2^s y) / 2^s as polynomial of y. Before the division
+    /// by 2^s the valuations are >= s, so the result is correct modulo 2^(N-s) even if y is
+    /// known only modulo 2^(N-s).
+    static constexpr auto log_coeffs = [] {
+        std::array<uint<N>, num_log_terms> c;
+        for (unsigned k = 1; k <= num_log_terms; ++k)
+        {
+            const auto odd_k = uint<N>{k >> std::countr_zero(k)};
+            auto x = inv_odd(odd_k) << (log_valuation(k) - s);
+            c[k - 1] = (k % 2 == 0) ? -x : x;
+        }
+        return c;
+    }();
+
+    /// exp_coeffs[k] = inv(odd(k!)) * 2^(s*k - v2(k!))
+    /// i.e. the coefficients of exp(2^s z) as polynomial of z.
+    static constexpr auto exp_coeffs = [] {
+        std::array<uint<N>, num_exp_terms + 1> c;
+        auto odd_fact = uint<N>{1};  // The odd part of k!
+        c[0] = 1;
+        for (unsigned k = 1; k <= num_exp_terms; ++k)
+        {
+            odd_fact *= uint<N>{k >> std::countr_zero(k)};
+            c[k] = inv_odd(odd_fact) << exp_valuation(k);
+        }
+        return c;
+    }();
+};
+
+/// Square-and-multiply: base^exponent mod 2^N.
+template <unsigned N>
+constexpr uint<N> exp_plain(const uint<N>& base, const uint<N>& exponent) noexcept
+{
+    auto result = uint<N>{1};
+    for (size_t i = bit_width(exponent); i > 0; --i)
+    {
+        result *= result;
+        if (bit_test(exponent, i - 1))
+            result *= base;
+    }
+    return result;
+}
+
+/// Computes u^e mod 2^N for odd u using 2-adic logarithm and exponential.
+///
+/// Let u == 1 (mod 4) (otherwise use -u and fix the sign at the end) and e = q * 2^t + r.
+/// Then v = u^(2^t) == 1 (mod 2^s) with s = t + 2, and
+///     u^e = u^r * v^q = u^r * exp(q * log(v)),
+/// where log and exp are the 2-adic functions, which are finite sums modulo 2^N because
+/// log(1 + 2^s y) = sum (-1)^(k+1) 2^(s*k) y^k / k    and    exp(2^s z) = sum 2^(s*k) z^k / k!
+/// have terms divisible by growing powers of 2.
+///
+/// See https://kevinventullo.com/2020/12/21/2-adic-logarithms-and-fast-exponentiation/
+template <unsigned N>
+constexpr uint<N> exp_odd_2adic(uint<N> u, const uint<N>& e) noexcept
+{
+    using P = exp_2adic<N>;
+    constexpr auto t = P::t;
+    constexpr auto s = P::s;
+
+    if (bit_width(e) <= P::threshold)
+        return exp_plain(u, e);
+
+    // Make u == 1 (mod 4). The sign of the result depends on the parity of the exponent.
+    const auto negate_result = (u[0] & 2) != 0 && (e[0] & 1) != 0;
+    if ((u[0] & 2) != 0)
+        u = -u;
+
+    // Right-to-left square-and-multiply for the t low bits of the exponent:
+    // acc = u^r, v = u^(2^t).
+    const auto r = e[0] & ((uint64_t{1} << t) - 1);
+    auto acc = uint<N>{1};
+    auto v = u;
+    for (unsigned i = 0; i < t; ++i)
+    {
+        if ((r >> i) & 1)
+            acc *= v;
+        v *= v;
+    }
+
+    // y = (v - 1) / 2^s, known only modulo 2^(N-s), which is enough.
+    const auto y = (v - uint<N>{1}) >> s;
+
+    // l = log(v) / 2^s = y * Q(y) (Horner).
+    auto l = P::log_coeffs[P::num_log_terms - 1];
+    for (unsigned k = P::num_log_terms - 1; k > 0; --k)
+        l = l * y + P::log_coeffs[k - 1];
+    l *= y;
+
+    // z = q * log(v) / 2^s.
+    const auto z = (e >> t) * l;
+
+    // exp(q * log(v)) = sum d_k z^k (Horner).
+    auto x = P::exp_coeffs[P::num_exp_terms];
+    for (unsigned k = P::num_exp_terms; k > 0; --k)
+        x = x * z + P::exp_coeffs[k - 1];
+
+    const auto result = acc * x;
+    return negate_result ? -result : result;
+}
+}  // namespace internal
+
+/// Computes base^exponent mod 2^N.
 template <unsigned N>
 constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 {
@@ -1579,21 +1763,19 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
         // the result is 0 (mod 2^N).
         if (exponent >= uint<N>{N})
             return uint<N>{};
-    }
-    else
-    {
-        // An odd base: base^(2^(N-2)) == 1 (mod 2^N) because the Carmichael function
-        // of 2^N is 2^(N-2) (for N > 2). The two top bits of the exponent can be ignored.
-        exponent[uint<N>::num_words - 1] &= ~uint64_t{0} >> 2;
+        return internal::exp_plain(base, exponent);
     }
 
-    for (size_t i = bit_width(exponent); i > 0; --i)
-    {
-        result *= result;
-        if (bit_test(exponent, i - 1))
-            result *= base;
-    }
-    return result;
+    // An odd base: base^(2^(N-2)) == 1 (mod 2^N) because the Carmichael function
+    // of 2^N is 2^(N-2) (for N > 2). The two top bits of the exponent can be ignored.
+    exponent[uint<N>::num_words - 1] &= ~uint64_t{0} >> 2;
+
+    // The precomputation of the 2-adic series coefficients is too heavy for the compile-time
+    // evaluation limits of the compilers for the very wide integers.
+    if constexpr (N <= 512)
+        return internal::exp_odd_2adic(base, exponent);
+    else
+        return internal::exp_plain(base, exponent);
 }
 
 template <unsigned N>

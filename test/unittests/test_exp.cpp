@@ -196,7 +196,8 @@ TYPED_TEST(uint_test, exp_even_base_large_exponent)
     for (int i = 0; i < 2000; ++i)
     {
         const auto b = random_base<T>(rng, 0);
-        const auto e = T{uint64_t{T::num_bits} + (rng() % 3 ? 0 : 1000)} + (random_exponent<T>(rng) >> 2);
+        const auto e =
+            T{uint64_t{T::num_bits} + (rng() % 3 ? 0 : 1000)} + (random_exponent<T>(rng) >> 2);
         if (e < T::num_bits)
             continue;
         EXPECT_EQ(exp(b, e), 0) << hex(b) << " " << hex(e);
@@ -241,6 +242,33 @@ void random_differential(unsigned seed, int count)
 }
 }  // namespace
 
+TYPED_TEST(uint_test, exp_odd_base_all_exponent_widths)
+{
+    // Odd bases with every residue mod 8 and the exponents of every bit width,
+    // also with the all-ones and the single-bit patterns.
+    using T = TypeParam;
+    std::mt19937_64 rng{4};
+    for (unsigned width = 0; width <= T::num_bits; ++width)
+    {
+        for (const uint64_t residue : {uint64_t{1}, uint64_t{3}, uint64_t{5}, uint64_t{7}})
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                const auto b = (random_value<T>(rng) & ~T{7}) | T{residue};
+                check(b, random_with_width<T>(rng, width));
+                if (width != 0)
+                {
+                    const auto top = T{1} << (width - 1);
+                    check(b, top);
+                    check(b, top | (top - 1));
+                }
+            }
+            if (::testing::Test::HasFatalFailure())
+                return;
+        }
+    }
+}
+
 TYPED_TEST(uint_test, exp_random_differential)
 {
     random_differential<TypeParam>(3, TypeParam::num_bits == 256 ? 1000000 : 100000);
@@ -258,6 +286,8 @@ TEST(uint256, exp_constexpr)
     static_assert(exp(6_u256, 255_u256) == exp_reference(6_u256, 255_u256));
     static_assert(exp(0x123456789abcdef1_u256, 0xfedcba9876543210fedcba98765432_u256) ==
                   exp_reference(0x123456789abcdef1_u256, 0xfedcba9876543210fedcba98765432_u256));
-    static_assert(exp(0xfffffffffffffffffffffff7_u256, 0x3fffffffffffffffffffffffffffffffffffffffffff_u256) ==
-                  exp_reference(0xfffffffffffffffffffffff7_u256, 0x3fffffffffffffffffffffffffffffffffffffffffff_u256));
+    static_assert(
+        exp(0xfffffffffffffffffffffff7_u256, 0x3fffffffffffffffffffffffffffffffffffffffffff_u256) ==
+        exp_reference(
+            0xfffffffffffffffffffffff7_u256, 0x3fffffffffffffffffffffffffffffffffffffffffff_u256));
 }

@@ -673,8 +673,16 @@ void exp_odd_base_width(benchmark::State& state)
             random_with_width(rng, static_cast<unsigned>(state.range(0))));
     run_exp(state, in);
 }
-BENCHMARK(exp_odd_base_width)->Arg(8)->Arg(16)->Arg(32)->Arg(48)->Arg(64)->Arg(96)->Arg(128)->Arg(
-    192)->Arg(256);
+BENCHMARK(exp_odd_base_width)
+    ->Arg(8)
+    ->Arg(16)
+    ->Arg(32)
+    ->Arg(48)
+    ->Arg(64)
+    ->Arg(96)
+    ->Arg(128)
+    ->Arg(192)
+    ->Arg(256);
 
 void exp_base_max(benchmark::State& state)
 {

@@ -65,7 +65,7 @@ enum Op : uint8_t
     bit_xor,
     bit_not,
     neg,
-    exp,  // The exponent is truncated to 64 bits: higher bits only repeat the loop.
+    exp,  // The exponent is truncated to 512 bits.
     lt,
     slt,
     eq,
@@ -1026,11 +1026,20 @@ bool Machine::exec(const Instr& in) noexcept
         mpz_xor(r.z, r.z, b.z);
         break;
     case exp:
-        r.set(intx::exp(x, T{y[0]}));
+    {
+        // The whole exponent is used up to 512 bits, only the low 512 bits for wider integers
+        // to keep the reference computation fast.
+        constexpr unsigned max_exp_words = 8;
+        T e = y;
+        for (size_t i = max_exp_words; i < T::num_words; ++i)
+            e[i] = 0;
+        r.set(intx::exp(x, e));
         mpz_set_ui(t1_, 0);
         mpz_setbit(t1_, N);
-        mpz_powm_ui(r.z, r.z, y[0], t1_);
+        mpz_fdiv_r_2exp(t2_, b.z, max_exp_words * 64);
+        mpz_powm(r.z, r.z, t2_, t1_);
         break;
+    }
     case lt:
         r.set(T{uint64_t{x < y}});
         mpz_set_ui(r.z, mpz_cmp(r.z, b.z) < 0);
