@@ -1769,6 +1769,21 @@ constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t mu
     return submul(x, x, y, multiplier);
 }
 
+/// Add y multiplied by multiplier to x as: x[] += multiplier * y[]. Returns the carry word.
+constexpr uint64_t addmul(uint64_t x[], std::span<const uint64_t> y, uint64_t multiplier) noexcept
+{
+    INTX_REQUIRE(!y.empty());
+
+    uint64_t carry = 0;
+    for (size_t i = 0; i < y.size(); ++i)
+    {
+        const auto t = umul(y[i], multiplier) + x[i] + carry;
+        x[i] = t[0];
+        carry = t[1];
+    }
+    return carry;
+}
+
 /// Divides the normalized words u by d with the Knuth algorithm, in place: the low d.size() words
 /// of u become the normalized remainder.
 /// A fixed size of d (DIVISOR_WORDS) lets the loops over the divisor words unroll. d is not
@@ -1897,13 +1912,15 @@ constexpr div_result<uint<M>, uint<N>> udivrem_knuth(
 /// and corrected with the remainder computed on the original (not normalized) operands.
 /// The word v[TOP] must not be zero.
 template <size_t TOP, unsigned M, unsigned N>
-constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint<N>& v) noexcept
+[[gnu::always_inline]] constexpr div_result<uint<M>, uint<N>> udivrem_top1(
+    const uint<M>& u, const uint<N>& v) noexcept
 {
     static_assert(TOP >= 1 && TOP < uint<N>::num_words);
     static_assert(uint<M>::num_words == TOP + 1 || uint<M>::num_words == TOP + 2);
 
-    // A numerator type wider than the divisor type comes from addmod(), where u > v.
-    // For it, the u < v return is left out and u is not copied (see the remainder below).
+    // A numerator type wider than the divisor type comes from addmod(), where u > v, and from
+    // mulmod_fold(). For it, the u < v return is left out, as the correction gives q = 0 for
+    // u < v too, and u is not copied (see the remainder below).
     constexpr auto WIDER = uint<M>::num_words > uint<N>::num_words;
 
     uint64_t ue = 0;  // The extra word of u above the significant words of v.
@@ -2252,9 +2269,94 @@ constexpr uint256 addmod(const uint256& x, const uint256& y, const uint256& mod)
     return udivrem(n, mod).rem;
 }
 
+namespace internal
+{
+/// Computes (x * y) mod m for m of N words (1 to 4) by folding the product into N + 1 words.
+///
+/// With the normalized modulus d = m << s, C0 = B^N mod d = B^N - d and C1 = B^(N+1) mod d, the
+/// next lower word a of the shifted product enters the (N + 1)-word remainder R as
+/// R * B + a == R[N] * C1 + R[N - 1] * C0 + (R[N - 2], ..., R[0], a) (mod d), which stays below
+/// B^(N+1) because C0 + C1 < B^N. The final step is a Barrett reduction with
+/// mu = B + q = floor(B^(N+1) / d), where q is the quotient of C0 * B / d computed for C1.
+/// For N = 1 this is the folding of GMP's mpn_mod_1_1p().
+template <size_t N>
+constexpr uint256 mulmod_fold(const uint256& x, const uint256& y, const uint256& m) noexcept
+{
+    static_assert(N >= 1 && N <= 4);
+    INTX_REQUIRE(m[N - 1] != 0);
+
+    const auto s = clz_nonzero(m[N - 1]);
+    std::array<uint64_t, N> d;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    shl(std::span{d}, std::span<const uint64_t, N>{&m[0], N}, s);
+
+    uint<64 * (N + 1)> c0b;  // C0 * B.
+    submul(&c0b[1], d, 1);
+    const auto c0 = std::span<const uint64_t, N>{&c0b[1], N};
+
+    const auto p = umul(x, y);
+    if (INTX_UNLIKELY(c0[N - 1] == d[N - 1]))  // m is a power of 2: C0 = d, not reduced.
+        return static_cast<uint256>(p) & (m - 1);
+
+    // q = floor(C0 * B / d) and C1 = C0 * B mod d: a division with a single-word quotient.
+    uint64_t q;                  // NOLINT(*-init-variables)
+    std::array<uint64_t, N> c1;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    if constexpr (N == 1)
+        std::tie(q, c1[0]) = udivrem_2by1(c0b, d[0]);
+    else
+    {
+        // TODO: Using udivrem_top1() here degrades performance. Investigate.
+        const auto [quot, rem] =
+            udivrem_top1<N - 1>(c0b, uint<64 * N>{std::span<const uint64_t>{d}});
+        q = quot[0];
+        std::ranges::copy(as_words(rem), c1.begin());
+    }
+
+    // The product shifted by s, folded from the top.
+    std::array<uint64_t, 9> pw;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    shl(std::span{pw}, std::span<const uint64_t, 8>{&p[0], 8}, s);
+    std::array<uint64_t, N + 1> r;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    for (size_t i = 0; i <= N; ++i)
+        r[i] = pw[8 - N + i];
+    for (size_t j = 8 - N; j != 0; --j)
+    {
+        std::array<uint64_t, N + 1> acc{};
+        acc[0] = pw[j - 1];
+        for (size_t i = 1; i < N; ++i)
+            acc[i] = r[i - 1];
+        acc[N] += addmul(acc.data(), c0, r[N - 1]);
+        acc[N] += addmul(acc.data(), c1, r[N]);
+        r = acc;
+    }
+
+    // Barrett: qh = floor((R[N]:R[N-1]) * (B + q) / B^2) is floor(R / d) or 1 less: before the
+    // floor it is short of R / d by less than R / B^(N+1) + 2 / B, and the folds keep R below
+    // (1 - 2^-7) * B^(N+1).
+    // TODO(gcc): Using umul() here degrades performance. Investigate.
+    const auto qh = umul(uint128{r[N - 1], r[N]}, uint128{q, 1});
+    r[N] -= submul(r.data(), d, qh[2]);
+    if (qh[3] != 0)  // qh >= B: subtract d * B too.
+        submul(&r[1], d, 1);
+
+    // R - d, its borrow is the comparison: subtract d if R >= d.
+    std::array<uint64_t, N> t;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    if (r[N] >= submul(t.data(), r.data(), d, 1))
+        std::ranges::copy(t, r.begin());
+
+    uint256 res;
+    shr(std::span<uint64_t>{&res[0], N}, std::span<const uint64_t>{r.data(), N}, s);
+    return res;
+}
+}  // namespace internal
+
 constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
-    return udivrem(umul(x, y), mod).rem;
+    if (mod[3] != 0)
+        return internal::mulmod_fold<4>(x, y, mod);
+    if (mod[2] != 0)
+        return internal::mulmod_fold<3>(x, y, mod);
+    if (mod[1] != 0)
+        return internal::mulmod_fold<2>(x, y, mod);
+    return internal::mulmod_fold<1>(x, y, mod);
 }
 
 #define INTX_JOIN(X, Y) X##Y
