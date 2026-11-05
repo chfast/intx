@@ -1573,6 +1573,20 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
     if (base == 2)
         return result << exponent;
 
+    if ((base[0] & 1) == 0)
+    {
+        // An even base: base^exponent is divisible by 2^exponent, so for exponent >= N
+        // the result is 0 (mod 2^N).
+        if (exponent >= uint<N>{N})
+            return uint<N>{};
+    }
+    else
+    {
+        // An odd base: base^(2^(N-2)) == 1 (mod 2^N) because the Carmichael function
+        // of 2^N is 2^(N-2) (for N > 2). The two top bits of the exponent can be ignored.
+        exponent[uint<N>::num_words - 1] &= ~uint64_t{0} >> 2;
+    }
+
     for (size_t i = bit_width(exponent); i > 0; --i)
     {
         result *= result;

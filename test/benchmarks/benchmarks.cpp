@@ -7,6 +7,8 @@
 #include <intx/intx.hpp>
 #include <test/utils/gmp.hpp>
 #include <test/utils/random.hpp>
+#include <random>
+#include <vector>
 
 #if __clang_major__ >= 11 && __clang_major__ <= 13 && !defined(__apple_build_version__)
     #define INTX_HAS_EXTINT 1
@@ -577,6 +579,123 @@ void exponentiation2(benchmark::State& state)
     }
 }
 BENCHMARK(exponentiation2)->Arg(0)->RangeMultiplier(2)->Range(64, 512);
+
+namespace
+{
+using exp_inputs = std::vector<std::pair<uint256, uint256>>;
+
+/// Random 256-bit number with exactly the given bit width (the top bit set).
+uint256 random_with_width(std::mt19937_64& rng, unsigned width)
+{
+    uint256 x;
+    for (size_t i = 0; i < 4; ++i)
+        x[i] = rng();
+    if (width < 256)
+        x &= (uint256{1} << width) - 1;
+    return x | (uint256{1} << (width - 1));
+}
+
+void run_exp(benchmark::State& state, const exp_inputs& inputs)
+{
+    while (state.KeepRunningBatch(static_cast<benchmark::IterationCount>(inputs.size())))
+    {
+        for (const auto& [b, e] : inputs)
+        {
+            auto r = exp(b, e);
+            benchmark::DoNotOptimize(r);
+        }
+    }
+}
+
+constexpr size_t exp_num_inputs = 256;
+
+/// Odd small bases {3, 5, 7, 11, 13} with a full 256-bit exponent (EEST test_exp_bench_arithmetic).
+void exp_small_odd_base(benchmark::State& state)
+{
+    std::mt19937_64 rng{get_seed()};
+    constexpr uint64_t bases[] = {3, 5, 7, 11, 13};
+    exp_inputs in;
+    for (size_t i = 0; i < exp_num_inputs; ++i)
+        in.emplace_back(uint256{bases[i % 5]}, random_with_width(rng, 256));
+    run_exp(state, in);
+}
+BENCHMARK(exp_small_odd_base);
+
+void exp_random_odd_base(benchmark::State& state)
+{
+    std::mt19937_64 rng{get_seed()};
+    exp_inputs in;
+    for (size_t i = 0; i < exp_num_inputs; ++i)
+        in.emplace_back(random_with_width(rng, 256) | 1, random_with_width(rng, 256));
+    run_exp(state, in);
+}
+BENCHMARK(exp_random_odd_base);
+
+void exp_random_even_base(benchmark::State& state)
+{
+    std::mt19937_64 rng{get_seed()};
+    exp_inputs in;
+    for (size_t i = 0; i < exp_num_inputs; ++i)
+    {
+        auto b = random_with_width(rng, 256);
+        b[0] &= ~uint64_t{1};
+        if (b == 2)  // practically impossible, but keep the case "not the 2 shortcut".
+            b = 4;
+        in.emplace_back(b, random_with_width(rng, 256));
+    }
+    run_exp(state, in);
+}
+BENCHMARK(exp_random_even_base);
+
+/// Even base 2^a * m (a in 1..4, m odd) with exponent small enough that the result is not zero
+/// (a * e < 256).
+void exp_even_base_nonzero(benchmark::State& state)
+{
+    std::mt19937_64 rng{get_seed()};
+    exp_inputs in;
+    for (size_t i = 0; i < exp_num_inputs; ++i)
+    {
+        const auto a = 1 + i % 4;
+        const auto m = random_with_width(rng, 256) | 1;
+        const auto e = 1 + rng() % (255 / a);
+        in.emplace_back(m << a, uint256{e});
+    }
+    run_exp(state, in);
+}
+BENCHMARK(exp_even_base_nonzero);
+
+void exp_odd_base_width(benchmark::State& state)
+{
+    std::mt19937_64 rng{get_seed()};
+    exp_inputs in;
+    for (size_t i = 0; i < exp_num_inputs; ++i)
+        in.emplace_back(random_with_width(rng, 256) | 1,
+            random_with_width(rng, static_cast<unsigned>(state.range(0))));
+    run_exp(state, in);
+}
+BENCHMARK(exp_odd_base_width)->Arg(8)->Arg(16)->Arg(32)->Arg(48)->Arg(64)->Arg(96)->Arg(128)->Arg(
+    192)->Arg(256);
+
+void exp_base_max(benchmark::State& state)
+{
+    std::mt19937_64 rng{get_seed()};
+    exp_inputs in;
+    for (size_t i = 0; i < exp_num_inputs; ++i)
+        in.emplace_back(~uint256{}, random_with_width(rng, 256));
+    run_exp(state, in);
+}
+BENCHMARK(exp_base_max);
+
+void exp_base_136279841(benchmark::State& state)
+{
+    std::mt19937_64 rng{get_seed()};
+    exp_inputs in;
+    for (size_t i = 0; i < exp_num_inputs; ++i)
+        in.emplace_back(uint256{136279841}, random_with_width(rng, 256));
+    run_exp(state, in);
+}
+BENCHMARK(exp_base_136279841);
+}  // namespace
 
 void count_sigificant_words_256(benchmark::State& state)
 {
