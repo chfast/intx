@@ -18,6 +18,7 @@
 #include <memory>
 #include <new>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -93,6 +94,8 @@ enum Op : uint8_t
     cmp,        // Pushes the bits of all comparisons of x and y and of bool(x).
     assign_op,  // [1 byte]: x op= y, or ++x, x++, --x, x--, +x with y dropped.
     bytes_io,   // [1 byte]: store x with a byte API and load it back, or check hex(x).
+
+    from_string,  // [w] [2 bytes: n] [n bytes]: push from_string() of the bytes up to the first 0.
     num_ops
 };
 
@@ -158,6 +161,7 @@ constexpr OpInfo op_info[] = {
     {cmp, "cmp", 2, 1, false, 0},
     {assign_op, "assign_op", 2, 1, false, 1},
     {bytes_io, "bytes_io", 1, 1, false, 1},
+    {from_string, "from_string", 0, 1, true, 2},
 };
 static_assert(std::size(op_info) == num_ops);
 static_assert([] {
@@ -271,7 +275,7 @@ struct Instr
     Op op;
     unsigned words;          ///< The width for the ops with the width byte.
     unsigned imm;            ///< The immediate value.
-    const uint8_t* payload;  ///< The load bytes.
+    const uint8_t* payload;  ///< The load bytes or the string.
 };
 
 /// Reduces z modulo 2^num_bits.
@@ -342,6 +346,31 @@ struct Bytes
     uint8_t bytes[Size];
 };
 
+enum class ParseResult
+{
+    value,
+    invalid_argument,
+    out_of_range,
+};
+
+/// Parses s like intx::from_string() into z: the 0x prefix selects the hex digits. A value
+/// not less than 2^num_bits is out of range unless an invalid digit comes before the overflow.
+ParseResult parse(mpz_ptr z, const char* s, unsigned num_bits) noexcept
+{
+    const bool is_hex = s[0] == '0' && (s[1] == 'x' || s[1] == 'X');
+    if (is_hex)
+        s += 2;
+    const auto n = std::strlen(s);
+    const auto k = std::strspn(s, is_hex ? "0123456789abcdefABCDEF" : "0123456789");
+
+    mpz_set_ui(z, 0);
+    if (k != 0)
+        mpz_set_str(z, std::string(s, k).c_str(), is_hex ? 16 : 10);
+    if (mpz_sizeinbase(z, 2) > num_bits)  // The overflow comes before the invalid digit.
+        return ParseResult::out_of_range;
+    return k == n ? ParseResult::value : ParseResult::invalid_argument;
+}
+
 class Machine
 {
     std::array<Instr, MAX_PROGRAM_SIZE> program_{};
@@ -394,6 +423,13 @@ bool Machine::decode(const uint8_t* data, size_t size) noexcept
             return false;
         for (unsigned i = 0; i < info.imm_size; ++i)
             in.imm = (in.imm << 8) | data[pos++];
+        if (in.op == from_string)
+        {
+            if (size - pos < in.imm)
+                return false;
+            in.payload = &data[pos];
+            pos += in.imm;
+        }
 
         if (depth < info.num_args)
             return false;
@@ -487,7 +523,8 @@ void Machine::fail(const char* what, const Item* result) noexcept
         if (in.payload != nullptr)
         {
             std::fprintf(stderr, " 0x");
-            for (size_t j = 0; j < in.words * 8; ++j)
+            const auto payload_size = in.op == from_string ? in.imm : in.words * 8;
+            for (size_t j = 0; j < payload_size; ++j)
                 std::fprintf(stderr, "%02x", in.payload[j]);
         }
         std::fprintf(stderr, "\n");
@@ -534,6 +571,29 @@ bool Machine::exec(const Instr& in) noexcept
             v = uint64_t{in.imm};
             r.set(v);
             mpz_set_ui(r.z, in.imm);
+            break;
+        }
+        case from_string:
+        {
+            const std::string s(reinterpret_cast<const char*>(in.payload), in.imm);
+            const auto expected = parse(r.z, s.c_str(), N);
+            auto result = ParseResult::value;
+            try
+            {
+                r.set(intx::from_string<T>(s));
+            }
+            catch (const std::invalid_argument&)
+            {
+                result = ParseResult::invalid_argument;
+            }
+            catch (const std::out_of_range&)
+            {
+                result = ParseResult::out_of_range;
+            }
+            if (result != expected)
+                fail("from_string", result == ParseResult::value ? &r : nullptr);
+            if (result != ParseResult::value)
+                return false;
             break;
         }
         default:  // push_pow2
@@ -750,9 +810,9 @@ bool Machine::exec(const Instr& in) noexcept
             expected.resize(expected.find('\0'));
             if (s != expected)
                 fail("to_string", &a);
-            if (base == 10 && from_string<T>(s) != x)
+            if (base == 10 && intx::from_string<T>(s) != x)
                 fail("from_string (dec)", &a);
-            if (base == 16 && from_string<T>("0x" + s) != x)
+            if (base == 16 && intx::from_string<T>("0x" + s) != x)
                 fail("from_string (hex)", &a);
             break;
         }

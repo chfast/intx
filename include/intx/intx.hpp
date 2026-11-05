@@ -1020,29 +1020,29 @@ constexpr Int from_string(const char* str)
 {
     auto s = str;
     auto x = Int{};
-    size_t num_digits = 0;
 
     if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
     {
+        constexpr auto MAX_HEX = std::numeric_limits<Int>::max() >> uint64_t{4};
         s += 2;
         while (const auto c = *s++)
         {
-            if (++num_digits > sizeof(x) * 2)
+            const auto d = from_hex_digit(c);
+            if (x > MAX_HEX)
                 throw_<std::out_of_range>(str);
-            x = (x << uint64_t{4}) | from_hex_digit(c);
+            x = (x << uint64_t{4}) | d;
         }
         return x;
     }
 
+    constexpr auto MAX_DEC = std::numeric_limits<Int>::max() / 10;
+    constexpr auto MAX_LAST_DIGIT = static_cast<uint8_t>(std::numeric_limits<Int>::max() % 10);
     while (const auto c = *s++)
     {
-        if (num_digits++ > std::numeric_limits<Int>::digits10)
-            throw_<std::out_of_range>(str);
-
         const auto d = from_dec_digit(c);
-        x = x * Int{10} + d;
-        if (x < d)
+        if (x > MAX_DEC || (x == MAX_DEC && d > MAX_LAST_DIGIT))
             throw_<std::out_of_range>(str);
+        x = x * Int{10} + d;
     }
     return x;
 }
