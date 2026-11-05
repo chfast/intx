@@ -61,7 +61,7 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
   unfold mulmod_fold
   simp (config := { zeta := false }) only [require_pos hm, Option.bind_eq_bind, Option.bind_some, hs]
   lift_lets
-  intro d c0b c0b' c0 p pw res jp1 jp2 jp3 jp4
+  intro d c0b c0b' c0 p pw res jp1 jp2 jp3
   have hN1 := hN.1
   have hN4 := hN.2
   -- The modulus and its normalized form d.
@@ -166,7 +166,7 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
   -- The final shift.
   have hjp1 : ∀ (r : Vector Word (N + 1)) (u : PUnit),
       val (span r 0 N (by omega)).toList = val pw.toList % val d.toList →
-      ∃ w, jp1 r u = some w ∧ val w.toList = val x.toList * val y.toList % val m.toList := by
+      ∃ w, jp1 u r = some w ∧ val w.toList = val x.toList * val y.toList % val m.toList := by
     intro r u hr
     refine ⟨_, rfl, ?_⟩
     rw [val_setSpan]
@@ -176,7 +176,7 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
   -- The final subtraction of d.
   have hjp2 : ∀ (r : Vector Word (N + 1)) (u : PUnit), val r.toList < 2 * val d.toList →
       val r.toList % val d.toList = val pw.toList % val d.toList →
-      ∃ w, jp2 r u = some w ∧ val w.toList = val x.toList * val y.toList % val m.toList := by
+      ∃ w, jp2 u r = some w ∧ val w.toList = val x.toList * val y.toList % val m.toList := by
     intro r u hr hrm
     simp (config := { zeta := false }) only [jp2]
     lift_lets
@@ -207,7 +207,6 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
         rcases hcases with ⟨h0 | h0, h1 | h1⟩ <;> simp only [h0, h1, Nat.mul_zero, Nat.mul_one] at hsub hsplit ⊢ <;>
           omega
       rw [if_pos hcond]
-      simp only [Option.pure_def, Option.bind_some]
       refine hjp1 r1 PUnit.unit ?_
       have : val (span r1 0 N (by omega)).toList =
           val (submul (span r 0 N (by omega)) d 1 (by omega)).1.toList := by
@@ -223,7 +222,6 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
         rcases hcases with ⟨h0 | h0, h1 | h1⟩ <;> simp only [h0, h1, Nat.mul_zero, Nat.mul_one] at hsub hsplit ⊢ <;>
           omega
       rw [if_neg hcond]
-      simp only [Option.pure_def, Option.bind_some]
       refine hjp1 r PUnit.unit ?_
       rw [val_span_low, ← hrm, Nat.mod_eq_of_lt (by omega : val r.toList < val d.toList)]
       apply Nat.mod_eq_of_lt
@@ -311,7 +309,7 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
       simpa using hR0
     · intro j b hj hm ⟨hI1, hI2, hI3⟩
       lift_lets
-      intro rb acc0
+      intro rb
       have ha := pw[8 - N - j - 1]'(by omega)
       -- The words of the next remainder before the multiplications.
       refine ex_bind_yield (fun acc : Vector Word (N + 1) =>
@@ -320,9 +318,9 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
           (fun k (acc : Vector Word (N + 1)) => acc[0] = pw[8 - N - j - 1]'(by omega) ∧
             (∀ i (hi : i < N + 1), 1 ≤ i → i < 1 + k → acc[i] = b[i - 1]) ∧
             (∀ i (hi : i < N + 1), 1 + k ≤ i → acc[i] = 0))
-          ⟨by simp [acc0], fun i hi h1 h2 => by omega,
+          ⟨by simp, fun i hi h1 h2 => by omega,
             fun i hi h1 => by
-              simp only [acc0, c0b]
+              simp only [c0b]
               rw [Vector.getElem_set, if_neg (by omega)]
               simp⟩
           (fun k acc hk hm' ⟨hA0, hA1, hA2⟩ => ⟨_, rfl, by
@@ -624,7 +622,6 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
             rw [← Nat.mul_add, hsub']
           rw [hr1'v] at hsplit hge
           omega
-        simp (config := { zeta := false }) only [Option.pure_def, Option.bind_some]
         have h2D := Nat.add_mul (qh[2].toNat + 2 ^ 64) 2 (val d.toList)
         refine hjp2 r2 PUnit.unit (by rw [hr2v]; omega) ?_
         rw [hr2v, hsubmod _ hb1, hRm]
@@ -633,7 +630,6 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
           have : qh[3] = 0 := by simpa using h3
           rw [this]; rfl
         simp only [h30, Nat.mul_zero, Nat.add_zero] at hb1 hb2
-        simp (config := { zeta := false }) only [Option.pure_def, Option.bind_some]
         have h2D := Nat.add_mul (qh[2].toNat) 2 (val d.toList)
         refine hjp2 r1' PUnit.unit (by rw [hr1'v]; omega) ?_
         rw [hr1'v, hDm]
@@ -666,7 +662,6 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
       Nat.mod_mod_of_dvd _ h256]
   · rw [if_neg hpow]
     simp (config := { zeta := false }) only [Option.pure_def, Option.bind_some]
-    simp (config := { zeta := false }) only [jp4]
     have hC0D : val c0.toList < val d.toList := by
       have h1 : val c0.toList ≤ val d.toList := by rw [hc0]; omega
       rcases Nat.lt_or_ge (val c0.toList) (val d.toList) with h | h
@@ -699,7 +694,6 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
       refine ex_bind (fun v : Word × Word => v.1.toNat = 2 ^ 64 * val c0.toList / val d.toList ∧
         v.2.toNat = 2 ^ 64 * val c0.toList % val d.toList) ⟨(q, c10), hdiv, hq, hc10⟩ ?_
       intro v ⟨hv1, hv2⟩
-      simp (config := { zeta := false }) only [Option.pure_def, Option.bind_some]
       have hv : val ((Vector.replicate N 0).set 0 v.2 (by omega)).toList = v.2.toNat := by
         have := val_toList_set (Vector.replicate N (0 : Word)) 0 v.2 (by omega)
         simpa using this
@@ -735,7 +729,6 @@ theorem mulmod_fold_spec (P : Platform) (N : Nat) (x y m : U256) (hN : 1 ≤ N �
         (v.1[0]'(by omega)).toNat = 2 ^ 64 * val c0.toList / val d.toList ∧
         val v.2.toList = 2 ^ 64 * val c0.toList % val d.toList) ⟨(quot, rem), hdiv, hq, hr⟩ ?_
       intro v ⟨hv1, hv2⟩
-      simp (config := { zeta := false }) only [Option.pure_def, Option.bind_some]
       have hv : val (copy v.2 (Vector.replicate N 0) (by omega)).toList = val v.2.toList := by
         simp only [copy]; rw [val_setSpan]; simp
       apply hjp3

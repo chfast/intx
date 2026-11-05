@@ -33,25 +33,25 @@ theorem umulWords_spec {n : Nat} (x y : Vector Word n) :
       (P := fun (v : ForInStep (Vector Word (2 * n))) => ∃ b', v = .yield b' ∧
         (val b'.toList = val x.toList * val (y.toList.take (j + 1)) ∧
           ∀ t (ht : t < 2 * n), j + 1 + n ≤ t → b'[t] = 0))
-      (fun i (b : MProd Word (Vector Word (2 * n))) =>
-        val b.2.toList + 2 ^ (64 * (i + j)) * b.1.toNat =
+      (fun i (b : Vector Word (2 * n) × Word) =>
+        val b.1.toList + 2 ^ (64 * (i + j)) * b.2.toNat =
           val p.toList + 2 ^ (64 * j) * y[j].toNat * val (x.toList.take i) ∧
-        ∀ t (ht : t < 2 * n), (t < j ∨ i + j ≤ t) → b.2[t] = p[t])
+        ∀ t (ht : t < 2 * n), (t < j ∨ i + j ≤ t) → b.1[t] = p[t])
       ⟨by simp, fun t ht _ => rfl⟩ ?_ ?_
     · intro i b hi hm' ⟨hv', hp'⟩
       refine ⟨_, rfl, ?_, ?_⟩
       · simp only [U128.getElem_zero, U128.getElem_one]
-        have hA := addc_spec b.2[i + j] b.1 false
+        have hA := addc_spec b.1[i + j] b.2 false
         simp only [Bool.toNat_false, Nat.add_zero] at hA
-        have hAl := (addc b.2[i + j] b.1 false).1.toNat_lt
-        have hpl := b.2[i + j].toNat_lt
-        have hbl := b.1.toNat_lt
-        have hT := umul_add_mk_toNat x[i] y[j] (addc b.2[i + j] b.1 false).1
-          (addc b.2[i + j] b.1 false).2 (by omega)
+        have hAl := (addc b.1[i + j] b.2 false).1.toNat_lt
+        have hpl := b.1[i + j].toNat_lt
+        have hbl := b.2.toNat_lt
+        have hT := umul_add_mk_toNat x[i] y[j] (addc b.1[i + j] b.2 false).1
+          (addc b.1[i + j] b.2 false).2 (by omega)
         simp only [U128.toNat] at hT
-        have hset := val_toList_set b.2 (i + j)
-          (umul x[i] y[j] + ⟨(addc b.2[i + j] b.1 false).1,
-            if (addc b.2[i + j] b.1 false).2 then 1 else 0⟩).lo (by omega)
+        have hset := val_toList_set b.1 (i + j)
+          (umul x[i] y[j] + ⟨(addc b.1[i + j] b.2 false).1,
+            if (addc b.1[i + j] b.2 false).2 then 1 else 0⟩).lo (by omega)
         have hpij := congrArg UInt64.toNat (hp' (i + j) (by omega) (Or.inr le_rfl))
         have htake := val_take_succ' x i hi
         rw [show i + 1 + j = i + j + 1 by omega, Nat.mul_succ, pow_add, htake]
@@ -64,7 +64,7 @@ theorem umulWords_spec {n : Nat} (x y : Vector Word n) :
         rw [Vector.getElem_set, if_neg (by omega)]
         exact hp' t ht (by omega)
     · intro b ⟨hv', hp'⟩
-      obtain ⟨kk, pp⟩ := b
+      obtain ⟨pp, kk⟩ := b
       refine ⟨_, rfl, ?_, ?_⟩
       · have hset := val_toList_set pp (j + n) kk (by omega)
         have h0 : pp[j + n] = 0 := by rw [hp' (j + n) (by omega) (Or.inr (by omega))]; exact hz _ _ le_rfl
@@ -89,17 +89,17 @@ theorem subcWords_spec {n : Nat} (x y : Vector Word n) (c : Bool) :
   refine forIn'_rco0_id
     (P := fun (v : Vector Word n × Bool) =>
       val v.1.toList + val y.toList + c.toNat = val x.toList + 2 ^ (64 * n) * v.2.toNat)
-    (fun k (b : MProd Bool (Vector Word n)) =>
-      val (b.2.toList.take k) + val (y.toList.take k) + c.toNat =
-        val (x.toList.take k) + 2 ^ (64 * k) * b.1.toNat ∧
-      ∀ i (hi : i < n), k ≤ i → b.2[i] = 0)
+    (fun k (b : Vector Word n × Bool) =>
+      val (b.1.toList.take k) + val (y.toList.take k) + c.toNat =
+        val (x.toList.take k) + 2 ^ (64 * k) * b.2.toNat ∧
+      ∀ i (hi : i < n), k ≤ i → b.1[i] = 0)
     ⟨by simp, fun i hi _ => by simp⟩ ?_ ?_
   · intro k b hk hm ⟨hv, hz⟩
     refine ⟨_, rfl, ?_, ?_⟩
-    · have hs := subc_spec x[k] y[k] b.1
+    · have hs := subc_spec x[k] y[k] b.2
       have hs' := congrArg (fun t => 2 ^ (64 * k) * t) hs
       simp only [Nat.mul_add] at hs'
-      have htz : (b.2.set k (subc x[k] y[k] b.1).1 hk).toList.take k = b.2.toList.take k := by
+      have htz : (b.1.set k (subc x[k] y[k] b.2).1 hk).toList.take k = b.1.toList.take k := by
         apply List.ext_getElem (by simp)
         intro i h1 h2
         simp only [List.getElem_take, Vector.getElem_toList]

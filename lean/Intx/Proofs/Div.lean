@@ -301,7 +301,7 @@ theorem udivrem_2by1_v_spec (u : U128) (d v : Word) (hd : 2 ^ 63 ≤ d.toNat)
       omega
     have hsl := s.lo.toNat_lt
     unfold udivrem_2by1_v div2by1N
-    simp only [U128.getElem_zero, U128.getElem_one, Id.run, pure_bind, hs]
+    simp only [U128.getElem_zero, U128.getElem_one, Id.run, hs]
     rw [show (v.toNat * u.hi.toNat + (2 ^ 64 * u.hi.toNat + u.lo.toNat)) % 2 ^ 64 = s.lo.toNat by
         omega,
       show (v.toNat * u.hi.toNat + (2 ^ 64 * u.hi.toNat + u.lo.toNat)) / 2 ^ 64 = s.hi.toNat by
@@ -585,7 +585,7 @@ theorem udivrem_top1_spec (P : Platform) (TOP : Nat) {nu nv : Nat} (u : Vector W
     hk1 (by omega)
   refine ⟨resize nu #v[q'], r', ?_, ?_, ?_⟩
   · unfold udivrem_top1
-    simp only [hW, Bool.not_true, Bool.false_eq_true, ↓reduceIte, dif_pos hnu, pure_bind, hs,
+    simp only [hW, Bool.not_true, Bool.false_eq_true, ↓reduceIte, dif_pos hnu, hs,
       Option.bind_eq_bind, Option.bind_some, fshl_zero]
     simp only [hdiv, Option.bind_some, ← hS, hcl, dif_neg (show ¬TOP + 1 < nv by omega)]
     rfl
