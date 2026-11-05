@@ -1473,6 +1473,13 @@ void test_udivrem()
         EXPECT_EQ(quot, t.quotient);
         EXPECT_EQ(rem, t.reminder);
     }
+
+    for (const auto& u : {intx::uint<M>{0}, intx::uint<M>{1}, ~intx::uint<M>{0}})
+    {
+        const auto [quot, rem] = udivrem(u, intx::uint<N>{0});
+        EXPECT_EQ(quot, 0);
+        EXPECT_EQ(rem, 0);
+    }
 }
 
 template <unsigned M, unsigned... N>
@@ -1502,6 +1509,30 @@ constexpr div_test_case<uint256> sdivrem_test_cases[] = {
     {-13_u256, -3_u256, 4_u256, -1_u256},
     {1_u256 << 255, -1_u256, 1_u256 << 255, 0},
 };
+
+TEST(div, by_zero)
+{
+    // As in the EVM, a division by 0 gives 0, so do ADDMOD and MULMOD by 0.
+    const auto x = ~uint256{0} - 5;
+    EXPECT_EQ(x / 0, 0);
+    EXPECT_EQ(x % 0, 0);
+    EXPECT_EQ(sdivrem(x, uint256{0}).quot, 0);
+    EXPECT_EQ(sdivrem(x, uint256{0}).rem, 0);
+    EXPECT_EQ(addmod(x, x, 0), 0);
+    EXPECT_EQ(mulmod(x, x, 0), 0);
+
+    const auto y = ~uint128{0} - 5;
+    EXPECT_EQ(y / 0, 0);
+    EXPECT_EQ(y % 0, 0);
+    EXPECT_EQ(sdivrem(y, uint128{0}).quot, 0);
+    EXPECT_EQ(sdivrem(y, uint128{0}).rem, 0);
+
+    static_assert(udivrem(uint512{3}, uint256{0}).quot == 0);
+    static_assert(udivrem(uint512{3}, uint256{0}).rem == 0);
+    static_assert(udivrem(uint128{3}, uint128{0}).quot == 0);
+    static_assert(addmod(uint256{3}, uint256{5}, 0) == 0);
+    static_assert(mulmod(uint256{3}, uint256{5}, 0) == 0);
+}
 
 TEST(div, sdivrem_256)
 {
