@@ -12,6 +12,7 @@ add_executable(intx-unittests
     test_builtins.cpp
     test_cases.hpp
     test_div.cpp
+    test_exp.cpp
     test_int128.cpp
     test_intx.cpp
     test_intx_api.cpp
