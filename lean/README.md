@@ -4,6 +4,9 @@ A machine-checked proof that `intx::mulmod()` computes `x * y mod m` for every n
 undefined behavior. It covers `internal::mulmod_fold<N>()` for `N` from 1 to 4 and the helpers it
 calls, from the word operations up, with and without the x86-64 `div` instruction.
 
+The proof of the RV64 machine code of `umul()`, `addc()` and `udivrem_2by1()` against these
+models, in the Sail RISC-V model, is in [`IntxRV/`](IntxRV/README.md).
+
 ## Audit map
 
 | file | review |
@@ -43,7 +46,7 @@ calls, from the word operations up, with and without the x86-64 `div` instructio
 ```sh
 lake exe cache get
 lake build
-lake env lean Checks.lean
+lake build Checks
 scripts/difftest.sh 1000000
 scripts/check-source.py
 ```

@@ -437,6 +437,57 @@ jobs:
       - install_deps
       - build_and_test
 
+  lean:
+    docker:
+      - image: ubuntu:26.04
+    resource_class: xlarge
+    environment:
+      ELAN_VERSION: v4.2.4
+      ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+    steps:
+      - run:
+          name: "Install tools"
+          command: |
+            apt-get update -q
+            DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
+              ca-certificates curl git clang g++-riscv64-linux-gnu python3
+      - checkout
+      - run:
+          name: "Install Lean"
+          command: |
+            curl -sSfL -o /tmp/elan.tar.gz https://github.com/leanprover/elan/releases/download/$ELAN_VERSION/elan-x86_64-unknown-linux-gnu.tar.gz
+            echo "$ELAN_SHA256  /tmp/elan.tar.gz" | sha256sum -c
+            tar xzf /tmp/elan.tar.gz -C /tmp
+            /tmp/elan-init -y --default-toolchain none
+            echo 'export PATH=$HOME/.elan/bin:$PATH' >> $BASH_ENV
+      - restore_cache:
+          keys:
+            - lean-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}
+      - run:
+          name: "Get the Mathlib build"
+          working_directory: lean
+          command: lake exe cache get
+      - run:
+          name: "Regenerate the RV64 machine code and its Lean sources"
+          working_directory: lean
+          command: |
+            CXX=clang++ scripts/rv_build.sh
+            git diff --exit-code -- IntxRV/Gen IntxRV/Examples.lean
+      - run:
+          name: "Check the proofs and their axioms"
+          working_directory: lean
+          no_output_timeout: 60m
+          command: lake build Intx IntxRV Checks
+      - run:
+          name: "Check the hashes of the modeled C++ code"
+          working_directory: lean
+          command: scripts/check-source.py
+      - save_cache:
+          key: lean-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}
+          paths:
+            - lean/.lake/packages
+          when: always
+
 workflows:
   version: 2
   intx:
@@ -455,6 +506,7 @@ workflows:
       - macos
       - macos-coverage
       - cmake-min
+      - lean
       - arm64
       - powerpc64
       - windows-32bit

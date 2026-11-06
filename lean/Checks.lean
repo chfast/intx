@@ -1,7 +1,8 @@
 import Checks.Intx
+import Checks.IntxRV
 set_option warningAsError true
 /-!
 # Checks
 
-The axiom footprint of the main theorem, kept out of the default build targets.
+The axiom footprints of the main theorems, kept out of the default build targets.
 -/
