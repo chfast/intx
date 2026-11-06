@@ -827,11 +827,12 @@ constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) n
 
     auto r = u[0] - (q[1] * d);
 
-    if (r > q[0])
-    {
-        --q[1];
-        r += d;
-    }
+    // The first correction, taken about half the time, is branch-free: q[1] - 1 and r + d if
+    // r > q[0]. r gets a mask because GCC turns two ternaries into a branch.
+    // The second correction is rare.
+    const auto c = r > q[0];
+    q[1] = c ? q[1] - 1 : q[1];
+    r += d & (uint64_t{0} - uint64_t{c});
 
     if (r >= d)
     {
