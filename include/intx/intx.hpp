@@ -1939,7 +1939,8 @@ constexpr div_result<uint<M>, uint<N>> udivrem_knuth(
 /// and corrected with the remainder computed on the original (not normalized) operands.
 /// The word v[TOP] must not be zero.
 template <size_t TOP, unsigned M, unsigned N>
-constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint<N>& v) noexcept
+[[gnu::always_inline]] constexpr div_result<uint<M>, uint<N>> udivrem_top1(
+    const uint<M>& u, const uint<N>& v) noexcept
 {
     static_assert(TOP >= 1 && TOP < uint<N>::num_words);
     static_assert(uint<M>::num_words == TOP + 1 || uint<M>::num_words == TOP + 2);
