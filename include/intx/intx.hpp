@@ -1942,7 +1942,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_knuth(
 }
 
 /// Divides u by v when the quotient fits in a single word: v has TOP + 1 significant words
-/// and u has at most one more word, which is less than v[TOP].
+/// and u has at most one more significant word, which is less than v[TOP].
 ///
 /// The quotient is estimated from the top word of the normalized divisor with 2/1 division
 /// and corrected with the remainder computed on the original (not normalized) operands.
@@ -1951,15 +1951,18 @@ template <size_t TOP, unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint<N>& v) noexcept
 {
     static_assert(TOP >= 1 && TOP < uint<N>::num_words);
-    static_assert(uint<M>::num_words == TOP + 1 || uint<M>::num_words == TOP + 2);
+    static_assert(uint<M>::num_words >= TOP + 1 && uint<M>::num_words <= TOP + 3);
 
-    // A numerator type wider than the divisor type comes from addmod(), where u > v.
+    // A numerator type wider than the divisor type comes from addmod(), where u < v is rare.
     // For it, the u < v return is left out and u is not copied (see the remainder below).
     constexpr auto WIDER = uint<M>::num_words > uint<N>::num_words;
 
     uint64_t ue = 0;  // The extra word of u above the significant words of v.
-    if constexpr (uint<M>::num_words == TOP + 2)
+    if constexpr (uint<M>::num_words >= TOP + 2)
         ue = u[TOP + 1];
+    if constexpr (uint<M>::num_words == TOP + 3)
+        INTX_REQUIRE(u[TOP + 2] == 0);
+    INTX_REQUIRE(ue < v[TOP]);
 
     if constexpr (!WIDER)
     {
@@ -2170,8 +2173,13 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
             {
                 if (u[TOP + 1] < v[TOP - 1])
                 {
-                    if ((u[TOP + 1] | u[TOP]) == 0 && u[TOP - 1] < v[TOP - 1])  // u < v.
-                        return {0, static_cast<uint<N>>(u)};
+                    // The quotient fits in a single word if u has at most TOP words.
+                    if ((u[TOP + 1] | u[TOP]) == 0)
+                    {
+                        if (u[TOP - 1] < v[TOP - 1])  // u < v.
+                            return {0, static_cast<uint<N>>(u)};
+                        return internal::udivrem_top1<TOP - 1>(u, v);
+                    }
                     return internal::udivrem_top2<TOP>(u, v);
                 }
                 // With equal top words the quotient has up to 129 bits, e.g. addmod() with a
