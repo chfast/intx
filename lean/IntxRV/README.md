@@ -74,7 +74,9 @@ The proofs are in [`Api/`](Api/): the generated `Checks/IntxRVApi.lean` requires
 `Api.p.proof : Api.p.spec` for every instance, with the allowed axioms only, and that the
 assumptions of the specification hold: with `NonVacuous` ([`EnvM.lean`](EnvM.lean)) in an
 environment for the functions with memory, by a proof `Api.p.nonvacuous` otherwise. `umul()`,
-`addc()` and `udivrem_2by1()` are proved through their models ([`Api/Word.lean`](Api/Word.lean)). `operator+` and `operator-` are proved through the models `add4` and `sub4` (the
+`addc()` and `udivrem_2by1()` are proved through their models ([`Api/Word.lean`](Api/Word.lean)),
+the bitwise operators through `List.zipWith` of the word operation; the comparisons and `slt()`
+directly. `operator+` and `operator-` are proved through the models `add4` and `sub4` (the
 chains of `addc()` and `subc()` of `Intx.Model`, [`ApiModel.lean`](ApiModel.lean)); the tactic
 `rv_runm` ([`TacticM.lean`](TacticM.lean)) proves that the machine code computes them.
 

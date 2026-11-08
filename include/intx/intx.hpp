@@ -1509,6 +1509,7 @@ public:
         return z;
     }
 
+    /// @post result = x ||| y
     friend constexpr uint operator|(const uint& x, const uint& y) noexcept
     {
         uint z;
@@ -1519,6 +1520,7 @@ public:
 
     constexpr uint& operator|=(const uint& y) noexcept { return *this = *this | y; }
 
+    /// @post result = x &&& y
     friend constexpr uint operator&(const uint& x, const uint& y) noexcept
     {
         uint z;
@@ -1529,6 +1531,7 @@ public:
 
     constexpr uint& operator&=(const uint& y) noexcept { return *this = *this & y; }
 
+    /// @post result = x ^^^ y
     friend constexpr uint operator^(const uint& x, const uint& y) noexcept
     {
         uint z;
@@ -1553,8 +1556,11 @@ public:
     {
         return subc(x, y).carry;
     }
+    /// @post result <-> x > y
     friend constexpr bool operator>(const uint& x, const uint& y) noexcept { return y < x; }
+    /// @post result <-> x >= y
     friend constexpr bool operator>=(const uint& x, const uint& y) noexcept { return !(x < y); }
+    /// @post result <-> x <= y
     friend constexpr bool operator<=(const uint& x, const uint& y) noexcept { return !(y < x); }
 
     friend constexpr std::strong_ordering operator<=>(const uint& x, const uint& y) noexcept
@@ -1788,6 +1794,7 @@ using uint256 = uint<256>;
 ///
 /// Interprets the arguments as two's complement signed integers
 /// and checks the "less than" relation.
+/// @post result <-> signed N x < signed N y
 template <unsigned N>
 constexpr bool slt(const uint<N>& x, const uint<N>& y) noexcept
 {

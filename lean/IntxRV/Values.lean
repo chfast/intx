@@ -71,6 +71,28 @@ theorem umul_hi_toBitVec (x y : Word) :
 theorem zopz0zI_u_eq (a b : BitVec 64) : zopz0zI_u a b = decide (a < b) := by
   simp [zopz0zI_u, Sail.BitVec.toNatInt, BitVec.lt_def]
 
+theorem shiftiopVal_srli (sh : BitVec 6) (a : BitVec 64) :
+    shiftiopVal .SRLI sh a = a >>> sh.toNat := by
+  simp [shiftiopVal, shift_bits_right, Sail.BitVec.extractLsb, Functions.log2_xlen,
+    Sail.shift_bits_right]
+  have : BitVec.extractLsb 5 0 sh = sh := by apply BitVec.eq_of_toNat_eq; simp; omega
+  rw [this]; rfl
+
+/-- The sign of an xor: whether the signs differ. -/
+theorem sign_xor (a b : BitVec 64) :
+    9223372036854775808 ≤ (a ^^^ b).toNat ↔
+      ¬(9223372036854775808 ≤ a.toNat ↔ 9223372036854775808 ≤ b.toNat) := by
+  have h : ∀ c : BitVec 64, 9223372036854775808 ≤ c.toNat ↔ c.msb = true := fun c => by
+    rw [BitVec.msb_eq_true_iff_two_mul_ge]; omega
+  rw [h, h, h, BitVec.msb_xor]
+  cases a.msb <;> cases b.msb <;> simp
+
+/-- The signed comparison with 0 of `blt`/`bge`: the sign bit. -/
+theorem zopz0zI_s_zero (a : BitVec 64) : zopz0zI_s a 0#64 = decide (2 ^ 63 ≤ a.toNat) := by
+  simp only [zopz0zI_s, BitVec.toInt_zero]
+  rw [BitVec.toInt_eq_toNat_cond]
+  split <;> simp <;> omega
+
 theorem zero_extend_bool_to_bit (c : Bool) :
     zero_extend (m := 64) (bool_to_bit c) = if c then 1#64 else 0#64 := by
   cases c <;> rfl
