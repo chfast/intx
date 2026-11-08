@@ -5,6 +5,8 @@ import IntxRV.Values
 
 The models of `operator+` and `operator-` of `uint<256>`: the chains of `addc()` and `subc()` of
 `Intx.Model` on the 4 words, with their specifications proved from `addc_spec` and `subc_spec`.
+The bitwise operators are the operation on each word (`List.zipWith`), and `val_zipWith_or`,
+`val_zipWith_and` and `val_zipWith_xor` give their values.
 `wordList m a k` are the `k` words at `a` in the memory `m` as `Word`s.
 -/
 
@@ -80,10 +82,74 @@ theorem sub4_spec (a0 a1 a2 a3 b0 b1 b2 b3 : Word) :
   simp only [Bool.toNat_false, Nat.add_zero] at h0
   omega
 
+/-- A bitwise operation of `Nat` on two words joined with their higher parts. -/
+theorem bitwise_two_pow_mul_add {f : Bool → Bool → Bool} (hf : f false false = false)
+    {a b : Nat} (c d : Nat) (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
+    Nat.bitwise f (2 ^ 64 * c + a) (2 ^ 64 * d + b) =
+      2 ^ 64 * Nat.bitwise f c d + Nat.bitwise f a b := by
+  have hab : Nat.bitwise f a b < 2 ^ 64 := Nat.bitwise_lt_two_pow ha hb
+  apply Nat.eq_of_testBit_eq
+  intro j
+  rw [Nat.testBit_bitwise hf, Nat.testBit_two_pow_mul_add _ ha, Nat.testBit_two_pow_mul_add _ hb,
+    Nat.testBit_two_pow_mul_add _ hab]
+  split
+  · rw [Nat.testBit_bitwise hf]
+  · rw [Nat.testBit_bitwise hf]
+
+theorem val_zipWith_bitwise {f : Bool → Bool → Bool} (hf : f false false = false)
+    (g : Word → Word → Word) (hg : ∀ a b : Word, (g a b).toNat = Nat.bitwise f a.toNat b.toNat) :
+    ∀ xs ys : List Word, xs.length = ys.length →
+      val (List.zipWith g xs ys) = Nat.bitwise f (val xs) (val ys)
+  | [], [], _ => by simp only [val, List.zipWith_nil_left, List.foldr]; unfold Nat.bitwise; simp
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+  | x :: xs, y :: ys, h => by
+    simp only [List.zipWith_cons_cons, val, List.foldr] at *
+    have := val_zipWith_bitwise hf g hg xs ys (by simpa using h)
+    simp only [val] at this
+    rw [this, hg, Nat.add_comm, Nat.add_comm x.toNat, Nat.add_comm y.toNat,
+      bitwise_two_pow_mul_add hf _ _ x.toNat_lt y.toNat_lt]
+
+theorem val_zipWith_or (xs ys : List Word) (h : xs.length = ys.length) :
+    val (List.zipWith (· ||| ·) xs ys) = val xs ||| val ys :=
+  val_zipWith_bitwise rfl _ (fun a b => by simp [UInt64.toNat_or]; rfl) xs ys h
+
+theorem val_zipWith_and (xs ys : List Word) (h : xs.length = ys.length) :
+    val (List.zipWith (· &&& ·) xs ys) = val xs &&& val ys :=
+  val_zipWith_bitwise rfl _ (fun a b => by simp [UInt64.toNat_and]; rfl) xs ys h
+
+theorem val_zipWith_xor (xs ys : List Word) (h : xs.length = ys.length) :
+    val (List.zipWith (· ^^^ ·) xs ys) = val xs ^^^ val ys :=
+  val_zipWith_bitwise rfl _ (fun a b => by simp [UInt64.toNat_xor]; rfl) xs ys h
+
+theorem length_wordList (m : Mem) (a : BitVec 64) (k : Nat) : (wordList m a k).length = k := by
+  induction k generalizing a with
+  | zero => rfl
+  | succ k ih => simp [wordList, ih]
+
 /-- The bitwise or of two 0/1 values. -/
 theorem ite_or_ite (p q : Prop) [Decidable p] [Decidable q] :
     ((if p then 1#64 else 0#64) ||| if q then 1#64 else 0#64) = if p ∨ q then 1#64 else 0#64 := by
   by_cases p <;> by_cases q <;> simp_all
+
+/-- The negation of a 0/1 value. -/
+theorem ite_xor_one (p : Prop) [Decidable p] :
+    ((if p then 1#64 else 0#64) ^^^ 1#64) = if ¬p then 1#64 else 0#64 := by
+  by_cases p <;> simp_all
+
+/-- The and of a 0/1 value with the complement of another. -/
+theorem ite_and_not_ite (p q : Prop) [Decidable p] [Decidable q] :
+    ((if p then 1#64 else 0#64) &&& ((if q then 1#64 else 0#64) ^^^ 18446744073709551615#64)) =
+      if p ∧ ¬q then 1#64 else 0#64 := by
+  by_cases p <;> by_cases q <;> simp_all
+
+theorem not_ite_and_ite (p q : Prop) [Decidable p] [Decidable q] :
+    (((if q then 1#64 else 0#64) ^^^ 18446744073709551615#64) &&& (if p then 1#64 else 0#64)) =
+      if p ∧ ¬q then 1#64 else 0#64 := by
+  rw [BitVec.and_comm, ite_and_not_ite]
+
+theorem zero_lt_iff (a : BitVec 64) : 0#64 < a ↔ ¬a = 0#64 := by
+  constructor <;> intro h <;> bv_omega
 
 /-- The bitwise and of two 0/1 values. -/
 theorem ite_and_ite (p q : Prop) [Decidable p] [Decidable q] :

@@ -106,6 +106,7 @@ def instances(decls, namespace):
 
 def norm_type(t):
     t = re.sub(r"\bintx::", "", t.strip())
+    t = re.sub(r"<(\d+)U>", r"<\1>", t)
     return {"uint<128>": "uint128", "unsigned long": "uint64_t", "_Bool": "bool"}.get(t, t)
 
 

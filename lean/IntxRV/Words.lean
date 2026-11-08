@@ -70,6 +70,9 @@ structure DivResult where
   quot : Nat
   rem : Nat
 
+/-- The value of the `N`-bit number `x` as a two's complement signed number. -/
+def signed (N x : Nat) : Int := if x < 2 ^ (N - 1) then x else (x : Int) - 2 ^ N
+
 /-- The `len` bytes at `a` are a buffer of words: `a` is aligned to 8 bytes and the buffer does
 not wrap around the address space. -/
 def Buf (a : BitVec 64) (len : Nat) : Prop := a.toNat % 8 = 0 ∧ a.toNat + len ≤ 2 ^ 64

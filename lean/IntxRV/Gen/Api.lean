@@ -69,7 +69,40 @@ def spec : Prop := Runs addc_code pre post
 end addc
 
 
-/-! ## `eq_256`: `operator==` (intx.hpp:1319)
+/-! ## `and_256`: `operator&` (intx.hpp:1300)
+
+@post result = x &&& y
+-/
+
+namespace and_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 11#5) 4 ++
+    bufWords (x 12#5) 4 ++
+    bufWords (x 10#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32 ∧
+    Buf (x 12#5) 32 ∧
+    Disjoint (x 10#5) 32 (x 11#5) 32 ∧
+    Disjoint (x 10#5) 32 (x 12#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (x : Nat) (y : Nat) =>
+      result = x &&& y)
+      256 (words m' (x 10#5) 4) (words m (x 11#5) 4) (words m (x 12#5) 4) ∧
+    UnchangedExcept m m' (x 10#5) 32 ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `and_256`. -/
+def spec : Prop := RunsM and_256_code bufs pre post
+
+end and_256
+
+
+/-! ## `eq_256`: `operator==` (intx.hpp:1322)
 
 @post result <-> x = y
 -/
@@ -99,7 +132,97 @@ def spec : Prop := RunsM eq_256_code bufs pre post
 end eq_256
 
 
-/-! ## `lt_256`: `operator<` (intx.hpp:1328)
+/-! ## `ge_256`: `operator>=` (intx.hpp:None)
+
+@post result <-> x >= y
+-/
+
+namespace ge_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 10#5) 4 ++
+    bufWords (x 11#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Bool) (x : Nat) (y : Nat) =>
+      result <-> x >= y)
+      256 (decide (x'.get 10#5 = 1)) (words m (x 10#5) 4) (words m (x 11#5) 4) ∧
+    (x'.get 10#5 = 0 ∨ x'.get 10#5 = 1) ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `ge_256`. -/
+def spec : Prop := RunsM ge_256_code bufs pre post
+
+end ge_256
+
+
+/-! ## `gt_256`: `operator>` (intx.hpp:None)
+
+@post result <-> x > y
+-/
+
+namespace gt_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 10#5) 4 ++
+    bufWords (x 11#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Bool) (x : Nat) (y : Nat) =>
+      result <-> x > y)
+      256 (decide (x'.get 10#5 = 1)) (words m (x 10#5) 4) (words m (x 11#5) 4) ∧
+    (x'.get 10#5 = 0 ∨ x'.get 10#5 = 1) ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `gt_256`. -/
+def spec : Prop := RunsM gt_256_code bufs pre post
+
+end gt_256
+
+
+/-! ## `le_256`: `operator<=` (intx.hpp:None)
+
+@post result <-> x <= y
+-/
+
+namespace le_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 10#5) 4 ++
+    bufWords (x 11#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Bool) (x : Nat) (y : Nat) =>
+      result <-> x <= y)
+      256 (decide (x'.get 10#5 = 1)) (words m (x 10#5) 4) (words m (x 11#5) 4) ∧
+    (x'.get 10#5 = 0 ∨ x'.get 10#5 = 1) ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `le_256`. -/
+def spec : Prop := RunsM le_256_code bufs pre post
+
+end le_256
+
+
+/-! ## `lt_256`: `operator<` (intx.hpp:1331)
 
 @post result <-> x < y
 -/
@@ -127,6 +250,71 @@ def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
 def spec : Prop := RunsM lt_256_code bufs pre post
 
 end lt_256
+
+
+/-! ## `or_256`: `operator|` (intx.hpp:1289)
+
+@post result = x ||| y
+-/
+
+namespace or_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 11#5) 4 ++
+    bufWords (x 12#5) 4 ++
+    bufWords (x 10#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32 ∧
+    Buf (x 12#5) 32 ∧
+    Disjoint (x 10#5) 32 (x 11#5) 32 ∧
+    Disjoint (x 10#5) 32 (x 12#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (x : Nat) (y : Nat) =>
+      result = x ||| y)
+      256 (words m' (x 10#5) 4) (words m (x 11#5) 4) (words m (x 12#5) 4) ∧
+    UnchangedExcept m m' (x 10#5) 32 ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `or_256`. -/
+def spec : Prop := RunsM or_256_code bufs pre post
+
+end or_256
+
+
+/-! ## `slt_256`: `slt` (intx.hpp:1496)
+
+Signed less than comparison. Interprets the arguments as two's complement signed integers and checks the "less than" relation.
+
+@post result <-> signed N x < signed N y
+-/
+
+namespace slt_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 10#5) 4 ++
+    bufWords (x 11#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Bool) (x : Nat) (y : Nat) =>
+      result <-> signed N x < signed N y)
+      256 (decide (x'.get 10#5 = 1)) (words m (x 10#5) 4) (words m (x 11#5) 4) ∧
+    (x'.get 10#5 = 0 ∨ x'.get 10#5 = 1) ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `slt_256`. -/
+def spec : Prop := RunsM slt_256_code bufs pre post
+
+end slt_256
 
 
 /-! ## `sub_256`: `operator-` (intx.hpp:1236)
@@ -225,6 +413,39 @@ def post (x x' : Regs) : Prop :=
 def spec : Prop := Runs umul_code pre post
 
 end umul
+
+
+/-! ## `xor_256`: `operator^` (intx.hpp:1311)
+
+@post result = x ^^^ y
+-/
+
+namespace xor_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 11#5) 4 ++
+    bufWords (x 12#5) 4 ++
+    bufWords (x 10#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32 ∧
+    Buf (x 12#5) 32 ∧
+    Disjoint (x 10#5) 32 (x 11#5) 32 ∧
+    Disjoint (x 10#5) 32 (x 12#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (x : Nat) (y : Nat) =>
+      result = x ^^^ y)
+      256 (words m' (x 10#5) 4) (words m (x 11#5) 4) (words m (x 12#5) 4) ∧
+    UnchangedExcept m m' (x 10#5) 32 ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `xor_256`. -/
+def spec : Prop := RunsM xor_256_code bufs pre post
+
+end xor_256
 
 
 end IntxRV.Api

@@ -39,4 +39,25 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr Cmp lt_256 = [](const uint256& x, const uint256& y) noexcept {
     return x < y;
 };
+[[gnu::used]] constexpr Cmp gt_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x > y;
+};
+[[gnu::used]] constexpr Cmp ge_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x >= y;
+};
+[[gnu::used]] constexpr Cmp le_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x <= y;
+};
+[[gnu::used]] constexpr Cmp slt_256 = [](const uint256& x, const uint256& y) noexcept {
+    return slt(x, y);
+};
+[[gnu::used]] constexpr Binop or_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x | y;
+};
+[[gnu::used]] constexpr Binop and_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x & y;
+};
+[[gnu::used]] constexpr Binop xor_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x ^ y;
+};
 }  // namespace intx::api

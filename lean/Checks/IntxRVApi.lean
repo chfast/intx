@@ -17,17 +17,53 @@ example : IntxRV.Api.addc.spec := IntxRV.Api.addc.proof
 #check_rv_axioms IntxRV.Api.addc.proof
 example : ∃ x, IntxRV.Api.addc.pre x := IntxRV.Api.addc.nonvacuous
 
+example : IntxRV.Api.and_256.spec := IntxRV.Api.and_256.proof
+#check_rv_axioms IntxRV.Api.and_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.and_256_code IntxRV.Api.and_256.bufs IntxRV.Api.and_256.pre := by
+  rv_nonvacuous using [IntxRV.Api.and_256.bufs, IntxRV.Api.and_256.pre, IntxRV.Gen.and_256_code]
+
 example : IntxRV.Api.eq_256.spec := IntxRV.Api.eq_256.proof
 #check_rv_axioms IntxRV.Api.eq_256.proof
 example :
     IntxRV.NonVacuous IntxRV.Gen.eq_256_code IntxRV.Api.eq_256.bufs IntxRV.Api.eq_256.pre := by
   rv_nonvacuous using [IntxRV.Api.eq_256.bufs, IntxRV.Api.eq_256.pre, IntxRV.Gen.eq_256_code]
 
+example : IntxRV.Api.ge_256.spec := IntxRV.Api.ge_256.proof
+#check_rv_axioms IntxRV.Api.ge_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.ge_256_code IntxRV.Api.ge_256.bufs IntxRV.Api.ge_256.pre := by
+  rv_nonvacuous using [IntxRV.Api.ge_256.bufs, IntxRV.Api.ge_256.pre, IntxRV.Gen.ge_256_code]
+
+example : IntxRV.Api.gt_256.spec := IntxRV.Api.gt_256.proof
+#check_rv_axioms IntxRV.Api.gt_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.gt_256_code IntxRV.Api.gt_256.bufs IntxRV.Api.gt_256.pre := by
+  rv_nonvacuous using [IntxRV.Api.gt_256.bufs, IntxRV.Api.gt_256.pre, IntxRV.Gen.gt_256_code]
+
+example : IntxRV.Api.le_256.spec := IntxRV.Api.le_256.proof
+#check_rv_axioms IntxRV.Api.le_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.le_256_code IntxRV.Api.le_256.bufs IntxRV.Api.le_256.pre := by
+  rv_nonvacuous using [IntxRV.Api.le_256.bufs, IntxRV.Api.le_256.pre, IntxRV.Gen.le_256_code]
+
 example : IntxRV.Api.lt_256.spec := IntxRV.Api.lt_256.proof
 #check_rv_axioms IntxRV.Api.lt_256.proof
 example :
     IntxRV.NonVacuous IntxRV.Gen.lt_256_code IntxRV.Api.lt_256.bufs IntxRV.Api.lt_256.pre := by
   rv_nonvacuous using [IntxRV.Api.lt_256.bufs, IntxRV.Api.lt_256.pre, IntxRV.Gen.lt_256_code]
+
+example : IntxRV.Api.or_256.spec := IntxRV.Api.or_256.proof
+#check_rv_axioms IntxRV.Api.or_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.or_256_code IntxRV.Api.or_256.bufs IntxRV.Api.or_256.pre := by
+  rv_nonvacuous using [IntxRV.Api.or_256.bufs, IntxRV.Api.or_256.pre, IntxRV.Gen.or_256_code]
+
+example : IntxRV.Api.slt_256.spec := IntxRV.Api.slt_256.proof
+#check_rv_axioms IntxRV.Api.slt_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.slt_256_code IntxRV.Api.slt_256.bufs IntxRV.Api.slt_256.pre := by
+  rv_nonvacuous using [IntxRV.Api.slt_256.bufs, IntxRV.Api.slt_256.pre, IntxRV.Gen.slt_256_code]
 
 example : IntxRV.Api.sub_256.spec := IntxRV.Api.sub_256.proof
 #check_rv_axioms IntxRV.Api.sub_256.proof
@@ -41,3 +77,9 @@ example : ∃ x, IntxRV.Api.udivrem_2by1.pre x := IntxRV.Api.udivrem_2by1.nonvac
 
 example : IntxRV.Api.umul.spec := IntxRV.Api.umul.proof
 #check_rv_axioms IntxRV.Api.umul.proof
+
+example : IntxRV.Api.xor_256.spec := IntxRV.Api.xor_256.proof
+#check_rv_axioms IntxRV.Api.xor_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.xor_256_code IntxRV.Api.xor_256.bufs IntxRV.Api.xor_256.pre := by
+  rv_nonvacuous using [IntxRV.Api.xor_256.bufs, IntxRV.Api.xor_256.pre, IntxRV.Gen.xor_256_code]
