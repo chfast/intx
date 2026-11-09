@@ -2148,12 +2148,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
         constexpr auto TOP2 = (uint<M>::num_words >= 4) &&
                               (uint<M>::num_words - 1 == uint<N>::num_words - size_t{TOP1});
 
-        size_t num_divisor_words = uint<N>::num_words;
         if constexpr (TOP1)
         {
-            if (v[num_divisor_words - 1] != 0)
+            if (v[uint<N>::num_words - 1] != 0)
                 return internal::udivrem_top1<uint<N>::num_words - 1>(u, v);
-            --num_divisor_words;  // Skip the zero top word.
         }
         if constexpr (TOP2)
         {
@@ -2165,7 +2163,6 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
                     return internal::udivrem_top1<TOP>(u, v);
                 return internal::udivrem_top2<TOP + 1>(u, v);
             }
-            --num_divisor_words;  // Skip the zero word.
 
             // A divisor with two significant words less than u, the top one v[TOP - 1], also gives
             // a two word quotient if the top word of u is less than v[TOP - 1].
@@ -2203,9 +2200,11 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
                 }
             }
         }
-        while (num_divisor_words > 1 && v[num_divisor_words - 1] == 0)
-            --num_divisor_words;
-        const auto n = num_divisor_words;
+        // The divisor words not checked above, at least 1.
+        constexpr auto UNCHECKED_WORDS = uint<N>::num_words - size_t{TOP1} - size_t{TOP2};
+        size_t n = UNCHECKED_WORDS;
+        while (n > 1 && v[n - 1] == 0)
+            --n;
 
         // The number of significant words of the numerator, at least 1.
         size_t m = uint<M>::num_words;
@@ -2230,8 +2229,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
 
         // The max number of divisor words here: the divisors with more words are handled above,
         // and the ones with more words than u are greater than u.
-        constexpr auto MAX_DIVISOR_WORDS =
-            std::min(uint<N>::num_words - size_t{TOP1} - size_t{TOP2}, uint<M>::num_words);
+        constexpr auto MAX_DIVISOR_WORDS = std::min(UNCHECKED_WORDS, uint<M>::num_words);
         // The Knuth division handles divisors of at least 3 words.
         constexpr auto KNUTH_REACHABLE = MAX_DIVISOR_WORDS >= 3;
         if (!KNUTH_REACHABLE || n == 2)  // Divide at least 3 words: the words above m are 0.
