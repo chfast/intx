@@ -79,6 +79,11 @@ TEST(div, udivrem_constexpr)
     static_assert(udivrem(x2, c).quot == 0x10000000000006542ffffffffc2cb54cc000024fea1ab022f_u320);
     static_assert(udivrem(x2, c).rem == 0xeac6ed27f0c5ed6b_u256);
 
+    // Single word quotient with a 3-word numerator and divisor (as in addmod()).
+    constexpr auto y3 = (uint320{0xfedcba9876543210} << 128) | 0x9abc;
+    static_assert(udivrem(y3, p3).quot == 0xe0042813be5dc);
+    static_assert(udivrem(y3, p3).rem == 0x95ffffffffffffffffb455989694cb4f39c_u256);
+
     // Equal top words: the quotient bit 128 and the clamped estimate (as in addmod()).
     constexpr auto c3 = (uint256{1} << 128) | 1;
     static_assert(udivrem((uint320{c3} << 128) + 5, c3).quot == uint320{1} << 128);
@@ -1230,6 +1235,49 @@ const div_test_case<uint512> div_test_cases[] = {
         0x1000065b179202d21f6d7861167e552795d89a6dafa9a03d1_u512,
         0x168606a3c4a693a37781_u512,
     },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, u < v.
+    {
+        0x5f1e48c8019fd35998fd122af49ae67d09aa971e65_u512,
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e223_u512,
+        0x0_u512,
+        0x5f1e48c8019fd35998fd122af49ae67d09aa971e65_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, u = v.
+    {
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e223_u512,
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e223_u512,
+        0x1_u512,
+        0x0_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, u = v + 1.
+    {
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e224_u512,
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e223_u512,
+        0x1_u512,
+        0x1_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, the top words equal, u < v,
+    // estimate 1 too big.
+    {
+        0x5c51f8cde6f694475f0bfffbea7e9ddffc830ac9459f5808_u512,
+        0x5c51f8cde6f694475f0bfffbea7e9ddffc830aca12e22674_u512,
+        0x0_u512,
+        0x5c51f8cde6f694475f0bfffbea7e9ddffc830ac9459f5808_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, max quotient.
+    {
+        0xffffffffffffffffcee022518a4a3c6e4c445157d2508e9d_u512,
+        0x1000000000000000000000000001234ab_u512,
+        0xffffffffffffffff_u512,
+        0xcee022518a3807c34c445157d262c348_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, estimate 2 too big.
+    {
+        0xffffff802e9fa7c42a473a6a5434b6b511606191182ae62b_u512,
+        0x11fffffffffffffffffffffffffffffff_u512,
+        0xe38e3871f08dea75_u512,
+        0x8a473a6a5434b6b5f4ee9a0308b8d0a0_u512,
+    },
     // 320-bit by 256-bit, 2-word divisor: 3-word quotient, not normalized.
     {
         0xc8e643394826d6ef3db82abd7d235e6d15e65250d14e3338a6b8bd800584771e624a446b1_u512,
@@ -1375,6 +1423,13 @@ const div_test_case<uint512> div_test_cases[] = {
         0x15a2d2de5292a2cf733d91179bad50dddf281b5167_u512,
         0x3d142874759bb5db268a4f81c5445393e1bf4c1ffffffffffffffff_u512,
     },
+    // 384-bit, 4-word divisor: 4-word numerator, estimate 2 too big.
+    {
+        0xffffffc67a26429fccf31b67a20ede8d48c7f9e9c8428e1a1caa4163f581ef96_u512,
+        0x11fffffffffffffffffffffffffffffffffffffc4633aaa98_u512,
+        0xe38e38b06c93c971_u512,
+        0xacf31b67a20ede8d48c7fa1ec563b1aaef40e6a303634a7e_u512,
+    },
     // 512-bit, 6-word divisor: estimate exact, not normalized.
     {
         0x5f637c912000000e494087a0a000019d9238bf66af448990febaf5aca000000000000000013332e6dbb8e20bff88094ba91640669dc8d753ca882a5a2_u512,
@@ -1452,6 +1507,13 @@ const div_test_case<uint512> div_test_cases[] = {
         0x13afe7834b65cc109e3874fcb24169adf14387cb6fb3e1c5894d71a1e3c78b4_u512,
         0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
         0x13afe7834b65cc009e3874fcb24169adf14387cb6fb3e1c5894d71a1e3c792b_u512,
+    },
+    // 512-bit, 6-word divisor: 6-word numerator, estimate 2 too big.
+    {
+        0xffffffffffffb979372a846916419f828b9d2434e465e150bd9c66b3ad3c2d6d1a3d1fa7bc8960a8402a8905aaebb201_u512,
+        0x11fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0xe38e38e38e38a4dd_u512,
+        0x972a846916419f828b9d2434e465e150bd9c66b3ad3c2d6d1a3d1fa7bc8960a923b8c1e9392456de_u512,
     },
 };
 }  // namespace
