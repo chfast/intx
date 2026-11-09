@@ -308,6 +308,28 @@ TEST(sint, sign_extension_builtin_int128)
 }
 #endif
 
+TYPED_TEST(sint_test, convert_to_builtin_integer)
+{
+    const auto neg_five = -TypeParam{5};
+    EXPECT_EQ(static_cast<uint64_t>(neg_five), uint64_t(-5));
+    EXPECT_EQ(static_cast<int64_t>(neg_five), -5);
+    EXPECT_EQ(static_cast<int32_t>(neg_five), -5);
+    EXPECT_EQ(static_cast<uint8_t>(neg_five), uint8_t(-5));
+
+    const TypeParam x{0x0123456789abcdef, 1};
+    EXPECT_EQ(static_cast<uint64_t>(x), 0x0123456789abcdef);
+    EXPECT_EQ(static_cast<uint32_t>(x), 0x89abcdef);
+}
+
+namespace static_test_sint_convert_to_builtin_integer
+{
+static_assert(static_cast<uint64_t>(-int128{1}) == ~uint64_t{0});
+static_assert(static_cast<int64_t>(-int128{5}) == -5);
+static_assert(static_cast<int>(int128{7}) == 7);
+static_assert(static_cast<uint64_t>(int256{42}) == 42);
+static_assert(static_cast<int16_t>(-int512{3}) == -3);
+}  // namespace static_test_sint_convert_to_builtin_integer
+
 // int128-specific static and runtime tests
 
 namespace static_test_sint128_comparison

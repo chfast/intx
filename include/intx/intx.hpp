@@ -245,7 +245,7 @@ struct uint<128>
     static constexpr unsigned num_bits = 128;
     static constexpr auto num_words = num_bits / word_num_bits;
 
-protected:
+private:
     uint64_t words_[2]{};
 
 public:
@@ -1136,7 +1136,7 @@ struct uint
     static_assert(N >= 2 * word_num_bits, "Number of bits must be at lest 128");
     static_assert(N % word_num_bits == 0, "Number of bits must be a multiply of 64");
 
-protected:
+private:
     uint64_t words_[num_words]{};
 
 public:
@@ -1162,7 +1162,6 @@ public:
         requires std::conjunction_v<std::is_convertible<T, uint64_t>...>
       : words_{static_cast<uint64_t>(v)...}
     {}
-
 
     /// Constructs from words with words[0] being the least significant word.
     /// The size of the span must be less than or equal to num_words.
@@ -2545,18 +2544,19 @@ inline void store(uint8_t* dst, const uint256& x) noexcept
 
 // Signed types
 template <unsigned N>
-struct sint : private uint<N>
+struct sint
 {
     using internal = uint<N>;
-    using internal::num_bits;
-    using internal::num_words;
-    using internal::word_num_bits;
-    using typename internal::word_type;
+    using word_type = typename internal::word_type;
+    static constexpr auto word_num_bits = internal::word_num_bits;
+    static constexpr unsigned num_bits = internal::num_bits;
+    static constexpr auto num_words = internal::num_words;
 
 private:
-    using internal::words_;
+    /// The two's complement bits of the value.
+    internal u_{};
 
-    constexpr explicit sint(const internal& u) noexcept : internal{u} {}
+    constexpr explicit sint(const internal& u) noexcept : u_{u} {}
 
     /// Returns a word with every bit equal to the sign bit of the given top word.
     static constexpr uint64_t sign_word(uint64_t top) noexcept
@@ -2584,20 +2584,19 @@ public:
         requires(M < N)
     {
         for (size_t i = 0; i < sint<M>::num_words; ++i)
-            words_[i] = x[i];
+            u_[i] = x[i];
         const auto fill = sign_word(x[sint<M>::num_words - 1]);
         for (size_t i = sint<M>::num_words; i < num_words; ++i)
-            words_[i] = fill;
+            u_[i] = fill;
     }
 
 #if INTX_HAS_BUILTIN_INT128
     /// Constructs from the builtin signed 128-bit integer, with sign extension.
-    constexpr explicit(false) sint(builtin_int128 x) noexcept
-      : internal{uint64_t(x), uint64_t(x >> 64)}
+    constexpr explicit(false) sint(builtin_int128 x) noexcept : u_{uint64_t(x), uint64_t(x >> 64)}
     {
         const auto fill = uint64_t(x >> 127);
         for (size_t i = 2; i < num_words; ++i)
-            words_[i] = fill;
+            u_[i] = fill;
     }
 #endif
 
@@ -2615,7 +2614,7 @@ public:
     template <typename... T>
     constexpr explicit(false) sint(T... v) noexcept
         requires(sizeof...(T) >= 2 && std::conjunction_v<std::is_convertible<T, uint64_t>...>)
-      : internal{static_cast<uint64_t>(v)...}
+      : u_{static_cast<uint64_t>(v)...}
     {}
 
 
@@ -2624,14 +2623,14 @@ public:
     constexpr explicit sint(std::span<const uint64_t> words) noexcept
     {
         INTX_REQUIRE(words.size() <= num_words);
-        std::ranges::copy(words, words_);
+        std::ranges::copy(words, as_words(u_).begin());
     }
 
     // This is just to get each words, it won't mean much by themselves since it's
     // part of a signed type
-    constexpr uint64_t& operator[](size_t i) noexcept { return words_[i]; }
+    constexpr uint64_t& operator[](size_t i) noexcept { return u_[i]; }
 
-    constexpr const uint64_t& operator[](size_t i) const noexcept { return words_[i]; }
+    constexpr const uint64_t& operator[](size_t i) const noexcept { return u_[i]; }
 
     constexpr explicit operator bool() const noexcept { return *this != sint{}; }
 
@@ -2642,7 +2641,7 @@ public:
     {
         sint<M> r;
         for (size_t i = 0; i < sint<M>::num_words; ++i)
-            r[i] = words_[i];
+            r[i] = u_[i];
         return r;
     }
 
@@ -2652,7 +2651,7 @@ public:
         requires(std::is_integral_v<Int>)
     {
         static_assert(sizeof(Int) <= sizeof(uint64_t));
-        return static_cast<Int>(words_[0]);
+        return static_cast<Int>(u_[0]);
     }
 
     /// Assigns a builtin integer value.
@@ -2661,10 +2660,10 @@ public:
     constexpr sint& operator=(T v) noexcept
         requires(sizeof(T) <= sizeof(uint64_t))
     {
-        words_[0] = static_cast<uint64_t>(v);
+        u_[0] = static_cast<uint64_t>(v);
         const auto fill = extension_word(v);
         for (size_t i = 1; i < num_words; ++i)
-            words_[i] = fill;
+            u_[i] = fill;
         return *this;
     }
 
@@ -2674,16 +2673,16 @@ public:
         requires(M <= N)
     {
         for (size_t i = 0; i < sint<M>::num_words; ++i)
-            words_[i] = x[i];
+            u_[i] = x[i];
         const auto fill = sign_word(x[sint<M>::num_words - 1]);
         for (size_t i = sint<M>::num_words; i < num_words; ++i)
-            words_[i] = fill;
+            u_[i] = fill;
         return *this;
     }
 
     friend constexpr sint operator+(const sint& x, const sint& y) noexcept
     {
-        return sint{addc(static_cast<const internal&>(x), static_cast<const internal&>(y)).value};
+        return sint{addc(x.u_, y.u_).value};
     }
 
     constexpr sint& operator+=(const sint& y) noexcept { return *this = *this + y; }
@@ -2692,7 +2691,7 @@ public:
 
     friend constexpr sint operator-(const sint& x, const sint& y) noexcept
     {
-        return sint{subc(static_cast<const internal&>(x), static_cast<const internal&>(y)).value};
+        return sint{subc(x.u_, y.u_).value};
     }
 
     constexpr sint& operator-=(const sint& y) noexcept { return *this = *this - y; }
@@ -2702,19 +2701,19 @@ public:
     /// For two's complement, the low N bits of the product are the same as unsigned.
     friend constexpr sint operator*(const sint& x, const sint& y) noexcept
     {
-        return sint{static_cast<const internal&>(x) * static_cast<const internal&>(y)};
+        return sint{x.u_ * y.u_};
     }
 
     constexpr sint& operator*=(const sint& y) noexcept { return *this = *this * y; }
 
     friend constexpr sint operator/(const sint& x, const sint& y) noexcept
     {
-        return sint{sdivrem(static_cast<const internal&>(x), static_cast<const internal&>(y)).quot};
+        return sint{sdivrem(x.u_, y.u_).quot};
     }
 
     friend constexpr sint operator%(const sint& x, const sint& y) noexcept
     {
-        return sint{sdivrem(static_cast<const internal&>(x), static_cast<const internal&>(y)).rem};
+        return sint{sdivrem(x.u_, y.u_).rem};
     }
 
     constexpr sint& operator/=(const sint& y) noexcept { return *this = *this / y; }
@@ -2726,7 +2725,7 @@ public:
     {
         sint z;
         for (size_t i = 0; i < num_words; ++i)
-            z[i] = ~words_[i];
+            z[i] = ~u_[i];
         return z;
     }
 
@@ -2770,7 +2769,7 @@ public:
 
     friend constexpr bool operator<(const sint& x, const sint& y) noexcept
     {
-        return slt(static_cast<const internal&>(x), static_cast<const internal&>(y));
+        return slt(x.u_, y.u_);
     }
     friend constexpr bool operator>(const sint& x, const sint& y) noexcept { return y < x; }
     friend constexpr bool operator>=(const sint& x, const sint& y) noexcept { return !(x < y); }
