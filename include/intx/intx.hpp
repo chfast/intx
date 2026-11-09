@@ -886,53 +886,6 @@ constexpr div_result<uint64_t, uint128> udivrem_3by2(
     return {q[1], r};
 }
 
-/// Divides x by y. A division by 0 gives 0 as the quotient and the remainder.
-constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
-{
-    if (y[1] == 0)
-    {
-        if (y[0] == 0) [[unlikely]]
-            return {0, 0};
-
-        const auto lsh = clz(y[0]);
-        const auto rsh = (64 - lsh) % 64;
-        const auto rsh_mask = uint64_t{lsh == 0} - 1;
-
-        const auto yn = y[0] << lsh;
-        const auto xn_lo = x[0] << lsh;
-        const auto xn_hi = (x[1] << lsh) | ((x[0] >> rsh) & rsh_mask);
-        const auto xn_ex = (x[1] >> rsh) & rsh_mask;
-
-        const auto v = reciprocal_2by1(yn);
-        const auto res1 = udivrem_2by1({xn_hi, xn_ex}, yn, v);
-        const auto res2 = udivrem_2by1({xn_lo, res1.rem}, yn, v);
-        return {{res2.quot, res1.quot}, res2.rem >> lsh};
-    }
-
-    if (y[1] > x[1])
-        return {0, x};
-
-    const auto lsh = clz(y[1]);
-    if (lsh == 0)
-    {
-        const auto q = unsigned{y[1] < x[1]} | unsigned{y[0] <= x[0]};
-        return {q, x - (q ? y : 0)};
-    }
-
-    const auto rsh = 64 - lsh;
-
-    const auto yn_lo = y[0] << lsh;
-    const auto yn_hi = (y[1] << lsh) | (y[0] >> rsh);
-    const auto xn_lo = x[0] << lsh;
-    const auto xn_hi = (x[1] << lsh) | (x[0] >> rsh);
-    const auto xn_ex = x[1] >> rsh;
-
-    const auto v = reciprocal_3by2({yn_lo, yn_hi});
-    const auto res = udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_lo, yn_hi}, v);
-
-    return {res.quot, res.rem >> lsh};
-}
-
 /// Divides x by y as signed numbers. A division by 0 gives 0 as the quotient and the remainder.
 constexpr div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
 {
@@ -2116,6 +2069,32 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
 }
 
 }  // namespace internal
+
+/// Divides x by y. A division by 0 gives 0 as the quotient and the remainder.
+constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
+{
+    if (y[1] == 0)
+    {
+        if (y[0] == 0) [[unlikely]]
+            return {0, 0};
+
+        const auto lsh = internal::clz_nonzero(y[0]);
+        const auto rsh = (64 - lsh) % 64;
+        const auto rsh_mask = uint64_t{lsh == 0} - 1;
+
+        const auto yn = y[0] << lsh;
+        const auto xn_lo = x[0] << lsh;
+        const auto xn_hi = (x[1] << lsh) | ((x[0] >> rsh) & rsh_mask);
+        const auto xn_ex = (x[1] >> rsh) & rsh_mask;
+
+        const auto v = reciprocal_2by1(yn);
+        const auto res1 = udivrem_2by1({xn_hi, xn_ex}, yn, v);
+        const auto res2 = udivrem_2by1({xn_lo, res1.rem}, yn, v);
+        return {{res2.quot, res1.quot}, res2.rem >> lsh};
+    }
+
+    return internal::udivrem_top1<1>(x, y);  // The quotient fits in a single word.
+}
 
 /// Divides u by v. A division by 0 gives 0 as the quotient and the remainder.
 template <unsigned M, unsigned N>
