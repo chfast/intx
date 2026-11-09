@@ -221,6 +221,93 @@ TYPED_TEST(sint_test, convert_to_bool)
     EXPECT_TRUE(min);
 }
 
+TYPED_TEST(sint_test, sign_extension)
+{
+    const TypeParam a{int64_t{-1}};
+    for (size_t i = 0; i < TypeParam::num_words; ++i)
+        EXPECT_EQ(a[i], ~uint64_t{0});
+    EXPECT_EQ(a, -TypeParam{1});
+    EXPECT_LT(a, 0);
+
+    EXPECT_EQ(TypeParam{int32_t{-5}}, -TypeParam{5});
+    EXPECT_EQ(TypeParam{int8_t{-128}}, -TypeParam{128});
+    EXPECT_EQ(TypeParam{-1}, -TypeParam{1});
+
+    // Unsigned values are zero-extended.
+    const TypeParam b{~uint64_t{0}};
+    EXPECT_GT(b, 0);
+    EXPECT_EQ(b[0], ~uint64_t{0});
+    for (size_t i = 1; i < TypeParam::num_words; ++i)
+        EXPECT_EQ(b[i], 0);
+
+    // The multi-word constructor takes raw words.
+    const TypeParam c{~uint64_t{0}, ~uint64_t{0}};
+    EXPECT_EQ(c[0], ~uint64_t{0});
+    EXPECT_EQ(c[1], ~uint64_t{0});
+    for (size_t i = 2; i < TypeParam::num_words; ++i)
+        EXPECT_EQ(c[i], 0);
+
+    TypeParam d;
+    d = int64_t{-3};
+    EXPECT_EQ(d, -TypeParam{3});
+    d = uint64_t{3};
+    EXPECT_EQ(d, TypeParam{3});
+    d = -7;
+    EXPECT_EQ(d, -TypeParam{7});
+}
+
+namespace static_test_sint_sign_extension
+{
+static_assert(int128{int64_t{-1}} == -int128{1});
+static_assert(int128{int64_t{-1}}[1] == ~uint64_t{0});
+static_assert(int512{-42} == -int512{42});
+static_assert(int128{~uint64_t{0}}[1] == 0);
+
+// Widening construction and assignment from narrower sint.
+static_assert(int256{int128{-1}} == -int256{1});
+static_assert(int512{int256{-7}} == -int512{7});
+static_assert(sint<192>{int128{-1}}[2] == ~uint64_t{0});
+static_assert(int256{int128{5}} == int256{5});
+static_assert(int256{int128{~uint64_t{0}, 0x7fffffffffffffff}}[2] == 0);
+
+constexpr int256 assign(const int128& x) noexcept
+{
+    int256 r{1, 2, 3, 4};
+    r = x;
+    return r;
+}
+static_assert(assign(int128{-1}) == -int256{1});
+static_assert(assign(int128{5}) == int256{5});
+static_assert(assign(-int128{5}) == -int256{5});
+}  // namespace static_test_sint_sign_extension
+
+#if INTX_HAS_BUILTIN_INT128
+TEST(sint, sign_extension_builtin_int128)
+{
+    constexpr auto m1 = builtin_int128{-1};
+    static_assert(int128{m1} == -int128{1});
+    static_assert(int256{m1} == -int256{1});
+    static_assert(int512{m1} == -int512{1});
+
+    // -2^100 - 3
+    const auto big_neg = -(builtin_int128{1} << 100) - 3;
+    const int256 x{big_neg};
+    EXPECT_EQ(x, -((int256{1} << 100) + 3));
+    EXPECT_EQ(x[2], ~uint64_t{0});
+    EXPECT_EQ(x[3], ~uint64_t{0});
+
+    const auto big_pos = (builtin_int128{1} << 126) + 3;
+    const int256 y{big_pos};
+    EXPECT_EQ(y, (int256{1} << 126) + 3);
+    EXPECT_EQ(y[2], 0);
+    EXPECT_EQ(y[3], 0);
+
+    int256 z{1, 2, 3, 4};
+    z = int128{m1};
+    EXPECT_EQ(z, -int256{1});
+}
+#endif
+
 // int128-specific static and runtime tests
 
 namespace static_test_sint128_comparison

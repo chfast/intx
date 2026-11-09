@@ -2558,27 +2558,63 @@ private:
 
     constexpr explicit sint(const internal& u) noexcept : internal{u} {}
 
+    /// Returns a word with every bit equal to the sign bit of the given top word.
+    static constexpr uint64_t sign_word(uint64_t top) noexcept
+    {
+        return static_cast<uint64_t>(static_cast<int64_t>(top) >> (word_num_bits - 1));
+    }
+
+    /// Returns the word that fills the upper words when v is widened:
+    /// the sign of v for signed types, 0 for unsigned types.
+    template <std::integral T>
+    static constexpr uint64_t extension_word(T v) noexcept
+    {
+        if constexpr (std::is_signed_v<T>)
+            return v < 0 ? ~uint64_t{0} : 0;
+        else
+            return 0;
+    }
+
 public:
     constexpr sint() noexcept = default;
 
-    // Implicit converting constructor for any smaller int type
+    /// Implicit converting constructor from narrower sint types, with sign extension.
     template <unsigned M>
     constexpr explicit(false) sint(const sint<M>& x) noexcept
         requires(M < N)
     {
         for (size_t i = 0; i < sint<M>::num_words; ++i)
             words_[i] = x[i];
+        const auto fill = sign_word(x[sint<M>::num_words - 1]);
+        for (size_t i = sint<M>::num_words; i < num_words; ++i)
+            words_[i] = fill;
     }
 
 #if INTX_HAS_BUILTIN_INT128
+    /// Constructs from the builtin signed 128-bit integer, with sign extension.
     constexpr explicit(false) sint(builtin_int128 x) noexcept
       : internal{uint64_t(x), uint64_t(x >> 64)}
-    {}
+    {
+        const auto fill = uint64_t(x >> 127);
+        for (size_t i = 2; i < num_words; ++i)
+            words_[i] = fill;
+    }
 #endif
 
+    /// Constructs from a builtin integer value.
+    /// Signed values are sign-extended, unsigned values are zero-extended.
+    template <std::integral T>
+    constexpr explicit(false) sint(T v) noexcept
+        requires(sizeof(T) <= sizeof(uint64_t))
+    {
+        *this = v;
+    }
+
+    /// Constructs from words with v[0] being the least significant word.
+    /// The words are taken as raw two's complement bits, missing high words are set to 0.
     template <typename... T>
     constexpr explicit(false) sint(T... v) noexcept
-        requires std::conjunction_v<std::is_convertible<T, uint64_t>...>
+        requires(sizeof...(T) >= 2 && std::conjunction_v<std::is_convertible<T, uint64_t>...>)
       : internal{static_cast<uint64_t>(v)...}
     {}
 
@@ -2619,22 +2655,29 @@ public:
         return static_cast<Int>(words_[0]);
     }
 
-    constexpr sint& operator=(uint64_t v) noexcept
+    /// Assigns a builtin integer value.
+    /// Signed values are sign-extended, unsigned values are zero-extended.
+    template <std::integral T>
+    constexpr sint& operator=(T v) noexcept
+        requires(sizeof(T) <= sizeof(uint64_t))
     {
-        words_[0] = v;
+        words_[0] = static_cast<uint64_t>(v);
+        const auto fill = extension_word(v);
         for (size_t i = 1; i < num_words; ++i)
-            words_[i] = 0;
+            words_[i] = fill;
         return *this;
     }
 
+    /// Assigns a sint of the same or narrower width, with sign extension.
     template <unsigned M>
     constexpr sint& operator=(const sint<M>& x) noexcept
         requires(M <= N)
     {
         for (size_t i = 0; i < sint<M>::num_words; ++i)
             words_[i] = x[i];
+        const auto fill = sign_word(x[sint<M>::num_words - 1]);
         for (size_t i = sint<M>::num_words; i < num_words; ++i)
-            words_[i] = 0;
+            words_[i] = fill;
         return *this;
     }
 
@@ -2811,9 +2854,7 @@ public:
     friend constexpr sint operator>>(const sint& x, uint64_t shift) noexcept
     {
         constexpr auto word_bits = sizeof(uint64_t) * 8;
-        // Replicate the sign bit across a full word: 0 for positive, all-ones for negative.
-        const auto sign_fill =
-            static_cast<uint64_t>(-static_cast<int64_t>(x[num_words - 1] >> (word_bits - 1)));
+        const auto sign_fill = sign_word(x[num_words - 1]);
 
         if (shift >= num_bits) [[unlikely]]
         {
@@ -2858,9 +2899,7 @@ public:
         if (high_words_fold != 0) [[unlikely]]
         {
             // Shift amount >= 2^64 >= num_bits: result is all sign bits.
-            constexpr auto word_bits = sizeof(uint64_t) * 8;
-            const auto sign_fill =
-                static_cast<uint64_t>(-static_cast<int64_t>(x[num_words - 1] >> (word_bits - 1)));
+            const auto sign_fill = sign_word(x[num_words - 1]);
             sint r;
             for (size_t i = 0; i < num_words; ++i)
                 r[i] = sign_fill;
