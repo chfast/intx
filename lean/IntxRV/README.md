@@ -10,13 +10,15 @@ models (`Intx.Proofs`) then give the specification of the machine code.
 
 1. The documentation of a function in `intx.hpp` states its specification (below).
    [`Api.cpp`](Api.cpp) lists the instances to verify: in `intx::api` the functions whose machine
-   code is proved, in `intx::model` those whose model is proved (none at present). A
-   `[[gnu::used]]` pointer to a function makes the compiler emit its out-of-line copy.
+   code is proved (a lambda that calls the function, or the address of a function template
+   instance), in `intx::model` those whose model is proved (none at present). A `[[gnu::used]]`
+   pointer to a function makes the compiler emit its out-of-line copy.
 2. [`../scripts/rv_build.sh`](../scripts/rv_build.sh) compiles `Api.cpp` for RV64 (clang,
    `-O2 -march=rv64imafd`) and runs [`../scripts/rv_gen.py`](../scripts/rv_gen.py), which writes
    [`Gen/Code.lean`](Gen/Code.lean): the machine code of each function (the words of its
    section of the object file, which must have no relocations), the instructions that the words
-   decode to, and the proofs that the decoder of the Sail model decodes them so; and
+   decode to, and the proofs that the decoder of the Sail model decodes them so, and the bytes of
+   the stack each function uses (its frame); and
    [`../scripts/rv_api.py`](../scripts/rv_api.py), which writes the specifications of the
    instances to [`Gen/Api.lean`](Gen/Api.lean) and `../Intx/Gen/Spec.lean`, and their checks to
    [`../Checks/IntxRVApi.lean`](../Checks/IntxRVApi.lean) and `../Checks/IntxSpec.lean`.
@@ -68,7 +70,9 @@ words in the next argument register, a `uint<N>` result wider than 128 bits is w
 buffer at the address in a0 (`sret`), a `bool` is 0 or 1. With registers only the specification
 is a `Runs`; with memory a `RunsM` (in [`RunM.lean`](RunM.lean)), the `Runs` with memory: the
 buffers are aligned, do not wrap around and the result does not overlap the arguments; the
-memory outside the result is unchanged.
+memory outside the result is unchanged. A function with a stack frame gets the frame below sp as
+one more buffer that overlaps no other, and the memory outside the result and the frame is
+unchanged.
 
 The proofs are in [`Api/`](Api/): the generated `Checks/IntxRVApi.lean` requires a proof
 `Api.p.proof : Api.p.spec` for every instance, with the allowed axioms only, and that the
@@ -80,6 +84,17 @@ directly. `operator+` and `operator-` are proved through the models `add4` and `
 chains of `addc()` and `subc()` of `Intx.Model`, [`ApiModel.lean`](ApiModel.lean)); the tactic
 `rv_runm` ([`TacticM.lean`](TacticM.lean)) proves that the machine code computes them.
 
+`rv_runm` evaluates the whole run in one `simp`, which takes seconds per instruction. Longer
+functions are run one instruction at a time ([`Step.lean`](Step.lean),
+[`StepTactic.lean`](StepTactic.lean)): `Reach` ([`Reach.lean`](Reach.lean)) states that the run
+reaches an address, and `rv_exec` proves it by `Reach.step`. The value of each instruction gets a
+name with its definition (`Defn`) in the context, so a step does not grow with the length of the
+run. The specification then follows from the definitions by `rv_arith`
+([`Arith.lean`](Arith.lean)): the carries and the words of the products as exact linear facts,
+the sums that cannot overflow by `omega` from the facts they depend on, and the result by
+`linarith`. `umul()` of `uint256` ([`Api/Mul.lean`](Api/Mul.lean)), the full 512-bit product
+with its stack frame, is proved this way directly from its specification, without a model.
+
 ### Memory
 
 [`Mem.lean`](Mem.lean) proves that `ld` and `sd` of an aligned word read and write its 8 bytes in
@@ -88,7 +103,7 @@ the address translation, the PMP and PMA checks and the memory-mapped devices. T
 `EnvM` makes these pass through: machine mode without `MPRV` (no translation), no pointer masking
 and no PMP entries enabled. `WordOk` assumes that each word of a buffer is in a readable and
 writable PMA region and not in the CLINT, HTIF or signature region. `EnvM.lean` builds such an
-environment with 256 bytes of RAM.
+environment with 4 KiB of RAM, the stack at its end.
 
 ## What the proofs trust
 
@@ -112,8 +127,8 @@ environment with 256 bytes of RAM.
   binding of an instance to its function and the calling convention.
 * The extraction of the machine code from the object file by `rv_gen.py`.
 
-Not covered: other compilers, other flags, the linking; loops, calls and the stack (so not the
-multiplication, the shifts and the division of `uint256` yet).
+Not covered: other compilers, other flags, the linking; loops and calls (so not the
+multiplication modulo 2^256, the shifts and the division of `uint256` yet).
 
 ## Build
 

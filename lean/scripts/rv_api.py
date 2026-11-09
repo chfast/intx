@@ -5,11 +5,12 @@
 """Generates the specifications of the instances of IntxRV/Api.cpp from the documentation of
 include/intx/intx.hpp.
 
-  rv_api.py AST_JSON OUT_DIR
+  rv_api.py AST_JSON STACK_JSON OUT_DIR
 
 AST_JSON is the AST of IntxRV/Api.cpp that clang dumps for the declarations of the namespace intx
-(see scripts/rv_build.sh). Every [[gnu::used]] pointer variable `p` of the namespace intx::api must
-be initialized by a lambda whose body is a single call of a function of intx with a documentation
+(see scripts/rv_build.sh), STACK_JSON the stack frames of scripts/rv_gen.py. Every [[gnu::used]]
+pointer variable `p` of the namespace intx::api must be initialized by a lambda whose body is a
+single call of a function of intx, or by the address of a function of intx, with a documentation
 comment; the @pre and @post commands of the comment are its specification, a Lean term in which a
 parameter name stands for the value of the parameter as a natural number, `result` for the value
 of the result (a natural number, or a proposition for `bool`) and `N` for the width of the
@@ -88,16 +89,22 @@ def instances(decls, namespace):
                     for p in parents):
                 continue
             lambdas = [m for m, _ in walk(n) if m.get("kind") == "LambdaExpr"]
-            if len(lambdas) != 1:
-                sys.exit(f"{n['name']}: must be initialized by a lambda")
-            body = [c for c in lambdas[0]["inner"] if c.get("kind") == "CompoundStmt"]
-            calls = [m for m, _ in walk(body[-1])
-                     if m.get("kind") in ("CallExpr", "CXXOperatorCallExpr")]
-            if len(calls) != 1:
-                sys.exit(f"{n['name']}: the lambda must call one function")
-            callee = next(m["referencedDecl"] for m, _ in walk(calls[0])
-                          if m.get("kind") == "DeclRefExpr"
-                          and m["referencedDecl"].get("kind") == "FunctionDecl")
+            if len(lambdas) == 1:
+                body = [c for c in lambdas[0]["inner"] if c.get("kind") == "CompoundStmt"]
+                calls = [m for m, _ in walk(body[-1])
+                         if m.get("kind") in ("CallExpr", "CXXOperatorCallExpr")]
+                if len(calls) != 1:
+                    sys.exit(f"{n['name']}: the lambda must call one function")
+                target = calls[0]
+            elif not lambdas and n.get("inner"):
+                target = n  # The address of the function.
+            else:
+                sys.exit(f"{n['name']}: must be initialized by a lambda or a function address")
+            callee = next((m["referencedDecl"] for m, _ in walk(target)
+                           if m.get("kind") == "DeclRefExpr"
+                           and m["referencedDecl"].get("kind") == "FunctionDecl"), None)
+            if callee is None:
+                sys.exit(f"{n['name']}: no function found")
             decl = by_id[callee["id"]]
             result[n["name"]] = dict(name=callee["name"], offset=decl["loc"]["offset"],
                                      type=callee["type"]["qualType"])
@@ -106,6 +113,7 @@ def instances(decls, namespace):
 
 def norm_type(t):
     t = re.sub(r"\bintx::", "", t.strip())
+    t = re.sub(r"<(\d+) \* (\d+)U>", lambda m: f"<{int(m[1]) * int(m[2])}>", t)
     t = re.sub(r"<(\d+)U>", r"<\1>", t)
     return {"uint<128>": "uint128", "unsigned long": "uint64_t", "_Bool": "bool"}.get(t, t)
 
@@ -155,8 +163,9 @@ REG_RESULTS = {
 }
 
 
-def spec_rv(var, inst, spec):
-    """The Lean definitions of the specification of the machine code of the instance `var`."""
+def spec_rv(var, inst, spec, stack):
+    """The Lean definitions of the specification of the machine code of the instance `var` that
+    uses `stack` bytes below sp."""
     ret, args = signature(var, inst, spec)
     reg = 10  # The arguments are in a0 (x10), a1 (x11), ...
     bufs, pre, values = [], [], []
@@ -188,17 +197,27 @@ def spec_rv(var, inst, spec):
             reg += 1
         else:
             sys.exit(f"{var}: unsupported parameter type {t}")
+    sp = f"(x 2#5 - {stack}#64)"  # The stack frame, below sp.
     if ret_width is not None and ret_width > 128:
         bufs.append(f"bufWords (x {result_reg}#5) {ret_width // 64}")
         pre.insert(0, f"Buf (x {result_reg}#5) {ret_width // 8}")
         for r, w in widths:
             pre.append(f"Disjoint (x {result_reg}#5) {ret_width // 8} (x {r}#5) {w // 8}")
         result = ("Nat", f"(words m' (x {result_reg}#5) {ret_width // 64})")
-        frame = [f"UnchangedExcept m m' (x {result_reg}#5) {ret_width // 8}"]
+        res = f"(x {result_reg}#5) {ret_width // 8}"
+        frame = [f"UnchangedExcept2 m m' {res} {sp} {stack}" if stack else
+                 f"UnchangedExcept m m' {res}"]
+        widths.append((result_reg, ret_width))
     else:
         t, v, frame = REG_RESULTS[ret]
         result = (t, v)
-        frame = frame + (["m' = m"] if bufs else [])
+        frame = frame + ([f"UnchangedExcept m m' {sp} {stack}"] if stack else
+                         ["m' = m"] if bufs else [])
+    if stack:
+        bufs.append(f"bufWords {sp} {stack // 8}")
+        pre.append(f"Buf {sp} {stack}")
+        for r, w in widths:
+            pre.append(f"Disjoint {sp} {stack} (x {r}#5) {w // 8}")
     width = ret_width or uint_width(args[0]) or 64
     pre += [apply(p, width, None, values) for p in spec["pre"]]
     post = [apply(p, width, result, values) for p in spec["post"]] + frame + [
@@ -248,7 +267,8 @@ def spec_model(var, inst, spec):
 
 
 def main():
-    ast, out = map(Path, sys.argv[1:])
+    ast, stack_json, out = map(Path, sys.argv[1:])
+    stacks = json.loads(stack_json.read_text())
     decls = read_ast(ast)
     specs = documented_functions(decls)
 
@@ -269,11 +289,14 @@ def main():
              "namespace IntxRV.Api", "open IntxRV.Gen", ""]
     checks = ["-- Generated by scripts/rv_api.py from IntxRV/Api.cpp. Do not edit.",
               "import Checks.IntxRV", "import IntxRV.Api", "import IntxRV.EnvM",
-              "set_option warningAsError true", "",
+              "set_option warningAsError true",
+              "-- rv_nonvacuous evaluates the addresses of all the words of the buffers.",
+              "set_option maxRecDepth 100000", "",
               "/-! The specification of every instance of IntxRV/Api.cpp has a proof, and its",
               "assumptions hold in an environment (they are not vacuous). -/", ""]
     for var in sorted(api):
-        spec_lines, mem, has_pre = spec_rv(var, api[var], spec_of(var, api[var]))
+        spec_lines, mem, has_pre = spec_rv(var, api[var], spec_of(var, api[var]),
+                                                stacks[var])
         lines += spec_lines
         a = f"IntxRV.Api.{var}"
         checks += [f"example : {a}.spec := {a}.proof", f"#check_rv_axioms {a}.proof"]

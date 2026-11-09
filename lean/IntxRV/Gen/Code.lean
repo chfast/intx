@@ -19,6 +19,10 @@ theorem decode_0002a593 :
     DecodesTo 0x2a593#32 (.ITYPE (0x0#12, .Regidx 5#5, .Regidx 11#5, .SLTI)) := by
   rv_decode
 
+theorem decode_00050313 :
+    DecodesTo 0x50313#32 (.ITYPE (0x0#12, .Regidx 10#5, .Regidx 6#5, .ADDI)) := by
+  rv_decode
+
 theorem decode_00053603 :
     DecodesTo 0x53603#32 (.LOAD (0x0#12, .Regidx 10#5, .Regidx 12#5, false, 8)) := by
   rv_decode
@@ -59,6 +63,10 @@ theorem decode_00068593 :
     DecodesTo 0x68593#32 (.ITYPE (0x0#12, .Regidx 13#5, .Regidx 11#5, .ADDI)) := by
   rv_decode
 
+theorem decode_001280b3 :
+    DecodesTo 0x1280b3#32 (.RTYPE (.Regidx 1#5, .Regidx 5#5, .Regidx 1#5, .ADD)) := by
+  rv_decode
+
 theorem decode_0012b713 :
     DecodesTo 0x12b713#32 (.ITYPE (0x1#12, .Regidx 5#5, .Regidx 14#5, .SLTIU)) := by
   rv_decode
@@ -95,12 +103,60 @@ theorem decode_00173613 :
     DecodesTo 0x173613#32 (.ITYPE (0x1#12, .Regidx 14#5, .Regidx 12#5, .SLTIU)) := by
   rv_decode
 
+theorem decode_005632b3 :
+    DecodesTo 0x5632b3#32 (.RTYPE (.Regidx 5#5, .Regidx 12#5, .Regidx 5#5, .SLTU)) := by
+  rv_decode
+
 theorem decode_0056b833 :
     DecodesTo 0x56b833#32 (.RTYPE (.Regidx 5#5, .Regidx 13#5, .Regidx 16#5, .SLTU)) := by
   rv_decode
 
 theorem decode_005702b3 :
     DecodesTo 0x5702b3#32 (.RTYPE (.Regidx 5#5, .Regidx 14#5, .Regidx 5#5, .ADD)) := by
+  rv_decode
+
+theorem decode_005802b3 :
+    DecodesTo 0x5802b3#32 (.RTYPE (.Regidx 5#5, .Regidx 16#5, .Regidx 5#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00580833 :
+    DecodesTo 0x580833#32 (.RTYPE (.Regidx 5#5, .Regidx 16#5, .Regidx 16#5, .ADD)) := by
+  rv_decode
+
+theorem decode_005888b3 :
+    DecodesTo 0x5888b3#32 (.RTYPE (.Regidx 5#5, .Regidx 17#5, .Regidx 17#5, .ADD)) := by
+  rv_decode
+
+theorem decode_005982b3 :
+    DecodesTo 0x5982b3#32 (.RTYPE (.Regidx 5#5, .Regidx 19#5, .Regidx 5#5, .ADD)) := by
+  rv_decode
+
+theorem decode_005a82b3 :
+    DecodesTo 0x5a82b3#32 (.RTYPE (.Regidx 5#5, .Regidx 21#5, .Regidx 5#5, .ADD)) := by
+  rv_decode
+
+theorem decode_005cb2b3 :
+    DecodesTo 0x5cb2b3#32 (.RTYPE (.Regidx 5#5, .Regidx 25#5, .Regidx 5#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_005e82b3 :
+    DecodesTo 0x5e82b3#32 (.RTYPE (.Regidx 5#5, .Regidx 29#5, .Regidx 5#5, .ADD)) := by
+  rv_decode
+
+theorem decode_005f82b3 :
+    DecodesTo 0x5f82b3#32 (.RTYPE (.Regidx 5#5, .Regidx 31#5, .Regidx 5#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00783733 :
+    DecodesTo 0x783733#32 (.RTYPE (.Regidx 7#5, .Regidx 16#5, .Regidx 14#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_00813983 :
+    DecodesTo 0x813983#32 (.LOAD (0x8#12, .Regidx 2#5, .Regidx 19#5, false, 8)) := by
+  rv_decode
+
+theorem decode_0084bf33 :
+    DecodesTo 0x84bf33#32 (.RTYPE (.Regidx 8#5, .Regidx 9#5, .Regidx 30#5, .SLTU)) := by
   rv_decode
 
 theorem decode_00853683 :
@@ -139,8 +195,32 @@ theorem decode_00863883 :
     DecodesTo 0x863883#32 (.LOAD (0x8#12, .Regidx 12#5, .Regidx 17#5, false, 8)) := by
   rv_decode
 
+theorem decode_0092beb3 :
+    DecodesTo 0x92beb3#32 (.RTYPE (.Regidx 9#5, .Regidx 5#5, .Regidx 29#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_00933c23 :
+    DecodesTo 0x933c23#32 (.STORE (0x18#12, .Regidx 9#5, .Regidx 6#5, 8)) := by
+  rv_decode
+
+theorem decode_009404b3 :
+    DecodesTo 0x9404b3#32 (.RTYPE (.Regidx 9#5, .Regidx 8#5, .Regidx 9#5, .ADD)) := by
+  rv_decode
+
+theorem decode_009604b3 :
+    DecodesTo 0x9604b3#32 (.RTYPE (.Regidx 9#5, .Regidx 12#5, .Regidx 9#5, .ADD)) := by
+  rv_decode
+
 theorem decode_00a03533 :
     DecodesTo 0xa03533#32 (.RTYPE (.Regidx 10#5, .Regidx 0#5, .Regidx 10#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_00a33823 :
+    DecodesTo 0xa33823#32 (.STORE (0x10#12, .Regidx 10#5, .Regidx 6#5, 8)) := by
+  rv_decode
+
+theorem decode_00a58533 :
+    DecodesTo 0xa58533#32 (.RTYPE (.Regidx 10#5, .Regidx 11#5, .Regidx 10#5, .ADD)) := by
   rv_decode
 
 theorem decode_00a5b6b3 :
@@ -157,6 +237,10 @@ theorem decode_00a5c533 :
 
 theorem decode_00a66533 :
     DecodesTo 0xa66533#32 (.RTYPE (.Regidx 10#5, .Regidx 12#5, .Regidx 10#5, .OR)) := by
+  rv_decode
+
+theorem decode_00a6b533 :
+    DecodesTo 0xa6b533#32 (.RTYPE (.Regidx 10#5, .Regidx 13#5, .Regidx 10#5, .SLTU)) := by
   rv_decode
 
 theorem decode_00a70733 :
@@ -187,8 +271,32 @@ theorem decode_00a7f533 :
     DecodesTo 0xa7f533#32 (.RTYPE (.Regidx 10#5, .Regidx 15#5, .Regidx 10#5, .AND)) := by
   rv_decode
 
+theorem decode_00a83533 :
+    DecodesTo 0xa83533#32 (.RTYPE (.Regidx 10#5, .Regidx 16#5, .Regidx 10#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_00a88533 :
+    DecodesTo 0xa88533#32 (.RTYPE (.Regidx 10#5, .Regidx 17#5, .Regidx 10#5, .ADD)) := by
+  rv_decode
+
 theorem decode_00a8e533 :
     DecodesTo 0xa8e533#32 (.RTYPE (.Regidx 10#5, .Regidx 17#5, .Regidx 10#5, .OR)) := by
+  rv_decode
+
+theorem decode_00a90533 :
+    DecodesTo 0xa90533#32 (.RTYPE (.Regidx 10#5, .Regidx 18#5, .Regidx 10#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00ab8533 :
+    DecodesTo 0xab8533#32 (.RTYPE (.Regidx 10#5, .Regidx 23#5, .Regidx 10#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00ac8533 :
+    DecodesTo 0xac8533#32 (.RTYPE (.Regidx 10#5, .Regidx 25#5, .Regidx 10#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00ad3533 :
+    DecodesTo 0xad3533#32 (.RTYPE (.Regidx 10#5, .Regidx 26#5, .Regidx 10#5, .SLTU)) := by
   rv_decode
 
 theorem decode_00b505b3 :
@@ -255,6 +363,10 @@ theorem decode_00b775b3 :
     DecodesTo 0xb775b3#32 (.RTYPE (.Regidx 11#5, .Regidx 14#5, .Regidx 11#5, .AND)) := by
   rv_decode
 
+theorem decode_00b785b3 :
+    DecodesTo 0xb785b3#32 (.RTYPE (.Regidx 11#5, .Regidx 15#5, .Regidx 11#5, .ADD)) := by
+  rv_decode
+
 theorem decode_00b7e5b3 :
     DecodesTo 0xb7e5b3#32 (.RTYPE (.Regidx 11#5, .Regidx 15#5, .Regidx 11#5, .OR)) := by
   rv_decode
@@ -271,6 +383,14 @@ theorem decode_00b8e5b3 :
     DecodesTo 0xb8e5b3#32 (.RTYPE (.Regidx 11#5, .Regidx 17#5, .Regidx 11#5, .OR)) := by
   rv_decode
 
+theorem decode_00c28633 :
+    DecodesTo 0xc28633#32 (.RTYPE (.Regidx 12#5, .Regidx 5#5, .Regidx 12#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00c4b633 :
+    DecodesTo 0xc4b633#32 (.RTYPE (.Regidx 12#5, .Regidx 9#5, .Regidx 12#5, .SLTU)) := by
+  rv_decode
+
 theorem decode_00c58533 :
     DecodesTo 0xc58533#32 (.RTYPE (.Regidx 12#5, .Regidx 11#5, .Regidx 10#5, .ADD)) := by
   rv_decode
@@ -285,6 +405,10 @@ theorem decode_00c5e5b3 :
 
 theorem decode_00c5f5b3 :
     DecodesTo 0xc5f5b3#32 (.RTYPE (.Regidx 12#5, .Regidx 11#5, .Regidx 11#5, .AND)) := by
+  rv_decode
+
+theorem decode_00c70633 :
+    DecodesTo 0xc70633#32 (.RTYPE (.Regidx 12#5, .Regidx 14#5, .Regidx 12#5, .ADD)) := by
   rv_decode
 
 theorem decode_00c73533 :
@@ -315,6 +439,10 @@ theorem decode_00c7f633 :
     DecodesTo 0xc7f633#32 (.RTYPE (.Regidx 12#5, .Regidx 15#5, .Regidx 12#5, .AND)) := by
   rv_decode
 
+theorem decode_00c80633 :
+    DecodesTo 0xc80633#32 (.RTYPE (.Regidx 12#5, .Regidx 16#5, .Regidx 12#5, .ADD)) := by
+  rv_decode
+
 theorem decode_00c84633 :
     DecodesTo 0xc84633#32 (.RTYPE (.Regidx 12#5, .Regidx 16#5, .Regidx 12#5, .XOR)) := by
   rv_decode
@@ -323,12 +451,28 @@ theorem decode_00c86633 :
     DecodesTo 0xc86633#32 (.RTYPE (.Regidx 12#5, .Regidx 16#5, .Regidx 12#5, .OR)) := by
   rv_decode
 
+theorem decode_00ccb633 :
+    DecodesTo 0xccb633#32 (.RTYPE (.Regidx 12#5, .Regidx 25#5, .Regidx 12#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_00cf0633 :
+    DecodesTo 0xcf0633#32 (.RTYPE (.Regidx 12#5, .Regidx 30#5, .Regidx 12#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00cf3633 :
+    DecodesTo 0xcf3633#32 (.RTYPE (.Regidx 12#5, .Regidx 30#5, .Regidx 12#5, .SLTU)) := by
+  rv_decode
+
 theorem decode_00d03633 :
     DecodesTo 0xd03633#32 (.RTYPE (.Regidx 13#5, .Regidx 0#5, .Regidx 12#5, .SLTU)) := by
   rv_decode
 
 theorem decode_00d286b3 :
     DecodesTo 0xd286b3#32 (.RTYPE (.Regidx 13#5, .Regidx 5#5, .Regidx 13#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00d506b3 :
+    DecodesTo 0xd506b3#32 (.RTYPE (.Regidx 13#5, .Regidx 10#5, .Regidx 13#5, .ADD)) := by
   rv_decode
 
 theorem decode_00d53023 :
@@ -353,6 +497,10 @@ theorem decode_00d66633 :
 
 theorem decode_00d67633 :
     DecodesTo 0xd67633#32 (.RTYPE (.Regidx 13#5, .Regidx 12#5, .Regidx 12#5, .AND)) := by
+  rv_decode
+
+theorem decode_00d706b3 :
+    DecodesTo 0xd706b3#32 (.RTYPE (.Regidx 13#5, .Regidx 14#5, .Regidx 13#5, .ADD)) := by
   rv_decode
 
 theorem decode_00d7c6b3 :
@@ -407,6 +555,14 @@ theorem decode_00e63633 :
     DecodesTo 0xe63633#32 (.RTYPE (.Regidx 14#5, .Regidx 12#5, .Regidx 12#5, .SLTU)) := by
   rv_decode
 
+theorem decode_00e686b3 :
+    DecodesTo 0xe686b3#32 (.RTYPE (.Regidx 14#5, .Regidx 13#5, .Regidx 13#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00e78733 :
+    DecodesTo 0xe78733#32 (.RTYPE (.Regidx 14#5, .Regidx 15#5, .Regidx 14#5, .ADD)) := by
+  rv_decode
+
 theorem decode_00e7b733 :
     DecodesTo 0xe7b733#32 (.RTYPE (.Regidx 14#5, .Regidx 15#5, .Regidx 14#5, .SLTU)) := by
   rv_decode
@@ -421,6 +577,10 @@ theorem decode_00e8e733 :
 
 theorem decode_00e8f733 :
     DecodesTo 0xe8f733#32 (.RTYPE (.Regidx 14#5, .Regidx 17#5, .Regidx 14#5, .AND)) := by
+  rv_decode
+
+theorem decode_00f13c23 :
+    DecodesTo 0xf13c23#32 (.STORE (0x18#12, .Regidx 15#5, .Regidx 2#5, 8)) := by
   rv_decode
 
 theorem decode_00f2c7b3 :
@@ -451,6 +611,30 @@ theorem decode_00f637b3 :
     DecodesTo 0xf637b3#32 (.RTYPE (.Regidx 15#5, .Regidx 12#5, .Regidx 15#5, .SLTU)) := by
   rv_decode
 
+theorem decode_01013423 :
+    DecodesTo 0x1013423#32 (.STORE (0x8#12, .Regidx 16#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_01013823 :
+    DecodesTo 0x1013823#32 (.STORE (0x10#12, .Regidx 16#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_01013f83 :
+    DecodesTo 0x1013f83#32 (.LOAD (0x10#12, .Regidx 2#5, .Regidx 31#5, false, 8)) := by
+  rv_decode
+
+theorem decode_0102b833 :
+    DecodesTo 0x102b833#32 (.RTYPE (.Regidx 16#5, .Regidx 5#5, .Regidx 16#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_01038833 :
+    DecodesTo 0x1038833#32 (.RTYPE (.Regidx 16#5, .Regidx 7#5, .Regidx 16#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01050833 :
+    DecodesTo 0x1050833#32 (.RTYPE (.Regidx 16#5, .Regidx 10#5, .Regidx 16#5, .ADD)) := by
+  rv_decode
+
 theorem decode_01053023 :
     DecodesTo 0x1053023#32 (.STORE (0x0#12, .Regidx 16#5, .Regidx 10#5, 8)) := by
   rv_decode
@@ -465,6 +649,10 @@ theorem decode_01053883 :
 
 theorem decode_0105b583 :
     DecodesTo 0x105b583#32 (.LOAD (0x10#12, .Regidx 11#5, .Regidx 11#5, false, 8)) := by
+  rv_decode
+
+theorem decode_0105b683 :
+    DecodesTo 0x105b683#32 (.LOAD (0x10#12, .Regidx 11#5, .Regidx 13#5, false, 8)) := by
   rv_decode
 
 theorem decode_0105b703 :
@@ -483,12 +671,20 @@ theorem decode_01063283 :
     DecodesTo 0x1063283#32 (.LOAD (0x10#12, .Regidx 12#5, .Regidx 5#5, false, 8)) := by
   rv_decode
 
+theorem decode_01063383 :
+    DecodesTo 0x1063383#32 (.LOAD (0x10#12, .Regidx 12#5, .Regidx 7#5, false, 8)) := by
+  rv_decode
+
 theorem decode_01063603 :
     DecodesTo 0x1063603#32 (.LOAD (0x10#12, .Regidx 12#5, .Regidx 12#5, false, 8)) := by
   rv_decode
 
 theorem decode_01063633 :
     DecodesTo 0x1063633#32 (.RTYPE (.Regidx 16#5, .Regidx 12#5, .Regidx 12#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_01063733 :
+    DecodesTo 0x1063733#32 (.RTYPE (.Regidx 16#5, .Regidx 12#5, .Regidx 14#5, .SLTU)) := by
   rv_decode
 
 theorem decode_0106b6b3 :
@@ -509,6 +705,10 @@ theorem decode_01076733 :
 
 theorem decode_01153023 :
     DecodesTo 0x1153023#32 (.STORE (0x0#12, .Regidx 17#5, .Regidx 10#5, 8)) := by
+  rv_decode
+
+theorem decode_011538b3 :
+    DecodesTo 0x11538b3#32 (.RTYPE (.Regidx 17#5, .Regidx 10#5, .Regidx 17#5, .SLTU)) := by
   rv_decode
 
 theorem decode_011688b3 :
@@ -539,6 +739,50 @@ theorem decode_01176733 :
     DecodesTo 0x1176733#32 (.RTYPE (.Regidx 17#5, .Regidx 14#5, .Regidx 14#5, .OR)) := by
   rv_decode
 
+theorem decode_011e08b3 :
+    DecodesTo 0x11e08b3#32 (.RTYPE (.Regidx 17#5, .Regidx 28#5, .Regidx 17#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01288933 :
+    DecodesTo 0x1288933#32 (.RTYPE (.Regidx 18#5, .Regidx 17#5, .Regidx 18#5, .ADD)) := by
+  rv_decode
+
+theorem decode_012eb933 :
+    DecodesTo 0x12eb933#32 (.RTYPE (.Regidx 18#5, .Regidx 29#5, .Regidx 18#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_013489b3 :
+    DecodesTo 0x13489b3#32 (.RTYPE (.Regidx 19#5, .Regidx 9#5, .Regidx 19#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01390933 :
+    DecodesTo 0x1390933#32 (.RTYPE (.Regidx 19#5, .Regidx 18#5, .Regidx 18#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01490a33 :
+    DecodesTo 0x1490a33#32 (.RTYPE (.Regidx 20#5, .Regidx 18#5, .Regidx 20#5, .ADD)) := by
+  rv_decode
+
+theorem decode_0152bfb3 :
+    DecodesTo 0x152bfb3#32 (.RTYPE (.Regidx 21#5, .Regidx 5#5, .Regidx 31#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_016f8fb3 :
+    DecodesTo 0x16f8fb3#32 (.RTYPE (.Regidx 22#5, .Regidx 31#5, .Regidx 31#5, .ADD)) := by
+  rv_decode
+
+theorem decode_017534b3 :
+    DecodesTo 0x17534b3#32 (.RTYPE (.Regidx 23#5, .Regidx 10#5, .Regidx 9#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_01813e83 :
+    DecodesTo 0x1813e83#32 (.LOAD (0x18#12, .Regidx 2#5, .Regidx 29#5, false, 8)) := by
+  rv_decode
+
+theorem decode_018484b3 :
+    DecodesTo 0x18484b3#32 (.RTYPE (.Regidx 24#5, .Regidx 9#5, .Regidx 9#5, .ADD)) := by
+  rv_decode
+
 theorem decode_01853503 :
     DecodesTo 0x1853503#32 (.LOAD (0x18#12, .Regidx 10#5, .Regidx 10#5, false, 8)) := by
   rv_decode
@@ -559,12 +803,120 @@ theorem decode_01863803 :
     DecodesTo 0x1863803#32 (.LOAD (0x18#12, .Regidx 12#5, .Regidx 16#5, false, 8)) := by
   rv_decode
 
+theorem decode_01863c83 :
+    DecodesTo 0x1863c83#32 (.LOAD (0x18#12, .Regidx 12#5, .Regidx 25#5, false, 8)) := by
+  rv_decode
+
+theorem decode_01908cb3 :
+    DecodesTo 0x1908cb3#32 (.RTYPE (.Regidx 25#5, .Regidx 1#5, .Regidx 25#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01953eb3 :
+    DecodesTo 0x1953eb3#32 (.RTYPE (.Regidx 25#5, .Regidx 10#5, .Regidx 29#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_01960cb3 :
+    DecodesTo 0x1960cb3#32 (.RTYPE (.Regidx 25#5, .Regidx 12#5, .Regidx 25#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01a33423 :
+    DecodesTo 0x1a33423#32 (.STORE (0x8#12, .Regidx 26#5, .Regidx 6#5, 8)) := by
+  rv_decode
+
+theorem decode_01a50d33 :
+    DecodesTo 0x1a50d33#32 (.RTYPE (.Regidx 26#5, .Regidx 10#5, .Regidx 26#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01ad8d33 :
+    DecodesTo 0x1ad8d33#32 (.RTYPE (.Regidx 26#5, .Regidx 27#5, .Regidx 26#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01bd3cb3 :
+    DecodesTo 0x1bd3cb3#32 (.RTYPE (.Regidx 27#5, .Regidx 26#5, .Regidx 25#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_01c537b3 :
+    DecodesTo 0x1c537b3#32 (.RTYPE (.Regidx 28#5, .Regidx 10#5, .Regidx 15#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_01d2b533 :
+    DecodesTo 0x1d2b533#32 (.RTYPE (.Regidx 29#5, .Regidx 5#5, .Regidx 10#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_01d50533 :
+    DecodesTo 0x1d50533#32 (.RTYPE (.Regidx 29#5, .Regidx 10#5, .Regidx 10#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01d60633 :
+    DecodesTo 0x1d60633#32 (.RTYPE (.Regidx 29#5, .Regidx 12#5, .Regidx 12#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01d80833 :
+    DecodesTo 0x1d80833#32 (.RTYPE (.Regidx 29#5, .Regidx 16#5, .Regidx 16#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01da0eb3 :
+    DecodesTo 0x1da0eb3#32 (.RTYPE (.Regidx 29#5, .Regidx 20#5, .Regidx 29#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01df0f33 :
+    DecodesTo 0x1df0f33#32 (.RTYPE (.Regidx 29#5, .Regidx 30#5, .Regidx 30#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01e60f33 :
+    DecodesTo 0x1e60f33#32 (.RTYPE (.Regidx 30#5, .Regidx 12#5, .Regidx 30#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01e63f33 :
+    DecodesTo 0x1e63f33#32 (.RTYPE (.Regidx 30#5, .Regidx 12#5, .Regidx 30#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_01f33023 :
+    DecodesTo 0x1f33023#32 (.STORE (0x0#12, .Regidx 31#5, .Regidx 6#5, 8)) := by
+  rv_decode
+
+theorem decode_01f60633 :
+    DecodesTo 0x1f60633#32 (.RTYPE (.Regidx 31#5, .Regidx 12#5, .Regidx 12#5, .ADD)) := by
+  rv_decode
+
+theorem decode_01ff0f33 :
+    DecodesTo 0x1ff0f33#32 (.RTYPE (.Regidx 31#5, .Regidx 30#5, .Regidx 30#5, .ADD)) := by
+  rv_decode
+
+theorem decode_02013e83 :
+    DecodesTo 0x2013e83#32 (.LOAD (0x20#12, .Regidx 2#5, .Regidx 29#5, false, 8)) := by
+  rv_decode
+
+theorem decode_02713423 :
+    DecodesTo 0x2713423#32 (.STORE (0x28#12, .Regidx 7#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_02813283 :
+    DecodesTo 0x2813283#32 (.LOAD (0x28#12, .Regidx 2#5, .Regidx 5#5, false, 8)) := by
+  rv_decode
+
+theorem decode_02a13823 :
+    DecodesTo 0x2a13823#32 (.STORE (0x30#12, .Regidx 10#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_02a33c23 :
+    DecodesTo 0x2a33c23#32 (.STORE (0x38#12, .Regidx 10#5, .Regidx 6#5, 8)) := by
+  rv_decode
+
 theorem decode_02a58633 :
     DecodesTo 0x2a58633#32 (.MUL (.Regidx 10#5, .Regidx 11#5, .Regidx 12#5, ⟨.Low, .Signed, .Signed⟩)) := by
   rv_decode
 
 theorem decode_02a5b5b3 :
     DecodesTo 0x2a5b5b3#32 (.MUL (.Regidx 10#5, .Regidx 11#5, .Regidx 11#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02b388b3 :
+    DecodesTo 0x2b388b3#32 (.MUL (.Regidx 11#5, .Regidx 7#5, .Regidx 17#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02b3b3b3 :
+    DecodesTo 0x2b3b3b3#32 (.MUL (.Regidx 11#5, .Regidx 7#5, .Regidx 7#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
   rv_decode
 
 theorem decode_02b68733 :
@@ -575,8 +927,256 @@ theorem decode_02b6b6b3 :
     DecodesTo 0x2b6b6b3#32 (.MUL (.Regidx 11#5, .Regidx 13#5, .Regidx 13#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
   rv_decode
 
+theorem decode_02b804b3 :
+    DecodesTo 0x2b804b3#32 (.MUL (.Regidx 11#5, .Regidx 16#5, .Regidx 9#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02b83a33 :
+    DecodesTo 0x2b83a33#32 (.MUL (.Regidx 11#5, .Regidx 16#5, .Regidx 20#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02b88933 :
+    DecodesTo 0x2b88933#32 (.MUL (.Regidx 11#5, .Regidx 17#5, .Regidx 18#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02b8b833 :
+    DecodesTo 0x2b8b833#32 (.MUL (.Regidx 11#5, .Regidx 17#5, .Regidx 16#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02bc8e33 :
+    DecodesTo 0x2bc8e33#32 (.MUL (.Regidx 11#5, .Regidx 25#5, .Regidx 28#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02bcb5b3 :
+    DecodesTo 0x2bcb5b3#32 (.MUL (.Regidx 11#5, .Regidx 25#5, .Regidx 11#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02c33423 :
+    DecodesTo 0x2c33423#32 (.STORE (0x28#12, .Regidx 12#5, .Regidx 6#5, 8)) := by
+  rv_decode
+
 theorem decode_02c68733 :
     DecodesTo 0x2c68733#32 (.MUL (.Regidx 12#5, .Regidx 13#5, .Regidx 14#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02d33823 :
+    DecodesTo 0x2d33823#32 (.STORE (0x30#12, .Regidx 13#5, .Regidx 6#5, 8)) := by
+  rv_decode
+
+theorem decode_02d38833 :
+    DecodesTo 0x2d38833#32 (.MUL (.Regidx 13#5, .Regidx 7#5, .Regidx 16#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02d3b8b3 :
+    DecodesTo 0x2d3b8b3#32 (.MUL (.Regidx 13#5, .Regidx 7#5, .Regidx 17#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02d802b3 :
+    DecodesTo 0x2d802b3#32 (.MUL (.Regidx 13#5, .Regidx 16#5, .Regidx 5#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02d839b3 :
+    DecodesTo 0x2d839b3#32 (.MUL (.Regidx 13#5, .Regidx 16#5, .Regidx 19#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02d88ab3 :
+    DecodesTo 0x2d88ab3#32 (.MUL (.Regidx 13#5, .Regidx 17#5, .Regidx 21#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02d8bb33 :
+    DecodesTo 0x2d8bb33#32 (.MUL (.Regidx 13#5, .Regidx 17#5, .Regidx 22#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02dc83b3 :
+    DecodesTo 0x2dc83b3#32 (.MUL (.Regidx 13#5, .Regidx 25#5, .Regidx 7#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02dcb6b3 :
+    DecodesTo 0x2dcb6b3#32 (.MUL (.Regidx 13#5, .Regidx 25#5, .Regidx 13#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02e38f33 :
+    DecodesTo 0x2e38f33#32 (.MUL (.Regidx 14#5, .Regidx 7#5, .Regidx 30#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02e3b833 :
+    DecodesTo 0x2e3b833#32 (.MUL (.Regidx 14#5, .Regidx 7#5, .Regidx 16#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02e80db3 :
+    DecodesTo 0x2e80db3#32 (.MUL (.Regidx 14#5, .Regidx 16#5, .Regidx 27#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02e830b3 :
+    DecodesTo 0x2e830b3#32 (.MUL (.Regidx 14#5, .Regidx 16#5, .Regidx 1#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02e88633 :
+    DecodesTo 0x2e88633#32 (.MUL (.Regidx 14#5, .Regidx 17#5, .Regidx 12#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02e8bfb3 :
+    DecodesTo 0x2e8bfb3#32 (.MUL (.Regidx 14#5, .Regidx 17#5, .Regidx 31#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02ec87b3 :
+    DecodesTo 0x2ec87b3#32 (.MUL (.Regidx 14#5, .Regidx 25#5, .Regidx 15#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02ecb733 :
+    DecodesTo 0x2ecb733#32 (.MUL (.Regidx 14#5, .Regidx 25#5, .Regidx 14#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02f38bb3 :
+    DecodesTo 0x2f38bb3#32 (.MUL (.Regidx 15#5, .Regidx 7#5, .Regidx 23#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02f3bc33 :
+    DecodesTo 0x2f3bc33#32 (.MUL (.Regidx 15#5, .Regidx 7#5, .Regidx 24#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02f80533 :
+    DecodesTo 0x2f80533#32 (.MUL (.Regidx 15#5, .Regidx 16#5, .Regidx 10#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02f83d33 :
+    DecodesTo 0x2f83d33#32 (.MUL (.Regidx 15#5, .Regidx 16#5, .Regidx 26#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02f88533 :
+    DecodesTo 0x2f88533#32 (.MUL (.Regidx 15#5, .Regidx 17#5, .Regidx 10#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02f8beb3 :
+    DecodesTo 0x2f8beb3#32 (.MUL (.Regidx 15#5, .Regidx 17#5, .Regidx 29#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02fc8433 :
+    DecodesTo 0x2fc8433#32 (.MUL (.Regidx 15#5, .Regidx 25#5, .Regidx 8#5, ⟨.Low, .Signed, .Signed⟩)) := by
+  rv_decode
+
+theorem decode_02fcb7b3 :
+    DecodesTo 0x2fcb7b3#32 (.MUL (.Regidx 15#5, .Regidx 25#5, .Regidx 15#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_03013f83 :
+    DecodesTo 0x3013f83#32 (.LOAD (0x30#12, .Regidx 2#5, .Regidx 31#5, false, 8)) := by
+  rv_decode
+
+theorem decode_03113023 :
+    DecodesTo 0x3113023#32 (.STORE (0x20#12, .Regidx 17#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_03813d83 :
+    DecodesTo 0x3813d83#32 (.LOAD (0x38#12, .Regidx 2#5, .Regidx 27#5, false, 8)) := by
+  rv_decode
+
+theorem decode_03b13c23 :
+    DecodesTo 0x3b13c23#32 (.STORE (0x38#12, .Regidx 27#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_03e33023 :
+    DecodesTo 0x3e33023#32 (.STORE (0x20#12, .Regidx 30#5, .Regidx 6#5, 8)) := by
+  rv_decode
+
+theorem decode_04013d03 :
+    DecodesTo 0x4013d03#32 (.LOAD (0x40#12, .Regidx 2#5, .Regidx 26#5, false, 8)) := by
+  rv_decode
+
+theorem decode_04813c83 :
+    DecodesTo 0x4813c83#32 (.LOAD (0x48#12, .Regidx 2#5, .Regidx 25#5, false, 8)) := by
+  rv_decode
+
+theorem decode_05013c03 :
+    DecodesTo 0x5013c03#32 (.LOAD (0x50#12, .Regidx 2#5, .Regidx 24#5, false, 8)) := by
+  rv_decode
+
+theorem decode_05713c23 :
+    DecodesTo 0x5713c23#32 (.STORE (0x58#12, .Regidx 23#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_05813823 :
+    DecodesTo 0x5813823#32 (.STORE (0x50#12, .Regidx 24#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_05813b83 :
+    DecodesTo 0x5813b83#32 (.LOAD (0x58#12, .Regidx 2#5, .Regidx 23#5, false, 8)) := by
+  rv_decode
+
+theorem decode_05913423 :
+    DecodesTo 0x5913423#32 (.STORE (0x48#12, .Regidx 25#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_05a13023 :
+    DecodesTo 0x5a13023#32 (.STORE (0x40#12, .Regidx 26#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_06013b03 :
+    DecodesTo 0x6013b03#32 (.LOAD (0x60#12, .Regidx 2#5, .Regidx 22#5, false, 8)) := by
+  rv_decode
+
+theorem decode_06813a83 :
+    DecodesTo 0x6813a83#32 (.LOAD (0x68#12, .Regidx 2#5, .Regidx 21#5, false, 8)) := by
+  rv_decode
+
+theorem decode_07013a03 :
+    DecodesTo 0x7013a03#32 (.LOAD (0x70#12, .Regidx 2#5, .Regidx 20#5, false, 8)) := by
+  rv_decode
+
+theorem decode_07313c23 :
+    DecodesTo 0x7313c23#32 (.STORE (0x78#12, .Regidx 19#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_07413823 :
+    DecodesTo 0x7413823#32 (.STORE (0x70#12, .Regidx 20#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_07513423 :
+    DecodesTo 0x7513423#32 (.STORE (0x68#12, .Regidx 21#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_07613023 :
+    DecodesTo 0x7613023#32 (.STORE (0x60#12, .Regidx 22#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_07813983 :
+    DecodesTo 0x7813983#32 (.LOAD (0x78#12, .Regidx 2#5, .Regidx 19#5, false, 8)) := by
+  rv_decode
+
+theorem decode_08013903 :
+    DecodesTo 0x8013903#32 (.LOAD (0x80#12, .Regidx 2#5, .Regidx 18#5, false, 8)) := by
+  rv_decode
+
+theorem decode_08113c23 :
+    DecodesTo 0x8113c23#32 (.STORE (0x98#12, .Regidx 1#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_08813483 :
+    DecodesTo 0x8813483#32 (.LOAD (0x88#12, .Regidx 2#5, .Regidx 9#5, false, 8)) := by
+  rv_decode
+
+theorem decode_08813823 :
+    DecodesTo 0x8813823#32 (.STORE (0x90#12, .Regidx 8#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_08913423 :
+    DecodesTo 0x8913423#32 (.STORE (0x88#12, .Regidx 9#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_09013403 :
+    DecodesTo 0x9013403#32 (.LOAD (0x90#12, .Regidx 2#5, .Regidx 8#5, false, 8)) := by
+  rv_decode
+
+theorem decode_09213023 :
+    DecodesTo 0x9213023#32 (.STORE (0x80#12, .Regidx 18#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_09813083 :
+    DecodesTo 0x9813083#32 (.LOAD (0x98#12, .Regidx 2#5, .Regidx 1#5, false, 8)) := by
+  rv_decode
+
+theorem decode_0a010113 :
+    DecodesTo 0xa010113#32 (.ITYPE (0xa0#12, .Regidx 2#5, .Regidx 2#5, .ADDI)) := by
   rv_decode
 
 theorem decode_405708b3 :
@@ -617,6 +1217,10 @@ theorem decode_410585b3 :
 
 theorem decode_41168833 :
     DecodesTo 0x41168833#32 (.RTYPE (.Regidx 17#5, .Regidx 13#5, .Regidx 16#5, .SUB)) := by
+  rv_decode
+
+theorem decode_f6010113 :
+    DecodesTo 0xf6010113#32 (.ITYPE (0xf60#12, .Regidx 2#5, .Regidx 2#5, .ADDI)) := by
   rv_decode
 
 theorem decode_fff50793 :
@@ -1421,6 +2025,384 @@ theorem umul_decodes : Decodes umul_code umul_prog :=
   | 2, _, _ => decode_00060513
   | 3, _, _ => decode_00008067
   | _ + 4, hk, _ => absurd hk (by simp [umul_code])
+
+
+/-! ## `_ZN4intx4umulILj256EEENS_4uintIXmlLi2ET_EEERKNS1_IXT_EEES5_` -/
+
+/-- The machine code of `_ZN4intx4umulILj256EEENS_4uintIXmlLi2ET_EEERKNS1_IXT_EEES5_`. -/
+def umul_256_code : Code := [
+  0xf6010113#32, 0x8113c23#32, 0x8813823#32, 0x8913423#32,
+  0x9213023#32, 0x7313c23#32, 0x7413823#32, 0x7513423#32,
+  0x7613023#32, 0x5713c23#32, 0x5813823#32, 0x5913423#32,
+  0x5a13023#32, 0x3b13c23#32, 0x50313#32, 0x5b783#32,
+  0x85b703#32, 0x105b683#32, 0x185b583#32, 0x63803#32,
+  0x863883#32, 0x1063383#32, 0x1863c83#32, 0x2f80533#32,
+  0x2a13823#32, 0x2f83d33#32, 0x2e80db3#32, 0x2e830b3#32,
+  0x2d802b3#32, 0x2d839b3#32, 0x2b804b3#32, 0x2b83a33#32,
+  0x2f88533#32, 0x2f8beb3#32, 0x2e88633#32, 0x2e8bfb3#32,
+  0x2d88ab3#32, 0x2d8bb33#32, 0x2b88933#32, 0x2b8b833#32,
+  0x1013423#32, 0x2f38bb3#32, 0x2f3bc33#32, 0x2e38f33#32,
+  0x2e3b833#32, 0x1013823#32, 0x2d38833#32, 0x2d3b8b3#32,
+  0x3113023#32, 0x2b388b3#32, 0x2b3b3b3#32, 0x2713423#32,
+  0x2fc8433#32, 0x2fcb7b3#32, 0xf13c23#32, 0x2ec87b3#32,
+  0x2ecb733#32, 0x2dc83b3#32, 0x2dcb6b3#32, 0x2bc8e33#32,
+  0x2bcb5b3#32, 0x1ad8d33#32, 0x1280b3#32, 0x1bd3cb3#32,
+  0x1908cb3#32, 0x1a50d33#32, 0xad3533#32, 0x1d50533#32,
+  0x13489b3#32, 0x5cb2b3#32, 0x5982b3#32, 0x1960cb3#32,
+  0xccb633#32, 0x1f60633#32, 0xac8533#32, 0x1953eb3#32,
+  0x1d60633#32, 0x1490a33#32, 0x92beb3#32, 0x1da0eb3#32,
+  0x5a82b3#32, 0x152bfb3#32, 0x16f8fb3#32, 0xab8533#32,
+  0x17534b3#32, 0x18484b3#32, 0x12eb933#32, 0x813983#32,
+  0x1390933#32, 0xc28633#32, 0x5632b3#32, 0x5f82b3#32,
+  0xcf0633#32, 0x1e63f33#32, 0x1013f83#32, 0x1ff0f33#32,
+  0x9604b3#32, 0xc4b633#32, 0xcf0633#32, 0x9404b3#32,
+  0x84bf33#32, 0x3013f83#32, 0x1f33023#32, 0x1a33423#32,
+  0xa33823#32, 0x933c23#32, 0x1288933#32, 0x5e82b3#32,
+  0x1d2b533#32, 0xa90533#32, 0x1813e83#32, 0x1df0f33#32,
+  0x5802b3#32, 0x102b833#32, 0x2013e83#32, 0x1d80833#32,
+  0xc28633#32, 0x5632b3#32, 0x11538b3#32, 0xc78633#32,
+  0x580833#32, 0x2813283#32, 0x5888b3#32, 0xf637b3#32,
+  0x1e60f33#32, 0x1050833#32, 0xe78733#32, 0xcf3633#32,
+  0x11e08b3#32, 0xa83533#32, 0xc70633#32, 0x1038833#32,
+  0x783733#32, 0xc80633#32, 0xa88533#32, 0xd706b3#32,
+  0x1063733#32, 0x1c537b3#32, 0xe686b3#32, 0xb785b3#32,
+  0xd506b3#32, 0xa6b533#32, 0xa58533#32, 0x3e33023#32,
+  0x2c33423#32, 0x2d33823#32, 0x2a33c23#32, 0x9813083#32,
+  0x9013403#32, 0x8813483#32, 0x8013903#32, 0x7813983#32,
+  0x7013a03#32, 0x6813a83#32, 0x6013b03#32, 0x5813b83#32,
+  0x5013c03#32, 0x4813c83#32, 0x4013d03#32, 0x3813d83#32,
+  0xa010113#32, 0x8067#32]
+
+/-- The instructions of `umul_256`. -/
+def umul_256_prog : List instruction := [
+  .ITYPE (0xf60#12, .Regidx 2#5, .Regidx 2#5, .ADDI),
+  .STORE (0x98#12, .Regidx 1#5, .Regidx 2#5, 8),
+  .STORE (0x90#12, .Regidx 8#5, .Regidx 2#5, 8),
+  .STORE (0x88#12, .Regidx 9#5, .Regidx 2#5, 8),
+  .STORE (0x80#12, .Regidx 18#5, .Regidx 2#5, 8),
+  .STORE (0x78#12, .Regidx 19#5, .Regidx 2#5, 8),
+  .STORE (0x70#12, .Regidx 20#5, .Regidx 2#5, 8),
+  .STORE (0x68#12, .Regidx 21#5, .Regidx 2#5, 8),
+  .STORE (0x60#12, .Regidx 22#5, .Regidx 2#5, 8),
+  .STORE (0x58#12, .Regidx 23#5, .Regidx 2#5, 8),
+  .STORE (0x50#12, .Regidx 24#5, .Regidx 2#5, 8),
+  .STORE (0x48#12, .Regidx 25#5, .Regidx 2#5, 8),
+  .STORE (0x40#12, .Regidx 26#5, .Regidx 2#5, 8),
+  .STORE (0x38#12, .Regidx 27#5, .Regidx 2#5, 8),
+  .ITYPE (0x0#12, .Regidx 10#5, .Regidx 6#5, .ADDI),
+  .LOAD (0x0#12, .Regidx 11#5, .Regidx 15#5, false, 8),
+  .LOAD (0x8#12, .Regidx 11#5, .Regidx 14#5, false, 8),
+  .LOAD (0x10#12, .Regidx 11#5, .Regidx 13#5, false, 8),
+  .LOAD (0x18#12, .Regidx 11#5, .Regidx 11#5, false, 8),
+  .LOAD (0x0#12, .Regidx 12#5, .Regidx 16#5, false, 8),
+  .LOAD (0x8#12, .Regidx 12#5, .Regidx 17#5, false, 8),
+  .LOAD (0x10#12, .Regidx 12#5, .Regidx 7#5, false, 8),
+  .LOAD (0x18#12, .Regidx 12#5, .Regidx 25#5, false, 8),
+  .MUL (.Regidx 15#5, .Regidx 16#5, .Regidx 10#5, ⟨.Low, .Signed, .Signed⟩),
+  .STORE (0x30#12, .Regidx 10#5, .Regidx 2#5, 8),
+  .MUL (.Regidx 15#5, .Regidx 16#5, .Regidx 26#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 14#5, .Regidx 16#5, .Regidx 27#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 14#5, .Regidx 16#5, .Regidx 1#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 13#5, .Regidx 16#5, .Regidx 5#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 13#5, .Regidx 16#5, .Regidx 19#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 11#5, .Regidx 16#5, .Regidx 9#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 11#5, .Regidx 16#5, .Regidx 20#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 15#5, .Regidx 17#5, .Regidx 10#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 15#5, .Regidx 17#5, .Regidx 29#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 14#5, .Regidx 17#5, .Regidx 12#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 14#5, .Regidx 17#5, .Regidx 31#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 13#5, .Regidx 17#5, .Regidx 21#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 13#5, .Regidx 17#5, .Regidx 22#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 11#5, .Regidx 17#5, .Regidx 18#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 11#5, .Regidx 17#5, .Regidx 16#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .STORE (0x8#12, .Regidx 16#5, .Regidx 2#5, 8),
+  .MUL (.Regidx 15#5, .Regidx 7#5, .Regidx 23#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 15#5, .Regidx 7#5, .Regidx 24#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 14#5, .Regidx 7#5, .Regidx 30#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 14#5, .Regidx 7#5, .Regidx 16#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .STORE (0x10#12, .Regidx 16#5, .Regidx 2#5, 8),
+  .MUL (.Regidx 13#5, .Regidx 7#5, .Regidx 16#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 13#5, .Regidx 7#5, .Regidx 17#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .STORE (0x20#12, .Regidx 17#5, .Regidx 2#5, 8),
+  .MUL (.Regidx 11#5, .Regidx 7#5, .Regidx 17#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 11#5, .Regidx 7#5, .Regidx 7#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .STORE (0x28#12, .Regidx 7#5, .Regidx 2#5, 8),
+  .MUL (.Regidx 15#5, .Regidx 25#5, .Regidx 8#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 15#5, .Regidx 25#5, .Regidx 15#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .STORE (0x18#12, .Regidx 15#5, .Regidx 2#5, 8),
+  .MUL (.Regidx 14#5, .Regidx 25#5, .Regidx 15#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 14#5, .Regidx 25#5, .Regidx 14#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 13#5, .Regidx 25#5, .Regidx 7#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 13#5, .Regidx 25#5, .Regidx 13#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .MUL (.Regidx 11#5, .Regidx 25#5, .Regidx 28#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 11#5, .Regidx 25#5, .Regidx 11#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .RTYPE (.Regidx 26#5, .Regidx 27#5, .Regidx 26#5, .ADD),
+  .RTYPE (.Regidx 1#5, .Regidx 5#5, .Regidx 1#5, .ADD),
+  .RTYPE (.Regidx 27#5, .Regidx 26#5, .Regidx 25#5, .SLTU),
+  .RTYPE (.Regidx 25#5, .Regidx 1#5, .Regidx 25#5, .ADD),
+  .RTYPE (.Regidx 26#5, .Regidx 10#5, .Regidx 26#5, .ADD),
+  .RTYPE (.Regidx 10#5, .Regidx 26#5, .Regidx 10#5, .SLTU),
+  .RTYPE (.Regidx 29#5, .Regidx 10#5, .Regidx 10#5, .ADD),
+  .RTYPE (.Regidx 19#5, .Regidx 9#5, .Regidx 19#5, .ADD),
+  .RTYPE (.Regidx 5#5, .Regidx 25#5, .Regidx 5#5, .SLTU),
+  .RTYPE (.Regidx 5#5, .Regidx 19#5, .Regidx 5#5, .ADD),
+  .RTYPE (.Regidx 25#5, .Regidx 12#5, .Regidx 25#5, .ADD),
+  .RTYPE (.Regidx 12#5, .Regidx 25#5, .Regidx 12#5, .SLTU),
+  .RTYPE (.Regidx 31#5, .Regidx 12#5, .Regidx 12#5, .ADD),
+  .RTYPE (.Regidx 10#5, .Regidx 25#5, .Regidx 10#5, .ADD),
+  .RTYPE (.Regidx 25#5, .Regidx 10#5, .Regidx 29#5, .SLTU),
+  .RTYPE (.Regidx 29#5, .Regidx 12#5, .Regidx 12#5, .ADD),
+  .RTYPE (.Regidx 20#5, .Regidx 18#5, .Regidx 20#5, .ADD),
+  .RTYPE (.Regidx 9#5, .Regidx 5#5, .Regidx 29#5, .SLTU),
+  .RTYPE (.Regidx 29#5, .Regidx 20#5, .Regidx 29#5, .ADD),
+  .RTYPE (.Regidx 5#5, .Regidx 21#5, .Regidx 5#5, .ADD),
+  .RTYPE (.Regidx 21#5, .Regidx 5#5, .Regidx 31#5, .SLTU),
+  .RTYPE (.Regidx 22#5, .Regidx 31#5, .Regidx 31#5, .ADD),
+  .RTYPE (.Regidx 10#5, .Regidx 23#5, .Regidx 10#5, .ADD),
+  .RTYPE (.Regidx 23#5, .Regidx 10#5, .Regidx 9#5, .SLTU),
+  .RTYPE (.Regidx 24#5, .Regidx 9#5, .Regidx 9#5, .ADD),
+  .RTYPE (.Regidx 18#5, .Regidx 29#5, .Regidx 18#5, .SLTU),
+  .LOAD (0x8#12, .Regidx 2#5, .Regidx 19#5, false, 8),
+  .RTYPE (.Regidx 19#5, .Regidx 18#5, .Regidx 18#5, .ADD),
+  .RTYPE (.Regidx 12#5, .Regidx 5#5, .Regidx 12#5, .ADD),
+  .RTYPE (.Regidx 5#5, .Regidx 12#5, .Regidx 5#5, .SLTU),
+  .RTYPE (.Regidx 5#5, .Regidx 31#5, .Regidx 5#5, .ADD),
+  .RTYPE (.Regidx 12#5, .Regidx 30#5, .Regidx 12#5, .ADD),
+  .RTYPE (.Regidx 30#5, .Regidx 12#5, .Regidx 30#5, .SLTU),
+  .LOAD (0x10#12, .Regidx 2#5, .Regidx 31#5, false, 8),
+  .RTYPE (.Regidx 31#5, .Regidx 30#5, .Regidx 30#5, .ADD),
+  .RTYPE (.Regidx 9#5, .Regidx 12#5, .Regidx 9#5, .ADD),
+  .RTYPE (.Regidx 12#5, .Regidx 9#5, .Regidx 12#5, .SLTU),
+  .RTYPE (.Regidx 12#5, .Regidx 30#5, .Regidx 12#5, .ADD),
+  .RTYPE (.Regidx 9#5, .Regidx 8#5, .Regidx 9#5, .ADD),
+  .RTYPE (.Regidx 8#5, .Regidx 9#5, .Regidx 30#5, .SLTU),
+  .LOAD (0x30#12, .Regidx 2#5, .Regidx 31#5, false, 8),
+  .STORE (0x0#12, .Regidx 31#5, .Regidx 6#5, 8),
+  .STORE (0x8#12, .Regidx 26#5, .Regidx 6#5, 8),
+  .STORE (0x10#12, .Regidx 10#5, .Regidx 6#5, 8),
+  .STORE (0x18#12, .Regidx 9#5, .Regidx 6#5, 8),
+  .RTYPE (.Regidx 18#5, .Regidx 17#5, .Regidx 18#5, .ADD),
+  .RTYPE (.Regidx 5#5, .Regidx 29#5, .Regidx 5#5, .ADD),
+  .RTYPE (.Regidx 29#5, .Regidx 5#5, .Regidx 10#5, .SLTU),
+  .RTYPE (.Regidx 10#5, .Regidx 18#5, .Regidx 10#5, .ADD),
+  .LOAD (0x18#12, .Regidx 2#5, .Regidx 29#5, false, 8),
+  .RTYPE (.Regidx 29#5, .Regidx 30#5, .Regidx 30#5, .ADD),
+  .RTYPE (.Regidx 5#5, .Regidx 16#5, .Regidx 5#5, .ADD),
+  .RTYPE (.Regidx 16#5, .Regidx 5#5, .Regidx 16#5, .SLTU),
+  .LOAD (0x20#12, .Regidx 2#5, .Regidx 29#5, false, 8),
+  .RTYPE (.Regidx 29#5, .Regidx 16#5, .Regidx 16#5, .ADD),
+  .RTYPE (.Regidx 12#5, .Regidx 5#5, .Regidx 12#5, .ADD),
+  .RTYPE (.Regidx 5#5, .Regidx 12#5, .Regidx 5#5, .SLTU),
+  .RTYPE (.Regidx 17#5, .Regidx 10#5, .Regidx 17#5, .SLTU),
+  .RTYPE (.Regidx 12#5, .Regidx 15#5, .Regidx 12#5, .ADD),
+  .RTYPE (.Regidx 5#5, .Regidx 16#5, .Regidx 16#5, .ADD),
+  .LOAD (0x28#12, .Regidx 2#5, .Regidx 5#5, false, 8),
+  .RTYPE (.Regidx 5#5, .Regidx 17#5, .Regidx 17#5, .ADD),
+  .RTYPE (.Regidx 15#5, .Regidx 12#5, .Regidx 15#5, .SLTU),
+  .RTYPE (.Regidx 30#5, .Regidx 12#5, .Regidx 30#5, .ADD),
+  .RTYPE (.Regidx 16#5, .Regidx 10#5, .Regidx 16#5, .ADD),
+  .RTYPE (.Regidx 14#5, .Regidx 15#5, .Regidx 14#5, .ADD),
+  .RTYPE (.Regidx 12#5, .Regidx 30#5, .Regidx 12#5, .SLTU),
+  .RTYPE (.Regidx 17#5, .Regidx 28#5, .Regidx 17#5, .ADD),
+  .RTYPE (.Regidx 10#5, .Regidx 16#5, .Regidx 10#5, .SLTU),
+  .RTYPE (.Regidx 12#5, .Regidx 14#5, .Regidx 12#5, .ADD),
+  .RTYPE (.Regidx 16#5, .Regidx 7#5, .Regidx 16#5, .ADD),
+  .RTYPE (.Regidx 7#5, .Regidx 16#5, .Regidx 14#5, .SLTU),
+  .RTYPE (.Regidx 12#5, .Regidx 16#5, .Regidx 12#5, .ADD),
+  .RTYPE (.Regidx 10#5, .Regidx 17#5, .Regidx 10#5, .ADD),
+  .RTYPE (.Regidx 13#5, .Regidx 14#5, .Regidx 13#5, .ADD),
+  .RTYPE (.Regidx 16#5, .Regidx 12#5, .Regidx 14#5, .SLTU),
+  .RTYPE (.Regidx 28#5, .Regidx 10#5, .Regidx 15#5, .SLTU),
+  .RTYPE (.Regidx 14#5, .Regidx 13#5, .Regidx 13#5, .ADD),
+  .RTYPE (.Regidx 11#5, .Regidx 15#5, .Regidx 11#5, .ADD),
+  .RTYPE (.Regidx 13#5, .Regidx 10#5, .Regidx 13#5, .ADD),
+  .RTYPE (.Regidx 10#5, .Regidx 13#5, .Regidx 10#5, .SLTU),
+  .RTYPE (.Regidx 10#5, .Regidx 11#5, .Regidx 10#5, .ADD),
+  .STORE (0x20#12, .Regidx 30#5, .Regidx 6#5, 8),
+  .STORE (0x28#12, .Regidx 12#5, .Regidx 6#5, 8),
+  .STORE (0x30#12, .Regidx 13#5, .Regidx 6#5, 8),
+  .STORE (0x38#12, .Regidx 10#5, .Regidx 6#5, 8),
+  .LOAD (0x98#12, .Regidx 2#5, .Regidx 1#5, false, 8),
+  .LOAD (0x90#12, .Regidx 2#5, .Regidx 8#5, false, 8),
+  .LOAD (0x88#12, .Regidx 2#5, .Regidx 9#5, false, 8),
+  .LOAD (0x80#12, .Regidx 2#5, .Regidx 18#5, false, 8),
+  .LOAD (0x78#12, .Regidx 2#5, .Regidx 19#5, false, 8),
+  .LOAD (0x70#12, .Regidx 2#5, .Regidx 20#5, false, 8),
+  .LOAD (0x68#12, .Regidx 2#5, .Regidx 21#5, false, 8),
+  .LOAD (0x60#12, .Regidx 2#5, .Regidx 22#5, false, 8),
+  .LOAD (0x58#12, .Regidx 2#5, .Regidx 23#5, false, 8),
+  .LOAD (0x50#12, .Regidx 2#5, .Regidx 24#5, false, 8),
+  .LOAD (0x48#12, .Regidx 2#5, .Regidx 25#5, false, 8),
+  .LOAD (0x40#12, .Regidx 2#5, .Regidx 26#5, false, 8),
+  .LOAD (0x38#12, .Regidx 2#5, .Regidx 27#5, false, 8),
+  .ITYPE (0xa0#12, .Regidx 2#5, .Regidx 2#5, .ADDI),
+  .JALR (0x0#12, .Regidx 1#5, .Regidx 0#5)]
+
+theorem umul_256_decodes : Decodes umul_256_code umul_256_prog :=
+  decodes_of (by rfl) fun
+  | 0, _, _ => decode_f6010113
+  | 1, _, _ => decode_08113c23
+  | 2, _, _ => decode_08813823
+  | 3, _, _ => decode_08913423
+  | 4, _, _ => decode_09213023
+  | 5, _, _ => decode_07313c23
+  | 6, _, _ => decode_07413823
+  | 7, _, _ => decode_07513423
+  | 8, _, _ => decode_07613023
+  | 9, _, _ => decode_05713c23
+  | 10, _, _ => decode_05813823
+  | 11, _, _ => decode_05913423
+  | 12, _, _ => decode_05a13023
+  | 13, _, _ => decode_03b13c23
+  | 14, _, _ => decode_00050313
+  | 15, _, _ => decode_0005b783
+  | 16, _, _ => decode_0085b703
+  | 17, _, _ => decode_0105b683
+  | 18, _, _ => decode_0185b583
+  | 19, _, _ => decode_00063803
+  | 20, _, _ => decode_00863883
+  | 21, _, _ => decode_01063383
+  | 22, _, _ => decode_01863c83
+  | 23, _, _ => decode_02f80533
+  | 24, _, _ => decode_02a13823
+  | 25, _, _ => decode_02f83d33
+  | 26, _, _ => decode_02e80db3
+  | 27, _, _ => decode_02e830b3
+  | 28, _, _ => decode_02d802b3
+  | 29, _, _ => decode_02d839b3
+  | 30, _, _ => decode_02b804b3
+  | 31, _, _ => decode_02b83a33
+  | 32, _, _ => decode_02f88533
+  | 33, _, _ => decode_02f8beb3
+  | 34, _, _ => decode_02e88633
+  | 35, _, _ => decode_02e8bfb3
+  | 36, _, _ => decode_02d88ab3
+  | 37, _, _ => decode_02d8bb33
+  | 38, _, _ => decode_02b88933
+  | 39, _, _ => decode_02b8b833
+  | 40, _, _ => decode_01013423
+  | 41, _, _ => decode_02f38bb3
+  | 42, _, _ => decode_02f3bc33
+  | 43, _, _ => decode_02e38f33
+  | 44, _, _ => decode_02e3b833
+  | 45, _, _ => decode_01013823
+  | 46, _, _ => decode_02d38833
+  | 47, _, _ => decode_02d3b8b3
+  | 48, _, _ => decode_03113023
+  | 49, _, _ => decode_02b388b3
+  | 50, _, _ => decode_02b3b3b3
+  | 51, _, _ => decode_02713423
+  | 52, _, _ => decode_02fc8433
+  | 53, _, _ => decode_02fcb7b3
+  | 54, _, _ => decode_00f13c23
+  | 55, _, _ => decode_02ec87b3
+  | 56, _, _ => decode_02ecb733
+  | 57, _, _ => decode_02dc83b3
+  | 58, _, _ => decode_02dcb6b3
+  | 59, _, _ => decode_02bc8e33
+  | 60, _, _ => decode_02bcb5b3
+  | 61, _, _ => decode_01ad8d33
+  | 62, _, _ => decode_001280b3
+  | 63, _, _ => decode_01bd3cb3
+  | 64, _, _ => decode_01908cb3
+  | 65, _, _ => decode_01a50d33
+  | 66, _, _ => decode_00ad3533
+  | 67, _, _ => decode_01d50533
+  | 68, _, _ => decode_013489b3
+  | 69, _, _ => decode_005cb2b3
+  | 70, _, _ => decode_005982b3
+  | 71, _, _ => decode_01960cb3
+  | 72, _, _ => decode_00ccb633
+  | 73, _, _ => decode_01f60633
+  | 74, _, _ => decode_00ac8533
+  | 75, _, _ => decode_01953eb3
+  | 76, _, _ => decode_01d60633
+  | 77, _, _ => decode_01490a33
+  | 78, _, _ => decode_0092beb3
+  | 79, _, _ => decode_01da0eb3
+  | 80, _, _ => decode_005a82b3
+  | 81, _, _ => decode_0152bfb3
+  | 82, _, _ => decode_016f8fb3
+  | 83, _, _ => decode_00ab8533
+  | 84, _, _ => decode_017534b3
+  | 85, _, _ => decode_018484b3
+  | 86, _, _ => decode_012eb933
+  | 87, _, _ => decode_00813983
+  | 88, _, _ => decode_01390933
+  | 89, _, _ => decode_00c28633
+  | 90, _, _ => decode_005632b3
+  | 91, _, _ => decode_005f82b3
+  | 92, _, _ => decode_00cf0633
+  | 93, _, _ => decode_01e63f33
+  | 94, _, _ => decode_01013f83
+  | 95, _, _ => decode_01ff0f33
+  | 96, _, _ => decode_009604b3
+  | 97, _, _ => decode_00c4b633
+  | 98, _, _ => decode_00cf0633
+  | 99, _, _ => decode_009404b3
+  | 100, _, _ => decode_0084bf33
+  | 101, _, _ => decode_03013f83
+  | 102, _, _ => decode_01f33023
+  | 103, _, _ => decode_01a33423
+  | 104, _, _ => decode_00a33823
+  | 105, _, _ => decode_00933c23
+  | 106, _, _ => decode_01288933
+  | 107, _, _ => decode_005e82b3
+  | 108, _, _ => decode_01d2b533
+  | 109, _, _ => decode_00a90533
+  | 110, _, _ => decode_01813e83
+  | 111, _, _ => decode_01df0f33
+  | 112, _, _ => decode_005802b3
+  | 113, _, _ => decode_0102b833
+  | 114, _, _ => decode_02013e83
+  | 115, _, _ => decode_01d80833
+  | 116, _, _ => decode_00c28633
+  | 117, _, _ => decode_005632b3
+  | 118, _, _ => decode_011538b3
+  | 119, _, _ => decode_00c78633
+  | 120, _, _ => decode_00580833
+  | 121, _, _ => decode_02813283
+  | 122, _, _ => decode_005888b3
+  | 123, _, _ => decode_00f637b3
+  | 124, _, _ => decode_01e60f33
+  | 125, _, _ => decode_01050833
+  | 126, _, _ => decode_00e78733
+  | 127, _, _ => decode_00cf3633
+  | 128, _, _ => decode_011e08b3
+  | 129, _, _ => decode_00a83533
+  | 130, _, _ => decode_00c70633
+  | 131, _, _ => decode_01038833
+  | 132, _, _ => decode_00783733
+  | 133, _, _ => decode_00c80633
+  | 134, _, _ => decode_00a88533
+  | 135, _, _ => decode_00d706b3
+  | 136, _, _ => decode_01063733
+  | 137, _, _ => decode_01c537b3
+  | 138, _, _ => decode_00e686b3
+  | 139, _, _ => decode_00b785b3
+  | 140, _, _ => decode_00d506b3
+  | 141, _, _ => decode_00a6b533
+  | 142, _, _ => decode_00a58533
+  | 143, _, _ => decode_03e33023
+  | 144, _, _ => decode_02c33423
+  | 145, _, _ => decode_02d33823
+  | 146, _, _ => decode_02a33c23
+  | 147, _, _ => decode_09813083
+  | 148, _, _ => decode_09013403
+  | 149, _, _ => decode_08813483
+  | 150, _, _ => decode_08013903
+  | 151, _, _ => decode_07813983
+  | 152, _, _ => decode_07013a03
+  | 153, _, _ => decode_06813a83
+  | 154, _, _ => decode_06013b03
+  | 155, _, _ => decode_05813b83
+  | 156, _, _ => decode_05013c03
+  | 157, _, _ => decode_04813c83
+  | 158, _, _ => decode_04013d03
+  | 159, _, _ => decode_03813d83
+  | 160, _, _ => decode_0a010113
+  | 161, _, _ => decode_00008067
+  | _ + 162, hk, _ => absurd hk (by simp [umul_256_code])
 
 
 /-! ## `_ZN4intx3api4$_138__invokeERKNS_4uintILj256EEES5_` -/
