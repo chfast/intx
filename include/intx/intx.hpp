@@ -1992,13 +1992,12 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
         std::tie(d1, less) = subc(t1, v[0] << s);
         std::tie(d2, less) = subc(t2, vt[0], less);
         std::tie(d3, less) = subc(t3, vt[1], less);
-        if (!less)
-        {
-            t3 = d3;
-            t2 = d2;
-            t1 = d1;
-            qe = 1;
-        }
+        // The difference is selected, not branched to: u >= v * 2^128 can be random for chosen
+        // operands.
+        t3 = less ? t3 : d3;
+        t2 = less ? t2 : d2;
+        t1 = less ? t1 : d1;
+        qe = less ? 0 : 1;
         // The top 2 words can still equal vt (not exceed it, and only if less): the first division
         // would overflow. The quotient is then 2^128 - 1 or 1 less (the estimate is clamped).
         clamp = uint128{t2, t3} == vt;
