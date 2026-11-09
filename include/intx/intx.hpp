@@ -2660,7 +2660,8 @@ public:
     constexpr sint& operator=(T v) noexcept
         requires(sizeof(T) <= sizeof(uint64_t))
     {
-        u_[0] = static_cast<uint64_t>(v);
+        // Widen to int64_t first so signed values are sign-extended explicitly.
+        u_[0] = static_cast<uint64_t>(static_cast<int64_t>(v));
         const auto fill = extension_word(v);
         for (size_t i = 1; i < num_words; ++i)
             u_[i] = fill;

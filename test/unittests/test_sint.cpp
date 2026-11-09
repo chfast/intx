@@ -270,7 +270,7 @@ static_assert(sint<192>{int128{-1}}[2] == ~uint64_t{0});
 static_assert(int256{int128{5}} == int256{5});
 static_assert(int256{int128{~uint64_t{0}, 0x7fffffffffffffff}}[2] == 0);
 
-constexpr int256 assign(const int128& x) noexcept
+static constexpr int256 assign(const int128& x) noexcept
 {
     int256 r{1, 2, 3, 4};
     r = x;
