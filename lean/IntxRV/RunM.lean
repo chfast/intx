@@ -1,4 +1,4 @@
-import IntxRV.Mem
+import IntxRV.Mem4
 /-!
 # Running a function with memory
 
@@ -34,6 +34,10 @@ def execM (A : List (BitVec 64)) (i : instruction) (pc : BitVec 64) (x : Regs) (
   | .LOAD (imm, .Regidx rs1, .Regidx rd, u, w) =>
     if u = false ∧ w = 8 ∧ x.get rs1 + sign_extend (m := 64) imm ∈ A then
       some (pc + 4, x.set rd (memWord m (x.get rs1 + sign_extend (m := 64) imm).toNat), m)
+    else if u = true ∧ w = 4 ∧ (x.get rs1 + sign_extend (m := 64) imm ∈ A ∨
+        x.get rs1 + sign_extend (m := 64) imm - 4#64 ∈ A) then
+      some (pc + 4,
+        x.set rd ((memHalf m (x.get rs1 + sign_extend (m := 64) imm).toNat).setWidth 64), m)
     else none
   | .STORE (imm, .Regidx rs2, .Regidx rs1, w) =>
     if w = 8 ∧ x.get rs1 + sign_extend (m := 64) imm ∈ A then
@@ -48,7 +52,9 @@ theorem execM_present {A : List (BitVec 64)} {i : instruction} {pc pc' : BitVec 
   split at hi
   · split at hi
     · cases hi; exact hA
-    · contradiction
+    · split at hi
+      · cases hi; exact hA
+      · contradiction
   · split at hi
     · cases hi; exact fun a ha => present_memStore (hA a ha) _ _
     · contradiction
@@ -73,7 +79,25 @@ theorem exec_simM {S s : SailState} {val : (r : Register) → RegisterType r} {p
       obtain ⟨s', hs, hi'⟩ := exec_load e h imm rs1 rd (hA _ hm).1 (h.mem ▸ (hA _ hm).2)
       rw [h.mem] at hi'
       exact ⟨s', hs, hi'⟩
-    · contradiction
+    · split at hi
+      · rename_i _ hc
+        obtain ⟨rfl, rfl, hm⟩ := hc
+        obtain ⟨rfl, rfl, rfl⟩ := hi
+        obtain ⟨ho, hp⟩ : HalfOk val (x.get rs1 + sign_extend (m := 64) imm) ∧
+            ∀ k < 4, (x.get rs1 + sign_extend (m := 64) imm).toNat + k ∈ S.mem := by
+          rcases hm with hm | hm
+          · exact ⟨(hA _ hm).1.half_lo, fun k hk => (hA _ hm).2 k (by omega)⟩
+          · have ha := (hA _ hm).1
+            have hal := ha.aligned
+            refine ⟨by simpa only [BitVec.sub_add_cancel] using ha.half_hi, fun k hk => ?_⟩
+            have := (hA _ hm).2 (k + 4) (by omega)
+            have e : (x.get rs1 + sign_extend (m := 64) imm).toNat =
+                (x.get rs1 + sign_extend (m := 64) imm - 4#64).toNat + 4 := by bv_omega
+            rw [e, Nat.add_assoc, Nat.add_comm 4 k]; exact this
+        obtain ⟨s', hs, hi'⟩ := exec_lwu e h imm rs1 rd ho (h.mem ▸ hp)
+        rw [h.mem] at hi'
+        exact ⟨s', hs, hi'⟩
+      · contradiction
   · rename_i imm rs2 rs1 w
     split at hi
     · rename_i hc
