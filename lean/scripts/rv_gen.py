@@ -166,6 +166,8 @@ def decode(w):
         return f".BTYPE ({lean_bv(imm, 13)}, {reg(rs2)}, {reg(rs1)}, .{B_OPS[f3]})"
     if opcode == 0x03 and f3 == 3:
         return f".LOAD ({lean_bv(w >> 20, 12)}, {reg(rs1)}, {reg(rd)}, false, 8)"
+    if opcode == 0x03 and f3 == 6:
+        return f".LOAD ({lean_bv(w >> 20, 12)}, {reg(rs1)}, {reg(rd)}, true, 4)"
     if opcode == 0x23 and f3 == 3:
         imm = (w >> 25) << 5 | (w >> 7) & 0x1f
         return f".STORE ({lean_bv(imm, 12)}, {reg(rs2)}, {reg(rs1)}, 8)"

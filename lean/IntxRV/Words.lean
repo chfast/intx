@@ -33,6 +33,11 @@ theorem memWord_memStore_of_ne (m : Mem) (a b : Nat) (v : BitVec 64) (h : a + 8 
   simp only [memWord]
   repeat rw [getD_memStore_of_ne _ _ _ _ (by omega)]
 
+theorem memHalf_memStore_of_ne (m : Mem) (a b : Nat) (v : BitVec 64) (h : a + 8 ≤ b ∨ b + 4 ≤ a) :
+    memHalf (memStore m a v) b = memHalf m b := by
+  simp only [memHalf]
+  repeat rw [getD_memStore_of_ne _ _ _ _ (by omega)]
+
 theorem append_extractLsb'_8 (v : BitVec 64) :
     @Eq (BitVec 64) (v.extractLsb' 56 8 ++ v.extractLsb' 48 8 ++ v.extractLsb' 40 8 ++
       v.extractLsb' 32 8 ++ v.extractLsb' 24 8 ++ v.extractLsb' 16 8 ++ v.extractLsb' 8 8 ++

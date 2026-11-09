@@ -107,7 +107,9 @@ the memory of the Sail state, little-endian, through the whole memory access of 
 the address translation, the PMP and PMA checks and the memory-mapped devices. The environment
 `EnvM` makes these pass through: machine mode without `MPRV` (no translation), no pointer masking
 and no PMP entries enabled. `WordOk` assumes that each word of a buffer is in a readable and
-writable PMA region and not in the CLINT, HTIF or signature region. `EnvM.lean` builds such an
+writable PMA region and not in the CLINT, HTIF or signature region, and its 4-byte halves in a
+readable one (`HalfOk`). [`Mem4.lean`](Mem4.lean) proves that `lwu` of a half reads its 4 bytes,
+zero-extended. `EnvM.lean` builds such an
 environment with 4 KiB of RAM, the stack at its end.
 
 ## What the proofs trust

@@ -73,6 +73,29 @@ theorem matching_ram (a : BitVec 64) (h1 : 0x80000000 ≤ a.toNat)
   simp only [ram] at this ⊢
   simp [this]
 
+theorem range_subset_ram4 (a : BitVec 64) (h1 : 0x80000000 ≤ a.toNat)
+    (h2 : a.toNat + 4 ≤ 0x80001000) : range_subset a 4#64 0x80000000#64 0x1000#64 = true := by
+  simp only [range_subset, zopz0zIzJ_u, BitVec.toNatInt, Int.ofNat_eq_natCast, Int.ofNat_le,
+    decide_eq_true_eq, Bool.and_eq_true]
+  bv_omega
+
+theorem matching_ram4 (a : BitVec 64) (h1 : 0x80000000 ≤ a.toNat)
+    (h2 : a.toNat + 4 ≤ 0x80001000) : matching_pma_region [ram] (.Physaddr a) 4 = some ram := by
+  have hz : zero_extend (m := 64) (bits_of_physaddr (.Physaddr a)) = a := by
+    apply BitVec.eq_of_toNat_eq
+    simp (config := { decide := true }) [zero_extend, Sail.BitVec.zeroExtend, bits_of_physaddr]
+  have ht : (to_bits (l := 64) 4 : BitVec 64) = 4#64 := by decide
+  simp only [matching_pma_region, matching_pma_region_bits_range, hz, ht]
+  have := range_subset_ram4 a h1 h2
+  simp only [ram] at this ⊢
+  simp [this]
+
+/-- A 4-byte word in the RAM is ordinary readable memory. -/
+theorem halfOk_ram (a : BitVec 64) (h1 : 0x80000000 ≤ a.toNat) (h2 : a.toNat + 4 ≤ 0x80001000)
+    (h3 : a.toNat % 4 = 0) : HalfOk envValM a :=
+  ⟨h3, ⟨ram, matching_ram4 a h1 h2, rfl⟩, by simp only [clint_base_toNat, clint_size_toNat]; omega,
+    by simp only [sig_base_toNat, sig_size_toNat]; omega, by intro b hb; cases hb⟩
+
 set_option maxRecDepth 100000 in
 /-- An environment with the RAM region: the words in the RAM are ordinary memory. -/
 theorem envM_exists : ∃ (S : SailState) (val : (r : Register) → RegisterType r), EnvM S val ∧
@@ -82,7 +105,8 @@ theorem envM_exists : ∃ (S : SailState) (val : (r : Register) → RegisterType
     envValM, ⟨⟨fun r => regMap_get? envValM allRegisters r ∅ (fun k => by simp)
       (Or.inl (mem_allRegisters r)), rfl, by decide, Or.inl rfl⟩, rfl, by decide, by decide,
       pmpcfg_zero⟩, rfl, fun a h1 h2 h3 => ⟨⟨h3, ⟨ram, matching_ram a h1 h2, rfl, rfl⟩, ?_, ?_,
-      ?_⟩, fun k hk => mem_ramMem _ (by omega) (by omega)⟩⟩
+      ?_, halfOk_ram a h1 (by omega) (by omega), halfOk_ram _ (by bv_omega) (by bv_omega)
+        (by bv_omega)⟩, fun k hk => mem_ramMem _ (by omega) (by omega)⟩⟩
   · simp only [clint_base_toNat, clint_size_toNat]; omega
   · simp only [sig_base_toNat, sig_size_toNat]; omega
   · intro b hb; cases hb
