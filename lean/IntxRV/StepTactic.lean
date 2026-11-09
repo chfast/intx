@@ -40,7 +40,7 @@ theorem Reach.refl_at {A : List (BitVec 64)} {prog : List instruction} {base : B
 /-- The simplification of the values of a step. -/
 macro "rv_val" loc:(Lean.Parser.Tactic.location)? : tactic => `(tactic| (
   simp (config := { decide := true }) (disch := first | bv_omega | fail) only [Regs.get_set,
-    Regs.get_zero, ↓reduceIte, memWord_memStore_of_ne,
+    Regs.get_zero, ↓reduceIte, memWord_memStore_of_ne, memHalf_memStore_of_ne,
     rtypeVal_add, rtypeVal_sub, rtypeVal_and, rtypeVal_or, rtypeVal_xor, rtypeVal_sltu,
     rtypeVal_sll, rtypeVal_srl, rtypewVal_subw,
     itypeVal_addi, itypeVal_xori, itypeVal_andi, itypeVal_ori, itypeVal_seqz, shiftiopVal_srli,

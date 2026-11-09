@@ -82,9 +82,13 @@ def StepGoal (A : List (BitVec 64)) (prog : List instruction) (base : BitVec 64)
   | .JAL (imm, .Regidx rd) =>
     (0 ≤ ((4 * k : Nat) : Int) + imm.toInt ∧ imm.toInt % 4 = 0) ∧
       Reach A prog base (pcAt base (jumpIdx k imm)) (x.set rd (pcAt base (k + 1))) m tgt Q
-  | .LOAD (imm, .Regidx rs1, .Regidx rd, u, width) =>
-    u = false ∧ width = 8 ∧ x.get rs1 + imm.signExtend 64 ∈ A ∧
+  | .LOAD (imm, .Regidx rs1, .Regidx rd, false, 8) =>
+    x.get rs1 + imm.signExtend 64 ∈ A ∧
       ∀ w, Defn w (memWord m (x.get rs1 + imm.signExtend 64).toNat) →
+        Reach A prog base (pcAt base (k + 1)) (x.set rd w) m tgt Q
+  | .LOAD (imm, .Regidx rs1, .Regidx rd, true, 4) =>
+    (x.get rs1 + imm.signExtend 64 ∈ A ∨ x.get rs1 + imm.signExtend 64 - 4#64 ∈ A) ∧
+      ∀ w, Defn w ((memHalf m (x.get rs1 + imm.signExtend 64).toNat).setWidth 64) →
         Reach A prog base (pcAt base (k + 1)) (x.set rd w) m tgt Q
   | .STORE (imm, .Regidx rs2, .Regidx rs1, width) =>
     width = 8 ∧ x.get rs1 + imm.signExtend 64 ∈ A ∧
@@ -132,7 +136,9 @@ theorem Reach.step {A : List (BitVec 64)} {prog : List instruction} {base tgt : 
     obtain ⟨hj, h⟩ := h
     exact Reach.step_execM hf (by
       simp [execM, exec, sign_extend_eq, pcAt_jump base k imm hj, pcAt_succ]) h
-  · obtain ⟨rfl, rfl, hA, h⟩ := h
+  · obtain ⟨hA, h⟩ := h
+    exact Reach.step_execM hf (by simp [execM, sign_extend_eq, hA, pcAt_succ]) (h _ rfl)
+  · obtain ⟨hA, h⟩ := h
     exact Reach.step_execM hf (by simp [execM, sign_extend_eq, hA, pcAt_succ]) (h _ rfl)
   · obtain ⟨rfl, hA, h⟩ := h
     exact Reach.step_execM hf (by simp [execM, sign_extend_eq, hA, pcAt_succ]) h
