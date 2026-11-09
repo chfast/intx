@@ -304,7 +304,7 @@ jobs:
     environment:
       BUILD_TYPE: Release
     machine:
-      image: ubuntu-2404:2026.05.1
+      image: ubuntu-2604:2026.10.1
       resource_class: arm.medium
     steps:
       - build_and_test
@@ -357,18 +357,18 @@ jobs:
   fuzzing-arm64:
     environment:
       BUILD_TYPE: Release
-      CMAKE_OPTIONS: -DINTX_FUZZING=ON
-      CC: clang-20
-      CXX: clang++-20
+      CMAKE_OPTIONS: -DINTX_FUZZING=ON -DINTX_BENCHMARKING=OFF
+      CC: clang-22
+      CXX: clang++-22
     machine:
-      image: ubuntu-2404:2026.05.1
+      image: ubuntu-2604:2026.10.1
       resource_class: arm.medium
     steps:
       - run:
           name: "Install dependencies"
           command: |
             sudo apt -q update
-            sudo apt install -qy clang-20 libclang-rt-20-dev libstdc++-14-dev libgmp-dev
+            sudo apt install -qy clang-22 libclang-rt-22-dev libgmp-dev
       - build_and_test
       - fuzz:
           arch: arm64
