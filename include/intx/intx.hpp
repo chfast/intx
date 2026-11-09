@@ -1969,7 +1969,8 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
 
 /// Divides u by v when the quotient fits in two words: v has TOP significant words
 /// and u has one more word, or two more words with the top one less than v[TOP - 1].
-/// With EQUAL (TOP 3 only) the top word of u equals v[TOP - 1]: the quotient has up to 129 bits.
+/// With EQUAL (TOP 3 only) the top word of u may also equal v[TOP - 1]: the quotient has then
+/// up to 129 bits.
 ///
 /// The quotient is estimated from the top 2 words of the normalized divisor with two 3/2
 /// divisions and corrected with the remainder, computed from the remainder of the 3/2 divisions
@@ -1985,7 +1986,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
     uint64_t ue = 0;  // The second word of u above the significant words of v, 0 for the shorter u.
     if constexpr (uint<M>::num_words == TOP + 2)
         ue = u[TOP + 1];
-    INTX_REQUIRE(EQUAL ? ue == v[TOP - 1] : ue < v[TOP - 1]);
+    INTX_REQUIRE(EQUAL ? ue <= v[TOP - 1] : ue < v[TOP - 1]);
 
     // The top 128 bits of the normalized divisor and the matching 4 words of the numerator.
     const auto s = clz_nonzero<true>(v[TOP - 1]);
