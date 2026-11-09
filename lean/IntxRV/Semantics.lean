@@ -51,6 +51,23 @@ def shiftiopVal (op : sop) (shamt : BitVec 6) (a : BitVec 64) : BitVec 64 :=
 def mulVal (op : mul_op) (a b : BitVec 64) : BitVec 64 :=
   mult_to_bits_half (l := 64) op.signed_rs1 op.signed_rs2 a b op.result_part
 
+/-- The result of a 32-bit register-register operation, as in `execute_RTYPEW`. -/
+def rtypewVal (op : ropw) (a b : BitVec 64) : BitVec 64 :=
+  let a := Sail.BitVec.extractLsb a 31 0
+  let b := Sail.BitVec.extractLsb b 31 0
+  sign_extend (m := 64) (match op with
+    | .ADDW => a + b
+    | .SUBW => a - b
+    | .SLLW => shift_bits_left a (Sail.BitVec.extractLsb b 4 0)
+    | .SRLW => shift_bits_right a (Sail.BitVec.extractLsb b 4 0)
+    | .SRAW => shift_bits_right_arith a (Sail.BitVec.extractLsb b 4 0))
+
+/-- The result of `lui` and `auipc` at `pc`, as in `execute_UTYPE`. -/
+def utypeVal (op : uop) (imm : BitVec 20) (pc : BitVec 64) : BitVec 64 :=
+  match op with
+  | .LUI => sign_extend (m := 64) (imm ++ 0x000#12)
+  | .AUIPC => pc + sign_extend (m := 64) (imm ++ 0x000#12)
+
 /-- Whether a branch is taken, as in `execute_BTYPE`. -/
 def btypeTaken (op : bop) (a b : BitVec 64) : Bool :=
   match op with
@@ -74,6 +91,10 @@ def exec (i : instruction) (pc : BitVec 64) (x : Regs) : Option (BitVec 64 × Re
     some (pc + 4, x.set rd (shiftiopVal op shamt (x.get rs1)))
   | .MUL (.Regidx rs2, .Regidx rs1, .Regidx rd, op) =>
     some (pc + 4, x.set rd (mulVal op (x.get rs1) (x.get rs2)))
+  | .RTYPEW (.Regidx rs2, .Regidx rs1, .Regidx rd, op) =>
+    some (pc + 4, x.set rd (rtypewVal op (x.get rs1) (x.get rs2)))
+  | .UTYPE (imm, .Regidx rd, op) => some (pc + 4, x.set rd (utypeVal op imm pc))
+  | .JAL (imm, .Regidx rd) => some (pc + sign_extend (m := 64) imm, x.set rd (pc + 4))
   | .BTYPE (imm, .Regidx rs2, .Regidx rs1, op) =>
     some (if btypeTaken op (x.get rs1) (x.get rs2) then pc + sign_extend (m := 64) imm else pc +
         4, x)
@@ -172,6 +193,39 @@ theorem exec_mul {S s : SailState} {pc npc : BitVec 64} {x : Regs} (h : Inv S s 
   simp [execute_MUL, rX_bits_inv h, bind, EStateM.bind, pure, EStateM.pure]
   erw [hs]
 
+theorem exec_rtypew {S s : SailState} {pc npc : BitVec 64} {x : Regs} (h : Inv S s pc npc x)
+    (rs2 rs1 rd : BitVec 5) (op : ropw) :
+    ∃ s', execute (.RTYPEW (.Regidx rs2, .Regidx rs1, .Regidx rd, op)) s = .ok RETIRE_SUCCESS s' ∧
+      Inv S s' pc npc (x.set rd (rtypewVal op (x.get rs1) (x.get rs2))) := by
+  obtain ⟨s', hs, hi⟩ := wX_bits_inv h rd (rtypewVal op (x.get rs1) (x.get rs2))
+  refine ⟨s', ?_, hi⟩
+  show execute_RTYPEW _ _ _ _ s = _
+  cases op <;> simp [execute_RTYPEW, rtypewVal, rX_bits_inv h, hs, bind, EStateM.bind, pure,
+    EStateM.pure] at hs ⊢ <;> rfl
+
+theorem exec_utype {S s : SailState} {pc npc : BitVec 64} {x : Regs} (h : Inv S s pc npc x)
+    (imm : BitVec 20) (rd : BitVec 5) (op : uop) :
+    ∃ s', execute (.UTYPE (imm, .Regidx rd, op)) s = .ok RETIRE_SUCCESS s' ∧
+      Inv S s' pc npc (x.set rd (utypeVal op imm pc)) := by
+  obtain ⟨s', hs, hi⟩ := wX_bits_inv h rd (utypeVal op imm pc)
+  refine ⟨s', ?_, hi⟩
+  show execute_UTYPE _ _ _ s = _
+  cases op <;> simp [execute_UTYPE, utypeVal, get_arch_pc, readReg_ok h.pc, LeanRV64D.readReg, hs,
+    bind, EStateM.bind, pure, EStateM.pure] at hs ⊢ <;> rfl
+
+theorem exec_jal {S s : SailState} {val : (r : Register) → RegisterType r} {pc npc : BitVec 64}
+    {x : Regs} (e : Env S val) (h : Inv S s pc npc x) (imm : BitVec 21) (rd : BitVec 5)
+    (ha : (pc + sign_extend (m := 64) imm).getLsbD 0 = false ∧
+      (pc + sign_extend (m := 64) imm).getLsbD 1 = false) :
+    ∃ s', execute (.JAL (imm, .Regidx rd)) s = .ok RETIRE_SUCCESS s' ∧
+      Inv S s' pc (pc + sign_extend (m := 64) imm) (x.set rd npc) := by
+  show ∃ s', execute_JAL _ _ s = _ ∧ _
+  obtain ⟨s2, hs2, h2⟩ := jump_to_inv e h _ ha.1 ha.2
+  obtain ⟨s3, hs3, h3⟩ := wX_bits_inv h2 rd npc
+  refine ⟨s3, ?_, h3⟩
+  simp [execute_JAL, get_next_pc, readReg_ok h.npc, readReg_ok h.pc, LeanRV64D.readReg, hs2, hs3,
+    bind, EStateM.bind, pure, EStateM.pure, RETIRE_SUCCESS]
+
 theorem exec_btype {S s : SailState} {val : (r : Register) → RegisterType r} {pc npc : BitVec 64}
     {x : Regs} (e : Env S val) (h : Inv S s pc npc x) (imm : BitVec 13) (rs2 rs1 : BitVec 5)
     (op : bop) (ha : btypeTaken op (x.get rs1) (x.get rs2) = true →
@@ -235,6 +289,9 @@ theorem exec_sim {S s : SailState} {val : (r : Register) → RegisterType r} {pc
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_itype h _ _ _ _
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_shiftiop h _ _ _ _
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_mul h _ _ _ _
+  · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_rtypew h _ _ _ _
+  · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_utype h _ _ _
+  · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_jal e h _ _ ha
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm
     refine exec_btype e h _ _ _ _ fun ht => ?_
     simpa [ht] using ha
