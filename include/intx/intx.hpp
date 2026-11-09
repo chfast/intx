@@ -2168,7 +2168,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
                 // modulus in [2^128, 2^129) and a carry. udivrem_top2() takes it for TOP 3.
                 if constexpr (TOP == 3)
                 {
-                    if (u[TOP + 1] == v[TOP - 1] && v[TOP - 1] != 0)
+                    if (v[TOP - 1] != 0 && u[TOP + 1] == v[TOP - 1])
                         return internal::udivrem_top2<TOP, true>(u, v);
 
                     // A 1- or 2-word divisor: divide all words of u unless the top 2 are 0.
