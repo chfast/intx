@@ -27,5 +27,5 @@ flags=(--target=riscv64-linux-gnu -march=rv64imafd -mabi=lp64d -mno-relax
 "$cxx" "${flags[@]}" -fsyntax-only -Xclang -ast-dump=json -Xclang -ast-dump-filter=intx \
     "$lean_dir/IntxRV/Api.cpp" > "$out/Api.json"
 
-python3 "$lean_dir/scripts/rv_gen.py" "$lean_dir" "$out/Api.o"
-python3 "$lean_dir/scripts/rv_api.py" "$out/Api.json" "$lean_dir"
+python3 "$lean_dir/scripts/rv_gen.py" "$lean_dir" "$out/stack.json" "$out/Api.o"
+python3 "$lean_dir/scripts/rv_api.py" "$out/Api.json" "$out/stack.json" "$lean_dir"

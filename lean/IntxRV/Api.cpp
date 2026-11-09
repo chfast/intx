@@ -5,9 +5,10 @@
 // The instances of the functions of intx that are verified against the specifications in their
 // documentation in intx.hpp (the @pre and @post commands).
 //
-// Each instance is a lambda that calls one documented function: the operators are hidden friends,
-// so they have no qualified name to point to. scripts/rv_api.py finds the function that the lambda
-// calls in the AST of this file and states its specification for the instance:
+// Each instance is a lambda that calls one documented function (the operators are hidden friends,
+// so they have no qualified name to point to) or the address of a function template instance, the
+// out-of-line function that other functions call. scripts/rv_api.py finds the function in the AST
+// of this file and states its specification for the instance:
 // - intx::api: a [[gnu::used]] pointer whose RV64 machine code is proved (IntxRV/Gen/Api.lean,
 //   the proofs in IntxRV/Api/),
 // - intx::model: a function whose model in Lean is proved (Intx/Gen/Spec.lean, the model
@@ -27,6 +28,7 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr auto* udivrem_2by1 =
     +[](uint128 u, uint64_t d, uint64_t v) noexcept { return intx::udivrem_2by1(u, d, v); };
 
+[[gnu::used]] constexpr auto* umul_256 = &intx::umul<256>;
 [[gnu::used]] constexpr Binop add_256 = [](const uint256& x, const uint256& y) noexcept {
     return x + y;
 };
