@@ -5,46 +5,130 @@
 #include <experimental/div.hpp>
 #include <gtest/gtest.h>
 #include <intx/intx.hpp>
+#include <test/utils/random.hpp>
 
 using namespace intx;
 
-TEST(div, normalize)
+TEST(div, udivrem_constexpr)
 {
-    uint512 u;
-    uint512 v = 1;
-    auto na = internal::normalize(u, v);
-    EXPECT_EQ(na.shift, 63u);
-    EXPECT_EQ(na.num_divisor_words, 1);
-    EXPECT_EQ(na.num_numerator_words, 0);
-    EXPECT_EQ(na.numerator, 0);
-    EXPECT_EQ(na.divisor, v << 63);
+    // Two word quotient (3-word divisor) with non-zero and zero normalization shift.
+    constexpr auto u = (uint256{0xfedcba9876543210} << 192) | 0x0123456789abcdef;
+    constexpr auto v1 = (uint256{0x1234} << 128) | 0x5678;
+    constexpr auto v0 = (uint256{0x8000000000000001} << 128) | 0x5678;
+    static_assert(udivrem(u, v1).quot * v1 + udivrem(u, v1).rem == u);
+    static_assert(udivrem(u, v1).rem < v1);
+    static_assert(udivrem(u, v0).quot * v0 + udivrem(u, v0).rem == u);
+    static_assert(udivrem(u, v0).rem < v0);
 
-    u = uint512{1313, 0, 0, 0, 1414, 0, 0, 0};
-    v = uint512{1212, 0, 0, 0, 12, 0, 0, 0};
-    na = internal::normalize(u, v);
-    EXPECT_EQ(na.shift, 60u);
-    EXPECT_EQ(na.num_divisor_words, 5);
-    EXPECT_EQ(na.num_numerator_words, 6);
-    EXPECT_EQ(na.numerator, u << 60);
-    EXPECT_EQ(na.divisor, v << 60);
+    // Knuth division (uint512, 3-word divisor) with non-zero and zero normalization shift.
+    constexpr auto x = (uint512{0xfedcba9876543210} << 448) | 0x0123456789abcdef;
+    constexpr auto w1 = (uint512{0x1234} << 128) | 0x5678;
+    constexpr auto w0 = (uint512{0x8000000000000001} << 128) | 0x5678;
+    static_assert(udivrem(x, w1).quot * w1 + udivrem(x, w1).rem == x);
+    static_assert(udivrem(x, w1).rem < w1);
+    static_assert(udivrem(x, w0).quot * w0 + udivrem(x, w0).rem == x);
+    static_assert(udivrem(x, w0).rem < w0);
 
-    u = uint512{3} << 510;
-    v = uint256{1, 0, 0xffffffffffffffff, 0};
-    na = internal::normalize(u, v);
-    EXPECT_EQ(na.shift, 0u);
-    EXPECT_EQ(na.num_divisor_words, 3);
-    EXPECT_EQ(na.num_numerator_words, 8);
-    EXPECT_EQ(na.numerator, u);
-    EXPECT_EQ(na.divisor, v);
+    // Knuth division of 512/256 with 3- and 4-word divisors through an add-back and an overflow.
+    constexpr auto p3 = (uint256{0x1234} << 128) | 0x5678;
+    constexpr auto p4 = (uint256{0x8000000000000001} << 192) | 0x5678;
+    constexpr auto u3 = ((uint512{p3} - 1) << 128) | 0x77;
+    constexpr auto u4 = ((uint512{p4} - 1) << 192) | 0x77;
+    static_assert(udivrem(u3, p3).quot == (uint512{1} << 128) - 1);
+    static_assert(udivrem(u3, p3).rem == p3 - (uint256{1} << 128) + 0x77);
+    static_assert(udivrem(u4, p4).quot == (uint512{1} << 192) - 1);
+    static_assert(udivrem(u4, p4).rem == p4 - (uint256{1} << 192) + 0x77);
+    // 192/256, with the divisor words limited to the numerator words.
+    static_assert(udivrem(static_cast<uint192>(p3 * 5 + 7), p3).quot == 5);
+    static_assert(udivrem(static_cast<uint192>(p3 * 5 + 7), p3).rem == 7);
 
-    u = uint512{7} << 509;
-    v = uint256{1, 0, 0x3fffffffffffffff, 0};
-    na = internal::normalize(u, v);
-    EXPECT_EQ(na.shift, 2u);
-    EXPECT_EQ(na.num_divisor_words, 3);
-    EXPECT_EQ(na.num_numerator_words, 9);
-    EXPECT_EQ(na.numerator, intx::uint<576>{u} << 2);
-    EXPECT_EQ(na.divisor, v << 2);
+    // Single word quotient with a numerator one word wider than the divisor (as in addmod()),
+    // and u < v with the same top words, where the estimate is 1 too big.
+    constexpr auto y = (uint320{0x1234} << 256) | 0x0123456789abcdef;
+    constexpr auto z = (uint256{0x8000000000000001} << 192) | 0x5678;
+    static_assert(udivrem(y, z).quot * uint320{z} + uint320{udivrem(y, z).rem} == y);
+    static_assert(udivrem(y, z).rem < z);
+    static_assert(udivrem(uint320{z - 1}, z).quot == 0);
+    static_assert(udivrem(uint320{z - 1}, z).rem == z - 1);
+
+    // Single word quotient of equal widths (the top divisor word set) with non-zero
+    // and zero normalization shift.
+    constexpr auto m = ~uint256{};
+    constexpr auto t1 = (uint256{0x1234} << 192) | 0x5678;
+    constexpr auto t0 = (uint256{0x8000000000000001} << 192) | 0x5678;
+    static_assert(udivrem(m, t1).quot == 0xe1042cd3d4ee3);
+    static_assert(udivrem(m, t1).rem == 0x3e3fffffffffffffffffffffffffffffffb3ff1efbd32c2c397_u256);
+    static_assert(udivrem(m, t0).quot == 1);
+    static_assert(udivrem(m, t0).rem ==
+                  0x7ffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffa987_u256);
+
+    // The largest single word quotient of the wider numerator: u[4] = v[3] - 1.
+    constexpr auto y1 = (uint320{0x1233} << 256) | m;
+    static_assert(udivrem(y1, t1).quot == 0xffffffffffffffff);
+    static_assert(
+        udivrem(y1, t1).rem == 0x1233ffffffffffffffffffffffffffffa9880000000000005677_u256);
+
+    // Two word quotient with a numerator two words wider than the divisor (as in addmod()).
+    constexpr auto b = (uint256{0x5678} << 128) | 0x9abc;
+    static_assert(udivrem(y, b).quot == 0x35e46de99c43b950c4e1604fefb77712_u320);
+    static_assert(udivrem(y, b).rem == 0x2fd0220c07080c9523fd7b0747f214f88b7_u256);
+
+    // 4-word quotient with a 2-word divisor and a numerator three words wider (as in addmod()).
+    constexpr auto x2 = (uint320{1} << 256) | (uint320{0xffff} << 192) | 0x0123456789abcdef;
+    constexpr auto c = (uint256{1} << 64) | 0x9abc;
+    static_assert(udivrem(x2, c).quot == 0x10000000000006542ffffffffc2cb54cc000024fea1ab022f_u320);
+    static_assert(udivrem(x2, c).rem == 0xeac6ed27f0c5ed6b_u256);
+
+    // Single word quotient with a 3-word numerator and divisor (as in addmod()).
+    constexpr auto y3 = (uint320{0xfedcba9876543210} << 128) | 0x9abc;
+    static_assert(udivrem(y3, p3).quot == 0xe0042813be5dc);
+    static_assert(udivrem(y3, p3).rem == 0x95ffffffffffffffffb455989694cb4f39c_u256);
+
+    // Equal top words: the quotient bit 128 and the clamped estimate (as in addmod()).
+    constexpr auto c3 = (uint256{1} << 128) | 1;
+    static_assert(udivrem((uint320{c3} << 128) + 5, c3).quot == uint320{1} << 128);
+    static_assert(udivrem((uint320{c3} << 128) + 5, c3).rem == 5);
+    static_assert(udivrem(uint320{1} << 256, c3).quot == (uint320{1} << 128) - 1);
+    static_assert(udivrem(uint320{1} << 256, c3).rem == 1);
+
+    // 1-word divisor: the shift 48 (320/256 and 256/256), the shift 0 and a 1-word numerator.
+    static_assert(udivrem(x2, uint256{0x9abc}).quot ==
+                  0x1a789e9ec67b83d00560803840511165c63fd9f29bfbc2ae98b05485a6fcd_u320);
+    static_assert(udivrem(x2, uint256{0x9abc}).rem == 0x6163);
+    static_assert(udivrem(m, uint256{0x9abc}).quot ==
+                  0x1a789e9ec67b6957813a585b9d74f982ef1e94d93fedcd12f2d78b2793d72_u256);
+    static_assert(udivrem(m, uint256{0x9abc}).rem == 0x4c47);
+    static_assert(udivrem(m, uint256{0x8000000000000001}).quot ==
+                  0x1fffffffffffffffc0000000000000007fffffffffffffff0_u256);
+    static_assert(udivrem(m, uint256{0x8000000000000001}).rem == 0xf);
+    static_assert(udivrem(uint256{7}, uint256{3}) == div_result<uint256>{2, 1});
+    // A 320-bit numerator with the top 2 words 0.
+    static_assert(
+        udivrem(uint320{b}, uint256{0x9abc}).quot == 0x8f0edd3b11a7f3cc66e2d0831d71aa70_u320);
+    static_assert(udivrem(uint320{b}, uint256{0x9abc}).rem == 0x107c);
+
+    // 2-word divisor: 256/256 (the dynamic extent), the shift 0 and the top quotient word above 1.
+    static_assert(udivrem(m, c).quot == 0xffffffffffff6544000000005d86ba0fffffc7784521bc40_u256);
+    static_assert(udivrem(m, c).rem == 0x222b2a16effb40ff);
+    constexpr auto d0 = (uint256{0x8000000000000001} << 64) | 5;
+    static_assert(udivrem(m, d0).quot == 0x1fffffffffffffffbfffffffffffffff4_u256);
+    static_assert(udivrem(m, d0).rem == 0x20000000000000003b_u256);
+    constexpr auto x3 = (uint256{0xff} << 192) | (uint256{0x0123456789abcdef} << 64) | 0x77;
+    constexpr auto d1 = (uint256{0x10} << 64) | 5;
+    static_assert(udivrem(x3, d1).quot == 0xfeffffffffffffffb05123456789abce0_u256);
+    static_assert(udivrem(x3, d1).rem == 0x7e6a4fa4fa4fa5017_u256);
+    // A 2-word numerator, divided with a zero top word.
+    static_assert(udivrem((uint256{0x10} << 64) | 7, d1) == div_result<uint256>{1, 2});
+    static_assert(udivrem((uint256{0xff} << 64) | 3, d1) ==
+                  div_result<uint256>{0xf, 0xeffffffffffffffb8_u256});
+    // A 320-bit numerator with the top 2 words 0.
+    static_assert(udivrem(uint320{b}, d1).quot == 0x5677ffffffffffffe4f_u320);
+    static_assert(udivrem(uint320{b}, d1).rem == 0xa800000000000a331_u256);
+    // A uint128 numerator with a 2-word divisor, 2^128 - 1 and 2^128.
+    static_assert(udivrem((uint128{0x10} << 64) | 7, d1) == div_result<uint128, uint256>{1, 2});
+    static_assert(udivrem(~uint128{}, uint192{~uint128{}}) == div_result<uint128, uint192>{1, 0});
+    static_assert(
+        udivrem(~uint128{}, uint192{1} << 128) == div_result<uint128, uint192>{0, ~uint128{}});
 }
 
 namespace
@@ -325,25 +409,1125 @@ const div_test_case<uint512> div_test_cases[] = {
         0xdc5a47249a56560d078334729ffb61da211f5d2ec622c22f88bc3b4ebae1abdac6b03621554ef71070bc1e0dc5c301bc_u512,
         0x6dc100ea02272bdcf68a4a5b95f468f8_u128,
     },
+    // Knuth division (uint512, 3-word divisor): the overflow case in the first 2 iterations.
+    {
+        0x91b1c7962db130311e8dee4c09d96c4b00000000000000000000000000000000000000000000000032fdce10b86d538a43d4fc5b20e3f5c0_u512,
+        0x91b1c7962db130311e8dee4c09d96c4b1cf8fa026c9f0d1a_u512,
+        0xffffffffffffffffffffffffffffffffcd179dc0762ae23e909063f2ea9c5b01_u512,
+        0x8ce87ea7de1b5dc4654bbec939f80045e62e22426ac4aaa6_u512,
+    },
+    // Divisors with the top word not zero, i.e. single word quotients.
+    // The "estimate" is the quotient estimated from the top words of the normalized operands.
+    // 192-bit: u < v by the top word.
+    {
+        0xb260f5e964964ec144bcc91741d51805e8eea1e2ed3578a8_u512,
+        0xe2dcaa37f463b337d20b5d59db610487c89da11b62397bc7_u512,
+        0x0_u512,
+        0xb260f5e964964ec144bcc91741d51805e8eea1e2ed3578a8_u512,
+    },
+    // 192-bit: u < v with equal top words.
+    {
+        0x62e3fe85351d23832899387134f069bf953a6f229735a0_u512,
+        0x62e3fe85351d23832899387134f069bf953a6f229735a1_u512,
+        0x0_u512,
+        0x62e3fe85351d23832899387134f069bf953a6f229735a0_u512,
+    },
+    // 192-bit: top bit set, estimate 1 too big.
+    {
+        0x8ed904759531985d5d9dc9f81818e811892f902bd23f0823_u512,
+        0x8ed904759531985d5d9dc9f81818e811892f902bd23f0824_u512,
+        0x0_u512,
+        0x8ed904759531985d5d9dc9f81818e811892f902bd23f0823_u512,
+    },
+    // 192-bit: top bit set, exact estimate.
+    {
+        0xdaee4623d477b79714c8a9893992d5411b90f60d3da1c0ba_u512,
+        0xc36a9864fc741d8c339863efcf019ed91ef2be2ab7bbe1d6_u512,
+        0x1_u512,
+        0x1783adbed8039a0ae13045996a913667fc9e37e285e5dee4_u512,
+    },
+    // 192-bit: exact estimate.
+    {
+        0x612e7696a6cecc1b78e510617311d8a3c2ce6f447ed4d57b_u512,
+        0x20a61a1e0813e268e1c35de266b09f186c78b56fc8db_u512,
+        0x2fa00_u512,
+        0xcd942c39c2f48e58aed8d681f150fef2335c2f8f77b_u512,
+    },
+    // 192-bit: estimate 1 too big.
+    {
+        0x894ee23e2af8894a1023a69a6d7160205c0425f1d501c168_u512,
+        0x430a1f0a396c1bd7e8477ab1538793479_u512,
+        0x20c54a5adde5fb82_u512,
+        0x377addc94b7d268a501e0e389ebc578f6_u512,
+    },
+    // 192-bit: estimate 2 too big.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x105c6af0758d5563dab2cd31ee3151288_u512,
+        0xfa59f18cc1e434dd_u512,
+        0x9bf3f3f74e93b7d087762c18a5eb6097_u512,
+    },
+    // 192-bit: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x100000000000000000000000000000000_u512,
+        0xffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+    },
+    // 256-bit: u < v by the top word.
+    {
+        0xc858bbc8e29253805a052d8452bbf988c9155952f02595394cad46d34f83258_u512,
+        0xbd91a1b7f03edca7e2dcaa37f463b337d20b5d59db610487c89da11b62397bc7_u512,
+        0x0_u512,
+        0xc858bbc8e29253805a052d8452bbf988c9155952f02595394cad46d34f83258_u512,
+    },
+    // 256-bit: u < v with equal top words.
+    {
+        0x1a47e105825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bb_u512,
+        0x1a47e105825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bc_u512,
+        0x0_u512,
+        0x1a47e105825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bb_u512,
+    },
+    // 256-bit: top bit set, estimate 1 too big.
+    {
+        0x899950d836f675cc81e74ef5e8e25d940ed904759531985d5d9dc9f81818e810_u512,
+        0x899950d836f675cc81e74ef5e8e25d940ed904759531985d5d9dc9f81818e811_u512,
+        0x0_u512,
+        0x899950d836f675cc81e74ef5e8e25d940ed904759531985d5d9dc9f81818e810_u512,
+    },
+    // 256-bit: top bit set, exact estimate.
+    {
+        0xdc6b13ab2e47dc0e959f3a518cfe5cd12d5db79ba2a7ae1f3ac7652ccdf84404_u512,
+        0x99901c0475491bc354c56c9a9cc9af4ec9546b439f9d01298a449ebe89d9bf02_u512,
+        0x1_u512,
+        0x42daf7a6b8fec04b40d9cdb6f034ad8264094c58030aacf5b082c66e441e8502_u512,
+    },
+    // 256-bit: exact estimate.
+    {
+        0x1df2dba4c161cabaf9f631798ac493fe940e6988798b0d4262ca097f68951cc4_u512,
+        0x3f6a6abd8f17f5c4a0a61a1e0813e268e1c35de266b09f186c78b56fc8db_u512,
+        0x78e6_u512,
+        0x2_u512,
+    },
+    // 256-bit: estimate 1 too big.
+    {
+        0x72a9b8a4c0d76560fbbe938116e3e38047e1a38bd1ea041814d4954e5c47577b_u512,
+        0x32ffd03d4eac98d63534ccae8aa672352ee7af97425375be5_u512,
+        0x23f9246661a9c53b_u512,
+        0x305c6a867bec55f1dc88bc0069cb788d77f085a4abfa0f0b4_u512,
+    },
+    // 256-bit: estimate 2 too big.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x1076b3e36bb2313f55b06258e7e26f36a8483f8b8332dd331_u512,
+        0xf8ca3f4674837868_u512,
+        0xd72ecc541106e7f103d78fee414d74aa2e2edaa274503c17_u512,
+    },
+    // 256-bit: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x1000000000000000000000000000000000000000000000000_u512,
+        0xffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+    },
+    // 384-bit: u < v by the top word.
+    {
+        0x67f86286688eed8f5ec1c3d1eefb98a946ac0cee6c1a7ddcade3485d993b27e26e9487c1c77ad8c807c6144875a3ae18_u512,
+        0x70fffc69f89d044cc7ecca4e5f9d52853093a9f890f84bb8d24bb46ce859582e75b81ccf813dcbdff9e61f04c4c59129_u512,
+        0x0_u512,
+        0x67f86286688eed8f5ec1c3d1eefb98a946ac0cee6c1a7ddcade3485d993b27e26e9487c1c77ad8c807c6144875a3ae18_u512,
+    },
+    // 384-bit: u < v with equal top words.
+    {
+        0x9531985d5d9dc9f81818e811892f902bd23f0824128b2f330c5c7fd0a6a3a4506513270e269e0d37f2a74de452e6b42_u512,
+        0x9531985d5d9dc9f81818e811892f902bd23f0824128b2f330c5c7fd0a6a3a4506513270e269e0d37f2a74de452e6b43_u512,
+        0x0_u512,
+        0x9531985d5d9dc9f81818e811892f902bd23f0824128b2f330c5c7fd0a6a3a4506513270e269e0d37f2a74de452e6b42_u512,
+    },
+    // 384-bit: top bit set, estimate 1 too big.
+    {
+        0xecad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a35a099950d836f675cc81e74ef5e8e25d93_u512,
+        0xecad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a35a099950d836f675cc81e74ef5e8e25d94_u512,
+        0x0_u512,
+        0xecad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a35a099950d836f675cc81e74ef5e8e25d93_u512,
+    },
+    // 384-bit: top bit set, exact estimate.
+    {
+        0xc278a62be932c05746514092fcd67dc52c705ab1621b7e461e1ff187fa72ab370c50b95992714cfc65aeb4d48cea1f2e_u512,
+        0x81b698ac13cfba03680d5215b6c71cde4d7a663273d455ee2cd84e8187ab701fdbaf86abd786aa76bf8ded91737a6bbf_u512,
+        0x1_u512,
+        0x40c20d7fd5630653de43ee7d460f60e6def5f47eee472857f147a30672c73b1730a132adbaeaa285a620c743196fb36f_u512,
+    },
+    // 384-bit: exact estimate.
+    {
+        0x41c86ba411842d9ebe3618b44cd213073e188514669e9bde07dd425573cafef14d20c14a93928a5b997decca9ce18b2e_u512,
+        0x5367660dbc728830b988ec51e16737a23f6a6abd8f17f5c4a0a61a1e0813e268e1c35de266b09f186c78b56fc8db_u512,
+        0xc9ea_u512,
+        0x0_u512,
+    },
+    // 384-bit: estimate 1 too big.
+    {
+        0xfcf1fc03cd04b2823070a5e1a8aca0e3682b5fd037e5e965c5ff47b1d2c844cae97295385daa7f2743d055b7044b14eb_u512,
+        0x208fd558642403cb6e76588860a302fb823b4a1ff1b8a06532ae33a73a7997401853148d2c68f8713_u512,
+        0x7c4a552f237b9697_u512,
+        0x15d6df9d12e0abaefa6471bc2f220c1fc29f0e9660f1a3a02960aa82fafe82d09a8f6bf214d5c46b6_u512,
+    },
+    // 384-bit: estimate 2 too big.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x106ec41adea0575438b0d590bb0a844e52587be6b5c9bcf35873be078f3b7a50df373ca533488f876_u512,
+        0xf942686245892c8b_u512,
+        0xe0e4936c0e21a8a5c597937e7ef899ba36fd6d5b025741f286be29c8afc376e89fdfc25a29c6cfed_u512,
+    },
+    // 384-bit: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x100000000000000000000000000000000000000000000000000000000000000000000000000000000_u512,
+        0xffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+    },
+    // 512-bit: u < v by the top word.
+    {
+        0xcb14957dce1c61527ace77832dd5ad98475c61b1af3ef55c43ecf2b9fec08e901e5fa037bdba19ebabf100b0d5bc9f746b6cd23aadd763fa8d86850ebc098fd8_u512,
+        0xed10e6b8f837a7d6a6ce9740f233f6920c0a78d058c17f6b6c0046f488d4161a37e103558cb252440d05f982feebb948f46ed6dd9ca4f36e6d7cd4ed16d35266_u512,
+        0x0_u512,
+        0xcb14957dce1c61527ace77832dd5ad98475c61b1af3ef55c43ecf2b9fec08e901e5fa037bdba19ebabf100b0d5bc9f746b6cd23aadd763fa8d86850ebc098fd8_u512,
+    },
+    // 512-bit: u < v with equal top words.
+    {
+        0x6deceb9903ce9dfbd1c4bb281db208eb2a6330babb3b93f03031d023125f2057a47e104825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bc8a5cd686_u512,
+        0x6deceb9903ce9dfbd1c4bb281db208eb2a6330babb3b93f03031d023125f2057a47e104825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bc8a5cd687_u512,
+        0x0_u512,
+        0x6deceb9903ce9dfbd1c4bb281db208eb2a6330babb3b93f03031d023125f2057a47e104825165e6618b8ffa14d4748a0ca264e1c4d3c1a6fe54e9bc8a5cd686_u512,
+    },
+    // 512-bit: top bit set, estimate 1 too big.
+    {
+        0xa09f76b5a170b33839263059f28c105d1fb17c2390c192cfd3ac94af0f21ddb66cad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a359_u512,
+        0xa09f76b5a170b33839263059f28c105d1fb17c2390c192cfd3ac94af0f21ddb66cad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a35a_u512,
+        0x0_u512,
+        0xa09f76b5a170b33839263059f28c105d1fb17c2390c192cfd3ac94af0f21ddb66cad4a268d116ece1738f7d93d9c172411e20b8f6b0d549b6f03675a1600a359_u512,
+    },
+    // 512-bit: top bit set, exact estimate.
+    {
+        0xc81117185b21d0df09736bf82db13b2f8ebf8fcd6026e5a6c815de18f38840c99ace3b175aa959cb710c431a52d63bc50ff6e16be832c17915849b2b31f68e39_u512,
+        0x94765878b25f740a9bb9f93bad21e937647faf5b715631350e02d989565843747b36767ee5b3c99aa231286cd47df12fa4ab16ac5a0d6c30774e0fe6f5e4207b_u512,
+        0x1_u512,
+        0x339abe9fa8c25cd46db972bc808f51f82a3fe071eed0b471ba13048f9d2ffd551f97c49874f59030cedb1aad7e584a956b4bcabf8e2555489e368b443c126dbe_u512,
+    },
+    // 512-bit: exact estimate.
+    {
+        0x57320feacf0c4adf29b957d736a99c58b35472afb1b74071a293c32a45ef21c790425ab3c88be5bd15f5898df6a0513d368bef652d4de2af434414d54fc577_u512,
+        0xc0397461adfcc96e4f4e30b30973b4b5367660dbc728830b988ec51e16737a23f6a6abd8f17f5c4a0a61a1e0813e268e1c35de266b09f186c78b56fc8db_u512,
+        0x742_u512,
+        0x1_u512,
+    },
+    // 512-bit: estimate 1 too big.
+    {
+        0xc67b3cd813d7c7ef94d441df6e958ed7689a222727caebf48c556d496afa07287f1b840fab03175b7e7e819957da18c180e45876e8f96d77697ac625da70e395_u512,
+        0x3590d9fbcb286b8f33c4b4341e65cf5f3fe96f0ea19bbecb28cc0211f1420596217eb678d74d102698b66cc15c739cde60033f97f4179cbe9_u512,
+        0x3b4935cf101224dc_u512,
+        0x310c00773284353aa471848a6cfa2fe0a9a5c248be12131392ebf9666333496f2f8a81a3594434aacc1de2275521a0c5a6d8c21de8eb6e359_u512,
+    },
+    // 512-bit: estimate 2 too big.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x12188287e8c5c715f8c74fc1e27e9e06f59b44e92effddeeaa842bc19796f74adfaf55496988af3fbd39630d69c9011ef256badf9a7e6529b_u512,
+        0xe25a021b64ba353f_u512,
+        0xf81c6278a3583e1403c11984fbe12de9494c4b0ade7c1da0de4f31cc3bd4b39ee63937f6eec95dae74658b21d8c02aaa30139dd76e9994da_u512,
+    },
+    // 512-bit: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000_u512,
+        0xffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+    },
+    // Divisors with one word less than the numerator, i.e. two word quotients.
+    // The "estimate" is the quotient estimated from the top 4 words of the normalized numerator
+    // and the top 2 words of the normalized divisor.
+    // 256-bit, 3-word divisor: estimate exact, not normalized, quotient < 2^64.
+    {
+        0x1f43319b8ddf9ccfd8de894c9a2736d4ae4c59fc740cce622_u512,
+        0x3911650e9aeb5af8a39ea9ba67c665412_u512,
+        0x8c3d5f169293de90_u512,
+        0x2_u512,
+    },
+    // 256-bit, 3-word divisor: estimate exact, not normalized, quotient >= 2^64.
+    {
+        0xffffffffffffffffc000000000000001fffffffffffffffba4c449881c593af6_u512,
+        0x400000000000000000000000000000007fffffffffffffff_u512,
+        0x3ffffffffffffffff_u512,
+        0x24c449881c593af5_u512,
+    },
+    // 256-bit, 3-word divisor: estimate exact, top bit set, quotient < 2^64.
+    {
+        0x720b1903e84a24cb8000000000000000e4163207d0944996996d3c6fded38aca_u512,
+        0x80000000000000000000000000000000ffffffffffffffff_u512,
+        0xe4163207d0944997_u512,
+        0x7d836e77af67d461_u512,
+    },
+    // 256-bit, 3-word divisor: estimate exact, top bit set, quotient >= 2^64.
+    {
+        0xfffffffffffffffd0000000000000001fffffffffffffff85b4c8012ede7bd12_u512,
+        0x80000000000000000000000000000000ffffffffffffffff_u512,
+        0x1fffffffffffffffa_u512,
+        0x5b4c8012ede7bd0c_u512,
+    },
+    // 256-bit, 3-word divisor: estimate 1 too big, not normalized, quotient < 2^64.
+    {
+        0x51c130321b48292a7868003552a41c81e46685b06f421a688a5ac1d1ee893e79_u512,
+        0x5d46d320a4d023ee25643fe044df4e0e475a8a078b7a2440_u512,
+        0xe060a72424114259_u512,
+        0x5d46d320a4d023ee25643fe044df4e0e475a8a078b7a2439_u512,
+    },
+    // 256-bit, 3-word divisor: estimate 1 too big, not normalized, quotient >= 2^64.
+    {
+        0xffffffffe684bc870000000000000001ffffffffcd09790a0000000065ed0d0b_u512,
+        0x400000000000000000000000000000007fffffffffffffff_u512,
+        0x3ffffffff9a12f21b_u512,
+        0x400000000000000000000000000000007fffffffffffff26_u512,
+    },
+    // 256-bit, 3-word divisor: estimate 1 too big, top bit set, quotient < 2^64.
+    {
+        0x1d77edc9d98a3a3d893b3e3c44d6f0ea4db18077a8451e7fc68589dc6caaf7bd_u512,
+        0x833f867ece1fd3d9849acfb58350a73fffffffffffffffff_u512,
+        0x397a762393550841_u512,
+        0x833f867ece1fd3d9849acfb58350a73ffffffffffffffffe_u512,
+    },
+    // 256-bit, 3-word divisor: estimate 1 too big, top bit set, quotient >= 2^64.
+    {
+        0xffffffff9e64bac460b66c5a1ea9fa734318ec426d459817eeb9469af88f321f_u512,
+        0xcfa7d815b7a1774f1a42721eaba4c70ee306f0c485f184e0_u512,
+        0x13b9973a32a8f8786_u512,
+        0xcfa7d815b7a1774f1a42721eaba4c70ee306f0c485f184df_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate exact, not normalized, quotient < 2^64.
+    {
+        0x7f28470d1a0153947c5aff26ad7b9a14e0434605decebbce7bace2ca8b48c7d0_u512,
+        0x1fa97002df975a2cfeb5394bfdbe2cbb56dd5ffeaf055fcd7_u512,
+        0x4041f5ee8bae8e67_u512,
+        0x166eebc578f4ecb4f_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate exact, not normalized, quotient >= 2^64.
+    {
+        0xfffffffffffffffc8000000000000001fffffffffffffff9132e14750879d951025ff87c44df8a21_u512,
+        0x400000000000000000000000000000007fffffffffffffffffffffffffffffff_u512,
+        0x3fffffffffffffff2_u512,
+        0x132e14750879d955025ff87c44df8a13_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate exact, top bit set, quotient < 2^64.
+    {
+        0x613805871014b58decc72e0c89099eb5bd617165bd1f85ba511070a74a41f8e451f4715491248acd_u512,
+        0xbe272124b1515fff42969a5033288e16ffffffffffffffffffffffffffffffff_u512,
+        0x82e261237776c656_u512,
+        0x511070a74a41f8e4d4d6d278089b5123_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate exact, top bit set, quotient >= 2^64.
+    {
+        0xffffffff6b71491f81d259f6c36088b0e0bac9f63d2a404b6cffb0f0f79edc8098224d42c95f4608_u512,
+        0xa121611283e2665af6540600c8fb4456ffffffffffffffffffffffffffffffff_u512,
+        0x196b9fc7f2dbc8b2d_u512,
+        0x6cffb0f0f79edc822edc49c1f71bd135_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 1 too big, not normalized, quotient < 2^64.
+    {
+        0x289751a3dba8375c56ce18730d1fbcc6238d7ed580a48bc0411dc4d9fb764dfca70796db36831b5d_u512,
+        0x5a52eab5eda64a495fafc2f118e836ce0c5f703a2f6061303fcc4053739e24f5_u512,
+        0x730b89dc2577c325_u512,
+        0x5a52eab5eda64a495fafc2f118e836ce0c5f703a2f6061303fcc4053739e24f4_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 1 too big, not normalized, quotient >= 2^64.
+    {
+        0xfffffffffffffffffffffffe9ed83899ffffffffffffffff7ffffffd3db0713000000000b093e3b3_u512,
+        0x200000000000000000000000000000003ffffffffffffffff_u512,
+        0x7fffffffffffffffffffffff4f6c1c4b_u512,
+        0x200000000000000000000000000000003fffffffffffffffe_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 1 too big, top bit set, quotient < 2^64.
+    {
+        0x7aa8d5fe90cbb1e38000000000000000f551abfd219763c6ffffffffffffffff0aae5402de689c23_u512,
+        0x80000000000000000000000000000000ffffffffffffffffffffffffffffffff_u512,
+        0xf551abfd219763c6_u512,
+        0x80000000000000000000000000000000ffffffffffffffffffffffffffffffe9_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 1 too big, top bit set, quotient >= 2^64.
+    {
+        0xffffffffb4a82bb5acafb4ecf22aa4fb529e379ce8da98e3fffffffffffffffeac690ada46dad7f2_u512,
+        0xc0fc60254e564cbf96060250ea3e7f73ffffffffffffffffffffffffffffffff_u512,
+        0x15396f525b925280c_u512,
+        0xc0fc60254e564cbf96060250ea3e7f73fffffffffffffffffffffffffffffffe_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 2 too big, not normalized, quotient >= 2^64.
+    {
+        0xffffffffffffffffffffffff7aaa72e8109055ea0b4de0be2d74eb3fb1f9146e72f04cefcc8f8f01_u512,
+        0x15b20f1e640aa1b732800484ed97b76e3ffffffffffffffff_u512,
+        0xbccb66ae048a00d8c6407af5f62d48e1_u512,
+        0x15b20f1e640aa1b732800484ed97b76e33930c7e5c2bcd7e2_u512,
+    },
+    // 256-bit, 3-word divisor: u < v.
+    {
+        0xafa927e2367467387e9b56d2f7c988046f3df106e94a_u512,
+        0xafa927e2367467387e9b56d2f7ca1132a960199b3982_u512,
+        0x0_u512,
+        0xafa927e2367467387e9b56d2f7c988046f3df106e94a_u512,
+    },
+    // 256-bit, 3-word divisor: zero remainder.
+    {
+        0x6bbb5310cfa2a336491524184459ed5f4af73f5ffb17f8d0b1a0f3443792dbe0_u512,
+        0xae7d0c31db2dcfad759a5eb16c555cbdb8_u512,
+        0x9e0ee2f7eb0fdb358ce418b47da864_u512,
+        0x0_u512,
+    },
+    // 256-bit, 3-word divisor: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x1bd328e8a6c0f3455cb3aead1c1e64483_u512,
+        0x9334e27de3e38814a87d9c2628bc32f1_u512,
+        0x10dcf197fb1a71ba86d709968b4a3eaac_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: u < v.
+    {
+        0x6c06bb7f4fa3c49356ea3283db7ec7112d4dc1628a16b9c4bc5fb5009e140_u512,
+        0x6c06bb7f4fa3c49356ea3283db7ec7112d4dc1628a16bb9c60c657880ed44_u512,
+        0x0_u512,
+        0x6c06bb7f4fa3c49356ea3283db7ec7112d4dc1628a16b9c4bc5fb5009e140_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: zero remainder.
+    {
+        0x91d4f841fedd9d1d0aad43da4376fba36b12abe18e43637e676861ce533d807be2006d505b48bfd0_u512,
+        0xfdd43013f73f7c61f2b05206e6445bb03075ea816eff8cefa41f7aab341d0_u512,
+        0x93144cb95a7ca197161_u512,
+        0x0_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x124dcac35962f8e7e37055de446a10d6bffffffffffffffff_u512,
+        0xdfc71a9e4169d4b760bcb64dc82588d6_u512,
+        0x892b6f334849dcc104f17f06570b3c6f60bcb64dc82588d5_u512,
+    },
+    // 384-bit, 5-word divisor: estimate 2 too big, not normalized, max numerator.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x1137ab187ec65205deb71b04a32d451959c3cd4a24d0f1629f8b89f18b8af879f_u512,
+        0xede5eb0289324544b53a654ff657b366_u512,
+        0xcf798469b01e40a15aa182a3b59954e1576ee12ed211355b98a04df8cd32c9a5_u512,
+    },
+    // 512-bit, 7-word divisor: estimate 2 too big, not normalized, max numerator.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x119c8a24333f250a0c9e40bf12b3fe18565edaaef0eecbd2c3b951cb2bdead62c7b3b94bbf2c0d3ce4ab4705b64908af0_u512,
+        0xe8935612a516f6029d059e7982a7681f_u512,
+        0x1073ba611d1cb8fa852e0d25c057f598740007aa6243fc5c4febd9bec8a7d1a638f12e8091cbd59bc4d0f77cb977dacef_u512,
+    },
+    // u < v with as many words and the same top word: the top quotient word is not skipped.
+    {
+        0x50000000000000000_u512,
+        0x58000000000000000_u512,
+        0_u512,
+        0x50000000000000000_u512,
+    },
+    {
+        0x500000000000000000000000000000000_u512,
+        0x580000000000000000000000000000000_u512,
+        0_u512,
+        0x500000000000000000000000000000000_u512,
+    },
+    // u > v with as many words and the same top word: the quotient 1.
+    {
+        0x580000000000000000000000000000000_u512,
+        0x500000000000000000000000000000000_u512,
+        1_u512,
+        0x80000000000000000000000000000000_u512,
+    },
+    // The same top word of u and v, u with one more word: the top quotient word is 0.
+    {
+        0x500000000000000000000000000000000_u512,
+        0x5f000000000000000_u512,
+        0xd79435e50d79435e_u512,
+        0x1e000000000000000_u512,
+    },
+    {
+        0x5000000000000000000000000000000000000000000000000_u512,
+        0x5f0000000000000000000000000000000_u512,
+        0xd79435e50d79435e_u512,
+        0x1e0000000000000000000000000000000_u512,
+    },
+    // Zero numerator, 1-word divisor.
+    {
+        0x0_u512,
+        0x3_u512,
+        0x0_u512,
+        0x0_u512,
+    },
+    // Max 320-bit numerator, 1-word divisor: the normalization shifts out bits of the top word.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x3_u512,
+        0x55555555555555555555555555555555555555555555555555555555555555555555555555555555_u512,
+        0x0_u512,
+    },
+    // 1-word divisor, zero remainder: the 2/1 division estimate 1 too small.
+    {
+        0x8000000000000001fffffffffffffffa_u512,
+        0x8000000000000003_u512,
+        0xfffffffffffffffe_u512,
+        0x0_u512,
+    },
+    // Divisors with one word less than the numerator and the top word of the numerator less
+    // than the top word of the divisor, i.e. single word quotients.
+    // The "estimate" is the quotient estimated from the top 2 words of the normalized numerator
+    // and the top word of the normalized divisor.
+    // 256-bit, 3-word divisor: estimate 2 too big, not normalized.
+    {
+        0x3eac0e9f1ae222b6eef0ab25c14d131aa0ae36346e5bb2a04cb_u512,
+        0x400ffffffffffffffcfffffffffffffffa9_u512,
+        0xfa719e14e64ef71d_u512,
+        0x400ffffffffffffffcfffffffffffffffa6_u512,
+    },
+    // 256-bit, 3-word divisor: estimate 2 too big, top bit set.
+    {
+        0x455d4a269e103d098aba944d3c207a09df114f797a18d89ceb930ca2201522f2_u512,
+        0x8000000000000000fffffffffffffff0ffffffffffffff63_u512,
+        0x8aba944d3c207a11_u512,
+        0x8000000000000000fffffffffffffff0ffffffffffffff5f_u512,
+    },
+    // 256-bit, 3-word divisor: max quotient.
+    {
+        0x7fffffffffffffffa0a20ba8501b8814e0f58111d08ba147bb98_u512,
+        0x8000000000000000000bffffffffffffffff_u512,
+        0xffffffffffffffff_u512,
+        0x20960ba8501b8814e1028111d08ba147bb97_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate exact, not normalized.
+    {
+        0x3018afe5304142226c0efa646235e0673020ce5390cec18bbf5c08fd11cd0d6b0f3b15ade39b3f_u512,
+        0x2000000000000000a258b4896602b41d55d43032de5e7b1ffffffffffffff9b_u512,
+        0x180c57f29820a110_u512,
+        0x1780cacaf0739d09d2fdd981f0c85e839b56965e1bc5ff6e7ededcbb2c3268f_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 2 too big, not normalized.
+    {
+        0x2d9fe1875274fd4de7f861d49d3f48f6251e45265975d47ffffffffffffff6106ea2c7cb05d8c48_u512,
+        0x400000000000000ffffffffffffff53ffffffffffffffffffffffffffffff21_u512,
+        0xb67f861d49d3f509_u512,
+        0x400000000000000ffffffffffffff53ffffffffffffffffffffffffffffff1f_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: estimate 2 too big, top bit set.
+    {
+        0x7ffffffffffffffffffffffffffffffdfffffffffffffffffffffffffffffffeffffffffffffffff_u512,
+        0x8000000000000000ffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0xfffffffffffffffd_u512,
+        0x8000000000000000fffffffffffffffffffffffffffffffffffffffffffffffc_u512,
+    },
+    // 320-bit by 256-bit, 4-word divisor: max quotient.
+    {
+        0x3ffffffffffffffff74e91185531978dfda287372e6babd8ec4d55f38dfa7f2d60b0680914049_u512,
+        0x40000000000000000000000000005ffffffffffffffffffffffffffffffff_u512,
+        0xffffffffffffffff_u512,
+        0x374e91185531378dfda287372e6c0bd8ec4d55f38dfa8f2d60b0680914048_u512,
+    },
+    // 384-bit, 5-word divisor: u < v by the top word.
+    {
+        0x1484ec05f70c5326b5e332cede7b816ddb2695532d7016924a6e770596b15af26cf42275_u512,
+        0x14aded4ec6b483cb17c15c92d528d6623e03f9936c4fb8147de513765a125cdcf1b61c52_u512,
+        0x0_u512,
+        0x1484ec05f70c5326b5e332cede7b816ddb2695532d7016924a6e770596b15af26cf42275_u512,
+    },
+    // 384-bit, 5-word divisor: estimate exact, not normalized.
+    {
+        0x3fa33e35a463810927233f1a12152e3b7bad912add08c6a79f934029ce95e62f2c1ba5d0c0b0ef0cb0543f_u512,
+        0x492eb922740cd20ba6c7b9b560c8359731385fcfd59a9dffcbca0dbe887f77661b41fe_u512,
+        0xde9c741b34429aa1_u512,
+        0x24ab4d194f1d22e707b800afada97405250384a31cf192acc1839b2925c932d45d0781_u512,
+    },
+    // 384-bit, 5-word divisor: estimate exact, top bit set.
+    {
+        0xaa4fd8190b565673059662174af2c9b710f2afbe7a5671846fb7708cceb1190b63e59c843ab53e08164db10062cd720_u512,
+        0x8000000000000000ffffffffffffffff9511f63f5cdfbd8ffb3ce720586fa017ffffffffffffffff_u512,
+        0x1549fb03216acace_u512,
+        0x1b0f6b1e534461cd79f398822f44d878b1ddfd57407e3e6683f36dd5a395909096aed6132797a1ee_u512,
+    },
+    // 384-bit, 5-word divisor: estimate 1 too big, not normalized.
+    {
+        0xd9d0926140cc73e21b04115bf48c071e1669c428482b10ad1c390f83633550e5ca6e951e9b48718316c3fe6b_u512,
+        0x164382a265e8bb203dd166eb60c0572cd37060d86ab9bf938c220e669beede87c04ccacde_u512,
+        0x9c88cb471b2a717d_u512,
+        0x7f09bf6da8c1fe692c5c50f437d7019ae2c5199118e51701d607e36164dcd374a0199805_u512,
+    },
+    // 384-bit, 5-word divisor: estimate 1 too big, top bit set.
+    {
+        0x6d2dac1f53b6be3909394b836fbaeaffea329ae9e53c50c2489b8aed18eb37f4d76a58b0ff89c2dc87b0660428d5daca_u512,
+        0x9e36a7f70ba857c5f79befe15d4bf533125ee7df6ccb68a25ac30dc13e398810c666ac699eb09c2e_u512,
+        0xb0a86f49b71a5498_u512,
+        0x7c066a19445aa8c1b4321646015706b577653500bc4311bfe62b76b482c166ed14b886893e0e077a_u512,
+    },
+    // 384-bit, 5-word divisor: estimate 2 too big, not normalized.
+    {
+        0x118dbb0cd957320048482a3ceffffffffffffffffffffffffffffff76504cd37c13e9640a739227997b7d5c2f_u512,
+        0x200000000ffffffffffffffffffffffffffffffffffffffffffffff04ffffffffffffffff_u512,
+        0x8c6dd8668482a3ce_u512,
+        0x200000000ffffffffffffffffffffffffffffffffffffffffffffff04fffffffffffffffd_u512,
+    },
+    // 384-bit, 5-word divisor: estimate 2 too big, top bit set.
+    {
+        0x77d2e65cafd7d984efa5ccb95fafb307ffffffffffffffffffffffffffffffffffffffffffffffb60bd5d2cb78c7c085_u512,
+        0x8000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffb1_u512,
+        0xefa5ccb95fafb307_u512,
+        0x8000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffae_u512,
+    },
+    // 384-bit, 5-word divisor: max quotient.
+    {
+        0xffffffffffffffffa64cce9f1703ad1fde3a018f2c6020986f93c2bc9920a6e5aea909f2ff385156e8beb307_u512,
+        0x1000000000000000000000002ffffffffffffff9eca49e82398445235ffffffffffffffff_u512,
+        0xffffffffffffffff_u512,
+        0xa64cce9c1703ad1fde3a01f362163874d74f7025636a8f0946ed5c29ff385156e8beb306_u512,
+    },
+    // 512-bit, 7-word divisor: u < v by the top word.
+    {
+        0x1fe605fae15eb480a1856b213925b92d3c6852aa61323ea7e51b88b40fc49d67033aeffd63cc9f9b3e7fd511548364a8b8e_u512,
+        0x3083b3b7dafed535de587f42eb794d4f9dfdd9456fe5b2c0854b7beb6795c5fe1c3338984bc6728c49a1ae90b5251f4cae9_u512,
+        0x0_u512,
+        0x1fe605fae15eb480a1856b213925b92d3c6852aa61323ea7e51b88b40fc49d67033aeffd63cc9f9b3e7fd511548364a8b8e_u512,
+    },
+    // 512-bit, 7-word divisor: estimate exact, not normalized.
+    {
+        0x3506858248e511720a21729b4c3e2a8336a51268b1279a658728cc91db953d11d63813b70ab5e3883771a8fd070f74d717be296561dbd2a95192bd_u512,
+        0x6186a602866adb73acb4952a81c8d2812afb7a91d9317bc51bf061c971e53dbe0c680475f455f882e5fdf77c14f1e63929be5c_u512,
+        0x8b305452f64fef8f_u512,
+        0x20498346f3caa97133b99f102b3dcc43b9f283a73205385496fb02e9bce190654f7b7644076f27d5a00079ffc9e2949be45959_u512,
+    },
+    // 512-bit, 7-word divisor: estimate exact, top bit set.
+    {
+        0x190c35dff0053a8aa5c5cb81442cf6fb37179e2f84b31e33138f7b099f837c87fe372cfef5637762ef49e69993a661f5275c71639b893f47f8f418142de49507_u512,
+        0x8000000000000000bb75d607d0312dcfffffffffffffffffabc321018e3ec32fffffffffffffffffe11e68b3be80176a8b678570accf85f8_u512,
+        0x32186bbfe00a7515_u512,
+        0x116e5c0eb591ff5facb35332c9a4c23240b67c0cded51ef09b097cdfb288472f554e84c172ae9f7bfbbe48f80dc381bc0c9b57eecf43faf_u512,
+    },
+    // 512-bit, 7-word divisor: estimate 1 too big, not normalized.
+    {
+        0x4f121eafe7bd6dc76c24a974cc87440e19e0ad414dee82f31b6babb3115be9c47156fc13bb1e35b7026d996eb011839c34f26a98b8320bbde7861151308de9f_u512,
+        0x51cd2c78c7384ea6c3b433437c07f9452345ee2caeb3748591df2e614308101ab70895deb3b6b73e420ccca480750240d8fe3053297fc70_u512,
+        0xf7744a832ba80c1d_u512,
+        0x4e27c54063df349e1371f9a1629c097614e322b6f20d3c34fa4fa4d9c726c8cc3bb082e51ba4f82f0d19180fa910cbd762022aabe7c05ef_u512,
+    },
+    // 512-bit, 7-word divisor: estimate 1 too big, top bit set.
+    {
+        0x1eb6f3f53a0c3adfbbc28cc96d81d12d5c6d3e2abf9440dbb53c449a5b00aca54c60d16e2697adfaabe6b0221ef97920a009f8b325df9892ab4e866fd756dacb_u512,
+        0x8000000000000000ffffffffffffffffffffffffffffffffffffffffffffff10ffffffffffffffe875d0033acf0fc9bcffffffffffffffff_u512,
+        0x3d6de7ea741875be_u512,
+        0x7e54a4def9695b6f5c6d3e2abf9440dbb53c449a5b00acdea5fc5550896d9a6251ef490c05690e66b8e62fc4b33c7d4ce8bc6e5a4b6f5089_u512,
+    },
+    // 512-bit, 7-word divisor: estimate 2 too big, not normalized.
+    {
+        0x10027179cb7a1c9280138bce5bd0e46537a0eeb4ef6b1f489d588b8592b6aa1b77fba85c57524085efd0391bf702b88376c2eb769a43f7ef7fec7431a42f1b6f_u512,
+        0x2000000000000000ffffffffffffffaa7c50d0487703e97cffffffffffffff96ffffffffffffff2bffffffffffffff86ffffffffffffffff_u512,
+        0x80138bce5bd0e48f_u512,
+        0x2000000000000000ffffffffffffffaa7c50d0487703e97cffffffffffffff96ffffffffffffff2bffffffffffffff86fffffffffffffffe_u512,
+    },
+    // 512-bit, 7-word divisor: estimate 2 too big, top bit set.
+    {
+        0x7fffffffffffffff7ffffffffffffffc2713b095afcda7438ac4ee3ef0970a3cfb542631e904e0380e038d6a44f15f57ffffffffffffff1400000000000002c2_u512,
+        0x8000000000000000ffffffffffffffff2713b095afcda740fffffffffffffffffb542631e904e037ffffffffffffffffffffffffffffff14_u512,
+        0xfffffffffffffffc_u512,
+        0x8000000000000000ffffffffffffffff2713b095afcda740fffffffffffffffffb542631e904e037ffffffffffffffffffffffffffffff12_u512,
+    },
+    // 512-bit, 7-word divisor: max quotient.
+    {
+        0x3fffffffffffffffc1eba66129f9710c8695c9adfc1dab3da8de90a147c2ce5750a29e22373ac322c270426d17a72b5d5fc702404925e0cd1c5a3d0a60d_u512,
+        0x400000000000000000000000005ffffffffffffffc7fffffffffffffffd96c2d86a14554fe4ffffffffffffffffffffffffffffffff_u512,
+        0xffffffffffffffff_u512,
+        0x1eba6612999710c8695c9adfffdab3da8de90a144696229ca0158cd38c42f50491187c215f72b5d5fc702404935e0cd1c5a3d0a60c_u512,
+    },
+    // Divisors with two words less than the numerator: two word quotients if the top word of
+    // the numerator is less than the top word of the divisor, quotients up to 129 bits if they
+    // are equal (320-bit by 256-bit), otherwise the Knuth division.
+    // The "estimate" is the quotient estimated from the top 4 words of the normalized numerator
+    // and the top 2 words of the normalized divisor.
+    // 320-bit by 256-bit, 3-word divisor: estimate exact, not normalized.
+    {
+        0x15fdb8e2c6bb68029f43c41aeed2063da067b3dc5a430ef5a7394d3b6fc9cf06b78c02143_u512,
+        0x5264006590001e20b33d68c87ffffffffffffffff_u512,
+        0x44546353e18512cc7ffc6fc433ef617e_u512,
+        0x174c513d568161f1a3b4933937c99602facaf82c1_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: estimate 1 too big, not normalized.
+    {
+        0x22c5afa50289ffffffffffffffffe74346305c457fc8fffffffffffffffff5f882e4d529d875_u512,
+        0x2814adb2e5cbff5a3defb3569361fffffffffffffffe_u512,
+        0xde17fa1a02f257d05baf0d98cfd19272_u512,
+        0x119b752003efb517c424384729fcad569e1674ccfd59_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: estimate 2 too big, not normalized.
+    {
+        0x26b911253f1d4831fcb228bffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x26b9113fffffffffffffffffffffffffffffff8_u512,
+        0xffffff4f21868d262fc22d328cf5bf65_u512,
+        0x22dd723fffffa790c3469317e11699467adfb27_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: estimate exact, top bit set.
+    {
+        0xa965d33d6982913d0000000000000000a376d35ed1367a4e00000000000000000000000000000000_u512,
+        0xffffffffffffffffab5b416771c024ab0000000000000000_u512,
+        0xa965d33d6982913d38026ca9ff542c70_u512,
+        0xb9893cd7b1b8145bffef8abbd88691300000000000000000_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: estimate 1 too big, top bit set.
+    {
+        0xf3340ab23d8090dcffffffffffffffff000000002a6fd3b181ed98c59c998982c745cc0d1b1a1417_u512,
+        0xffffffffffffffff0000000111f67560fffffffffffffffe_u512,
+        0xf3340ab23d8090ddf3340ab1393bedef_u512,
+        0xa8bb53046e1d39f93464b988817d48afadade16f8d91eff5_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: estimate 2 too big, top bit set.
+    {
+        0x7fffffffffffffffd16317abb2e883f94fd58d981b8c05401dc15bcdd6c41c085aecda71497fb78a_u512,
+        0x80000000000000000000000000000000ffffffd99faf6eb5_u512,
+        0xffffffffffffffffa2c62f5765d107f0_u512,
+        0x4fd58dbe7bdc968b7afb2c68774b15d7fa529ba3fe3bfada_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: max quotient.
+    {
+        0x20ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x2100000000000000000000000000000000_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+        0x20ffffffffffffffffffffffffffffffff_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, not
+    // normalized (addmod(2^256 - 1, 3, 2^128 + 1)).
+    {
+        0x10000000000000000000000000000000000000000000000000000000000000002_u512,
+        0x100000000000000000000000000000001_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+        0x3_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the quotient above 2^128, estimate
+    // exact, not normalized.
+    {
+        0x10000000fffffffff0000000000000000000000000000000041e37238a349cf67_u512,
+        0x1000000000000000000000000000fffff_u512,
+        0x10000000ffffffffefffffffffff00000_u512,
+        0xff000010000fffff41e37338a339cf67_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the quotient above 2^128, estimate 1
+    // too big, not normalized.
+    {
+        0x1ffffffffffffffff0000000000000000000200000000000000000000000fffff_u512,
+        0x1001fffffffffffff0000007fffffffff_u512,
+        0x1ffc007ff001ffc017f9014fc808beb06_u512,
+        0xe941c3bb8a168c7399a91fc809beb05_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the quotient above 2^128, estimate
+    // exact, top bit set.
+    {
+        0x9d204d6519f1dcdb19fa5f429c43382affffffffffffffffb9feb3bf91f71fb40000000000000100_u512,
+        0x9d204d6519f1dcdb0000000000000003ffffffffffffffff_u512,
+        0x100000000000000002a5335e9616fa0f0_u512,
+        0x6ad1021fc54312b010b1dc1a0c389bf42a5335e9616fa1f0_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: max quotient.
+    {
+        0x1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x100000000000000000000000000000000_u512,
+        0x1ffffffffffffffffffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: estimate exact, not normalized.
+    {
+        0x114164db4b1b0fa7237ff0ac3b271495500003fffffffffff0000000002000000_u512,
+        0x1269c3c7f2132c2d60000000000000000_u512,
+        0xefe786085ff619e786a575e4b57c6720_u512,
+        0xc3e53cd0bf9b8b3f0000000002000000_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: estimate 1 too big, not normalized.
+    {
+        0x167b4d26a3acf1c0cffffffffffffffff000000003fffffff7e8504a0420e21dc_u512,
+        0x1f13eb79cd5a82fa600000000007fffff_u512,
+        0xb930a6ca39e515856af612df59a77ae3_u512,
+        0x1c2001f7a510e3e4979ce43c22a359cbf_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: estimate 2 too big, not normalized.
+    {
+        0x100000000000000000004000000000000000000000000ffffffffffffffff0000000000010000_u512,
+        0x10000000000006f71019139b08683ffffffffffffffff_u512,
+        0xffffffffffff908efe72c64fa9ff313c_u512,
+        0x947a5befcd3f9d2d3b8c8f64c59dfe72c64faa00313c_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: estimate 2 too big, top bit set.
+    {
+        0x800000000000000100000000003fffff20000000000000000000000000000000c5634a1d558db562_u512,
+        0x8000000000000001ffffffffffffffffffffffffffffffff_u512,
+        0xfffffffffffffffe0000000000800006_u512,
+        0x1ffffffffefffff4fffffffffffffffec5634a1d560db568_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, 1 too big, not
+    // normalized.
+    {
+        0x1048301d1df0de61ffffffffffffffff000007ffffffffff00000000000000000000003fffffffff_u512,
+        0x1048301d1df0de61ffffffffffffffff1fffffffffffffff_u512,
+        0xfffffffffffffffffffffffffffffffe_u512,
+        0x90683a3be1bcc3fffffffffffffffe4000003ffffffffd_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, 1 too big, top
+    // bit set.
+    {
+        0x80000000000000010000000000000000003fffffffffffff1b68fb3a20f334bdffffffffffffffff_u512,
+        0x80000000000000010000000000000000ffffffffffffffff_u512,
+        0xfffffffffffffffffffffffffffffffe_u512,
+        0x400000000000021b68fb3a20f334bffffffffffffffffd_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, the remainder
+    // of the top words above 2^128, not normalized.
+    {
+        0x11000000000000000fffffffffffffffeffffffffffffffff8659809ec6db32bc_u512,
+        0x11000000000000000ffffffffffffffff_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+        0x110000000000000008659809ec6db32bb_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor, the top words equal: the estimate clamped, the remainder
+    // of the top words above 2^128, top bit set.
+    {
+        0xffffffffffffffff6078a7bdc1291028000000ffffffffff1fffffffffffffff0000000000000000_u512,
+        0xffffffffffffffff6078a7bdc12910280000010000000000_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+        0xfffffffffffffffe8078a7bdc12910270000010000000000_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: the top word of the numerator greater than the top word
+    // of the divisor, three word quotient (the Knuth division).
+    {
+        0x300000000000000000000000000000000fedcba9876543210f0e1d2c3b4a59687_u512,
+        0x100000000000000002468ace013579bdf_u512,
+        0x2ffffffffffffffff92c5f95fc5f92c64_u512,
+        0xe658cdc470edd7fa0b8cdfee0bb5f6b_u512,
+    },
+    // 320-bit by 256-bit, 1-word divisor equal to the top word of the numerator.
+    {
+        0x123456789abcdeffedcba98765432100f1e2d3c4b5a69788796a5b4c3d2e1f00123456789abcdef_u512,
+        0x123456789abcdef_u512,
+        0x100000000000000e0000000000000d2fd4985c1fe3b3d536162534435e114129e_u512,
+        0xa447ec577be66d_u512,
+    },
+    // 320-bit by 256-bit, 1-word divisor one greater than the top word of the numerator.
+    {
+        0x80000000ffffffffffffffff123456789abcdef0a5a5a5a5a5a5a5a50fedcba987654321_u512,
+        0x80000001_u512,
+        0xfffffffffffffffffffffffe2468acf4eca863f771fa835c67564491512f0e30_u512,
+        0x363634f1_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top quotient word 2 (the top word of u is v[1] + 1).
+    {
+        0x28000000000000005000000000000000600000000000000080000000000000009_u512,
+        0x10000000000000007_u512,
+        0x27ffffffffffffff3800000000000005d7ffffffffffffd79_u512,
+        0x80000000000011ba_u512,
+    },
+    // 256-bit by 256-bit, 2-word divisor: the top quotient word 1 (the top word of u is v[1]).
+    {
+        0x2459cb611f9705fb8be5c2d0b7f7f272fbeefdd4ee0db2c947b7714b5108e2a_u512,
+        0x2459cb611f9705fb250c4f7139983d7_u512,
+        0x10000000000000002d450fe71dc1f1c6a_u512,
+        0x17be54992c17ba883f911d7120b7324_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top quotient word 1 (the top word of u is v[1]).
+    {
+        0x50ce6ad24a2260e33cbf5521e4136322e5e056d0305f59af6af5d591aec59d8a9d4e_u512,
+        0x50ce4ab8e1ca1ca0ad3d_u512,
+        0x1000065b179202d21f6d7861167e552795d89a6dafa9a03d1_u512,
+        0x168606a3c4a693a37781_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, u < v.
+    {
+        0x5f1e48c8019fd35998fd122af49ae67d09aa971e65_u512,
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e223_u512,
+        0x0_u512,
+        0x5f1e48c8019fd35998fd122af49ae67d09aa971e65_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, u = v.
+    {
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e223_u512,
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e223_u512,
+        0x1_u512,
+        0x0_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, u = v + 1.
+    {
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e224_u512,
+        0xe8f1874cf2f0fa13180562be22562ee03e5ee4e223_u512,
+        0x1_u512,
+        0x1_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, the top words equal, u < v,
+    // estimate 1 too big.
+    {
+        0x5c51f8cde6f694475f0bfffbea7e9ddffc830ac9459f5808_u512,
+        0x5c51f8cde6f694475f0bfffbea7e9ddffc830aca12e22674_u512,
+        0x0_u512,
+        0x5c51f8cde6f694475f0bfffbea7e9ddffc830ac9459f5808_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, max quotient.
+    {
+        0xffffffffffffffffcee022518a4a3c6e4c445157d2508e9d_u512,
+        0x1000000000000000000000000001234ab_u512,
+        0xffffffffffffffff_u512,
+        0xcee022518a3807c34c445157d262c348_u512,
+    },
+    // 320-bit by 256-bit, 3-word divisor: 3-word numerator, estimate 2 too big.
+    {
+        0xffffff802e9fa7c42a473a6a5434b6b511606191182ae62b_u512,
+        0x11fffffffffffffffffffffffffffffff_u512,
+        0xe38e3871f08dea75_u512,
+        0x8a473a6a5434b6b5f4ee9a0308b8d0a0_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 3-word quotient, not normalized.
+    {
+        0xc8e643394826d6ef3db82abd7d235e6d15e65250d14e3338a6b8bd800584771e624a446b1_u512,
+        0x470cebe09f42cc0ea1a7cda157_u512,
+        0x2d3daf5314062138a1a8458350f273b9ecccfe695201fc47_u512,
+        0x6ddf3cc547e273db7b073e390_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 3-word quotient, top bit set.
+    {
+        0x353b075a16c6658c6bf3e46d7d62450b2bdfe86678226125ded6e3df5ee1ac6ef814cfded051a4f4_u512,
+        0xce50f2524772f726ec18885c642c0021_u512,
+        0x420c9b34be435d9998fbcbf430da6f9fd681576f42f4121b_u512,
+        0x4f6357a5e7a7584f8444d7cd86374f79_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 256-bit numerator, the top word not less than the top
+    // word of the divisor.
+    {
+        0xaa73faa64ba12a3cb9b404c48b5ded9ab2b0085a07e90d7f999a863f0fbcbcb1_u512,
+        0x143034a55eb7570ad887e598_u512,
+        0x87172d4bde7988117e5765f901272a16f1aa087d7_u512,
+        0x8b0b83295f36cca9c87c209_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top words equal, 3-word quotient.
+    {
+        0x17ff50c96410c4fbcda1f8dea473c057df2a2796b45f6de3020537a3d584d1707_u512,
+        0x1c21f87ff86b9dcfd_u512,
+        0xda5e85c3d64f8b7c33e52a061327061183177ef40124b429_u512,
+        0x1888b34720492ce82_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 4-word quotient (as in addmod()).
+    {
+        0x1845b0840325ed44240a9c5320e687cb5ab0a38b89bfeb7d65b7a77f837521d4d_u512,
+        0x12666dff3f3d88b76_u512,
+        0x151b2c9a85136eba53febb0ce188ba0a6bc56e5ff9c18df67_u512,
+        0x887291947ea636d3_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: 4-word quotient, the top word of the numerator not less
+    // than the top word of the divisor.
+    {
+        0x85bcb9084e286dc4603286a8349c8786285c67a6fddaaa497b3d113b470045a607c64fbd81fcdca0_u512,
+        0x7feafb024fdf462572f8f_u512,
+        0x10ba565a2e96afc1a4532805ad2fb42fc164f8ca8dee84234c481f52f574_u512,
+        0x7798c189777fbf52974d4_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top 2 words of the numerator equal the divisor.
+    {
+        0xca484762cb4208e2b2b75b83e2867b999cf4dab5f7224f984a6815265ea119338153001e85b8_u512,
+        0xca484762cb4208e2b2b75b83e286_u512,
+        0x100000000000000000000000000009c6c4a9f0214e70473f2_u512,
+        0xc4400448497202e003f3ca98310c_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: max 3-word quotient.
+    {
+        0x3c38330acb57b5f23bd7a7ac40e3dffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x3c38330acb57b5f23bd7a7ac40e3e_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x3c38330acb57b5f23bd7a7ac40e3d_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top 2 words of the numerator equal the top word of
+    // the divisor.
+    {
+        0x11090581bde8241ddcc0a217532851cbff8a72131016d1e37ca6bb616f18_u512,
+        0x11090581bde8cfed2d2bdb1af9fc_u512,
+        0xfffffffffff5ea1930b6134b734e2416_u512,
+        0x3061c790883f7c09eb9bd208370_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: the top 2 words of the numerator less than the top word
+    // of the divisor.
+    {
+        0x1bda0f84cfcb8220178a0ea30fdcb0b092557891d86152e07a0142437171_u512,
+        0x1bda0f84cfcc389ee113bbe30d0f_u512,
+        0xfffffffffff97297f42391bf756fe57e_u512,
+        0x14c833c323fadb10919d2953990f_u512,
+    },
+    // 320-bit by 256-bit, 2-word divisor: max quotient.
+    {
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x10000000000000000_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0xffffffffffffffff_u512,
+    },
+    // 384-bit, 4-word divisor: estimate exact, not normalized.
+    {
+        0x63e9c20000000000000000f7931913c16330e70001f51b6102a73000000000000000000000000000000000_u512,
+        0x63e9c300000000053ca156ec8db615ca81e93b857255d448543b8a_u512,
+        0xfffffd7011f8f4e19c706f1a83b81942_u512,
+        0x1717e232cff44939787121c7cf7c35466b0a2e19ce2b2eb7482c6c_u512,
+    },
+    // 384-bit, 4-word divisor: estimate 1 too big, not normalized.
+    {
+        0x17a2d2ffffffffffffffff0000000000000000afe661ba600ba13798d850ffdf2f7c22d265a45417262669_u512,
+        0x193397a1c06747e2ba1889fffffffffffffff2ffffffffffffff91_u512,
+        0xf018f3e134a0fec89bd296e87b50ce54_u512,
+        0x9710f84bab1fee4978879d5bb973f4186f6262b513218f2f9cd5_u512,
+    },
+    // 384-bit, 4-word divisor: estimate 2 too big, not normalized.
+    {
+        0x204c2f53f10371cc31be3c086bd5c7b7c4f000e1a251248ea4a000000000007ab6a0000000000000000_u512,
+        0x205fffffffffffffffffffffffffffffffcfffffffffffffffe_u512,
+        0xff6350ad7f9cb838e348082ade1401b8_u512,
+        0x201fe380c2d911f12f6a89eb9db997d2103c6901055bc280370_u512,
+    },
+    // 384-bit, 4-word divisor: estimate exact, top bit set.
+    {
+        0x658cd25dff2b68d50046f9394e166346000004ac39bd03e0fffffffffffffffffffffffffffffffff3d3dde0c39ef171_u512,
+        0xe2af82d50093f5dd00000000000000000000000000000000000000000000006c_u512,
+        0x72aeaa50efe0aaa871974a37aa71626e_u512,
+        0xbee20bde0d7dc4eaffffffffffffffcf9e5025dacd3800f008008e64dbc96b09_u512,
+    },
+    // 384-bit, 4-word divisor: estimate 1 too big, top bit set.
+    {
+        0x7372060c178c716afdd37929e0fc07228675fc13be4a18a50000000000000000894a35d56a30effaa678eb361e161d17_u512,
+        0x8000000000000000629bbd1d72eb2cfcfffffffffffffff0ffffffffffffffef_u512,
+        0xe6e40c182f18e2d549c76bc8bfce32d7_u512,
+        0x132a629704ec3e82f3fd4cc659931814311e5433c7ecfabd8cb7138adac77d5e_u512,
+    },
+    // 384-bit, 4-word divisor: estimate 2 too big, top bit set.
+    {
+        0x6b30e2feb00ab72f0000000000000000ffffffffffffffff0000000000001d50000000000000000e0000000000000000_u512,
+        0x80000000000000009bcaca9ee3608ad4ffffffffffffffa9fffffffffffffff9_u512,
+        0xd661c5fd60156e5cfb11f4964fd3132c_u512,
+        0x69032ebc8a2aa20ad9ca54b6dfbe84f634b4946c717e7560dd7db01c2ec58634_u512,
+    },
+    // 384-bit, 4-word divisor: max quotient.
+    {
+        0x26c0a95b4ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x26c0a95b5000000000000000000000000000000000000000000000000_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+        0x26c0a95b4ffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+    },
+    // 384-bit, 4-word divisor: the top words equal, the Knuth division.
+    {
+        0x800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000_u512,
+        0x8000000000000000000000000000000000000000000000000000000000000000_u512,
+        0x100000000000000000000000000000000_u512,
+        0x0_u512,
+    },
+    // 384-bit, 4-word divisor: the top word of the numerator not less than the top word of the
+    // divisor, three word quotient.
+    {
+        0xa09f76b5a8dd3573f28c105d1fb17c238f21ddb66cad4a260007b382e4823c416f03675a1600a35affffffffffffffff_u512,
+        0x76c823b00062e3fe85351d2ffffffffffffffff0000000000000000_u512,
+        0x15a2d2de5292a2cf733d91179bad50dddf281b5167_u512,
+        0x3d142874759bb5db268a4f81c5445393e1bf4c1ffffffffffffffff_u512,
+    },
+    // 384-bit, 4-word divisor: 4-word numerator, estimate 2 too big.
+    {
+        0xffffffc67a26429fccf31b67a20ede8d48c7f9e9c8428e1a1caa4163f581ef96_u512,
+        0x11fffffffffffffffffffffffffffffffffffffc4633aaa98_u512,
+        0xe38e38b06c93c971_u512,
+        0xacf31b67a20ede8d48c7fa1ec563b1aaef40e6a303634a7e_u512,
+    },
+    // 512-bit, 6-word divisor: estimate exact, not normalized.
+    {
+        0x5f637c912000000e494087a0a000019d9238bf66af448990febaf5aca000000000000000013332e6dbb8e20bff88094ba91640669dc8d753ca882a5a2_u512,
+        0x7a3c0b16d00000000000000000000000000000000000000000000000000000000000000000000000000021339_u512,
+        0xc7c691923290d4241dac50c82b6db2c8_u512,
+        0x45f3a8f42f448990febaf5aca000000000000000013332e6dbb8c82329d57ec4ae71de0d2d5a046967340ff1a_u512,
+    },
+    // 512-bit, 6-word divisor: estimate 1 too big, not normalized.
+    {
+        0x1c572fd4c575400000000000000583c76761719cc6ab70000000000000000000000000000000000000000004a81c028f512a6dc6b1dc100001d4598ac7f0f_u512,
+        0x1c572fd4c5755ebe8d5bf5b3f07cffffffffffffffffdfffffffffffffffefffffffffffffffcfffffffffffffffe_u512,
+        0xfffffffffffeea4969df167378843e87_u512,
+        0x54f67def9dcdc4d5f564169c55e3d3be2ce6f107675a69df167378cb7f256692560145f5ade8d3be4a2c89b4fc1d_u512,
+    },
+    // 512-bit, 6-word divisor: estimate 2 too big, not normalized.
+    {
+        0xa01088e47499676344e4d3d0f2ed88ea7a9f24b5da8f0e1ffffffffffffffffa8b7756c38b6617abf378a6e549e303de6bb27783f41d9c28ba8b705b4000f98_u512,
+        0xa01088e47499677000001804f37ce3cfffffffffffffffefffffffffffffffefffffffffffffffcfffffffffffffffb_u512,
+        0xffffffffffffffeba388a414723cef30_u512,
+        0x9082a150a829d2c295c524c8bb2617c4c401980aaf3509962c02e82c6db1f35d15513b595f8a6ecbd53eb6bef30bb88_u512,
+    },
+    // 512-bit, 6-word divisor: estimate exact, top bit set.
+    {
+        0x5f931869fc06769000000000000034a1ffffffffffffffffcfab086533cf1cf700000000000000000000000000000000db325e008395d2fdffffffffffffffff_u512,
+        0x8b3a48e5f2aec087143a34ac2a69186700000000000000001a9d5965ed4e0afccdaf7aba8accfa4186678abd57429801_u512,
+        0xafbc03451758a23209a915886fc03097_u512,
+        0x1cce4d1458faf5bddbd8c8c42a09252693e96989f0a3a04263e4f66ccd925d1e8cc6749e7058b914f49082929b782768_u512,
+    },
+    // 512-bit, 6-word divisor: estimate 1 too big, top bit set.
+    {
+        0xf6bd2c63af93854a8317abc0524704740000000000000000ffffffffffffffffffffffffffffffffb56f76ff2cef1dacffffffffffffffffffffffffffffffff_u512,
+        0xf6bd2c63af93854beee4f7104ee10f50ffffffffffffffeaffffffffffffff84ffffffffffffff9cfffffffffffffffe_u512,
+        0xfffffffffffffffe868b1019310c1cd4_u512,
+        0x31fb79f3f9c89ff1ef964879d72675480968521105fe5d115a403319bdc0f6f907c739bdf7af25f90d162032621839a7_u512,
+    },
+    // 512-bit, 6-word divisor: estimate 2 too big, top bit set.
+    {
+        0x6d8252712f0f6ea70000000111f67560cc6ea7f49e44e789575f4a16d1c84563e122b1690b12557dffffffffffffffff0000000000000000b064eb1f34966623_u512,
+        0x800000000000000086c5bbee61a3f574ffffffffffffffe2fffffffffffffffefffffffffffffffffffffffffffffffe_u512,
+        0xdb04a4e25e1edd4d1964ccaeb868644f_u512,
+        0x4bbeabfbbd7425614fb446797e44e4059c9286164d048fbe1964ccaeb868644fb60949c4bc3dba9ae32e847ca5672ec1_u512,
+    },
+    // 512-bit, 6-word divisor: max quotient.
+    {
+        0x1a4653b3f4ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x1a4653b3f500000000000000000000000000000000000000000000000000000000000000000000000000000000_u512,
+        0xffffffffffffffffffffffffffffffff_u512,
+        0x1a4653b3f4ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+    },
+    // 512-bit, 6-word divisor: the top words equal, the Knuth division.
+    {
+        0x80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000_u512,
+        0x800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000_u512,
+        0x100000000000000000000000000000000_u512,
+        0x0_u512,
+    },
+    // 512-bit, 6-word divisor: the top word of the numerator not less than the top word of the
+    // divisor, three word quotient.
+    {
+        0x34b9b5dfa3152686b64ce4228c38fb290000000000000000ffffffffffffffff923a736994e3bf91ffffffffffffffffae97ba94d0eda82f4ef8aa3892276658_u512,
+        0x49dbcd5ffffffffffffffffdbc496cb8e81973e3898d190f9ebdacce58cda1495e60af58fd630f1f29d0da9_u512,
+        0xb6c02d1ac0ea2ff159d8a985194354d8633a0c962_u512,
+        0x7c026a7be4726b592e759ac25c48cc32c18290562d25fa7e5003413e87a8194c09011f84b10ec52dae7aa6_u512,
+    },
+    // 4-word divisor with the top bit set: the Knuth division overflows.
+    {
+        0x9d7f3c1a5b2e6084f1c3a7e5920b4d6f8a1c3e5b7d9f0e2c4a6b8d0f1e3c5a781f2e3d4c5b6a79880123456789abcdef0fedcba987654321_u512,
+        0x9d7f3c1a5b2e6084f1c3a7e5920b4d6f8a1c3e5b7d9f0e2c4a6b8d0f1e3c5a79_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x9d7f3c1a5b2e608410f1e531ed75c6f78b3f83c3074adc1b5a5958b8a5a19d9a_u512,
+    },
+    // 4-word divisor, not normalized: the Knuth division overflows.
+    {
+        0x13afe7834b65cc109e3874fcb24169adf14387cb6fb3e1c5894d71a1e3c78b3000000000000000000000000000000000000000000000077_u512,
+        0x13afe7834b65cc109e3874fcb24169adf14387cb6fb3e1c5894d71a1e3c78b4_u512,
+        0xffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0x13afe7834b65cc009e3874fcb24169adf14387cb6fb3e1c5894d71a1e3c792b_u512,
+    },
+    // 512-bit, 6-word divisor: 6-word numerator, estimate 2 too big.
+    {
+        0xffffffffffffb979372a846916419f828b9d2434e465e150bd9c66b3ad3c2d6d1a3d1fa7bc8960a8402a8905aaebb201_u512,
+        0x11fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff_u512,
+        0xe38e38e38e38a4dd_u512,
+        0x972a846916419f828b9d2434e465e150bd9c66b3ad3c2d6d1a3d1fa7bc8960a923b8c1e9392456de_u512,
+    },
 };
 }  // namespace
 
-TEST(div, udivrem_512)
+namespace
 {
+template <unsigned M, unsigned N>
+void test_udivrem()
+{
+    SCOPED_TRACE(testing::Message() << "udivrem<" << M << ", " << N << ">");
     for (auto& t : div_test_cases)
     {
-        auto res = udivrem(t.numerator, t.denominator);
-        EXPECT_EQ(res.quot, t.quotient);
-        EXPECT_EQ(res.rem, t.reminder);
-    }
-}
-
-TEST(div, udivrem_384)
-{
-    for (auto& t : div_test_cases)
-    {
-        const auto n = static_cast<uint384>(t.numerator);
-        const auto d = static_cast<uint384>(t.denominator);
+        const auto n = static_cast<intx::uint<M>>(t.numerator);
+        const auto d = static_cast<intx::uint<N>>(t.denominator);
         if (n != t.numerator || d != t.denominator)
             continue;  // Skip trimmed arguments.
 
@@ -351,50 +1535,32 @@ TEST(div, udivrem_384)
         EXPECT_EQ(quot, t.quotient);
         EXPECT_EQ(rem, t.reminder);
     }
-}
 
-TEST(div, udivrem_256)
-{
-    for (auto& t : div_test_cases)
+    for (const auto& u : {intx::uint<M>{0}, intx::uint<M>{1}, ~intx::uint<M>{0}})
     {
-        const auto n = static_cast<uint256>(t.numerator);
-        const auto d = static_cast<uint256>(t.denominator);
-        if (n != t.numerator || d != t.denominator)
-            continue;  // Skip trimmed arguments.
-
-        const auto [quot, rem] = udivrem(n, d);
-        EXPECT_EQ(quot, t.quotient);
-        EXPECT_EQ(rem, t.reminder);
+        const auto [quot, rem] = udivrem(u, intx::uint<N>{0});
+        EXPECT_EQ(quot, 0);
+        EXPECT_EQ(rem, 0);
     }
 }
 
-TEST(div, udivrem_320_by_256)
+template <unsigned M, unsigned... N>
+void test_udivrem_by_sizes(std::integer_sequence<unsigned, N...> /*divisor_sizes*/)
 {
-    for (auto& t : div_test_cases)
-    {
-        const auto n = static_cast<uint320>(t.numerator);
-        const auto d = static_cast<uint256>(t.denominator);
-        if (n != t.numerator || d != t.denominator)
-            continue;  // Skip trimmed arguments.
-
-        const auto [quot, rem] = udivrem(n, d);
-        EXPECT_EQ(quot, t.quotient);
-        EXPECT_EQ(rem, t.reminder);
-    }
+    (test_udivrem<M, N>(), ...);
 }
 
-TEST(div, udivrem_512_by_256)
+template <unsigned... M, typename Sizes>
+void test_udivrem_all_sizes(std::integer_sequence<unsigned, M...> /*numerator_sizes*/, Sizes sizes)
 {
-    for (auto& t : div_test_cases)
-    {
-        const auto d = static_cast<uint256>(t.denominator);
-        if (d != t.denominator)
-            continue;  // Skip trimmed divisors.
+    (test_udivrem_by_sizes<M>(sizes), ...);
+}
+}  // namespace
 
-        const auto [quot, rem] = udivrem(t.numerator, d);
-        EXPECT_EQ(quot, t.quotient);
-        EXPECT_EQ(rem, t.reminder);
-    }
+TEST(div, udivrem_all_sizes)
+{
+    using sizes = std::integer_sequence<unsigned, 128, 192, 256, 320, 384, 448, 512>;
+    test_udivrem_all_sizes(sizes{}, sizes{});
 }
 
 
@@ -405,6 +1571,30 @@ constexpr div_test_case<uint256> sdivrem_test_cases[] = {
     {-13_u256, -3_u256, 4_u256, -1_u256},
     {1_u256 << 255, -1_u256, 1_u256 << 255, 0},
 };
+
+TEST(div, by_zero)
+{
+    // As in the EVM, a division by 0 gives 0, so do ADDMOD and MULMOD by 0.
+    const auto x = ~uint256{0} - 5;
+    EXPECT_EQ(x / 0, 0);
+    EXPECT_EQ(x % 0, 0);
+    EXPECT_EQ(sdivrem(x, uint256{0}).quot, 0);
+    EXPECT_EQ(sdivrem(x, uint256{0}).rem, 0);
+    EXPECT_EQ(addmod(x, x, 0), 0);
+    EXPECT_EQ(mulmod(x, x, 0), 0);
+
+    const auto y = ~uint128{0} - 5;
+    EXPECT_EQ(y / 0, 0);
+    EXPECT_EQ(y % 0, 0);
+    EXPECT_EQ(sdivrem(y, uint128{0}).quot, 0);
+    EXPECT_EQ(sdivrem(y, uint128{0}).rem, 0);
+
+    static_assert(udivrem(uint512{3}, uint256{0}).quot == 0);
+    static_assert(udivrem(uint512{3}, uint256{0}).rem == 0);
+    static_assert(udivrem(uint128{3}, uint128{0}).quot == 0);
+    static_assert(addmod(uint256{3}, uint256{5}, 0) == 0);
+    static_assert(mulmod(uint256{3}, uint256{5}, 0) == 0);
+}
 
 TEST(div, sdivrem_256)
 {
@@ -433,25 +1623,140 @@ TEST(div, sdivrem_512)
     EXPECT_EQ(sdivrem(n, -d).rem, 1_u512);
 }
 
+namespace
+{
+void check_reciprocal(uint64_t d)
+{
+    const auto expected = reciprocal_naive(d);
+    ASSERT_EQ(reciprocal_2by1(d), expected) << d;
+    ASSERT_EQ(internal::reciprocal(d), expected) << d;
+    ASSERT_EQ(reciprocal_native(d), expected) << d;
+    ASSERT_EQ(reciprocal_builtin_uint128(d), expected) << d;
+    ASSERT_EQ(reciprocal_udiv(d), expected) << d;
+}
+}  // namespace
+
 TEST(div, reciprocal)
 {
     static_assert(reciprocal_2by1(0x8000000000000000) == 0xffffffffffffffff);
+    static_assert(reciprocal_2by1(0xffffffffffffffff) == 1);
 
     constexpr auto n = 1000000;
 
     constexpr auto d_start = uint64_t{1} << 63;
     for (uint64_t d = d_start; d < d_start + n; ++d)
-    {
-        auto v = reciprocal_2by1(d);
-        ASSERT_EQ(v, reciprocal_naive(d)) << d;
-    }
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal(d));
 
     constexpr auto d_end = ~uint64_t{0};
     for (uint64_t d = d_end; d > d_end - n; --d)
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal(d));
+
+    test::lcg<uint64_t> rng{test::get_seed()};
+    for (int i = 0; i < n; ++i)
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal(rng() | d_start));
+}
+
+TEST(div, reciprocal_2by1)
+{
+    // The smallest and the largest divisor.
+    ASSERT_NO_FATAL_FAILURE(check_reciprocal(0x8000000000000000));
+    ASSERT_NO_FATAL_FAILURE(check_reciprocal(0xffffffffffffffff));
+}
+
+#if INTX_HAS_DIV_WIDE_X86
+TEST(div, div_wide_x86)
+{
+    struct test_case
     {
-        auto v = reciprocal_2by1(d);
-        ASSERT_EQ(v, reciprocal_naive(d)) << d;
+        uint64_t hi;
+        uint64_t lo;
+        uint64_t d;
+        uint64_t quot;
+        uint64_t rem;
+    };
+    constexpr test_case test_cases[] = {
+        {0x0000000000000000, 0x0000000000000000, 0x0000000000000001, 0x0000000000000000, 0},
+        {0x0000000000000000, 0xffffffffffffffff, 0x0000000000000001, 0xffffffffffffffff, 0},
+        {0x0000000000000000, 0x0000000000003039, 0x0000000000000001, 0x0000000000003039, 0},
+        {0xfffffffffffffffe, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff,
+            0xfffffffffffffffe},
+        {0x0000000000000000, 0xffffffffffffffff, 0xffffffffffffffff, 0x0000000000000001, 0},
+        {0xfffffffffffffffe, 0x0000000000000000, 0xffffffffffffffff, 0xfffffffffffffffe,
+            0xfffffffffffffffe},
+        {0x7fffffffffffffff, 0xffffffffffffffff, 0x8000000000000000, 0xffffffffffffffff,
+            0x7fffffffffffffff},
+        {0xfedcba987654320f, 0xffffffffffffffff, 0xfedcba9876543210, 0xffffffffffffffff,
+            0xfedcba987654320f},
+        {0x0000000000001234, 0x56789abcdef01234, 0x0000000000012345, 0x100005b0020590a8,
+            0x0000000000011cec},
+        {0x0123456789abcdef, 0xfedcba9876543210, 0x8000000000000001, 0x02468acf13579bdf,
+            0x7c962fc962fc9631},
+        {0x0000000000000000, 0x0000000000000007, 0x0000000000000003, 0x0000000000000002, 1},
+        {0x0000000000000002, 0x0000000000000003, 0x0000000000000005, 0x6666666666666667, 0},
+    };
+
+    for (const auto& t : test_cases)
+    {
+        const auto r = internal::div_wide_x86(t.hi, t.lo, t.d);
+        EXPECT_EQ(r.quot, t.quot) << t.hi << ":" << t.lo << " / " << t.d;
+        EXPECT_EQ(r.rem, t.rem) << t.hi << ":" << t.lo << " / " << t.d;
     }
+}
+#endif
+
+TEST(div, udivrem_by1_in_place)
+{
+    // A normalized divisor and the top word below it, as evmone's modexp calls it.
+    std::array<uint64_t, 3> u{0x0123456789abcdef, 0xfedcba9876543210, 0x7fffffffffffffff};
+    EXPECT_EQ(
+        internal::udivrem_by1(std::span<uint64_t>{u}, u, 0x8000000000000001), 0x369d0369d0369cb);
+    EXPECT_EQ(u, (std::array<uint64_t, 3>{0xfdb97530eca86424, 0xfffffffffffffffd, 0}));
+
+    // Not normalized, the top quotient word not 0, the static extent.
+    u = {0x0123456789abcdef, 0xfedcba9876543210, 0xff};
+    EXPECT_EQ(internal::udivrem_by1(std::span<uint64_t, 3>{u}, u, 0x10), 0xf);
+    EXPECT_EQ(u, (std::array<uint64_t, 3>{0x00123456789abcde, 0xffedcba987654321, 0xf}));
+}
+
+TEST(div, udivrem_by2_in_place)
+{
+    // A normalized divisor and the top words below it, as evmone's modexp calls it.
+    std::array<uint64_t, 4> u{
+        0x0123456789abcdef, 0xfedcba9876543210, 0x1111111111111111, 0x7fffffffffffffff};
+    EXPECT_EQ(internal::udivrem_by2(std::span<uint64_t>{u}.first(3), u, {0x23, 0x8000000000000001}),
+        (uint128{0x56789abcdf012ba0, 0x5cba9876543210b2}));
+    EXPECT_EQ(u,
+        (std::array<uint64_t, 4>{0x22222222222221e5, 0xfffffffffffffffc, 0, 0x7fffffffffffffff}));
+
+    // Not normalized, the top quotient word above 1, the static extent.
+    std::array<uint64_t, 3> w{0x0123456789abcdef, 0xfedcba9876543210, 0xff};
+    EXPECT_EQ(internal::udivrem_by2(std::span<uint64_t, 2>{w.data(), 2}, w, {0x5, 0x10}),
+        (uint128{0x17e4b17e4b17e63}));
+    EXPECT_EQ(w, (std::array<uint64_t, 3>{0xffedcba98765431c, 0xf, 0xff}));
+}
+
+TEST(div, udivrem_knuth_dynamic_extent)
+{
+    // Spans of the dynamic extent and separate storage, as evmone's modexp calls it.
+    // Not normalized, the top quotient word not 0.
+    const std::array<uint64_t, 5> u{
+        0x1111111111111111, 0x2222222222222222, 0x3333333333333333, 0x4444444444444444, 5};
+    const std::array<uint64_t, 3> d{0x0123456789abcdef, 0xfedcba9876543210, 3};
+    std::array<uint64_t, 3> q{0xbad, 0xbad, 0xbad};
+    std::array<uint64_t, 3> r{};
+    std::array<uint64_t, 6> un{};
+    std::array<uint64_t, 3> dn{};
+    internal::udivrem_knuth(q.data(), r, std::span<const uint64_t>{u}, u.size(), d, un.data(), dn);
+    EXPECT_EQ(q, (std::array<uint64_t, 3>{0x7f2bfe557925c44a, 0x51710cd071e782b4, 1}));
+    EXPECT_EQ(r, (std::array<uint64_t, 3>{0x6f2f1f3601318dfb, 0xc9a46a02e85147b1, 3}));
+
+    // The shift 0, a zero top word of u and the next one below the top word of d.
+    const std::array<uint64_t, 5> w{1, 2, 3, 0x7fffffffffffffff, 0};
+    const std::array<uint64_t, 3> e{5, 6, 0x8000000000000001};
+    q = {0xbad, 0xbad, 0xbad};
+    internal::udivrem_knuth(q.data(), r, std::span<const uint64_t>{w}, 4, e, un.data(), dn);
+    EXPECT_EQ(q, (std::array<uint64_t, 3>{0xfffffffffffffffc, 0, 0xbad}));
+    EXPECT_EQ(r, (std::array<uint64_t, 3>{0x15, 0x15, 1}));
 }
 
 TEST(div, reciprocal_3by2)
@@ -473,12 +1778,112 @@ TEST(div, reciprocal_3by2)
     EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0xffffffffffffffff}), 1u);
     EXPECT_EQ(reciprocal_3by2({0x0000000000000001, 0xffffffffffffffff}), 0u);
     EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xffffffffffffffff}), 0u);
+
+    // Algorithm 6 from "Improved division by invariant integers" needs all 4 adjustments here.
+    static_assert(reciprocal_3by2({0xfffffffffffffffe, 0x8000000000000001}) == 0xfffffffffffffff8);
+    EXPECT_EQ(reciprocal_3by2({0xfffffffffffffffe, 0x8000000000000001}), 0xfffffffffffffff8u);
+    // The smallest error of v2 against the top word (e2); with the low word 2^64 - 1 it gives
+    // the smallest error e against the whole divisor.
+    EXPECT_EQ(reciprocal_3by2({0x0000000000000000, 0xffffffff7fffffff}), 0x0000000080000001u);
+    EXPECT_EQ(reciprocal_3by2({0xffffffffffffffff, 0xffffffff7fffffff}), 0x0000000080000000u);
+    // The top word 2^64 - 1: v3 is 0 up to the low word 0xbffffffe5fffffff and 2^64 - 1 from
+    // 0xbffffffe60000000 on, where the reciprocal 0 is computed as one more than 2^64 - 1.
+    EXPECT_EQ(reciprocal_3by2({0xbffffffe5fffffff, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xbffffffe60000000, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xbfffffffffffffff, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xc000000000000000, 0xffffffffffffffff}), 0u);
+    EXPECT_EQ(reciprocal_3by2({0xc000000000000001, 0xffffffffffffffff}), 0u);
+    // The top word 3/4 * 2^64.
+    EXPECT_EQ(reciprocal_3by2({0x7fffffffffffffff, 0xc000000000000000}), 0x5555555555555554u);
+    EXPECT_EQ(reciprocal_3by2({0x8000000000000000, 0xc000000000000000}), 0x5555555555555554u);
+    // A small e2 and the largest low word for its hi(v2 * d0): e is just below the scaled error
+    // of v2 here, so without the -1 in its computation v3 would be one too large. The
+    // static_asserts check the portable code, which x86-64 runs only in constant evaluation.
+    static_assert(reciprocal_3by2({0xec232984255f1740, 0x98ca5c9324ffffff}) == 0xaced60fc0000bc1f);
+    EXPECT_EQ(reciprocal_3by2({0xec232984255f1740, 0x98ca5c9324ffffff}), 0xaced60fc0000bc1fu);
+    static_assert(reciprocal_3by2({0x90f23b9f45d3b376, 0x98ca5c9324ffffff}) == 0xaced60fc0000bc20);
+    EXPECT_EQ(reciprocal_3by2({0x90f23b9f45d3b376, 0x98ca5c9324ffffff}), 0xaced60fc0000bc20u);
+    // (2^64 + v + 1) * d exceeds 2^192 by less than 2^64 (d = ceil(2^131 / 13), ceil(2^129 / 3)):
+    // the carry from the lowest word decides the correction.
+    static_assert(reciprocal_3by2({0xd89d89d89d89d89e, 0x9d89d89d89d89d89}) == 0x9fffffffffffffff);
+    EXPECT_EQ(reciprocal_3by2({0xd89d89d89d89d89e, 0x9d89d89d89d89d89}), 0x9fffffffffffffffu);
+    static_assert(reciprocal_3by2({0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa}) == 0x7fffffffffffffff);
+    EXPECT_EQ(reciprocal_3by2({0xaaaaaaaaaaaaaaab, 0xaaaaaaaaaaaaaaaa}), 0x7fffffffffffffffu);
+    // On x86-64 [R + d < 0] compares rh * 2^64 + ~0 + d with qh * d0. Here their high words are
+    // equal with the carry from ~0 + d0, and the low words decide (d = ceil(2^136 / 465)).
+    EXPECT_EQ(reciprocal_3by2({0xcf008cf008cf008d, 0x8cf008cf008cf008}), 0xd0ffffffffffffffu);
+    // (2^64 + v) * d = 2^192 - 1: on x86-64 the values compared for [R + d < 0] are equal.
+    EXPECT_EQ(reciprocal_3by2({0x99127966ed869913, 0x8699127966ed8699}), 0xe6e6e6e6e6e6e6e5u);
+}
+
+namespace
+{
+/// Checks that v = reciprocal_3by2(d) satisfies (2^64 + v) * d <= 2^192 - 1 < (2^64 + v + 1) * d,
+/// using only multiplication and subtraction, and that the portable code gives the same v.
+void check_reciprocal_3by2(uint128 d)
+{
+    constexpr auto max192 = (uint256{1} << 192) - 1;
+    const auto v = reciprocal_3by2(d);
+    ASSERT_EQ(internal::reciprocal(d), v) << hex(d);
+    const auto p = ((uint256{1} << 64) | v) * uint256{d};
+    ASSERT_LE(p, max192) << hex(d);
+    ASSERT_LT(max192 - p, uint256{d}) << hex(d);
+}
+}  // namespace
+
+TEST(div, reciprocal_3by2_property)
+{
+    constexpr std::array<uint64_t, 11> edges{0, 1, 2, 0x7fffffffffffffff, 0x8000000000000000,
+        0x8000000000000001, 0xbfffffffffffffff, 0xc000000000000000, 0xc000000000000001,
+        0xfffffffffffffffe, 0xffffffffffffffff};
+
+    // The top word extremes, the smallest e2 and every table index boundary.
+    std::vector<uint64_t> d1s{0x8000000000000000, 0x8000000000000001, 0xffffffff7fffffff,
+        0xfffffffffffffffe, 0xffffffffffffffff};
+    for (uint64_t i = 257; i < 512; ++i)
+        d1s.insert(d1s.end(), {(i << 55) - 1, i << 55, (i << 55) + 1});
+    for (const auto d1 : d1s)
+    {
+        for (const auto d0 : edges)
+            ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, d1}));
+        for (const auto d0 : {d1 - 1, d1, d1 + 1, ~d1})
+            ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, d1}));
+    }
+
+    // The top word 2^64 - 1 with the low word around the wrap of v3 (see above).
+    for (uint64_t d0 = 0xbffffffe60000000 - 1000; d0 != 0xbffffffe60000000 + 1000; ++d0)
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({d0, 0xffffffffffffffff}));
+
+    // e just below the scaled error of v2 (see above).
+    ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2({0xec232984255f1740, 0x98ca5c9324ffffff}));
+
+    // Other divisors, the last two with the top word from 0xffffffff00000000, the region of the
+    // smallest e2.
+    for (const auto d : {uint128{0x2f405f660b24c7ce, 0xb628f5e7f7a5f217},
+             uint128{0x759f1eddb8cbc544, 0x99ae04f2d520b32f},
+             uint128{0xb0909490d73d8fd3, 0x9235a73b9cd89148},
+             uint128{0x8e483e56ab28bbe9, 0xacc238641966f12a},
+             uint128{0xf4408d1f67dbac9c, 0xffffffff9792acb9},
+             uint128{0x3a73c2784d3b88a9, 0xffffffff87f9167b}})
+        ASSERT_NO_FATAL_FAILURE(check_reciprocal_3by2(d));
 }
 
 TEST(div, reciprocal_table)
 {
-    EXPECT_EQ(internal::reciprocal_table[0], 2045);
-    EXPECT_EQ(internal::reciprocal_table[0xff], 1024);
+    // The entries hold v0 = 2045 and 1024 as v0^2 and v0 * 2^11 - 1.
+    EXPECT_EQ(internal::RECIPROCAL_TABLE[0].squared, 0x3fd009u);
+    EXPECT_EQ(internal::RECIPROCAL_TABLE[0].scaled, 0x3fe7ffu);
+    EXPECT_EQ(internal::RECIPROCAL_TABLE[0xff].squared, 0x100000u);
+    EXPECT_EQ(internal::RECIPROCAL_TABLE[0xff].scaled, 0x1fffffu);
+}
+
+TEST(div, reciprocal_approx)
+{
+    // A bad table entry can make v2 slightly wrong and the final reciprocals still exact.
+    EXPECT_EQ(internal::reciprocal_approx(0x8000000000000000), 0x3ffffffffu);
+    EXPECT_EQ(internal::reciprocal_approx(0xffffffff7fffffff), 0x200000001u);
+    EXPECT_EQ(internal::reciprocal_approx(0xffffffffffffffff), 0x1ffffffffu);
+    EXPECT_EQ(internal::reciprocal_approx(0x887fffffffffffff), 0x3c03c03c0u);
 }
 
 TEST(div, by128)

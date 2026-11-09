@@ -117,6 +117,33 @@ TEST(uint256, simple_udiv)
     }
 }
 
+TEST(uint256, to_string_chunks)
+{
+    // Decimal: 19 digits per chunk, divided by 10^19.
+    constexpr auto e19 = uint256{10000000000000000000u};
+    EXPECT_EQ(to_string(uint256{1} << 64), "18446744073709551616");
+    EXPECT_EQ(to_string(e19), "10000000000000000000");
+    EXPECT_EQ(to_string(e19 * e19 + 1), "100000000000000000000000000000000000001");
+    EXPECT_EQ(to_string(~uint256{0}),
+        "115792089237316195423570985008687907853269984665640564039457584007913129639935");
+    EXPECT_EQ(to_string(~uint128{0}), "340282366920938463463374607431768211455");
+    EXPECT_EQ(to_string(~uint512{0}),
+        "134078079299425970995740249982058461274793658205923933777235614437217640300735"
+        "46976801874298166903427690031858186486050853753882811946569946433649006084095");
+    EXPECT_EQ(to_string(2017456976317043815179712291888244947793_u256),
+        "2017456976317043815179712291888244947793");
+
+    // Words equal to 10^19 - 1 and 10^19.
+    constexpr auto w = uint64_t{10000000000000000000u};
+    EXPECT_EQ(to_string(uint256{w - 1, w, w - 1, w}),
+        "62771017353866807641760717901286048795501485592774184296226625392568231788543");
+    EXPECT_EQ(to_string(uint256{w, w - 1, w, w - 1}),
+        "62771017353866807635483616165899368032005978536487456343569197811462255935488");
+
+    // Base 36: the divisor 36^12 is not normalized, unlike 10^19.
+    EXPECT_EQ(to_string(~uint256{0}, 36), "6dp5qcb22im238nr3wvp0ic7q99w035jmy2iw7i6n43d37jtof");
+}
+
 TEST(uint512, literal)
 {
     auto x = 1_u512;
@@ -163,6 +190,9 @@ TEST(uint256, exp)
     EXPECT_EQ(exp(3_u256, 2_u256), 9);
     EXPECT_EQ(exp(3_u256, 20181229_u256),
         83674153047243082998136072363356897816464308069321161820168341056719375264851_u256);
+    // The max exponent: 3^(2^256 - 1) is the inverse of 3 mod 2^256.
+    EXPECT_EQ(exp(3_u256, ~0_u256),
+        0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab_u256);
 }
 
 constexpr decltype(&addmod) addmod_impls[] = {
@@ -190,6 +220,12 @@ TEST(uint256, addmod)
         const auto a = 0xdce049946eccbbf77ed1e8e2a3c89e15a8e897df2194150700f5096dea864cdb_u256;
         const auto b = 0x397dd0df188eaffbf5216c6be56fe49002fbdc23b95a58a60f69e56f6f87f424_u256;
         EXPECT_EQ(impl(a, b, mod), 0x7533da49e8c499530049fbf08733976b_u128);
+        // Arguments of at least 2 * mod.
+        const auto c = 1_u256 << 255;
+        const auto m = (1_u256 << 192) + 1;
+        EXPECT_EQ(impl(c, 0, m), 0xffffffffffffffffffffffffffffffff8000000000000001_u256);
+        EXPECT_EQ(impl(0, c, m), 0xffffffffffffffffffffffffffffffff8000000000000001_u256);
+        EXPECT_EQ(impl(100, 0, 7), 2);
     }
 }
 

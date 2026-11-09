@@ -42,21 +42,6 @@ inline uint64_t udiv_by_reciprocal(uint64_t uu, uint64_t du) noexcept
 }
 
 
-template <decltype(internal::normalize<512, 512>) NormalizeFn>
-void div_normalize(benchmark::State& state)
-{
-    auto u = uint512{1324254353, 0, 4343242153453, 0, 100324254353, 0, 48882153453, 0};
-    auto v = uint512{1333354353, 0, 4343242156663, 0, 16666654353, 0, 48882100453, 0};
-
-    for ([[maybe_unused]] auto _ : state)
-    {
-        benchmark::ClobberMemory();
-        auto x = NormalizeFn(u, v);
-        benchmark::DoNotOptimize(x);
-    }
-}
-BENCHMARK(div_normalize<internal::normalize>);
-
 constexpr uint64_t neg(uint64_t x) noexcept
 {
     return ~x;
@@ -76,12 +61,48 @@ void reciprocal(benchmark::State& state)
     }
     benchmark::DoNotOptimize(x);
 }
+/// Latency variant: each input depends on the previous result.
+template <typename T, uint64_t Fn(T)>
+void reciprocal_lat(benchmark::State& state)
+{
+    auto samples = test::get_samples<T>(test::norm);
+
+    benchmark::ClobberMemory();
+    uint64_t x = 0;
+    while (state.KeepRunningBatch(test::num_samples))
+    {
+        // All input bits depend on the previous result, so the whole computation is on the chain
+        // (with only the lowest bit, the table lookup and most Newton steps would run ahead).
+        // The OR keeps the input normalized.
+        for (const auto& i : samples)
+        {
+            if constexpr (std::is_same_v<T, uint128>)
+                x = Fn((i ^ uint128{x, x}) | (uint128{1} << 127));
+            else
+                x = Fn((i ^ x) | 0x8000000000000000);
+        }
+    }
+    benchmark::DoNotOptimize(x);
+}
+
 BENCHMARK(reciprocal<uint64_t, neg>);
-BENCHMARK(reciprocal<uint64_t, reciprocal_naive>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_native>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_builtin_uint128>);
+BENCHMARK(reciprocal<uint64_t, reciprocal_udiv>);
+BENCHMARK(reciprocal<uint64_t, internal::reciprocal<uint64_t>>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_2by1>);
 BENCHMARK(reciprocal<uint64_t, reciprocal_2by1_noinline>);
+BENCHMARK(reciprocal<uint128, internal::reciprocal<uint128>>);
 BENCHMARK(reciprocal<uint128, reciprocal_3by2>);
 BENCHMARK(reciprocal<uint128, reciprocal_3by2_noinline>);
+BENCHMARK(reciprocal_lat<uint64_t, neg>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_native>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_builtin_uint128>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_udiv>);
+BENCHMARK(reciprocal_lat<uint64_t, internal::reciprocal<uint64_t>>);
+BENCHMARK(reciprocal_lat<uint64_t, reciprocal_2by1>);
+BENCHMARK(reciprocal_lat<uint128, internal::reciprocal<uint128>>);
+BENCHMARK(reciprocal_lat<uint128, reciprocal_3by2>);
 
 template <uint64_t DivFn(uint64_t, uint64_t)>
 void udiv64(benchmark::State& state)

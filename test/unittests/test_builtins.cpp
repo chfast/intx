@@ -37,6 +37,83 @@ TEST(builtins, bit_width_uint64)
     EXPECT_EQ(bit_width(uint64_t{0x8000000000000000}), 64u);
 }
 
+TEST(builtins, fshl)
+{
+    static_assert(fshl(0x0123456789abcdef, 0xfedcba9876543210, 0) == 0x0123456789abcdef);
+    EXPECT_EQ(fshl(0x0123456789abcdef, 0xfedcba9876543210, 0), 0x0123456789abcdef);
+    EXPECT_EQ(fshl(0x0123456789abcdef, 0xfedcba9876543210, 1), 0x02468acf13579bdf);
+    EXPECT_EQ(fshl(0x0123456789abcdef, 0xfedcba9876543210, 4), 0x123456789abcdeff);
+    EXPECT_EQ(fshl(0x0123456789abcdef, 0xfedcba9876543210, 63), 0xff6e5d4c3b2a1908);
+    EXPECT_EQ(fshl(0, 0x8000000000000000, 1), 1);
+    EXPECT_EQ(fshl(1, 0, 63), 0x8000000000000000);
+}
+
+TEST(builtins, fshr)
+{
+    static_assert(fshr(0x0123456789abcdef, 0xfedcba9876543210, 0) == 0xfedcba9876543210);
+    EXPECT_EQ(fshr(0x0123456789abcdef, 0xfedcba9876543210, 0), 0xfedcba9876543210);
+    EXPECT_EQ(fshr(0x0123456789abcdef, 0xfedcba9876543210, 1), 0xff6e5d4c3b2a1908);
+    EXPECT_EQ(fshr(0x0123456789abcdef, 0xfedcba9876543210, 4), 0xffedcba987654321);
+    EXPECT_EQ(fshr(0x0123456789abcdef, 0xfedcba9876543210, 63), 0x02468acf13579bdf);
+    EXPECT_EQ(fshr(1, 0, 1), 0x8000000000000000);
+    EXPECT_EQ(fshr(0, 0x8000000000000000, 63), 1);
+}
+
+TEST(builtins, shl)
+{
+    const uint256 x{0x0123456789abcdef, 0xfedcba9876543210, 0x8000000000000001, 0xf000000000000003};
+    for (unsigned s = 0; s < 64; ++s)
+    {
+        uint256 r;
+        shl(as_words(r), as_words(x), s);
+        EXPECT_EQ(r, x << s) << s;
+
+        intx::uint<320> r1;
+        shl(as_words(r1), as_words(x), s);
+        EXPECT_EQ(r1, intx::uint<320>{x} << s) << s;
+
+        auto ri = x;  // In place.
+        shl(as_words(ri), as_words(std::as_const(ri)), s);
+        EXPECT_EQ(ri, x << s) << s;
+
+        // Dynamic sizes.
+        intx::uint<320> rd;
+        const std::span<const uint64_t> xd{as_words(x)};
+        shl(std::span<uint64_t>{as_words(rd)}, xd, s);
+        EXPECT_EQ(rd, intx::uint<320>{x} << s) << s;
+        rd = 0;
+        shl(std::span<uint64_t>{as_words(rd)}.first(4), xd, s);
+        EXPECT_EQ(rd, intx::uint<320>{x << s}) << s;
+    }
+
+    static_assert([] {
+        intx::uint<320> r;
+        shl(as_words(r), as_words(uint256{3} << 254), 63);
+        return r == intx::uint<320>{3} << 317;
+    }());
+}
+
+TEST(builtins, shr)
+{
+    const uint256 x{0x0123456789abcdef, 0xfedcba9876543210, 0x8000000000000001, 0xf000000000000003};
+    for (unsigned s = 0; s < 64; ++s)
+    {
+        uint256 r;
+        shr(as_words(r), as_words(x), s);
+        EXPECT_EQ(r, x >> s) << s;
+
+        auto ri = x;  // In place.
+        shr(as_words(ri), as_words(std::as_const(ri)), s);
+        EXPECT_EQ(ri, x >> s) << s;
+    }
+
+    static_assert([] {
+        uint256 r;
+        shr(as_words(r), as_words(uint256{3} << 254), 63);
+        return r == uint256{3} << 191;
+    }());
+}
+
 TEST(builtins, count_significant_bytes)
 {
     static_assert(count_significant_bytes(0) == 0);

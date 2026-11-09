@@ -126,6 +126,48 @@ BENCHMARK(mod<mulmod>)->ARGS;
 #undef ARGS
 
 template <uint256 ModFn(const uint256&, const uint256&, const uint256&)>
+void mod_reduced(benchmark::State& state)
+{
+    // The moduli of mod(), the arguments less than the modulus.
+    const auto mod_set_id = [&state]() noexcept {
+        switch (state.range(0))
+        {
+        case 64:
+            return x_64;
+        case 128:
+            return x_128;
+        case 192:
+            return x_192;
+        case 256:
+            return lt_256;
+        default:
+            state.SkipWithError("unexpected argument");
+            return x_64;
+        }
+    }();
+
+    const auto& ms = test::get_samples<uint256>(mod_set_id);
+    auto xs = test::get_samples<uint256>(x_256);
+    auto ys = test::get_samples<uint256>(y_256);
+    for (size_t i = 0; i < xs.size(); ++i)
+    {
+        xs[i] %= ms[i];
+        ys[i] %= ms[i];
+    }
+
+    while (state.KeepRunningBatch(static_cast<benchmark::IterationCount>(xs.size())))
+    {
+        for (size_t i = 0; i < xs.size(); ++i)
+        {
+            auto _ = ModFn(xs[i], ys[i], ms[i]);
+            benchmark::DoNotOptimize(_);
+        }
+    }
+}
+BENCHMARK(mod_reduced<addmod>)->DenseRange(64, 256, 64);
+BENCHMARK(mod_reduced<mulmod>)->DenseRange(64, 256, 64);
+
+template <uint256 ModFn(const uint256&, const uint256&, const uint256&)>
 void ecmod(benchmark::State& state)
 {
     // Samples such x <= m, y <= m.

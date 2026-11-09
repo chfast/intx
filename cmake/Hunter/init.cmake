@@ -13,6 +13,6 @@ file(
 include(${INTX_DEPS_DOWNLOAD_DIR}/HunterGate.cmake)
 
 HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.26.6.tar.gz"
-    SHA1 "e70c29f878f5d5f5cdf1b9ccd628fb872e8624a8"
+    URL "https://github.com/cpp-pm/hunter/archive/v0.26.12.tar.gz"
+    SHA1 "6498c5d0dec25d7fffb2b0574ebaf265179b894d"
 )

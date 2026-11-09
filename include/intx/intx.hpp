@@ -26,6 +26,19 @@
 #ifdef _MSC_VER
     #pragma warning(push)
     #pragma warning(disable : 5030)  // Allow unknown attributes.
+    #pragma warning(disable : 4127)  // Allow constant conditions (warning removed in VS 2026).
+#elif defined(__clang__)
+    #pragma clang diagnostic push
+    // Allow attributes of other compilers (clang 20 reports msvc:: ones as unknown).
+    #pragma clang diagnostic ignored "-Wignored-attributes"
+    #pragma clang diagnostic ignored "-Wunknown-attributes"
+#elif defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #if __GNUC__ >= 13
+        #pragma GCC diagnostic ignored_attributes "msvc::forceinline"
+    #else
+        #pragma GCC diagnostic ignored "-Wattributes"
+    #endif
 #endif
 
 #ifndef __has_builtin
@@ -60,11 +73,18 @@
     #define INTX_HAS_BUILTIN_INT128 0
 #endif
 
+// Detect the x86-64 128/64 division instruction for internal::div_wide_x86()
+#if defined(__x86_64__) || defined(_M_X64)
+    #define INTX_HAS_DIV_WIDE_X86 1
+#else
+    #define INTX_HAS_DIV_WIDE_X86 0
+#endif
+
 namespace intx
 {
 /// Mark a possible code path as unreachable (invokes undefined behavior).
 /// TODO(C++23): Use std::unreachable().
-[[noreturn]] inline void unreachable() noexcept
+[[noreturn, gnu::always_inline, msvc::forceinline]] inline void unreachable() noexcept
 {
 #if __has_builtin(__builtin_unreachable)
     __builtin_unreachable();
@@ -97,6 +117,12 @@ struct result_with_carry
 {
     T value;
     bool carry;
+
+    /// Initializes the value and the carry.
+    ///
+    /// TODO(gcc-17): This makes the type a non-aggregate, which helps GCC codegen.
+    /// https://gcc.gnu.org/PR110459
+    constexpr result_with_carry(const T& v, bool c) noexcept : value{v}, carry{c} {}
 
     /// Conversion to tuple of references, to allow usage with std::tie().
     constexpr explicit(false) operator std::tuple<T&, bool&>() noexcept { return {value, carry}; }
@@ -139,7 +165,7 @@ constexpr result_with_carry<uint64_t> addc(uint64_t x, uint64_t y, bool carry = 
     const auto carry1 = s < x;
     const auto t = s + carry;
     const auto carry2 = t < s;
-    return {t, carry1 || carry2};
+    return {t, static_cast<bool>(carry1 | carry2)};
 }
 
 /// Subtraction with carry (borrow).
@@ -168,7 +194,7 @@ constexpr result_with_carry<uint64_t> subc(uint64_t x, uint64_t y, bool carry = 
     const auto carry1 = x < y;
     const auto e = d - carry;
     const auto carry2 = d < uint64_t{carry};
-    return {e, carry1 || carry2};
+    return {e, static_cast<bool>(carry1 | carry2)};
 }
 
 /// Addition with carry.
@@ -265,11 +291,28 @@ public:
         return static_cast<Int>(words_[0]);
     }
 
-    friend constexpr uint operator+(uint x, uint y) noexcept { return addc(x, y).value; }
+    friend constexpr uint operator+(uint x, uint y) noexcept
+    {
+#if INTX_HAS_BUILTIN_INT128 && defined(__GNUC__) && !defined(__clang__)
+        // TODO(gcc): GCC splits chains of addc() into setc and extra adds. The builtin type
+        // keeps add/adc together. https://gcc.gnu.org/PR79173
+        return builtin_uint128{x} + builtin_uint128{y};
+#else
+        return addc(x, y).value;
+#endif
+    }
 
     constexpr uint operator+() const noexcept { return *this; }
 
-    friend constexpr uint operator-(uint x, uint y) noexcept { return subc(x, y).value; }
+    friend constexpr uint operator-(uint x, uint y) noexcept
+    {
+#if INTX_HAS_BUILTIN_INT128 && defined(__GNUC__) && !defined(__clang__)
+        // TODO(gcc): See operator+.
+        return builtin_uint128{x} - builtin_uint128{y};
+#else
+        return subc(x, y).value;
+#endif
+    }
 
     constexpr uint operator-() const noexcept
     {
@@ -424,25 +467,13 @@ public:
 
 using uint128 = uint<128>;
 
-/// Optimized addition.
-///
-/// This keeps the multiprecision addition until CodeGen so the pattern is not
-/// broken during other optimizations.
-constexpr uint128 fast_add(uint128 x, uint128 y) noexcept
-{
-#if INTX_HAS_BUILTIN_INT128
-    return builtin_uint128{x} + builtin_uint128{y};
-#else
-    return x + y;  // Fallback to generic addition.
-#endif
-}
 
 /// Full unsigned multiplication 64 x 64 -> 128.
 constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 {
 #if INTX_HAS_BUILTIN_INT128
     return builtin_uint128{x} * builtin_uint128{y};
-#elif defined(_MSC_VER) && _MSC_VER >= 1925 && defined(_M_X64)
+#elif defined(_MSC_VER) && defined(_M_X64)
     if (!std::is_constant_evaluated())
     {
         unsigned __int64 hi = 0;
@@ -495,6 +526,102 @@ constexpr unsigned ctz(std::unsigned_integral auto x) noexcept
 constexpr unsigned bit_width(std::unsigned_integral auto x) noexcept
 {
     return static_cast<unsigned>(std::numeric_limits<decltype(x)>::digits) - clz(x);
+}
+
+/// Funnel shift left: returns the high word of the 128-bit value hi:lo shifted left by shift.
+/// The shift must be less than 64.
+constexpr uint64_t fshl(uint64_t hi, uint64_t lo, unsigned shift) noexcept
+{
+    INTX_REQUIRE(shift < 64);
+#if defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
+    // TODO(gcc): GCC does not emit SHLD for funnel shifts. https://gcc.gnu.org/PR82261
+    if (!std::is_constant_evaluated())
+    {
+        asm("shld{q %b[s], %[lo], %[hi]| %[hi], %[lo], %b[s]}"
+            : [hi] "+rm"(hi)
+            : [lo] "r"(lo), [s] "cJ"(shift)
+            : "cc");
+        return hi;
+    }
+#endif
+    return shift == 0 ? hi : (hi << shift) | (lo >> (64 - shift));
+}
+
+/// Funnel shift right: returns the low word of the 128-bit value hi:lo shifted right by shift.
+/// The shift must be less than 64.
+constexpr uint64_t fshr(uint64_t hi, uint64_t lo, unsigned shift) noexcept
+{
+    INTX_REQUIRE(shift < 64);
+#if defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__)
+    // TODO(gcc): GCC does not emit SHRD for funnel shifts. https://gcc.gnu.org/PR82261
+    if (!std::is_constant_evaluated())
+    {
+        asm("shrd{q %b[s], %[hi], %[lo]| %[lo], %[hi], %b[s]}"
+            : [lo] "+rm"(lo)
+            : [hi] "r"(hi), [s] "cJ"(shift)
+            : "cc");
+        return lo;
+    }
+#endif
+    return shift == 0 ? lo : (lo >> shift) | (hi << (64 - shift));
+}
+
+#if INTX_HAS_DIV_WIDE_X86
+namespace internal
+{
+/// Divides the 128-bit hi:lo by d with the x86-64 division instruction. Requires hi < d.
+///
+/// The name follows div_wide() proposed for the C++ standard library in P3161.
+[[gnu::always_inline]] inline div_result<uint64_t> div_wide_x86(
+    uint64_t hi, uint64_t lo, uint64_t d) noexcept
+{
+    INTX_REQUIRE(hi < d);
+
+    #if defined(_MSC_VER) && !defined(__clang__)
+    unsigned __int64 r = 0;
+    const auto q = _udiv128(hi, lo, d, &r);
+    #else
+    uint64_t q = lo;  // The low word of the dividend, then the quotient.
+    uint64_t r = hi;  // The high word of the dividend, then the remainder.
+    asm("div %[d]" : "+a"(q), "+d"(r) : [d] "r"(d) : "cc");  // NOLINT(hicpp-no-assembler)
+    #endif
+
+    return {q, r};
+}
+}  // namespace internal
+#endif
+
+/// Left-shifts a little-endian word array x by shift bits and stores the result in r.
+/// The r must have the same size as x, or one word more to also receive the bits shifted out.
+/// The r may alias x. The shift must be less than 64.
+template <size_t RN, size_t XN>
+constexpr void shl(
+    std::span<uint64_t, RN> r, std::span<const uint64_t, XN> x, unsigned shift) noexcept
+{
+    if constexpr (RN != std::dynamic_extent && XN != std::dynamic_extent)
+        static_assert(XN != 0 && (RN == XN || RN == XN + 1));
+    INTX_REQUIRE(!x.empty());
+    INTX_REQUIRE(r.size() == x.size() || r.size() == x.size() + 1);
+    INTX_REQUIRE(shift < 64);
+    const auto n = x.size();
+    if (r.size() > n)
+        r[n] = fshl(0, x[n - 1], shift);
+    for (size_t i = n - 1; i != 0; --i)
+        r[i] = fshl(x[i], x[i - 1], shift);
+    r[0] = x[0] << shift;
+}
+
+/// Right-shifts a little-endian word array x by shift bits and stores the result in r
+/// of the same size. The bits shifted out of x are lost. The r may alias x.
+/// The shift must be less than 64.
+constexpr void shr(std::span<uint64_t> r, std::span<const uint64_t> x, unsigned shift) noexcept
+{
+    INTX_REQUIRE(!x.empty());
+    INTX_REQUIRE(r.size() == x.size());
+    INTX_REQUIRE(shift < 64);
+    for (size_t i = 1; i < x.size(); ++i)
+        r[i - 1] = fshr(x[i], x[i - 1], shift);
+    r[x.size() - 1] = x[x.size() - 1] >> shift;
 }
 
 constexpr unsigned clz(uint128 x) noexcept
@@ -564,84 +691,152 @@ constexpr uint128 bswap(uint128 x) noexcept
 
 namespace internal
 {
-/// Reciprocal lookup table.
-constexpr auto reciprocal_table = []() noexcept {
-    std::array<uint16_t, 256> table{};
+/// An entry of RECIPROCAL_TABLE: post-processed 11-bit approximation "v0" of
+/// Algorithm 2 from "Improved division by invariant integers".
+struct alignas(uint64_t) reciprocal_table_entry
+{
+    uint32_t squared;  ///< v0^2.
+    uint32_t scaled;   ///< v0 * 2^11 - 1.
+};
+
+/// Reciprocal lookup table, indexed by the 8 bits below the top bit of a normalized d.
+///
+/// The hidden visibility gives one copy per shared library, accessed directly. Without it the
+/// inline variable is exported and read through the GOT, also with -fvisibility-inlines-hidden.
+[[gnu::visibility("hidden")]] inline constexpr auto RECIPROCAL_TABLE = []() noexcept {
+    std::array<reciprocal_table_entry, 256> table{};
     for (size_t i = 0; i < table.size(); ++i)
-        table[i] = static_cast<uint16_t>(0x7fd00 / (i + 256));
+    {
+        const auto v0 = static_cast<uint32_t>(0x7fd00 / (i + 256));
+        table[i] = {v0 * v0, (v0 << 11) - 1};
+    }
     return table;
 }();
+
+/// Computes "v2" of Algorithm 2 from "Improved division by invariant integers" for normalized d:
+/// the approximation of 2^97 / d from below (by less than 2) from the table and two Newton steps.
+constexpr uint64_t reciprocal_approx(uint64_t d) noexcept
+{
+    INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
+
+    const auto d9 = d >> 55;
+    const auto& [v0v0, v0s] = RECIPROCAL_TABLE[static_cast<size_t>(d9 - 256)];
+    const auto d40 = (d >> 24) + 1;
+    const auto v1 = v0s - (uint64_t{v0v0} * d40 >> 40);
+    const auto v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
+    return v2;
+}
+
+/// Computes the reciprocal (2^(N+64)-1) / d - 2^64, where N is the number of bits in T.
+template <typename T>
+constexpr uint64_t reciprocal(T d) noexcept
+    requires std::is_same_v<T, uint64_t> || std::is_same_v<T, uint128>
+{
+    constexpr bool WIDE = std::is_same_v<T, uint128>;  // The 3/2 reciprocal.
+
+    uint64_t d1 = 0;  // The top word.
+    if constexpr (WIDE)
+        d1 = d[1];
+    else
+        d1 = d;
+
+    // v2 of Algorithm 2 from "Improved division by invariant integers" for the top word.
+    const auto v2 = reciprocal_approx(d1);
+
+    // The next Newton step: v3 = v2 * 2^31 + v2 * e / 2^65, e = (2^97 - v2 * d1) / 2 (Algorithm 2).
+    const auto d1_odd = d1 & 1;
+    const auto d63 = (d1 >> 1) + d1_odd;  // ceil(d1/2)
+    auto e = ((v2 >> 1) & (0 - d1_odd)) - (v2 * d63);
+    if constexpr (WIDE)
+    {
+        // The error against the whole d instead of the adjustments of Algorithm 6. The -1 keeps e
+        // below the exact error; e >= 2^30 - 1 (checked for every v2), so it does not wrap.
+        e = e - 1 - (umul(v2, d[0])[1] >> 1);
+    }
+    const auto v3 = (umul(v2, e)[1] >> 1) + (v2 << 31);  // The reciprocal or one less.
+
+    // The exact correction: subtract floor((2^64 + v3 + 1) * d / 2^N), which is 2^64 - 1 or 2^64.
+    const auto p1 = umul(v3, d1);
+    if constexpr (WIDE)
+    {
+        // For d1 = 2^64 - 1 and d0 >= 0xbffffffe60000000, v3 wraps to 2^64 - 1 and the floor is
+        // 2^65 - 1: v is still 0.
+        const auto d0 = d[0];
+        const auto p0 = umul(v3, d0);
+        const uint64_t c = (p0[0] + d0) < d0;
+        const auto s = uint128{d0} + d1 + p1[0] + p0[1] + c;  // The carries (0-3) in s[1].
+        return v3 - d1 - p1[1] - s[1];
+    }
+    else
+    {
+        return v3 - p1[1] - ((p1[0] + d1) < d1) - d1;  // v3 - hi(v3 * d + d) - d
+    }
+}
 }  // namespace internal
 
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
-///
-/// Based on Algorithm 2 from "Improved division by invariant integers".
 constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
     INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
 
-    const uint64_t d9 = d >> 55;
-    const uint32_t v0 = internal::reciprocal_table[static_cast<size_t>(d9 - 256)];
-
-    const uint64_t d40 = (d >> 24) + 1;
-    const uint64_t v1 = (v0 << 11) - uint32_t(uint32_t{v0 * v0} * d40 >> 40) - 1;
-
-    const uint64_t v2 = (v1 << 13) + (v1 * (0x1000000000000000 - v1 * d40) >> 47);
-
-    const uint64_t d0 = d & 1;
-    const uint64_t d63 = (d >> 1) + d0;  // ceil(d/2)
-    const uint64_t e = ((v2 >> 1) & (0 - d0)) - (v2 * d63);
-    const uint64_t v3 = (umul(v2, e)[1] >> 1) + (v2 << 31);
-
-    const uint64_t v4 = v3 - (umul(v3, d) + d)[1] - d;
-    return v4;
+#if INTX_HAS_DIV_WIDE_X86
+    // On x86-64 this is a single 128/64 division instruction.
+    // Historically, this instruction was very slow, but it better/same latency
+    // as portable procedure on AMD Zen (2017) and Intel Ice Lake (2021).
+    if (!std::is_constant_evaluated())
+        return internal::div_wide_x86(~d, ~uint64_t{0}, d).quot;
+#endif
+    return internal::reciprocal(d);
 }
 
+/// Computes the reciprocal (2^192 - 1) / d - 2^64 for normalized d.
 constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 {
-    auto v = reciprocal_2by1(d[1]);
-    auto p = d[1] * v;
-    p += d[0];
-    if (p < d[0])
-    {
-        --v;
-        if (p >= d[1])
-        {
-            --v;
-            p -= d[1];
-        }
-        p -= d[1];
-    }
+    INTX_REQUIRE(d[1] & 0x8000000000000000);  // Must be normalized.
 
-    const auto t = umul(v, d[0]);
-
-    p += t[1];
-    if (p < t[1])
+#if INTX_HAS_DIV_WIDE_X86
+    if (!std::is_constant_evaluated())
     {
-        --v;
-        if (p >= d[1])
-        {
-            if (p > d[1] || t[0] >= d[0])
-                --v;
-        }
+        // The reciprocal is the 3/2 division of ~d * 2^64 + ~0 by d. On x86-64 the 128/64 division
+        // of ~d by the top word d1 gives the quotient or up to 2 more (Knuth, TAOCP Vol. 2, 4.3.1,
+        // Theorem B), and its remainder corrects it.
+        const auto d1 = d[1];
+        const auto d0 = d[0];
+        const auto [qh, rh] = internal::div_wide_x86(~d1, ~d0, d1);
+        const auto p = umul(qh, d0);
+
+        // The remainder R = rh * 2^64 + ~0 - p is in [-2d, d): v = qh - [R < 0] - [R + d < 0].
+        const uint64_t neg0 = rh < p[1];  // ~0 >= p[0], so the high words decide.
+
+        // R + d < 0 is rh * 2^64 + ~0 + d < p, where ~0 + d0 is d0 - 1 with the carry d0 != 0.
+        // If c is set, the sum is at least 2^128 > p: s saturates to ~0 > p[1], keeping it false.
+        const auto [s, c] = addc(rh, d1, d0 != 0);
+        const auto s_sat = s | (0 - uint64_t{c});  // ~0 if c is set, otherwise s.
+        const uint64_t neg1 = uint128{d0 - 1, s_sat} < p;
+        return qh - neg0 - neg1;
     }
-    return v;
+#endif
+    return internal::reciprocal(d);
 }
 
 constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
+    assert(d & 0x8000000000000000);  // Must be normalized.
+    assert(u[1] < d);
+
     auto q = umul(v, u[1]);
-    q = fast_add(q, u);
+    q += u;
 
     ++q[1];
 
     auto r = u[0] - (q[1] * d);
 
-    if (r > q[0])
-    {
-        --q[1];
-        r += d;
-    }
+    // The first correction, taken about half the time, is branch-free: q[1] - 1 and r + d if
+    // r > q[0]. r gets a mask because GCC turns two ternaries into a branch.
+    // The second correction is rare.
+    const auto c = r > q[0];
+    q[1] = c ? q[1] - 1 : q[1];
+    r += d & (uint64_t{0} - uint64_t{c});
 
     if (r >= d)
     {
@@ -650,30 +845,43 @@ constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) n
     }
 
     return {q[1], r};
+}
+
+/// Divides u by normalized d. Requires u[1] < d.
+constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d) noexcept
+{
+#if INTX_HAS_DIV_WIDE_X86
+    if (!std::is_constant_evaluated())
+        return internal::div_wide_x86(u[1], u[0], d);
+#endif
+    return udivrem_2by1(u, d, reciprocal_2by1(d));
 }
 
 constexpr div_result<uint64_t, uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {
+    assert(d[1] & 0x8000000000000000);  // Must be normalized.
+    assert((uint128{u1, u2} < d));
+
     auto q = umul(v, u2);
-    q = fast_add(q, {u1, u2});
+    q += uint128{u1, u2};
 
     auto r1 = u1 - (q[1] * d[1]);
 
     auto t = umul(d[0], q[1]);
 
-    auto r = uint128{u0, r1} - t - d;
-    r1 = r[1];
+    const auto rd = uint128{u0, r1} - t;  // The remainder for q1.
+    auto r = rd - d;                      // The remainder for q1 + 1.
 
-    ++q[1];
+    // The first correction, taken about half the time, selects q1 and r + d if r[1] >= q[0].
+    // The masks select without a branch: a ternary on uint128 is a branch with GCC.
+    // The second correction is rare.
+    const auto c = r[1] >= q[0];
+    const auto mask = uint64_t{0} - uint64_t{c};
+    r = {(rd[0] & mask) | (r[0] & ~mask), (rd[1] & mask) | (r[1] & ~mask)};
+    q[1] += uint64_t{!c};
 
-    if (r1 >= q[0])
-    {
-        --q[1];
-        r += d;
-    }
-
-    if (r >= d)
+    if (r >= d) [[unlikely]]
     {
         ++q[1];
         r -= d;
@@ -682,51 +890,7 @@ constexpr div_result<uint64_t, uint128> udivrem_3by2(
     return {q[1], r};
 }
 
-constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
-{
-    if (y[1] == 0)
-    {
-        INTX_REQUIRE(y[0] != 0);  // Division by 0.
-
-        const auto lsh = clz(y[0]);
-        const auto rsh = (64 - lsh) % 64;
-        const auto rsh_mask = uint64_t{lsh == 0} - 1;
-
-        const auto yn = y[0] << lsh;
-        const auto xn_lo = x[0] << lsh;
-        const auto xn_hi = (x[1] << lsh) | ((x[0] >> rsh) & rsh_mask);
-        const auto xn_ex = (x[1] >> rsh) & rsh_mask;
-
-        const auto v = reciprocal_2by1(yn);
-        const auto res1 = udivrem_2by1({xn_hi, xn_ex}, yn, v);
-        const auto res2 = udivrem_2by1({xn_lo, res1.rem}, yn, v);
-        return {{res2.quot, res1.quot}, res2.rem >> lsh};
-    }
-
-    if (y[1] > x[1])
-        return {0, x};
-
-    const auto lsh = clz(y[1]);
-    if (lsh == 0)
-    {
-        const auto q = unsigned{y[1] < x[1]} | unsigned{y[0] <= x[0]};
-        return {q, x - (q ? y : 0)};
-    }
-
-    const auto rsh = 64 - lsh;
-
-    const auto yn_lo = y[0] << lsh;
-    const auto yn_hi = (y[1] << lsh) | (y[0] >> rsh);
-    const auto xn_lo = x[0] << lsh;
-    const auto xn_hi = (x[1] << lsh) | (x[0] >> rsh);
-    const auto xn_ex = x[1] >> rsh;
-
-    const auto v = reciprocal_3by2({yn_lo, yn_hi});
-    const auto res = udivrem_3by2(xn_ex, xn_hi, xn_lo, {yn_lo, yn_hi}, v);
-
-    return {res.quot, res.rem >> lsh};
-}
-
+/// Divides x by y as signed numbers. A division by 0 gives 0 as the quotient and the remainder.
 constexpr div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
 {
     constexpr auto sign_mask = uint128{1} << 127;
@@ -823,29 +987,29 @@ constexpr Int from_string(const char* str)
 {
     auto s = str;
     auto x = Int{};
-    size_t num_digits = 0;
 
     if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
     {
+        constexpr auto MAX_HEX = std::numeric_limits<Int>::max() >> uint64_t{4};
         s += 2;
         while (const auto c = *s++)
         {
-            if (++num_digits > sizeof(x) * 2)
+            const auto d = from_hex_digit(c);
+            if (x > MAX_HEX)
                 throw_<std::out_of_range>(str);
-            x = (x << uint64_t{4}) | from_hex_digit(c);
+            x = (x << uint64_t{4}) | d;
         }
         return x;
     }
 
+    constexpr auto MAX_DEC = std::numeric_limits<Int>::max() / 10;
+    constexpr auto MAX_LAST_DIGIT = static_cast<uint8_t>(std::numeric_limits<Int>::max() % 10);
     while (const auto c = *s++)
     {
-        if (num_digits++ > std::numeric_limits<Int>::digits10)
-            throw_<std::out_of_range>(str);
-
         const auto d = from_dec_digit(c);
-        x = x * Int{10} + d;
-        if (x < d)
+        if (x > MAX_DEC || (x == MAX_DEC && d > MAX_LAST_DIGIT))
             throw_<std::out_of_range>(str);
+        x = x * Int{10} + d;
     }
     return x;
 }
@@ -856,33 +1020,109 @@ constexpr Int from_string(const std::string& s)
     return from_string<Int>(s.c_str());
 }
 
+namespace internal
+{
+/// Converts x to a decimal string. It divides x by 10^19, the largest power of 10 fitting in a
+/// word, to get a chunk of 19 digits per division, until the rest fits in a word. 10^19 has the
+/// top bit set, so the division needs no normalization, and its reciprocal is a compile-time
+/// constant.
+template <unsigned N>
+inline std::string to_string_10(uint<N> x)
+{
+    constexpr auto WORD_MAX = std::numeric_limits<uint64_t>::max();
+    constexpr auto DIGITS = size_t{19};
+    constexpr auto POWER = uint64_t{10000000000000000000u};
+    static_assert(POWER > WORD_MAX / 10);  // The largest power of 10 in a word.
+    constexpr auto RECIPROCAL = reciprocal_2by1(POWER);
+
+    // The digits, written from the end. N chars are enough: N bits have fewer than N digits.
+    std::array<char, N> s;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    auto it = s.end();
+    const auto put_digit = [&it](uint64_t& r) {
+        *--it = static_cast<char>('0' + r % 10);
+        r /= 10;
+    };
+    while (x > WORD_MAX)
+    {
+        const auto w = as_words(x).first(count_significant_words(x));
+        uint64_t r = 0;
+        for (auto i = w.size(); i != 0; --i)
+            std::tie(w[i - 1], r) = udivrem_2by1({w[i - 1], r}, POWER, RECIPROCAL);
+        for (size_t i = 0; i < DIGITS; ++i)
+            put_digit(r);
+        assert(r == 0);  // The remainder by 10^19 has at most 19 digits.
+    }
+
+    // The leading digits, at least one.
+    auto r = static_cast<uint64_t>(x);
+    do
+        put_digit(r);
+    while (r != 0);
+    return {it, s.end()};
+}
+}  // namespace internal
+
 template <unsigned N>
 inline std::string to_string(uint<N> x, int base = 10)
 {
     if (base < 2 || base > 36)
         throw_<std::invalid_argument>("invalid base");
 
-    if (x == 0)
-        return "0";
+    if (base == 10)
+        return internal::to_string_10(x);
+    if (base == 16)
+        return hex(x);
 
-    auto s = std::string{};
-    while (x != 0)
+    constexpr auto WORD_MAX = std::numeric_limits<uint64_t>::max();
+    const auto b = static_cast<uint64_t>(base);
+    // The digits, written from the end. The base 2 needs the most: N digits.
+    std::array<char, N> s;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    auto it = s.end();
+    const auto put_digit = [&it, b](uint64_t& r) {
+        *--it = "0123456789abcdefghijklmnopqrstuvwxyz"[r % b];
+        r /= b;
+    };
+
+    if (x > WORD_MAX)
     {
-        // TODO: Use constexpr udivrem_1?
-        const auto res = udivrem(x, uint<N>{base});
-        const auto d = int(res.rem);
-        const auto c = d < 10 ? '0' + d : 'a' + d - 10;
-        s.push_back(char(c));
-        x = res.quot;
+        // Divide by the largest power of the base fitting in a word, base^digits: each division
+        // produces a chunk of digits, until the rest fits in a word.
+        auto power = b;
+        size_t digits = 1;
+        while (power <= WORD_MAX / b)
+        {
+            power *= b;
+            ++digits;
+        }
+        const auto divisor = uint<N>{power};
+        do
+        {
+            const auto res = udivrem(x, divisor);
+            x = res.quot;
+            auto r = static_cast<uint64_t>(res.rem);
+            for (size_t i = 0; i < digits; ++i)
+                put_digit(r);
+        } while (x > WORD_MAX);
     }
-    std::ranges::reverse(s);
-    return s;
+
+    // The leading digits, at least one.
+    auto r = static_cast<uint64_t>(x);
+    do
+        put_digit(r);
+    while (r != 0);
+    return {it, s.end()};
 }
 
 template <unsigned N>
 inline std::string hex(uint<N> x)
 {
-    return to_string(x, 16);
+    // The digits are the nibbles of the number: no division is needed. Zero has one digit.
+    const auto num_digits = std::max((bit_width(x) + 3) / 4, 1u);
+    std::array<char, N / 4> s;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    auto it = s.end();
+    for (size_t i = 0; i < num_digits; ++i)
+        *--it = "0123456789abcdef"[(x[i / 16] >> (4 * (i % 16))) & 0xf];
+    return {it, s.end()};
 }
 
 template <unsigned N>
@@ -1078,19 +1318,7 @@ public:
 
     friend constexpr bool operator<(const uint& x, const uint& y) noexcept
     {
-        if constexpr (N == 256)
-        {
-            auto xp = uint128{x[2], x[3]};
-            auto yp = uint128{y[2], y[3]};
-            if (xp == yp)
-            {
-                xp = uint128{x[0], x[1]};
-                yp = uint128{y[0], y[1]};
-            }
-            return xp < yp;
-        }
-        else
-            return subc(x, y).carry;
+        return subc(x, y).carry;
     }
     friend constexpr bool operator>(const uint& x, const uint& y) noexcept { return y < x; }
     friend constexpr bool operator>=(const uint& x, const uint& y) noexcept { return !(x < y); }
@@ -1383,117 +1611,134 @@ constexpr unsigned bit_width(const uint<N>& x) noexcept
 namespace internal
 {
 /// Counts the number of zero leading bits in nonzero argument x.
+///
+/// On x86-64 without lzcnt the count is bsr, which keeps its destination for a zero source, so the
+/// CPU waits for the destination register's previous value. X86_BREAK_BSR_DEPENDENCY zeroes it
+/// first, for callers where compilers pick a register holding a recent result.
+template <bool X86_BREAK_BSR_DEPENDENCY = false>
 constexpr unsigned clz_nonzero(uint64_t x) noexcept
 {
     INTX_REQUIRE(x != 0);
+#if defined(__x86_64__) && !defined(__LZCNT__) && defined(__GNUC__)
+    if constexpr (X86_BREAK_BSR_DEPENDENCY)
+    {
+        if (!std::is_constant_evaluated() && !__builtin_constant_p(x))
+        {
+            uint64_t r;                 // NOLINT(*-init-variables)
+            asm("xor %k[r], %k[r]\n\t"  // NOLINT(*-no-assembler)
+                "bsr {%[x], %[r]|%[r], %[x]}"
+                : [r] "=&r"(r)
+                : [x] "r"(x)
+                : "cc");
+            return static_cast<unsigned>(r ^ 63);
+        }
+    }
+#endif
     return static_cast<unsigned>(std::countl_zero(x));
 }
 
-template <unsigned M, unsigned N>
-struct normalized_div_args  // NOLINT(cppcoreguidelines-pro-type-member-init)
-{
-    uint<N> divisor;
-    uint<M + 64> numerator;
-    size_t num_divisor_words;
-    size_t num_numerator_words;
-    unsigned shift;
-};
-
-template <unsigned M, unsigned N>
-[[gnu::always_inline]] constexpr normalized_div_args<M, N> normalize(
-    const uint<M>& numerator, const uint<N>& denominator) noexcept
-{
-    constexpr auto num_numerator_words = uint<M>::num_words;
-    constexpr auto num_denominator_words = uint<N>::num_words;
-
-    const auto u = as_words(numerator);
-    const auto v = as_words(denominator);
-
-    normalized_div_args<M, N> na;
-    const auto un = as_words(na.numerator);
-    const auto vn = as_words(na.divisor);
-
-    auto& m = na.num_numerator_words;
-    for (m = num_numerator_words; m > 0 && u[m - 1] == 0; --m)
-        ;
-
-    auto& n = na.num_divisor_words;
-    for (n = num_denominator_words; n > 0 && v[n - 1] == 0; --n)
-        ;
-
-    na.shift = clz_nonzero(v[n - 1]);  // Use clz_nonzero() to avoid clang analyzer's warning.
-    if (na.shift)
-    {
-        for (size_t i = num_denominator_words - 1; i != 0; --i)
-            vn[i] = (v[i] << na.shift) | (v[i - 1] >> (64 - na.shift));
-        vn[0] = v[0] << na.shift;
-
-        un[num_numerator_words] = u[num_numerator_words - 1] >> (64 - na.shift);
-        for (size_t i = num_numerator_words - 1; i != 0; --i)
-            un[i] = (u[i] << na.shift) | (u[i - 1] >> (64 - na.shift));
-        un[0] = u[0] << na.shift;
-    }
-    else
-    {
-        na.numerator = numerator;
-        na.divisor = denominator;
-    }
-
-    // Add the highest word of the normalized numerator if significant.
-    if (m != 0 && (un[m] != 0 || un[m - 1] >= vn[n - 1]))
-        ++m;
-
-    return na;
-}
 
 /// Divides arbitrary long unsigned integer by 64-bit unsigned integer (1 word).
-/// @param u  The normalized numerator words. It will contain the quotient after execution.
-/// @param d  The normalized divisor.
+/// @param q  The quotient words. It may be u.
+/// @param u  The numerator words.
+/// @param d  The divisor.
 /// @return   The remainder.
-constexpr uint64_t udivrem_by1(std::span<uint64_t> u, uint64_t d) noexcept
+template <size_t W>
+constexpr uint64_t udivrem_by1(std::span<uint64_t, W> q,
+    std::type_identity_t<std::span<const uint64_t, W>> u, uint64_t d) noexcept
 {
     INTX_REQUIRE(u.size() >= 2);
+    INTX_REQUIRE(q.size() == u.size());
+    INTX_REQUIRE(d != 0);
 
-    const auto reciprocal = reciprocal_2by1(d);
+    const auto s = clz_nonzero<true>(d);
+    const auto dn = d << s;  // The normalized divisor.
+    const auto reciprocal = reciprocal_2by1(dn);
 
-    auto rem = u[u.size() - 1];  // Set the top word as remainder.
-    u[u.size() - 1] = 0;         // Reset the word being a part of the result quotient.
-
-    auto it = u.end() - 2;
-    while (true)
+    const auto top = u.size() - 1;
+    auto w = u[top - 1];            // The next word to divide.
+    auto rem = fshl(u[top], w, s);  // The normalized top word.
+    if (u[top] >= d)  // The top quotient word is not 0: also divide the bits shifted out of u.
+        std::tie(q[top], rem) = udivrem_2by1({rem, fshl(0, u[top], s)}, dn, reciprocal);
+    else
+        q[top] = 0;
+    for (auto i = top - 1; i != 0; --i)
     {
-        std::tie(*it, rem) = udivrem_2by1({*it, rem}, d, reciprocal);
-        if (it == u.begin())
-            break;
-        --it;
+        const auto lo = u[i - 1];
+        std::tie(q[i], rem) = udivrem_2by1({fshl(w, lo, s), rem}, dn, reciprocal);
+        w = lo;
     }
+    std::tie(q[0], rem) = udivrem_2by1({w << s, rem}, dn, reciprocal);
 
-    return rem;
+    return rem >> s;
+}
+
+/// Divides the words u by d into the result of udivrem<M, N>(), built in the return slot.
+template <unsigned M, unsigned N, size_t W>
+constexpr div_result<uint<M>, uint<N>> udivrem_by1(
+    std::span<const uint64_t, W> u, uint64_t d) noexcept
+{
+    INTX_REQUIRE(u.size() <= uint<M>::num_words);
+    div_result<uint<M>, uint<N>> res;
+    res.rem[0] = udivrem_by1(std::span<uint64_t, W>{&res.quot[0], u.size()}, u, d);
+    return res;
 }
 
 /// Divides arbitrary long unsigned integer by 128-bit unsigned integer (2 words).
-/// @param u  The normalized numerator words. It will contain the quotient after execution.
-/// @param d  The normalized divisor.
+/// @tparam Q The fixed size of q, one less than the size of u, or std::dynamic_extent. u is not
+///           deduced, so spans of non-const words convert to it.
+/// @param q  The quotient words: u.size() - 1 of them. It may be u.
+/// @param u  The numerator words.
+/// @param d  The divisor.
 /// @return   The remainder.
-constexpr uint128 udivrem_by2(std::span<uint64_t> u, uint128 d) noexcept
+template <size_t Q>
+constexpr uint128 udivrem_by2(std::span<uint64_t, Q> q,
+    std::type_identity_t<std::span<const uint64_t, Q == std::dynamic_extent ? Q : Q + 1>> u,
+    uint128 d) noexcept
 {
     INTX_REQUIRE(u.size() >= 3);
+    INTX_REQUIRE(q.size() == u.size() - 1);
+    INTX_REQUIRE(d[1] != 0);
 
-    const auto reciprocal = reciprocal_3by2(d);
+    const auto s = clz_nonzero<true>(d[1]);
+    const uint128 dn{d[0] << s, fshl(d[1], d[0], s)};  // The normalized divisor.
+    const auto reciprocal = reciprocal_3by2(dn);
 
-    auto rem = uint128{u[u.size() - 2], u[u.size() - 1]};  // Set the 2 top words as remainder.
-    u[u.size() - 1] = u[u.size() - 2] = 0;  // Reset the words being a part of the result quotient.
-
-    auto it = u.end() - 3;
-    while (true)
+    const auto top = u.size() - 1;
+    uint128 rem;         // The normalized remainder.
+    if (u[top] <= d[1])  // The top quotient word is 0 or 1: subtract d at most once.
     {
-        std::tie(*it, rem) = udivrem_3by2(rem[1], rem[0], *it, d, reciprocal);
-        if (it == u.begin())
-            break;
-        --it;
+        auto t = uint128{u[top - 1], u[top]};
+        const bool ge = t >= d;
+        if (ge)
+            t -= d;
+        q[top - 1] = ge;
+        rem = {fshl(t[0], u[top - 2], s), fshl(t[1], t[0], s)};
     }
+    else  // Divide also the bits shifted out of u.
+    {
+        std::tie(q[top - 1], rem) = udivrem_3by2(fshl(0, u[top], s), fshl(u[top], u[top - 1], s),
+            fshl(u[top - 1], u[top - 2], s), dn, reciprocal);
+    }
+    for (auto i = top - 2; i != 0; --i)
+        std::tie(q[i], rem) = udivrem_3by2(rem[1], rem[0], fshl(u[i], u[i - 1], s), dn, reciprocal);
+    std::tie(q[0], rem) = udivrem_3by2(rem[1], rem[0], u[0] << s, dn, reciprocal);
 
-    return rem;
+    return {fshr(rem[1], rem[0], s), rem[1] >> s};
+}
+
+/// Divides the words u by d into the result of udivrem<M, N>(), built in the return slot.
+template <unsigned M, unsigned N, size_t W>
+constexpr div_result<uint<M>, uint<N>> udivrem_by2(
+    std::span<const uint64_t, W> u, uint128 d) noexcept
+{
+    INTX_REQUIRE(u.size() <= uint<M>::num_words);
+    div_result<uint<M>, uint<N>> res;
+    constexpr auto Q = W == std::dynamic_extent ? W : W - 1;
+    const auto r = udivrem_by2(std::span<uint64_t, Q>{&res.quot[0], u.size() - 1}, u, d);
+    res.rem[0] = r[0];
+    res.rem[1] = r[1];
+    return res;
 }
 
 /// Add y to x as: x[] += y[].
@@ -1508,26 +1753,38 @@ constexpr bool add(uint64_t x[], std::span<const uint64_t> y) noexcept
     return carry;
 }
 
-/// Subtract y multiplied by multiplier from x as: x[] -= multiplier * y[].
-constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t multiplier) noexcept
+/// Subtract y multiplied by multiplier from x and store the result in r
+/// as: r[] = x[] - multiplier * y[].
+constexpr uint64_t submul(
+    uint64_t r[], const uint64_t x[], std::span<const uint64_t> y, uint64_t multiplier) noexcept
 {
     // OPT: Add MinLen template parameter and unroll first loop iterations.
     INTX_REQUIRE(!y.empty());
 
-    uint64_t borrow = 0;
+    uint64_t k = 0;  // The high word of the product.
+    bool borrow = false;
     for (size_t i = 0; i < y.size(); ++i)
     {
-        const auto s = x[i] - borrow;
-        const auto p = umul(y[i], multiplier);
-        borrow = p[1] + (x[i] < s);
-        x[i] = s - p[0];
-        borrow += (s < x[i]);
+        const auto p = umul(y[i], multiplier) + k;
+        k = p[1];
+        std::tie(r[i], borrow) = subc(x[i], p[0], borrow);
     }
-    return borrow;
+    return k + uint64_t{borrow};
 }
 
-constexpr void udivrem_knuth(
-    uint64_t q[], std::span<uint64_t> u, std::span<const uint64_t> d) noexcept
+/// Subtract y multiplied by multiplier from x as: x[] -= multiplier * y[].
+constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t multiplier) noexcept
+{
+    return submul(x, x, y, multiplier);
+}
+
+/// Divides the normalized words u by d with the Knuth algorithm, in place: the low d.size() words
+/// of u become the normalized remainder.
+/// A fixed size of d (DIVISOR_WORDS) lets the loops over the divisor words unroll. d is not
+/// deduced, so spans of non-const words convert to it.
+template <size_t DIVISOR_WORDS = std::dynamic_extent>
+constexpr void udivrem_knuth_normalized(uint64_t q[], std::span<uint64_t> u,
+    std::type_identity_t<std::span<const uint64_t, DIVISOR_WORDS>> d) noexcept
 {
     INTX_REQUIRE(d.size() >= 3);
     INTX_REQUIRE(u.size() > d.size());
@@ -1535,23 +1792,24 @@ constexpr void udivrem_knuth(
     const auto divisor = uint128{d[d.size() - 2], d[d.size() - 1]};
     const auto reciprocal = reciprocal_3by2(divisor);
     const auto dlen = d.size();
+    // The top 2 words of the partial remainder.
+    auto rem = uint128{u[u.size() - 2], u[u.size() - 1]};
     for (size_t j = u.size() - dlen - 1; true; --j)
     {
-        const auto u2 = u[j + dlen];
-        const auto u1 = u[j + dlen - 1];
         const auto u0 = u[j + dlen - 2];
 
         uint64_t qhat{};
-        if (INTX_UNLIKELY((uint128{u1, u2}) == divisor))  // Division overflows.
+        if (INTX_UNLIKELY(rem == divisor))  // Division overflows.
         {
             qhat = ~uint64_t{0};
 
-            u[j + dlen] = u2 - submul(&u[j], d, qhat);
+            // The borrow equals the top word u[j + dlen], which is not read again.
+            submul(&u[j], d, qhat);
         }
         else
         {
             uint128 rhat;
-            std::tie(qhat, rhat) = udivrem_3by2(u2, u1, u0, divisor, reciprocal);
+            std::tie(qhat, rhat) = udivrem_3by2(rem[1], rem[0], u0, divisor, reciprocal);
 
             bool carry{};
             const auto overflow = submul(&u[j], d.subspan(0, d.size() - 2), qhat);
@@ -1561,9 +1819,12 @@ constexpr void udivrem_knuth(
             if (INTX_UNLIKELY(carry))
             {
                 --qhat;
-                u[j + dlen - 1] += divisor[1] + add(&u[j], d.subspan(0, d.size() - 1));
+                add(&u[j], d);
             }
         }
+        // The top 2 words of the next partial remainder. Read before the q[j] store
+        // (q may alias u) so the compiler can reuse the values just stored.
+        rem = {u[j + dlen - 2], u[j + dlen - 1]};
 
         q[j] = qhat;  // Store quotient digit.
         if (j == 0)   // Loop exit condition.
@@ -1571,50 +1832,400 @@ constexpr void udivrem_knuth(
     }
 }
 
-}  // namespace internal
-
-template <unsigned M, unsigned N>
-constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
+/// Divides arbitrary long unsigned integer by unsigned integer of at least 3 words with the Knuth
+/// algorithm. The words are normalized into un and dn.
+/// @param q   The quotient words: u.size() - d.size() + 1 of them, outside un. The ones for the
+///            zero top words of u are not written.
+/// @param r   The remainder words: d.size() of them.
+/// @param u   The numerator words. The top ones may be 0.
+/// @param m   The number of significant words of u: more than d.size(), or d.size() if
+///            u[m - 1] >= d.back().
+/// @param d   The divisor words. The top one must not be 0.
+/// @param un  The storage for the normalized numerator: u.size() + 1 words.
+/// @param dn  The storage for the normalized divisor.
+template <size_t D = std::dynamic_extent, size_t W>
+[[gnu::always_inline]] constexpr void udivrem_knuth(uint64_t q[],
+    std::type_identity_t<std::span<uint64_t, D>> r, std::span<const uint64_t, W> u, size_t m,
+    std::type_identity_t<std::span<const uint64_t, D>> d, uint64_t un[],
+    std::type_identity_t<std::span<uint64_t, D>> dn) noexcept
 {
-    auto na = internal::normalize(u, v);
+    INTX_REQUIRE(d.size() >= 3);
+    INTX_REQUIRE(r.size() == d.size());
+    INTX_REQUIRE(dn.size() == d.size());
+    INTX_REQUIRE(u.size() >= d.size());
+    INTX_REQUIRE(d.back() != 0);
 
-    // The span of the normalized numerator significant words. Will be modified.
-    const auto un = as_words(na.numerator).subspan(0, static_cast<size_t>(na.num_numerator_words));
-    // The span of the normalized divisor significant words.
-    const auto dn = as_words(na.divisor).subspan(0, static_cast<size_t>(na.num_divisor_words));
+    const auto dlen = d.size();
+    // Use clz_nonzero() to avoid clang analyzer's warning.
+    const auto shift = clz_nonzero(d.back());
+    constexpr auto UN = W == std::dynamic_extent ? W : W + 1;
+    shl(dn, d, shift);  // The bits shifted out of d are zero.
+    shl(std::span<uint64_t, UN>{un, u.size() + 1}, u, shift);
 
-    INTX_REQUIRE(!dn.empty());
-    INTX_REQUIRE(dn.size() <= uint<N>::num_words);
-    INTX_REQUIRE(un.size() <= uint<M>::num_words + 1);
+    INTX_REQUIRE(m <= u.size());
+    INTX_REQUIRE(u[m - 1] != 0);
+    // If the top word of u is less than the top word of d, the top quotient word is 0
+    // and so are the bits shifted out of u.
+    const auto ulen = m + size_t{u[m - 1] >= d.back()};  // The normalized words to divide.
+    INTX_REQUIRE(ulen > dlen);                           // At least 1 quotient word.
+    q[m - dlen] = 0;  // The top quotient word if it is not computed below.
 
-    if (un.size() <= dn.size())
-        return {0, static_cast<uint<N>>(u)};
+    udivrem_knuth_normalized<D>(q, std::span{un, ulen}, dn);
+    shr(r, std::span<const uint64_t>{un, dlen}, shift);
+}
 
-    static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
-    if (dn.size() == 1)
+/// Divides the words u by d into the result of udivrem<M, N>(), built in the return slot.
+template <unsigned M, unsigned N, size_t D>
+constexpr div_result<uint<M>, uint<N>> udivrem_knuth(
+    std::span<const uint64_t, uint<M>::num_words> u, size_t m,
+    std::span<const uint64_t, D> d) noexcept
+{
+    div_result<uint<M>, uint<N>> res;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+    std::array<uint64_t, uint<M>::num_words + 1> un;
+    std::array<uint64_t, uint<N>::num_words> dn;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    const auto r = std::span<uint64_t, D>{&res.rem[0], d.size()};
+    udivrem_knuth<D>(
+        &res.quot[0], r, u, m, d, un.data(), std::span<uint64_t, D>{dn.data(), d.size()});
+    return res;
+}
+
+/// Divides u by v when the quotient fits in a single word: v has TOP + 1 significant words
+/// and u has at most one more significant word, which is less than v[TOP].
+///
+/// The quotient is estimated from the top word of the normalized divisor with 2/1 division
+/// and corrected with the remainder computed on the original (not normalized) operands.
+/// The word v[TOP] must not be zero.
+template <size_t TOP, unsigned M, unsigned N>
+constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint<N>& v) noexcept
+{
+    static_assert(TOP >= 1 && TOP < uint<N>::num_words);
+    static_assert(uint<M>::num_words >= TOP + 1 && uint<M>::num_words <= TOP + 3);
+
+    // A numerator type wider than the divisor type comes from addmod(), where u < v is rare.
+    // For it, the u < v return is left out and u is not copied (see the remainder below).
+    constexpr auto WIDER = uint<M>::num_words > uint<N>::num_words;
+
+    uint64_t ue = 0;  // The extra word of u above the significant words of v.
+    if constexpr (uint<M>::num_words >= TOP + 2)
+        ue = u[TOP + 1];
+    if constexpr (uint<M>::num_words == TOP + 3)
+        INTX_REQUIRE(u[TOP + 2] == 0);
+    INTX_REQUIRE(ue < v[TOP]);
+
+    if constexpr (!WIDER)
     {
-        const auto r = internal::udivrem_by1(un, dn[0]);
-        return {static_cast<uint<M>>(na.numerator), r >> na.shift};
+        if (uint128{u[TOP], ue} < v[TOP])  // u < v.
+            return {0, static_cast<uint<N>>(u)};
     }
 
-    if (dn.size() == 2)
+    // The top 64 bits of the normalized divisor and the matching 2 words of the numerator.
+    const auto s = clz_nonzero<true>(v[TOP]);
+    const auto vt = fshl(v[TOP], v[TOP - 1], s);
+    const auto ut_hi = fshl(ue, u[TOP], s);  // Less than vt: all callers ensure ue < v[TOP].
+    const auto ut_lo = fshl(u[TOP], u[TOP - 1], s);
+
+    // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B).
+    auto q = udivrem_2by1({ut_lo, ut_hi}, vt).quot;
+
+    // The remainder u - q * v fits in the TOP + 1 words of v, so the borrow out of them
+    // is ue, or ue + 1 or ue + 2 when the estimate is too large.
+    // For the wider numerator the remainder is computed from u without a copy: GCC copies u
+    // with 16-byte loads, which stall on the 8-byte stores of the sum in addmod().
+    // The other types keep the copy: without it clang saves registers before the u < v return.
+    auto r = [&] {
+        if constexpr (WIDER)
+            return uint<N>{};
+        else
+            return static_cast<uint<N>>(u);
+    }();
+    const auto vw = as_words(v).template first<TOP + 1>();
+    uint64_t borrow = 0;
+    if constexpr (WIDER)
+        borrow = submul(as_words(r).data(), as_words(u).data(), vw, q) - ue;
+    else
+        borrow = submul(as_words(r).data(), vw, q) - ue;
+    // The correction runs at most 2 times (usually 0).
+    while (borrow != 0) [[unlikely]]
     {
-        const auto r = internal::udivrem_by2(un, static_cast<uint128>(na.divisor));
-        return {static_cast<uint<M>>(na.numerator), r >> na.shift};
+        --q;
+        borrow -= add(as_words(r).data(), vw);
     }
-
-    uint<M> q;
-    internal::udivrem_knuth(&q[0], un, dn);
-
-    uint<N> r;
-    auto rw = as_words(r);
-    for (size_t i = 0; i < na.num_divisor_words - 1; ++i)
-        rw[i] = na.shift ? (un[i] >> na.shift) | (un[i + 1] << (64 - na.shift)) : un[i];
-    rw[na.num_divisor_words - 1] = un[na.num_divisor_words - 1] >> na.shift;
-
+    if constexpr (TOP + 1 < uint<N>::num_words)
+        r[TOP + 1] = 0;  // Clear the extra word copied from u.
     return {q, r};
 }
 
+/// Divides u by v when the quotient fits in two words: v has TOP significant words
+/// and u has one more word, or two more words with the top one less than v[TOP - 1].
+/// With EQUAL (TOP 3 only) the top word of u equals v[TOP - 1]: the quotient has up to 129 bits.
+///
+/// The quotient is estimated from the top 2 words of the normalized divisor with two 3/2
+/// divisions and corrected with the remainder, computed from the remainder of the 3/2 divisions
+/// and the low words of the original (not normalized) operands.
+/// The word v[TOP - 1] must not be zero.
+template <size_t TOP, bool EQUAL = false, unsigned M, unsigned N>
+constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint<N>& v) noexcept
+{
+    static_assert(TOP >= 3 && TOP <= uint<N>::num_words);
+    static_assert(uint<M>::num_words == TOP + 1 || uint<M>::num_words == TOP + 2);
+    static_assert(!EQUAL || (TOP == 3 && uint<M>::num_words == TOP + 2));
+
+    uint64_t ue = 0;  // The second word of u above the significant words of v, 0 for the shorter u.
+    if constexpr (uint<M>::num_words == TOP + 2)
+        ue = u[TOP + 1];
+    INTX_REQUIRE(EQUAL ? ue == v[TOP - 1] : ue < v[TOP - 1]);
+
+    // The top 128 bits of the normalized divisor and the matching 4 words of the numerator.
+    const auto s = clz_nonzero<true>(v[TOP - 1]);
+    const uint128 vt{fshl(v[TOP - 2], v[TOP - 3], s), fshl(v[TOP - 1], v[TOP - 2], s)};
+    auto t3 = fshl(ue, u[TOP], s);  // Less than vt[1] if ue < v[TOP - 1].
+    auto t2 = fshl(u[TOP], u[TOP - 1], s);
+    auto t1 = fshl(u[TOP - 1], u[TOP - 2], s);
+    const auto t0 = fshl(u[TOP - 2], u[TOP - 3], s);
+
+    uint64_t qe = 0;     // The quotient bit 128.
+    bool clamp = false;  // The top 2 words of the normalized u equal vt.
+    if constexpr (EQUAL)
+    {
+        // The quotient is below 2^129. Subtract v * 2^128 if u is not less: in the normalized u
+        // these are the top 3 words minus the normalized v. Then u < v * 2^128.
+        bool less = false;  // u < v * 2^128: the borrow of the subtraction.
+        uint64_t d3 = 0;
+        uint64_t d2 = 0;
+        uint64_t d1 = 0;
+        std::tie(d1, less) = subc(t1, v[0] << s);
+        std::tie(d2, less) = subc(t2, vt[0], less);
+        std::tie(d3, less) = subc(t3, vt[1], less);
+        // The difference is selected, not branched to: u >= v * 2^128 can be random for chosen
+        // operands.
+        t3 = less ? t3 : d3;
+        t2 = less ? t2 : d2;
+        t1 = less ? t1 : d1;
+        qe = less ? 0 : 1;
+        // The top 2 words can still equal vt (not exceed it, and only if less): the first division
+        // would overflow. The quotient is then 2^128 - 1 or 1 less (the estimate is clamped).
+        clamp = uint128{t2, t3} == vt;
+    }
+
+    // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B, base 2^128).
+    // The first division does not overflow because t3:t2 < vt (when not clamped).
+    uint64_t q1 = 0;
+    uint64_t q0 = 0;
+    uint128 r0;
+    bool r0h = false;  // The bit 128 of r0 (when clamped).
+    if (clamp) [[unlikely]]
+    {
+        q1 = q0 = ~uint64_t{0};
+        // t3:t2:t1:t0 - (2^128 - 1) * vt = t1:t0 + vt.
+        std::tie(r0, r0h) = addc(uint128{t0, t1}, vt);
+    }
+    else
+    {
+        const auto reciprocal = reciprocal_3by2(vt);
+        const auto res1 = udivrem_3by2(t3, t2, t1, vt, reciprocal);
+        const auto res0 = udivrem_3by2(res1.rem[1], res1.rem[0], t0, vt, reciprocal);
+        q1 = res1.quot;
+        q0 = res0.quot;
+        r0 = res0.rem;
+    }
+    auto q = uint128{q0, q1};
+
+    // With k = 64 * (TOP - 2) - s, the position of the lowest bit of vt in v:
+    // u - q * v = r0 * 2^k + u mod 2^k - q * (v mod 2^k),
+    // so q is multiplied only by the low TOP - 2 words of v.
+    std::array<uint64_t, TOP - 2> vl{};  // v mod 2^k.
+    for (size_t i = 0; i < TOP - 2; ++i)
+        vl[i] = v[i];
+    vl[TOP - 3] = (vl[TOP - 3] << s) >> s;
+
+    std::array<uint64_t, TOP> rw{};  // r0 * 2^k + u mod 2^k, less than v.
+    for (size_t i = 0; i < TOP - 2; ++i)
+        rw[i] = u[i];
+    rw[TOP - 3] = fshr(r0[0], rw[TOP - 3] << s, s);
+    rw[TOP - 2] = fshr(r0[1], r0[0], s);
+    if constexpr (EQUAL)
+        rw[TOP - 1] = fshr(uint64_t{r0h}, r0[1], s);  // Without r0h if s is 0.
+    else
+        rw[TOP - 1] = r0[1] >> s;
+
+    // r -= q * vl. The result is in (-2v, v), the borrow is its sign.
+    const auto b0 = submul(rw.data(), vl, q0);
+    const auto b1 = submul(&rw[1], vl, q1);
+    bool borrow = false;
+    std::tie(rw[TOP - 2], borrow) = subc(rw[TOP - 2], b0);
+    std::tie(rw[TOP - 1], borrow) = subc(rw[TOP - 1], b1, borrow);
+    // With r0h the result is not negative: r0 * 2^k >= 2^(128 + k) > q * vl. Then a borrow out
+    // of rw comes only from the r0h missing in rw for s 0.
+    borrow = borrow && !r0h;
+
+    // The correction runs at most 2 times (usually 0).
+    const auto vw = as_words(v).template first<TOP>();
+    while (borrow) [[unlikely]]
+    {
+        --q;
+        borrow = !add(rw.data(), vw);
+    }
+    if constexpr (EQUAL)
+        return {uint<M>{q[0], q[1], qe}, uint<N>{rw}};
+    else
+        return {q, uint<N>{rw}};
+}
+
+}  // namespace internal
+
+/// Divides x by y. A division by 0 gives 0 as the quotient and the remainder.
+constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
+{
+    if (y[1] == 0)
+    {
+        if (y[0] == 0) [[unlikely]]
+            return {0, 0};
+
+        const auto lsh = internal::clz_nonzero(y[0]);
+        const auto rsh = (64 - lsh) % 64;
+        const auto rsh_mask = uint64_t{lsh == 0} - 1;
+
+        const auto yn = y[0] << lsh;
+        const auto xn_lo = x[0] << lsh;
+        const auto xn_hi = (x[1] << lsh) | ((x[0] >> rsh) & rsh_mask);
+        const auto xn_ex = (x[1] >> rsh) & rsh_mask;
+
+        const auto v = reciprocal_2by1(yn);
+        const auto res1 = udivrem_2by1({xn_hi, xn_ex}, yn, v);
+        const auto res2 = udivrem_2by1({xn_lo, res1.rem}, yn, v);
+        return {{res2.quot, res1.quot}, res2.rem >> lsh};
+    }
+
+    return internal::udivrem_top1<1>(x, y);  // The quotient fits in a single word.
+}
+
+/// Divides u by v. A division by 0 gives 0 as the quotient and the remainder.
+template <unsigned M, unsigned N>
+constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
+{
+    if constexpr (M == 128)  // A uint128 numerator: the 128-bit division if v fits in 128 bits.
+    {
+        if (v <= ~uint128{})
+        {
+            const auto res = udivrem(u, static_cast<uint128>(v));
+            return {res.quot, res.rem};
+        }
+        return {0, u};  // u < v.
+    }
+    else
+    {
+        // For equal sizes, a divisor with the top word set gives a single word quotient.
+        constexpr auto TOP1 = M == N;
+        // A divisor with one significant word less than the numerator gives a two word quotient.
+        // It needs at least 3 divisor words to form the normalized top 128 bits.
+        constexpr auto TOP2 = (uint<M>::num_words >= 4) &&
+                              (uint<M>::num_words - 1 == uint<N>::num_words - size_t{TOP1});
+
+        if constexpr (TOP1)
+        {
+            if (v[uint<N>::num_words - 1] != 0)
+                return internal::udivrem_top1<uint<N>::num_words - 1>(u, v);
+        }
+        if constexpr (TOP2)
+        {
+            constexpr auto TOP = uint<M>::num_words - 2;  // The top word index of v.
+            if (v[TOP] != 0)
+            {
+                // The quotient fits in a single word if the top word of u is less than v[TOP].
+                if (u[TOP + 1] < v[TOP])
+                    return internal::udivrem_top1<TOP>(u, v);
+                return internal::udivrem_top2<TOP + 1>(u, v);
+            }
+
+            // A divisor with two significant words less than u, the top one v[TOP - 1], also gives
+            // a two word quotient if the top word of u is less than v[TOP - 1].
+            if constexpr (TOP >= 3)
+            {
+                if (u[TOP + 1] < v[TOP - 1])
+                {
+                    // The quotient fits in a single word if u has at most TOP words.
+                    if ((u[TOP + 1] | u[TOP]) == 0)
+                    {
+                        if (u[TOP - 1] < v[TOP - 1])  // u < v.
+                            return {0, static_cast<uint<N>>(u)};
+                        return internal::udivrem_top1<TOP - 1>(u, v);
+                    }
+                    return internal::udivrem_top2<TOP>(u, v);
+                }
+                // With equal top words the quotient has up to 129 bits, e.g. addmod() with a
+                // modulus in [2^128, 2^129) and a carry. udivrem_top2() takes it for TOP 3.
+                if constexpr (TOP == 3)
+                {
+                    if (u[TOP + 1] == v[TOP - 1] && v[TOP - 1] != 0)
+                        return internal::udivrem_top2<TOP, true>(u, v);
+
+                    // A 1- or 2-word divisor: divide all words of u unless the top 2 are 0.
+                    if (v[TOP - 1] == 0 && (u[TOP + 1] != 0 || u[TOP] != 0))
+                    {
+                        if (v[TOP - 2] == 0)
+                        {
+                            if (v[0] == 0) [[unlikely]]
+                                return {0, 0};
+                            return internal::udivrem_by1<M, N>(as_words(u), v[0]);
+                        }
+                        return internal::udivrem_by2<M, N>(as_words(u), static_cast<uint128>(v));
+                    }
+                }
+            }
+        }
+        // The divisor words not checked above, at least 1.
+        constexpr auto UNCHECKED_WORDS = uint<N>::num_words - size_t{TOP1} - size_t{TOP2};
+        size_t n = UNCHECKED_WORDS;
+        while (n > 1 && v[n - 1] == 0)
+            --n;
+
+        // The number of significant words of the numerator, at least 1.
+        size_t m = uint<M>::num_words;
+        while (m > 1 && u[m - 1] == 0)
+            --m;
+
+        // The numerator words to divide: the m words and the word with the bits shifted out of the
+        // top by the normalization. That word is below the top divisor word, so the division can
+        // start from it. It is skipped if the top word of u is below the top word of v: then the
+        // shifted out bits are 0 and so is the top quotient word. No quotient words means u < v.
+        const auto num_numerator_words = m + size_t{u[m - 1] >= v[n - 1]};
+        if (num_numerator_words <= n)
+            return {0, static_cast<uint<N>>(u)};
+
+        static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
+        if (n == 1)  // Divide at least 2 words: the words above m are 0.
+        {
+            if (v[0] == 0) [[unlikely]]
+                return {0, 0};
+            return internal::udivrem_by1<M, N>(as_words(u).first(std::max(m, size_t{2})), v[0]);
+        }
+
+        // The max number of divisor words here: the divisors with more words are handled above,
+        // and the ones with more words than u are greater than u.
+        constexpr auto MAX_DIVISOR_WORDS = std::min(UNCHECKED_WORDS, uint<M>::num_words);
+        // The Knuth division handles divisors of at least 3 words.
+        constexpr auto KNUTH_REACHABLE = MAX_DIVISOR_WORDS >= 3;
+        if (!KNUTH_REACHABLE || n == 2)  // Divide at least 3 words: the words above m are 0.
+            return internal::udivrem_by2<M, N>(
+                as_words(u).first(std::max(m, size_t{3})), static_cast<uint128>(v));
+
+        if constexpr (KNUTH_REACHABLE)
+        {
+            const auto uw = as_words(u);
+            // If the max divisor has 4 words, e.g. 512/256 (mulmod()),
+            // use the 3- and 4-word instances.
+            if constexpr (MAX_DIVISOR_WORDS != 4)
+                return internal::udivrem_knuth<M, N>(uw, m, as_words(v).first(n));
+            else if (n == 3)
+                return internal::udivrem_knuth<M, N>(uw, m, as_words(v).template first<3>());
+            else
+                return internal::udivrem_knuth<M, N>(uw, m, as_words(v).template first<4>());
+        }
+    }
+}
+
+/// Divides u by v as signed numbers. A division by 0 gives 0 as the quotient and the remainder.
 template <unsigned N>
 constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
@@ -1648,6 +2259,7 @@ constexpr uint<N> bswap(const uint<N>& x) noexcept
 }
 
 
+/// Computes (x + y) % mod without the overflow of x + y. A modulus of 0 gives 0.
 constexpr uint256 addmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     // Fast path for mod >= 2^192, with x and y at most slightly bigger than mod.
@@ -1682,6 +2294,7 @@ constexpr uint256 addmod(const uint256& x, const uint256& y, const uint256& mod)
     return udivrem(n, mod).rem;
 }
 
+/// Computes (x * y) % mod with the 512-bit product. A modulus of 0 gives 0.
 constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     return udivrem(umul(x, y), mod).rem;
@@ -2298,4 +2911,8 @@ inline std::string hex(sint<N> x)
 
 #ifdef _MSC_VER
     #pragma warning(pop)
+#elif defined(__clang__)
+    #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+    #pragma GCC diagnostic pop
 #endif

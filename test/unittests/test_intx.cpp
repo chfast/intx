@@ -94,6 +94,12 @@ TYPED_TEST(uint_test, negation_overflow)
     EXPECT_EQ(-m, m);
 }
 
+TYPED_TEST(uint_test, carry_in)
+{
+    EXPECT_EQ(addc(~TypeParam{0}, TypeParam{0}, true).value, 0);
+    EXPECT_EQ(subc(TypeParam{0}, TypeParam{0}, true).value, ~TypeParam{0});
+}
+
 TYPED_TEST(uint_test, count_significant_words_64)
 {
     TypeParam x;
@@ -346,6 +352,25 @@ TYPED_TEST(uint_test, string_conversions)
         auto x = from_string<TypeParam>(s);
         EXPECT_EQ(x, v);
     }
+
+    // The most hex digits that fit.
+    EXPECT_EQ(from_string<TypeParam>("0x" + hex(~TypeParam{0})), ~TypeParam{0});
+}
+
+TYPED_TEST(uint_test, from_string_overflow)
+{
+    const auto max = std::numeric_limits<TypeParam>::max();
+    const auto dec = to_string(max);
+    const auto hex_digits = hex(max);
+    EXPECT_EQ(from_string<TypeParam>(dec), max);
+    EXPECT_EQ(from_string<TypeParam>("00" + dec), max);
+    EXPECT_EQ(from_string<TypeParam>("0x00" + hex_digits), max);
+
+    auto max_plus_1 = dec;  // The max() = 2^N - 1 ends with the digit 5.
+    ++max_plus_1.back();
+    for (const auto& s : {max_plus_1, std::string(dec.size(), '9'), dec + "0",
+             "0x1" + std::string(hex_digits.size(), '0')})
+        EXPECT_THROW_MESSAGE(from_string<TypeParam>(s), std::out_of_range, s.c_str());
 }
 
 TYPED_TEST(uint_test, to_string_base)
@@ -358,6 +383,24 @@ TYPED_TEST(uint_test, to_string_base)
     EXPECT_EQ(to_string(x, 36), "sg");
     EXPECT_EQ(to_string(x, 2), "10000000000");
     EXPECT_EQ(to_string(x, 8), "2000");
+    EXPECT_EQ(to_string(TypeParam{0}, 2), "0");
+    EXPECT_EQ(to_string(TypeParam{0}), "0");
+    EXPECT_EQ(hex(TypeParam{0}), "0");
+    EXPECT_EQ(hex(TypeParam{0xfedcba9876543210}), "fedcba9876543210");
+    EXPECT_EQ(hex(TypeParam{1} << 64), "1" + std::string(16, '0'));
+    EXPECT_EQ(hex((TypeParam{1} << 64) | 1), "1" + std::string(15, '0') + "1");
+
+    // Decimal: two chunks of 19 digits, without and with a leading digit.
+    const auto e38 = TypeParam{10000000000000000000u} * 10000000000000000000u;
+    EXPECT_EQ(to_string(e38 - 1), std::string(38, '9'));
+    EXPECT_EQ(to_string(e38), "1" + std::string(38, '0'));
+
+    // Numbers of multiple chunks of digits.
+    constexpr auto num_bits = TypeParam::num_bits;
+    const auto max = ~TypeParam{0};
+    EXPECT_EQ(hex(max), std::string(num_bits / 4, 'f'));
+    EXPECT_EQ(hex(TypeParam{1} << (num_bits - 1)), "8" + std::string(num_bits / 4 - 1, '0'));
+    EXPECT_EQ(to_string(max, 2), std::string(num_bits, '1'));
 }
 
 TYPED_TEST(uint_test, as_bytes)
