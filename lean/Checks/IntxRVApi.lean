@@ -3,6 +3,8 @@ import Checks.IntxRV
 import IntxRV.Api
 import IntxRV.EnvM
 set_option warningAsError true
+-- rv_nonvacuous evaluates the addresses of all the words of the buffers.
+set_option maxRecDepth 100000
 
 /-! The specification of every instance of IntxRV/Api.cpp has a proof, and its
 assumptions hold in an environment (they are not vacuous). -/
@@ -77,6 +79,12 @@ example : ∃ x, IntxRV.Api.udivrem_2by1.pre x := IntxRV.Api.udivrem_2by1.nonvac
 
 example : IntxRV.Api.umul.spec := IntxRV.Api.umul.proof
 #check_rv_axioms IntxRV.Api.umul.proof
+
+example : IntxRV.Api.umul_256.spec := IntxRV.Api.umul_256.proof
+#check_rv_axioms IntxRV.Api.umul_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.umul_256_code IntxRV.Api.umul_256.bufs IntxRV.Api.umul_256.pre := by
+  rv_nonvacuous using [IntxRV.Api.umul_256.bufs, IntxRV.Api.umul_256.pre, IntxRV.Gen.umul_256_code]
 
 example : IntxRV.Api.xor_256.spec := IntxRV.Api.xor_256.proof
 #check_rv_axioms IntxRV.Api.xor_256.proof

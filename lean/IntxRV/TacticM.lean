@@ -73,8 +73,8 @@ macro "rv_runm" d:term " with " c:ident p:ident " using " "[" ls:Lean.Parser.Tac
     calleeSaved,
         List.mem_cons,
     List.not_mem_nil, forall_eq_or_imp, forall_eq, or_false, ↓reduceIte, and_true, true_and]
-  all_goals try simp (disch := bv_omega) only [memWord_memStore_self, memWord_memStore_of_ne,
-    unchangedExcept_memStore, unchangedExcept_refl, and_true, true_and]
+  all_goals try simp (disch := first | bv_omega | fail) only [memWord_memStore_self,
+    memWord_memStore_of_ne, unchangedExcept_memStore, unchangedExcept_refl, and_true, true_and]
   -- The model as BitVec operations.
   all_goals try simp only [ofBitVec_eq_iff, addc, subc, UInt64.toBitVec_add,
     UInt64.toBitVec_sub, apply_ite UInt64.toBitVec, UInt64.lt_iff_toBitVec_lt,

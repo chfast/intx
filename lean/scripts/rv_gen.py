@@ -4,15 +4,17 @@
 # Licensed under the Apache License, Version 2.0.
 """Generates the machine code of IntxRV/Gen/Code.lean from IntxRV/Api.cpp.
 
-  rv_gen.py OUT_DIR OBJECT...
+  rv_gen.py OUT_DIR STACK_JSON OBJECT...
 
 The OBJECTs are compiled for RV64 (see scripts/rv_build.sh). For every [[gnu::used]] pointer
-variable `p` of them pointing to a function `f`, IntxRV/Gen/Code.lean gets `Gen.p_code`: the words of the machine code of `f`, `Gen.p_prog`: their instructions, and
-`Gen.p_decodes`: the proof that the decoder of the Sail model decodes the words to them. The
-machine code must be position-independent and self-contained: the section of `f` must have no
-relocations.
+variable `p` of them pointing to a function `f`, IntxRV/Gen/Code.lean gets `Gen.p_code`: the words
+of the machine code of `f`, `Gen.p_prog`: their instructions, and `Gen.p_decodes`: the proof that
+the decoder of the Sail model decodes the words to them. The machine code must be
+position-independent and self-contained: the section of `f` must have no relocations. STACK_JSON
+gets the bytes of the stack that each function uses below sp, for scripts/rv_api.py.
 """
 
+import json
 import re
 import struct
 import sys
@@ -164,8 +166,22 @@ def decode(w):
 
 
 
+def stack_size(var, code):
+    """The bytes of the stack below sp that the function uses: the frame that the first
+    instruction `addi sp, sp, -F` allocates, or 0."""
+    w = code[0]
+    if w & 0xfffff == 0x10113:  # addi sp, sp, imm
+        imm = sext(w >> 20, 12)
+        if imm >= 0 or -imm % 16:
+            sys.exit(f"{var}: unexpected stack frame {imm}")
+        return -imm
+    if any(w & 0xf8000 == 0x10000 and w & 0x7f in (0x03, 0x23) for w in code):  # base sp
+        sys.exit(f"{var}: uses the stack without a frame")
+    return 0
+
+
 def main():
-    out, *objs = map(Path, sys.argv[1:])
+    out, stack_json, *objs = map(Path, sys.argv[1:])
     targets, funcs = {}, {}
     for obj in objs:
         data = obj.read_bytes()
@@ -205,6 +221,8 @@ def main():
                   f"  decodes_of (by rfl) fun",
                   cases, f"  | _ + {len(code)}, hk, _ => absurd hk (by simp [{var}_code])", "", ""]
     lines += ["end IntxRV.Gen", ""]
+    stack_json.write_text(json.dumps({var: stack_size(var, code) for var, code in funcs.items()},
+                                     indent=1) + "\n")
     (out / "IntxRV" / "Gen").mkdir(parents=True, exist_ok=True)
     (out / "IntxRV" / "Gen" / "Code.lean").write_text("\n".join(lines))
 

@@ -415,6 +415,46 @@ def spec : Prop := Runs umul_code pre post
 end umul
 
 
+/-! ## `umul_256`: `umul` (intx.hpp:1534)
+
+The full product.
+
+@post result = x * y
+-/
+
+namespace umul_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 11#5) 4 ++
+    bufWords (x 12#5) 4 ++
+    bufWords (x 10#5) 8 ++
+    bufWords (x 2#5 - 160#64) 20
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 64 ∧
+    Buf (x 11#5) 32 ∧
+    Buf (x 12#5) 32 ∧
+    Disjoint (x 10#5) 64 (x 11#5) 32 ∧
+    Disjoint (x 10#5) 64 (x 12#5) 32 ∧
+    Buf (x 2#5 - 160#64) 160 ∧
+    Disjoint (x 2#5 - 160#64) 160 (x 11#5) 32 ∧
+    Disjoint (x 2#5 - 160#64) 160 (x 12#5) 32 ∧
+    Disjoint (x 2#5 - 160#64) 160 (x 10#5) 64
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (x : Nat) (y : Nat) =>
+      result = x * y)
+      512 (words m' (x 10#5) 8) (words m (x 11#5) 4) (words m (x 12#5) 4) ∧
+    UnchangedExcept2 m m' (x 10#5) 64 (x 2#5 - 160#64) 160 ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `umul_256`. -/
+def spec : Prop := RunsM umul_256_code bufs pre post
+
+end umul_256
+
+
 /-! ## `xor_256`: `operator^` (intx.hpp:1311)
 
 @post result = x ^^^ y

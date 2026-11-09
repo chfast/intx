@@ -1528,6 +1528,8 @@ inline const uint8_t* as_bytes(const T& x) noexcept
     return reinterpret_cast<const uint8_t*>(&x);
 }
 
+/// The full product.
+/// @post result = x * y
 template <unsigned N>
 constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
