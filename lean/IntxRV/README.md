@@ -65,11 +65,14 @@ friend constexpr uint operator+(const uint& x, const uint& y) noexcept
 that calls the function; the generator finds the function in the AST, and so binds the machine
 code of the instance to the documentation of the function. `Api.p.spec` states the specification
 for the machine code of the instance `p` for the RISC-V calling convention: a `uint64_t` or
-`bool` is in one register, a `uint128` in two, a `const uint<N>&` argument is the address of its
-words in the next argument register, a `uint<N>` result wider than 128 bits is written to the
-buffer at the address in a0 (`sret`), a `bool` is 0 or 1. With registers only the specification
-is a `Runs`; with memory a `RunsM` (in [`RunM.lean`](RunM.lean)), the `Runs` with memory: the
-buffers are aligned, do not wrap around and the result does not overlap the arguments; the
+`bool` is in one register, a `uint128` in two, an `unsigned` is its 32 bits sign-extended to the
+register (the code may test the whole register), a `const uint<N>&` argument or a
+`std::span<const uint64_t, n>` is the address of its words in the next argument register, a
+`uint<N>` result wider than 128 bits is written to the buffer at the address in a0 (`sret`), a
+`bool` is 0 or 1. A `std::span<uint64_t, n>` parameter of a `void` function is the buffer it
+writes: its name stands for its value at the return, and `N` for its width. With registers only
+the specification is a `Runs`; with memory a `RunsM` (in [`RunM.lean`](RunM.lean)), the `Runs`
+with memory: the buffers are aligned, do not wrap around and the result does not overlap the arguments; the
 memory outside the result is unchanged. A function with a stack frame gets the frame below sp as
 one more buffer that overlaps no other, and the memory outside the result and the frame is
 unchanged.
@@ -93,7 +96,9 @@ run. The specification then follows from the definitions by `rv_arith`
 ([`Arith.lean`](Arith.lean)): the carries and the words of the products as exact linear facts,
 the sums that cannot overflow by `omega` from the facts they depend on, and the result by
 `linarith`. `umul()` of `uint256` ([`Api/Mul.lean`](Api/Mul.lean)), the full 512-bit product
-with its stack frame, is proved this way directly from its specification, without a model.
+with its stack frame, is proved this way directly from its specification, without a model;
+`shl<9, 8>()` ([`Api/Shl.lean`](Api/Shl.lean)), the shift of a 512-bit number, through the model
+`Intx.Model.shl` and its proof.
 
 ### Memory
 

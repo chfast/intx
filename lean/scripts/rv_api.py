@@ -127,7 +127,15 @@ def signature(var, inst, spec):
     """The result type and the parameter types of the instance `var`."""
     m = re.fullmatch(r"(.+?) \((.*)\)(?: noexcept)?", inst["type"])
     ret = norm_type(m.group(1))
-    args = [norm_type(a) for a in m.group(2).split(",") if a.strip()]
+    args, depth, cur = [], 0, ""
+    for ch in m.group(2) + ",":  # Split at the commas outside of the template arguments.
+        depth += {"<": 1, ">": -1}.get(ch, 0)
+        if ch == "," and depth == 0:
+            if cur.strip():
+                args.append(norm_type(cur))
+            cur = ""
+        else:
+            cur += ch
     if len(args) != len(spec["params"]):
         sys.exit(f"{var}: the parameters do not match the declaration")
     return ret, args
@@ -168,59 +176,82 @@ def spec_rv(var, inst, spec, stack):
     uses `stack` bytes below sp."""
     ret, args = signature(var, inst, spec)
     reg = 10  # The arguments are in a0 (x10), a1 (x11), ...
-    bufs, pre, values = [], [], []
+    bufs, pre, values, post_values = [], [], [], []
     ret_width = uint_width(ret)
+    outs, ins = [], []  # The buffers (register, width) written and read.
     if ret_width is not None and ret_width > 128:
         if ret_width % 64:
             sys.exit(f"{var}: unsupported result type {ret}")
-        result_reg, reg = reg, reg + 1  # The result is returned in memory at a0 (sret).
-    elif ret not in REG_RESULTS:
+        outs.append((reg, ret_width))  # The result is returned in memory at a0 (sret).
+        reg += 1
+    elif ret != "void" and ret not in REG_RESULTS:
         sys.exit(f"{var}: unsupported result type {ret}")
-    widths = []
     for name, t in zip(spec["params"], args):
         w = uint_width(t)
+        span = re.fullmatch(r"std::span<(const )?uint64_t, (\d+)UL>", t)
         if t == "uint64_t":
-            values.append((name, "Nat", f"(x {reg}#5).toNat"))
+            v = (name, "Nat", f"(x {reg}#5).toNat")
+            reg += 1
+        elif t == "unsigned int":
+            # The calling convention: the 32 bits sign-extended to the register.
+            pre.append(f"x {reg}#5 = ((x {reg}#5).setWidth 32).signExtend 64")
+            v = (name, "Nat", f"(x {reg}#5).toNat % 2 ^ 32")
             reg += 1
         elif t == "bool":
             pre.append(f"(x {reg}#5 = 0 ∨ x {reg}#5 = 1)")
-            values.append((name, "Bool", f"decide (x {reg}#5 = 1)"))
+            v = (name, "Bool", f"decide (x {reg}#5 = 1)")
             reg += 1
         elif t == "uint128":
-            values.append((name, "Nat", f"(x {reg}#5).toNat + 2 ^ 64 * (x {reg + 1}#5).toNat"))
+            v = (name, "Nat", f"(x {reg}#5).toNat + 2 ^ 64 * (x {reg + 1}#5).toNat")
             reg += 2
-        elif w is not None and t.endswith("&") and w % 64 == 0:
-            bufs.append(f"bufWords (x {reg}#5) {w // 64}")
-            pre.append(f"Buf (x {reg}#5) {w // 8}")
-            values.append((name, "Nat", f"words m (x {reg}#5) {w // 64}"))
-            widths.append((reg, w))
+        elif (w is not None and t.endswith("&") and w % 64 == 0) or (span and span[1]):
+            w = w or 64 * int(span[2])
+            ins.append((reg, w))
+            v = (name, "Nat", f"words m (x {reg}#5) {w // 64}")
             reg += 1
+        elif span:
+            # The words a function writes: the name stands for their value at the return.
+            w = 64 * int(span[2])
+            outs.append((reg, w))
+            values.append((name, "Nat", f"words m (x {reg}#5) {w // 64}"))
+            post_values.append((name, "Nat", f"words m' (x {reg}#5) {w // 64}"))
+            reg += 1
+            continue
         else:
             sys.exit(f"{var}: unsupported parameter type {t}")
+        values.append(v)
+        post_values.append(v)
+    if len(outs) > 1:
+        sys.exit(f"{var}: more than one result buffer")
+    bufs += [f"bufWords (x {r}#5) {w // 64}" for r, w in ins + outs]
+    pre[:0] = [f"Buf (x {r}#5) {w // 8}" for r, w in outs + ins]
+    for r, w in outs:
+        for r2, w2 in ins:
+            pre.append(f"Disjoint (x {r}#5) {w // 8} (x {r2}#5) {w2 // 8}")
     sp = f"(x 2#5 - {stack}#64)"  # The stack frame, below sp.
-    if ret_width is not None and ret_width > 128:
-        bufs.append(f"bufWords (x {result_reg}#5) {ret_width // 64}")
-        pre.insert(0, f"Buf (x {result_reg}#5) {ret_width // 8}")
-        for r, w in widths:
-            pre.append(f"Disjoint (x {result_reg}#5) {ret_width // 8} (x {r}#5) {w // 8}")
-        result = ("Nat", f"(words m' (x {result_reg}#5) {ret_width // 64})")
-        res = f"(x {result_reg}#5) {ret_width // 8}"
-        frame = [f"UnchangedExcept2 m m' {res} {sp} {stack}" if stack else
-                 f"UnchangedExcept m m' {res}"]
-        widths.append((result_reg, ret_width))
+    if outs:
+        r, w = outs[0]
+        out = f"(x {r}#5) {w // 8}"
+        frame = [f"UnchangedExcept2 m m' {out} {sp} {stack}" if stack else
+                 f"UnchangedExcept m m' {out}"]
     else:
-        t, v, frame = REG_RESULTS[ret]
+        frame = ([f"UnchangedExcept m m' {sp} {stack}"] if stack else ["m' = m"] if bufs else [])
+    if ret_width is not None and ret_width > 128:
+        result = ("Nat", f"(words m' (x {outs[0][0]}#5) {ret_width // 64})")
+    elif ret == "void":
+        result = None
+    else:
+        t, v, rframe = REG_RESULTS[ret]
         result = (t, v)
-        frame = frame + ([f"UnchangedExcept m m' {sp} {stack}"] if stack else
-                         ["m' = m"] if bufs else [])
+        frame = rframe + frame
     if stack:
         bufs.append(f"bufWords {sp} {stack // 8}")
         pre.append(f"Buf {sp} {stack}")
-        for r, w in widths:
+        for r, w in ins + outs:
             pre.append(f"Disjoint {sp} {stack} (x {r}#5) {w // 8}")
-    width = ret_width or uint_width(args[0]) or 64
+    width = ret_width or (outs[0][1] if outs else None) or uint_width(args[0]) or 64
     pre += [apply(p, width, None, values) for p in spec["pre"]]
-    post = [apply(p, width, result, values) for p in spec["post"]] + frame + [
+    post = [apply(p, width, result, post_values) for p in spec["post"]] + frame + [
         "∀ i ∈ calleeSaved, x' i = x i"]
     lines = header(var, spec)
     if bufs:
@@ -237,7 +268,8 @@ def spec_rv(var, inst, spec, stack):
                   "def post (x x' : Regs) : Prop :=\n  " + " ∧\n    ".join(post), "",
                   f"/-- The specification of the machine code of `{var}`. -/",
                   f"def spec : Prop := Runs {var}_code pre post"]
-    return lines + ["", f"end {var}", "", ""], bool(bufs), bool(pre)
+    regs = sorted(r for r, _ in outs + ins) if bufs else None
+    return lines + ["", f"end {var}", "", ""], regs, bool(pre)
 
 
 def spec_model(var, inst, spec):
@@ -300,10 +332,11 @@ def main():
         lines += spec_lines
         a = f"IntxRV.Api.{var}"
         checks += [f"example : {a}.spec := {a}.proof", f"#check_rv_axioms {a}.proof"]
-        if mem:
+        if mem is not None:
             checks += ["example :", f"    IntxRV.NonVacuous IntxRV.Gen.{var}_code {a}.bufs "
                        f"{a}.pre := by",
-                       f"  rv_nonvacuous using [{a}.bufs, {a}.pre, IntxRV.Gen.{var}_code]", ""]
+                       f"  rv_nonvacuous {mem} using [{a}.bufs, {a}.pre, IntxRV.Gen.{var}_code]",
+                       ""]
         elif has_pre:
             checks += [f"example : ∃ x, {a}.pre x := {a}.nonvacuous", ""]
         else:
