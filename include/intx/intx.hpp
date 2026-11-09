@@ -1703,12 +1703,13 @@ constexpr uint128 udivrem_by2(std::span<uint64_t, Q> q,
     uint128 rem;         // The normalized remainder.
     if (u[top] <= d[1])  // The top quotient word is 0 or 1: subtract d at most once.
     {
-        auto t = uint128{u[top - 1], u[top]};
+        const auto t = uint128{u[top - 1], u[top]};
+        // The difference is selected, not branched to: t >= d can be random for chosen operands.
         const bool ge = t >= d;
-        if (ge)
-            t -= d;
+        const auto td = t - d;
+        const uint128 r{ge ? td[0] : t[0], ge ? td[1] : t[1]};
         q[top - 1] = ge;
-        rem = {fshl(t[0], u[top - 2], s), fshl(t[1], t[0], s)};
+        rem = {fshl(r[0], u[top - 2], s), fshl(r[1], r[0], s)};
     }
     else  // Divide also the bits shifted out of u.
     {
