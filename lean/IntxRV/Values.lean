@@ -115,4 +115,21 @@ theorem itypeVal_andi (imm : BitVec 12) (a : BitVec 64) :
 theorem itypeVal_ori (imm : BitVec 12) (a : BitVec 64) :
     itypeVal .ORI imm a = a ||| imm.signExtend 64 := rfl
 
+theorem extractLsb_5_toNat (b : BitVec 64) : (BitVec.extractLsb 5 0 b).toNat = b.toNat % 64 := by
+  simp [BitVec.extractLsb]
+theorem rtypeVal_sll (a b : BitVec 64) : rtypeVal .SLL a b = a <<< (b.toNat % 64) := by
+  simp [rtypeVal, shift_bits_left, Sail.BitVec.extractLsb, Functions.log2_xlen,
+    Sail.shift_bits_left]
+  exact congrArg (fun n => a <<< n) (extractLsb_5_toNat b)
+theorem rtypeVal_srl (a b : BitVec 64) : rtypeVal .SRL a b = a >>> (b.toNat % 64) := by
+  simp [rtypeVal, shift_bits_right, Sail.BitVec.extractLsb, Functions.log2_xlen,
+    Sail.shift_bits_right]
+  exact congrArg (fun n => a >>> n) (extractLsb_5_toNat b)
+theorem rtypewVal_subw (a b : BitVec 64) :
+    rtypewVal .SUBW a b = (a.setWidth 32 - b.setWidth 32).signExtend 64 := by
+  have ha : Sail.BitVec.extractLsb a 31 0 = a.setWidth 32 := BitVec.eq_of_toNat_eq rfl
+  have hb : Sail.BitVec.extractLsb b 31 0 = b.setWidth 32 := BitVec.eq_of_toNat_eq rfl
+  simp only [rtypewVal, ha, hb]
+  rfl
+
 end IntxRV

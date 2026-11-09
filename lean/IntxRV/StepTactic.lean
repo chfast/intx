@@ -22,6 +22,12 @@ theorem Regs.get_set (x : Regs) (i j : BitVec 5) (v : BitVec 64) :
 
 theorem Regs.get_zero (x : Regs) : x.get 0 = 0 := rfl
 
+/-- `seqz`: `sltiu rd, rs, 1`. -/
+theorem itypeVal_seqz (a : BitVec 64) :
+    itypeVal .SLTIU 1#12 a = if a = 0#64 then 1#64 else 0#64 := by
+  rw [itypeVal_sltiu]
+  by_cases h : a = 0#64 <;> simp [h] <;> bv_omega
+
 /-- A register of the start: the specifications read `x i`, the runs `x.get i`. -/
 theorem Regs.eq_get (x : Regs) {i : BitVec 5} (h : i ≠ 0) : x i = x.get i := by
   unfold Regs.get; rw [if_neg h]
@@ -36,9 +42,11 @@ macro "rv_val" loc:(Lean.Parser.Tactic.location)? : tactic => `(tactic| (
   simp (config := { decide := true }) (disch := first | bv_omega | fail) only [Regs.get_set,
     Regs.get_zero, ↓reduceIte, memWord_memStore_of_ne,
     rtypeVal_add, rtypeVal_sub, rtypeVal_and, rtypeVal_or, rtypeVal_xor, rtypeVal_sltu,
-    itypeVal_addi, itypeVal_xori, itypeVal_andi, itypeVal_ori, itypeVal_sltiu, shiftiopVal_srli,
+    rtypeVal_sll, rtypeVal_srl, rtypewVal_subw,
+    itypeVal_addi, itypeVal_xori, itypeVal_andi, itypeVal_ori, itypeVal_seqz, shiftiopVal_srli,
     mulVal_lo, mulVal_hu, BitVec.reduceSignExtend, BitVec.add_zero, BitVec.add_assoc,
-    BitVec.reduceAdd, memWord_memStore_self] $(loc)?))
+    BitVec.reduceAdd, memWord_memStore_self, btypeTaken, beq_iff_eq, bne_iff_ne, ne_eq,
+    Bool.not_eq_true, decide_eq_true_eq, decide_eq_false_iff_not] $(loc)?))
 
 theorem Reach.start {A : List (BitVec 64)} {prog : List instruction} {base tgt : BitVec 64}
     {x : Regs} {m : Mem} {Q : Regs → Mem → Prop} (h : Reach A prog base (pcAt base 0) x m tgt Q) :
@@ -57,13 +65,14 @@ macro "rv_mem" : tactic => `(tactic| (
 /-- Runs one instruction. -/
 macro "rv_step" : tactic => `(tactic| (
   refine Reach.step (by decide) rfl ?_
-  simp only [StepGoal, Nat.reduceAdd, true_and]
+  simp only [StepGoal, Nat.reduceAdd, true_and, jumpIdx, BitVec.reduceToInt, Nat.reduceMul,
+    Int.reduceAdd, Int.reduceToNat, Nat.reduceDiv, Nat.cast_ofNat]
   first
+  | refine ⟨by decide, fun hb => ?_, fun hb => ?_⟩ <;> rv_val at hb
+  | refine ⟨fun hb => ?_, fun hb => ?_⟩ <;> rv_val at hb
   | refine ⟨by rv_mem, fun w hw => ?_⟩; rv_val at hw
   | refine ⟨by rv_mem, ?_⟩
-  | refine ⟨by decide, fun hb => ?_, fun hb => ?_⟩ <;>
-      simp only [jumpIdx, BitVec.reduceToInt, Nat.reduceMul, Int.reduceAdd, Int.reduceToNat,
-        Nat.reduceDiv, Nat.cast_ofNat] at *
+  | refine ⟨by decide, ?_⟩
   | intro w hw; rv_val at hw
   | (show Reach _ _ _ _ _ _ _ _; rv_val)))
 

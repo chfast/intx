@@ -1,5 +1,6 @@
 import IntxRV.Words
 import IntxRV.Values
+import Intx.Proofs.Words
 /-!
 # Models of the uint256 operators
 
@@ -155,5 +156,58 @@ theorem zero_lt_iff (a : BitVec 64) : 0#64 < a ↔ ¬a = 0#64 := by
 theorem ite_and_ite (p q : Prop) [Decidable p] [Decidable q] :
     ((if p then 1#64 else 0#64) &&& if q then 1#64 else 0#64) = if p ∧ q then 1#64 else 0#64 := by
   by_cases p <;> by_cases q <;> simp_all
+
+/-- The words of `w * 2 ^ s`, `w` of 8 words: the funnel shifts of the words of `w`. -/
+theorem val_shl_words (w r : List Word) (hw : w.length = 8) (hr : r.length = 9) (s : Nat)
+    (hs : s < 64)
+    (h : ∀ i (hi : i < 9), r[i].toNat =
+      if i = 0 then w[0].toNat * 2 ^ s % 2 ^ 64
+      else if h : i < 8 then w[i].toNat * 2 ^ s % 2 ^ 64 + w[i - 1].toNat / 2 ^ (64 - s)
+      else 0 * 2 ^ s % 2 ^ 64 + w[7].toNat / 2 ^ (64 - s)) :
+    val r = val w * 2 ^ s % 2 ^ 576 := by
+  let xv : Vector Word 8 := ⟨w.toArray, by simpa using hw⟩
+  have hsp := shl_spec 9 xv ⟨s, hs⟩ (by omega) (by omega)
+  have hx : xv.toList = w := by simp [xv]
+  rw [hx] at hsp
+  rw [← hsp]
+  congr 1
+  apply List.ext_getElem (by simp [hr])
+  intro i h1 h2
+  apply UInt64.toNat_inj.mp
+  rw [h i (by omega), Vector.getElem_toList, shl_getElem]
+  split_ifs with h0 h3
+  · subst h0
+    simp only [xv, UInt64.toNat_shiftLeft, Nat.shiftLeft_eq, Nat.toUInt64_eq, UInt64.toNat_ofNat']
+    rw [Nat.mod_eq_of_lt (show s < 2 ^ 64 by omega), Nat.mod_eq_of_lt (show s < 64 by omega)]
+    rfl
+  · rw [toNat_fshl]; rfl
+  · rw [toNat_fshl]; rfl
+/-- An `unsigned` argument less than 2^31 in a register, sign-extended by the calling
+convention: the register is its value. -/
+theorem toNat_of_signExtend {v : BitVec 64} (h : v = (v.setWidth 32).signExtend 64)
+    (hs : v.toNat % 2 ^ 32 < 2 ^ 31) : v.toNat = v.toNat % 2 ^ 32 := by
+  have hm : (v.setWidth 32).msb = false := by
+    rw [BitVec.msb_eq_false_iff_two_mul_lt, BitVec.toNat_setWidth]; omega
+  rw [h, BitVec.signExtend_eq_setWidth_of_msb_false hm]
+  simp; omega
+
+theorem subw_64_toNat (s : BitVec 64) (hs : s.toNat < 64) :
+    (64#32 - s.setWidth 32).signExtend 64 = 64#64 - s := by
+  have hm : (64#32 - s.setWidth 32).msb = false := by
+    rw [BitVec.msb_eq_false_iff_two_mul_lt, BitVec.toNat_sub, BitVec.toNat_setWidth]
+    simp; omega
+  rw [BitVec.signExtend_eq_setWidth_of_msb_false hm]
+  apply BitVec.eq_of_toNat_eq
+  simp [BitVec.toNat_sub]; omega
+
+/-- The funnel shift of `a:b` left by `s`, as a number. -/
+theorem toNat_funnel (a b : BitVec 64) (s : Nat) (h0 : 0 < s) (h : s < 64) :
+    ((a <<< s) ||| (b >>> (64 - s))).toNat = a.toNat * 2 ^ s % 2 ^ 64 + b.toNat / 2 ^ (64 - s) := by
+  have e64 : (2 : Nat) ^ 64 = 2 ^ s * 2 ^ (64 - s) := by rw [← pow_add]; congr 1; omega
+  have hb : b.toNat / 2 ^ (64 - s) < 2 ^ s := by
+    rw [Nat.div_lt_iff_lt_mul (by positivity), ← e64]; exact b.isLt
+  rw [BitVec.toNat_or, BitVec.toNat_shiftLeft, BitVec.toNat_ushiftRight, Nat.shiftLeft_eq,
+    Nat.shiftRight_eq_div_pow, e64, Nat.mul_comm a.toNat, Nat.mul_mod_mul_left,
+    ← Nat.two_pow_add_eq_or_of_lt hb]
 
 end IntxRV

@@ -8,7 +8,7 @@ import IntxRV.Words
 (`WordOk`), present in the memory and outside the code. `envM_exists` builds such an environment:
 a machine with 4 KiB of RAM at 0x80000000 and no other memory. `api_nonvacuous` shows that the
 assumptions of a specification hold there: `NonVacuous`, proved by `rv_nonvacuous` with the
-buffers of the arguments at 0x80000000, 0x80000040, ... (Checks/IntxRVApi.lean).
+buffers of the arguments at 0x80000000, 0x80000100, ... (Checks/IntxRVApi.lean).
 -/
 
 open Sail Sail.ConcurrencyInterfaceV1 PreSail
@@ -94,18 +94,18 @@ def NonVacuous (code : Code) (bufs : Regs → List (BitVec 64)) (pre : Regs → 
     (∀ a ∈ bufs x, WordOk val a ∧ Present S.mem a ∧
       (a.toNat + 8 ≤ 0x1000 ∨ 0x1000 + 4 * code.length ≤ a.toNat)) ∧ pre x S.mem
 
-/-- The registers with the buffers of the arguments in the RAM, 64 bytes for each of a0 to a3, and
-the stack pointer sp at the end of the RAM. -/
-def ramArgs (i : BitVec 5) : BitVec 64 :=
-  if 10 ≤ i.toNat ∧ i.toNat < 14 then 0x80000000#64 + 0x40#64 * (i.toNat - 10 : Nat)
+/-- The registers with the buffers of the argument registers `rs` in the RAM, 256 bytes for each
+of a0 to a3, the stack pointer sp at the end of the RAM, and the other registers 0. -/
+def ramArgs (rs : List Nat) (i : BitVec 5) : BitVec 64 :=
+  if i.toNat ∈ rs then 0x80000000#64 + 0x100#64 * (i.toNat - 10 : Nat)
   else if i = 2 then 0x80001000#64 else 0
 
-/-- Proves `NonVacuous code bufs pre` with the RAM of `envM_exists` and `ramArgs`; `ls` are the
-definitions of `bufs` and `pre`. -/
-macro "rv_nonvacuous" " using " "[" ls:Lean.Parser.Tactic.simpLemma,* "]" : tactic =>
+/-- Proves `NonVacuous code bufs pre` with the RAM of `envM_exists` and `ramArgs rs`, `rs` the
+registers of the buffers; `ls` are the definitions of `bufs` and `pre`. -/
+macro "rv_nonvacuous" rs:term " using " "[" ls:Lean.Parser.Tactic.simpLemma,* "]" : tactic =>
   `(tactic| (
   obtain ⟨S, val, e, -, hw⟩ := envM_exists
-  refine ⟨S, val, ramArgs, e, ?_, ?_⟩
+  refine ⟨S, val, ramArgs $rs, e, ?_, ?_⟩
   · simp (config := { decide := true }) only [ramArgs, bufWords, List.forall_mem_append,
       List.forall_mem_cons, List.forall_mem_nil, and_true, $ls,*]
     repeat' apply And.intro

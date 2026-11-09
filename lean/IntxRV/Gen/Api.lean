@@ -9,7 +9,7 @@ set_option linter.unusedVariables false
 namespace IntxRV.Api
 open IntxRV.Gen
 
-/-! ## `add_256`: `operator+` (intx.hpp:1225)
+/-! ## `add_256`: `operator+` (intx.hpp:1227)
 
 The sum modulo 2^N.
 
@@ -69,7 +69,7 @@ def spec : Prop := Runs addc_code pre post
 end addc
 
 
-/-! ## `and_256`: `operator&` (intx.hpp:1300)
+/-! ## `and_256`: `operator&` (intx.hpp:1302)
 
 @post result = x &&& y
 -/
@@ -102,7 +102,7 @@ def spec : Prop := RunsM and_256_code bufs pre post
 end and_256
 
 
-/-! ## `eq_256`: `operator==` (intx.hpp:1322)
+/-! ## `eq_256`: `operator==` (intx.hpp:1324)
 
 @post result <-> x = y
 -/
@@ -222,7 +222,7 @@ def spec : Prop := RunsM le_256_code bufs pre post
 end le_256
 
 
-/-! ## `lt_256`: `operator<` (intx.hpp:1331)
+/-! ## `lt_256`: `operator<` (intx.hpp:1333)
 
 @post result <-> x < y
 -/
@@ -252,7 +252,7 @@ def spec : Prop := RunsM lt_256_code bufs pre post
 end lt_256
 
 
-/-! ## `or_256`: `operator|` (intx.hpp:1289)
+/-! ## `or_256`: `operator|` (intx.hpp:1291)
 
 @post result = x ||| y
 -/
@@ -285,7 +285,44 @@ def spec : Prop := RunsM or_256_code bufs pre post
 end or_256
 
 
-/-! ## `slt_256`: `slt` (intx.hpp:1496)
+/-! ## `shl_9_8`: `shl` (intx.hpp:598)
+
+Left-shifts a little-endian word array x by shift bits and stores the result in r. The r must have the same size as x, or one word more to also receive the bits shifted out. The r may alias x. The shift must be less than 64.
+
+@pre shift < 64
+@post r = x * 2 ^ shift % 2 ^ N
+-/
+
+namespace shl_9_8
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 11#5) 8 ++
+    bufWords (x 10#5) 9
+
+def pre (x : Regs) (m : Mem) : Prop :=
+  Buf (x 10#5) 72 ∧
+    Buf (x 11#5) 64 ∧
+    x 12#5 = ((x 12#5).setWidth 32).signExtend 64 ∧
+    Disjoint (x 10#5) 72 (x 11#5) 64 ∧
+    (fun (N : Nat) (r : Nat) (x : Nat) (shift : Nat) =>
+      shift < 64)
+      576 (words m (x 10#5) 9) (words m (x 11#5) 8) ((x 12#5).toNat % 2 ^ 32)
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (r : Nat) (x : Nat) (shift : Nat) =>
+      r = x * 2 ^ shift % 2 ^ N)
+      576 (words m' (x 10#5) 9) (words m (x 11#5) 8) ((x 12#5).toNat % 2 ^ 32) ∧
+    UnchangedExcept m m' (x 10#5) 72 ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `shl_9_8`. -/
+def spec : Prop := RunsM shl_9_8_code bufs pre post
+
+end shl_9_8
+
+
+/-! ## `slt_256`: `slt` (intx.hpp:1498)
 
 Signed less than comparison. Interprets the arguments as two's complement signed integers and checks the "less than" relation.
 
@@ -317,7 +354,7 @@ def spec : Prop := RunsM slt_256_code bufs pre post
 end slt_256
 
 
-/-! ## `sub_256`: `operator-` (intx.hpp:1236)
+/-! ## `sub_256`: `operator-` (intx.hpp:1238)
 
 The difference modulo 2^N.
 
@@ -352,7 +389,7 @@ def spec : Prop := RunsM sub_256_code bufs pre post
 end sub_256
 
 
-/-! ## `udivrem_2by1`: `udivrem_2by1` (intx.hpp:826)
+/-! ## `udivrem_2by1`: `udivrem_2by1` (intx.hpp:828)
 
 Divides u by the normalized d with its reciprocal v (Moller and Granlund, Algorithm 4).
 
@@ -415,7 +452,7 @@ def spec : Prop := Runs umul_code pre post
 end umul
 
 
-/-! ## `umul_256`: `umul` (intx.hpp:1534)
+/-! ## `umul_256`: `umul` (intx.hpp:1536)
 
 The full product.
 
@@ -455,7 +492,7 @@ def spec : Prop := RunsM umul_256_code bufs pre post
 end umul_256
 
 
-/-! ## `xor_256`: `operator^` (intx.hpp:1311)
+/-! ## `xor_256`: `operator^` (intx.hpp:1313)
 
 @post result = x ^^^ y
 -/
