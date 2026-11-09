@@ -1901,17 +1901,8 @@ template <size_t D = std::dynamic_extent, size_t W>
     // Use clz_nonzero() to avoid clang analyzer's warning.
     const auto shift = clz_nonzero(d.back());
     constexpr auto UN = W == std::dynamic_extent ? W : W + 1;
-    if (shift != 0)
-    {
-        shl(dn, d, shift);  // The bits shifted out of d are zero.
-        shl(std::span<uint64_t, UN>{un, u.size() + 1}, u, shift);
-    }
-    else
-    {
-        std::copy(d.begin(), d.end(), dn.begin());
-        std::copy(u.begin(), u.end(), un);
-        un[u.size()] = 0;
-    }
+    shl(dn, d, shift);  // The bits shifted out of d are zero.
+    shl(std::span<uint64_t, UN>{un, u.size() + 1}, u, shift);
 
     INTX_REQUIRE(m <= u.size());
     INTX_REQUIRE(u[m - 1] != 0);
