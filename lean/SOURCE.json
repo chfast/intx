@@ -1,0 +1,171 @@
+[
+  {
+    "name": "INTX_REQUIRE (release)",
+    "pattern": "^    #define INTX_REQUIRE\\(X\\)",
+    "kind": "line",
+    "sha256": "35091046da32bb7d57d7ec3567b96e302f34b66bc15e98677e219d2796ea6363"
+  },
+  {
+    "name": "uint<128>::words_",
+    "pattern": "^    uint64_t words_\\[2\\]\\{\\};",
+    "kind": "line",
+    "sha256": "0aa7f33f3c56c56c8916ff6f8b6aaa1adbc863196a0b8fd3bb12de18d96a0202"
+  },
+  {
+    "name": "uint<N>::words_",
+    "pattern": "^    uint64_t words_\\[num_words\\]\\{\\};",
+    "kind": "line",
+    "sha256": "d5039ec7cf7fa82076f77ca1caf426aaa82cdc5258f59c6bd76f2857be949e79"
+  },
+  {
+    "name": "addc(uint64_t, uint64_t, bool)",
+    "pattern": "^constexpr result_with_carry<uint64_t> addc\\(uint64_t x, uint64_t y",
+    "sha256": "bd71d901f557f5741ced81f2b93d833e28cc5660f2f8acb562c4cbe34dc58cfa"
+  },
+  {
+    "name": "subc(uint64_t, uint64_t, bool)",
+    "pattern": "^constexpr result_with_carry<uint64_t> subc\\(uint64_t x, uint64_t y",
+    "sha256": "1c523214c4a806ecac7359f005312a8769e9f4939bfae9b93096ac3ed893d022"
+  },
+  {
+    "name": "subc(const uint<N>&, const uint<N>&, bool)",
+    "pattern": "^constexpr result_with_carry<uint<N>> subc\\(",
+    "sha256": "14b110febfca94b94fb3a3a6d20a04c0f3474843280f6fb74975344ab3d4e1de"
+  },
+  {
+    "name": "uint<128>::uint(std::span<const uint64_t>)",
+    "pattern": "constexpr explicit uint\\(std::span<const uint64_t> words\\)",
+    "sha256": "02f63b4439b8813b788c875aa2f9f938e786c72cc928802f61ca026dcabe600a"
+  },
+  {
+    "name": "operator+(uint<128>, uint<128>)",
+    "pattern": "friend constexpr uint operator\\+\\(uint x, uint y\\)",
+    "sha256": "0a17b3512e7c3c72795a5e27e14fbf96a50e0627682976377b2c0ae5391d103e"
+  },
+  {
+    "name": "operator<(uint<128>, uint<128>)",
+    "pattern": "friend constexpr bool operator<\\(uint x, uint y\\)",
+    "sha256": "4b45be64cfbdf1207de2f5d9906d2e8250cfe81b6ba029481747d3acb1eec744"
+  },
+  {
+    "name": "umul(uint64_t, uint64_t)",
+    "pattern": "^constexpr uint128 umul\\(uint64_t x, uint64_t y\\) noexcept$",
+    "sha256": "c312e903cbedbbf3b67e2cfb3ce0181c4c6c0e53ba81cbcf9eec457252c772bb"
+  },
+  {
+    "name": "fshl()",
+    "pattern": "^constexpr uint64_t fshl\\(",
+    "sha256": "ed5f33bcd4d1fbdd925f2a20a2a57832ace1743589f1fef79003185d8a479259"
+  },
+  {
+    "name": "fshr()",
+    "pattern": "^constexpr uint64_t fshr\\(",
+    "sha256": "27930c04ad574950484e830e1ebed5b84a8445c93e13fb73c603e85d20b3fe3a"
+  },
+  {
+    "name": "div_wide_x86()",
+    "pattern": "div_result<uint64_t> div_wide_x86\\(",
+    "sha256": "4c723c0cf03efb1d44658d9dc71646f70260736af35f8c77ee36cbae28ea42e0"
+  },
+  {
+    "name": "shl()",
+    "pattern": "^constexpr void shl\\(",
+    "sha256": "5f6a467b68e312889fde35aa7dd9e81f2c75832b3d251ada17c334ff51034eb9"
+  },
+  {
+    "name": "shr()",
+    "pattern": "^constexpr void shr\\(",
+    "sha256": "8321bdfc4d1f7e05b130b5fae7dfccaf575b74f0220721238e9033c01eb3c19a"
+  },
+  {
+    "name": "uint<N>::uint(const uint<M>&)",
+    "pattern": "constexpr explicit\\(false\\) uint\\(const uint<M>& x\\)",
+    "sha256": "6a4401312db89c73f82047beb1b0844f780d42fe9f5068507441c0f23aea083b"
+  },
+  {
+    "name": "uint<N>::uint(T... v)",
+    "pattern": "constexpr explicit\\(false\\) uint\\(T\\.\\.\\. v\\)",
+    "sha256": "ee9b7aa2c67aea71e5208a794cb0338a8ed70de2b47e531968dd4f8491006feb"
+  },
+  {
+    "name": "uint<N>::uint(std::span<const uint64_t>)",
+    "pattern": "constexpr explicit uint\\(std::span<const uint64_t> words\\)",
+    "match": 1,
+    "sha256": "02f63b4439b8813b788c875aa2f9f938e786c72cc928802f61ca026dcabe600a"
+  },
+  {
+    "name": "uint<N>::operator uint<M>()",
+    "pattern": "constexpr explicit operator uint<M>\\(\\) const noexcept",
+    "sha256": "1af27e6bb1232b05ce9f8f98e307e4a109b75bce70b7c115ad6903fec767fcd2"
+  },
+  {
+    "name": "operator-(const uint<N>&, const uint<N>&)",
+    "pattern": "friend constexpr uint operator-\\(const uint& x, const uint& y\\)",
+    "sha256": "84d4a7f0e8e4a44147d993ff4899c1d93421ac540e83e995618d286d1d4b9957"
+  },
+  {
+    "name": "operator&(const uint<N>&, const uint<N>&)",
+    "pattern": "friend constexpr uint operator&\\(const uint& x, const uint& y\\)",
+    "sha256": "81f3ed4f9506231d83094d2945341f0427fbfbe235a1729fbec5770d9473c332"
+  },
+  {
+    "name": "umul(const uint<N>&, const uint<N>&)",
+    "pattern": "^constexpr uint<2 \\* N> umul\\(const uint<N>& x, const uint<N>& y\\)",
+    "sha256": "3bb7a21106dbcff4f40dc40ae64a980ea29d79ddbc540ce71ff87b956946a2f2"
+  },
+  {
+    "name": "clz_nonzero()",
+    "pattern": "^constexpr unsigned clz_nonzero\\(uint64_t x\\)",
+    "sha256": "a6efe89acc4b09b3188014b650145f3ded88b247e01af11c54186c61978eb038"
+  },
+  {
+    "name": "internal::reciprocal_table_entry",
+    "pattern": "^struct alignas\\(uint64_t\\) reciprocal_table_entry$",
+    "sha256": "8415f226cba8d49a3732ea8c8f84d5b2c675af040b08f55cc0b0bf97f5a36d66"
+  },
+  {
+    "name": "internal::RECIPROCAL_TABLE",
+    "pattern": "inline constexpr auto RECIPROCAL_TABLE = \\[\\]\\(\\) noexcept",
+    "sha256": "5f40c5242bdb64c68e51d6fa5a11d1ffa3c3112acefcc618d59f030a549d6b01"
+  },
+  {
+    "name": "internal::reciprocal_approx()",
+    "pattern": "^constexpr uint64_t reciprocal_approx\\(uint64_t d\\) noexcept$",
+    "sha256": "4f076351dba25402eb80b31e0a9e086ba2ee92920919b551c8ec755124a525d3"
+  },
+  {
+    "name": "internal::reciprocal()",
+    "pattern": "^constexpr uint64_t reciprocal\\(T d\\) noexcept$",
+    "sha256": "c18b29bf184db153283f1f94db01111933cf016f5ee58eb2730f9759091b783f"
+  },
+  {
+    "name": "reciprocal_2by1()",
+    "pattern": "^constexpr uint64_t reciprocal_2by1\\(uint64_t d\\) noexcept$",
+    "sha256": "b46917c30016d69570361d84a7989cb8f73cdee789acace6a3e70e4c32b22c73"
+  },
+  {
+    "name": "udivrem_2by1(uint128, uint64_t, uint64_t)",
+    "pattern": "^constexpr div_result<uint64_t> udivrem_2by1\\(uint128 u, uint64_t d, uint64_t v\\) noexcept$",
+    "sha256": "6e29483253a426ad2a8d4a6645affb7de47e3c058b9af0adeaac17d022471285"
+  },
+  {
+    "name": "udivrem_2by1(uint128, uint64_t)",
+    "pattern": "^constexpr div_result<uint64_t> udivrem_2by1\\(uint128 u, uint64_t d\\) noexcept",
+    "sha256": "2ba330c98d05d78d7485a023e077e6eeaed82a3df7cdf6d1ff078f1fbe83b656"
+  },
+  {
+    "name": "add(uint64_t[], std::span)",
+    "pattern": "^constexpr bool add\\(uint64_t x\\[\\], std::span<const uint64_t> y\\)",
+    "sha256": "8c389f33f6f02bde97e5fafa3281f0faf7b15d5b02c741bdd4cb91ec08c9067a"
+  },
+  {
+    "name": "submul(uint64_t[], const uint64_t[], std::span, uint64_t)",
+    "pattern": "^constexpr uint64_t submul\\(\\s*uint64_t r\\[\\], const uint64_t x\\[\\]",
+    "sha256": "a231f221642006ccc30ed7fc4bd0f71bceb846870f953cbfb3de1ce175a21437"
+  },
+  {
+    "name": "submul(uint64_t[], std::span, uint64_t)",
+    "pattern": "^constexpr uint64_t submul\\(uint64_t x\\[\\], std::span",
+    "sha256": "e2bc532d6ecad6e144d15b726a58275ed7080c0092d63860932fc6fda7e1aff0"
+  }
+]

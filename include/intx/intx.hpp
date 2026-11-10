@@ -137,6 +137,7 @@ struct div_result
 };
 
 /// Addition with carry.
+/// @post result.value + 2 ^ 64 * result.carry.toNat = x + y + carry.toNat
 constexpr result_with_carry<uint64_t> addc(uint64_t x, uint64_t y, bool carry = false) noexcept
 {
 #if __has_builtin(__builtin_addcll)
@@ -465,6 +466,7 @@ using uint128 = uint<128>;
 
 
 /// Full unsigned multiplication 64 x 64 -> 128.
+/// @post result = x * y
 constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 {
 #if INTX_HAS_BUILTIN_INT128
@@ -815,6 +817,12 @@ constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
     return internal::reciprocal(d);
 }
 
+/// Divides u by the normalized d with its reciprocal v (Moller and Granlund, Algorithm 4).
+/// @pre 2 ^ 63 <= d
+/// @pre u < d * 2 ^ 64
+/// @pre v = (2 ^ 128 - 1) / d - 2 ^ 64
+/// @post result.quot = u / d
+/// @post result.rem = u % d
 constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
     assert(d & 0x8000000000000000);  // Must be normalized.
@@ -1212,6 +1220,8 @@ public:
         return *this;
     }
 
+    /// The sum modulo 2^N.
+    /// @post result = (x + y) % 2 ^ N
     friend constexpr uint operator+(const uint& x, const uint& y) noexcept
     {
         return addc(x, y).value;
@@ -1221,6 +1231,8 @@ public:
 
     constexpr uint operator-() const noexcept { return ~*this + uint{1}; }
 
+    /// The difference modulo 2^N.
+    /// @post result = (x + 2 ^ N - y) % 2 ^ N
     friend constexpr uint operator-(const uint& x, const uint& y) noexcept
     {
         return subc(x, y).value;
@@ -1303,6 +1315,7 @@ public:
 
     constexpr uint& operator^=(const uint& y) noexcept { return *this = *this ^ y; }
 
+    /// @post result <-> x = y
     friend constexpr bool operator==(const uint& x, const uint& y) noexcept
     {
         uint64_t folded = 0;
@@ -1311,6 +1324,7 @@ public:
         return folded == 0;
     }
 
+    /// @post result <-> x < y
     friend constexpr bool operator<(const uint& x, const uint& y) noexcept
     {
         return subc(x, y).carry;
@@ -2290,6 +2304,7 @@ constexpr uint256 addmod(const uint256& x, const uint256& y, const uint256& mod)
 }
 
 /// Computes (x * y) % mod with the 512-bit product. A modulus of 0 gives 0.
+/// @post result = if mod = 0 then 0 else x * y % mod
 constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     return udivrem(umul(x, y), mod).rem;
