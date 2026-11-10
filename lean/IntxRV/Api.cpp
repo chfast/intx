@@ -25,6 +25,8 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
     +[](uint64_t x, uint64_t y) noexcept { return intx::umul(x, y); };
 [[gnu::used]] constexpr auto* addc =
     +[](uint64_t x, uint64_t y, bool carry) noexcept { return intx::addc(x, y, carry); };
+[[gnu::used]] constexpr auto* reciprocal_2by1 =
+    +[](uint64_t d) noexcept { return intx::reciprocal_2by1(d); };
 [[gnu::used]] constexpr auto* udivrem_2by1 =
     +[](uint128 u, uint64_t d, uint64_t v) noexcept { return intx::udivrem_2by1(u, d, v); };
 
@@ -69,6 +71,4 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
-[[gnu::used]] constexpr auto* reciprocal_2by1 =
-    +[](uint64_t d) noexcept { return intx::reciprocal_2by1(d); };
 }  // namespace intx::wip

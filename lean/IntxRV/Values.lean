@@ -78,6 +78,19 @@ theorem shiftiopVal_srli (sh : BitVec 6) (a : BitVec 64) :
   have : BitVec.extractLsb 5 0 sh = sh := by apply BitVec.eq_of_toNat_eq; simp; omega
   rw [this]; rfl
 
+theorem shiftiopVal_slli (sh : BitVec 6) (a : BitVec 64) :
+    shiftiopVal .SLLI sh a = a <<< sh.toNat := by
+  simp [shiftiopVal, shift_bits_left, Sail.BitVec.extractLsb, Functions.log2_xlen,
+    Sail.shift_bits_left]
+  have : BitVec.extractLsb 5 0 sh = sh := by apply BitVec.eq_of_toNat_eq; simp; omega
+  rw [this]; rfl
+
+theorem utypeVal_lui (imm : BitVec 20) (pc : BitVec 64) :
+    utypeVal .LUI imm pc = (imm ++ 0x000#12).signExtend 64 := rfl
+
+theorem utypeVal_auipc (imm : BitVec 20) (pc : BitVec 64) :
+    utypeVal .AUIPC imm pc = pc + (imm ++ 0x000#12).signExtend 64 := rfl
+
 /-- The sign of an xor: whether the signs differ. -/
 theorem sign_xor (a b : BitVec 64) :
     9223372036854775808 ≤ (a ^^^ b).toNat ↔

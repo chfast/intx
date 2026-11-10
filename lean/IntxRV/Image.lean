@@ -1,5 +1,6 @@
 import IntxRV.Reach
 import IntxRV.Step
+import Mathlib.Tactic.SplitIfs
 /-!
 # Functions in an image
 
@@ -44,6 +45,54 @@ def RunsI (code : Code) (entry : Nat) (data : List (BitVec 64)) (off : Nat)
     pre x S.mem →
     ∃ n s' npc' x', run code base ret n s = .ok true s' ∧
       Inv { S with mem := s'.mem } s' ret npc' x' ∧ post x S.mem x' s'.mem
+
+/-- The word `i` of the buffer at `a`. -/
+theorem mem_bufWords {n i : Nat} (h : i < n) : ∀ {a : BitVec 64},
+    a + BitVec.ofNat 64 (8 * i) ∈ bufWords a n := by
+  induction n generalizing i with
+  | zero => omega
+  | succ n ih =>
+    intro a
+    cases i with
+    | zero => simp [bufWords]
+    | succ i =>
+      have := @ih i (by omega) (a + 8)
+      simp only [bufWords, List.mem_cons]
+      right
+      rwa [show a + BitVec.ofNat 64 (8 * (i + 1)) = a + 8 + BitVec.ofNat 64 (8 * i) by
+        rw [BitVec.add_assoc]; congr 1; rw [Nat.mul_succ, Nat.add_comm, BitVec.ofNat_add]; rfl]
+
+/-- The data word `i`. -/
+theorem holdsData_get {m : Mem} : ∀ {data : List (BitVec 64)} {a : BitVec 64},
+    HoldsData m a data → ∀ {i : Nat} (hi : i < data.length),
+      memWord m (a + BitVec.ofNat 64 (8 * i)).toNat = data[i]
+  | [], _, _, _, hi => absurd hi (by simp)
+  | w :: ws, a, ⟨h0, h⟩, i, hi => by
+    cases i with
+    | zero => simpa using h0
+    | succ i =>
+      have := holdsData_get h (i := i) (by simpa using hi)
+      rw [show a + BitVec.ofNat 64 (8 * (i + 1)) = a + 8 + BitVec.ofNat 64 (8 * i) by
+        rw [BitVec.add_assoc]; congr 1; rw [Nat.mul_succ, Nat.add_comm, BitVec.ofNat_add]; rfl]
+      simpa using this
+
+/-- The low half of a word. -/
+theorem memHalf_lo (m : Mem) (b : Nat) : memHalf m b = (memWord m b).setWidth 32 := by
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  simp only [memHalf, memWord, BitVec.getLsbD_setWidth, BitVec.getLsbD_append]
+  simp (config := { decide := true }) [hi]
+  split_ifs <;> first | rfl | omega
+
+/-- The high half of a word. -/
+theorem memHalf_hi (m : Mem) (b : Nat) :
+    memHalf m (b + 4) = (memWord m b >>> 32).setWidth 32 := by
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  simp only [memHalf, memWord, BitVec.getLsbD_setWidth, BitVec.getLsbD_ushiftRight,
+    BitVec.getLsbD_append, Nat.add_assoc]
+  simp (config := { decide := true }) [hi]
+  split_ifs <;> first | omega | rfl | (congr 1 <;> omega)
 
 /-- `RunsI` from the `Reach` of the return address from the entry. -/
 theorem runsI_of_reach {code : Code} {prog : List instruction} {entry : Nat}
