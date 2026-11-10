@@ -96,12 +96,18 @@ def instances(decls, namespace):
                 if len(calls) != 1:
                     sys.exit(f"{n['name']}: the lambda must call one function")
                 target = calls[0]
+                # `x != y` is `!(x == y)` in C++20: the specification of == with the negation.
+                negate = any(m.get("kind") == "CXXRewrittenBinaryOperator" and any(
+                    u.get("kind") == "UnaryOperator" and u.get("opcode") == "!"
+                    for u, _ in walk(m)) for m, _ in walk(body[-1]))
             elif not lambdas and n.get("inner"):
                 target = n  # The address of the function.
+                negate = False
             else:
                 sys.exit(f"{n['name']}: must be initialized by a lambda or a function address")
             ref = next((m for m, _ in walk(target) if m.get("kind") == "DeclRefExpr"
-                        and m["referencedDecl"].get("kind") == "FunctionDecl"), None)
+                        and m["referencedDecl"].get("kind") in ("FunctionDecl", "CXXMethodDecl")),
+                       None)
             if ref is None:
                 sys.exit(f"{n['name']}: no function found")
             callee = ref["referencedDecl"]
@@ -118,7 +124,8 @@ def instances(decls, namespace):
                     sys.exit(f"{n['name']}: unsupported template arguments")
                 targs = list(zip(names, vals))
             result[n["name"]] = dict(name=callee["name"], offset=decl["loc"]["offset"],
-                                     type=callee["type"]["qualType"], targs=targs)
+                                     type=callee["type"]["qualType"], targs=targs, negate=negate,
+                                     member=callee["kind"] == "CXXMethodDecl")
     return result
 
 
@@ -135,8 +142,10 @@ def uint_width(t):
 
 
 def signature(var, inst, spec):
-    """The result type and the parameter types of the instance `var`."""
-    m = re.fullmatch(r"(.+?) \((.*)\)(?: noexcept)?", inst["type"])
+    """The result type, the parameter types and the parameter names of the instance `var`: the
+    object of a member function is the first parameter, `self`, of the class type (the result type
+    for the operators of uint<N>)."""
+    m = re.fullmatch(r"(.+?) \((.*)\)(?: const)?(?: noexcept)?", inst["type"])
     ret = norm_type(m.group(1))
     args, depth, cur = [], 0, ""
     for ch in m.group(2) + ",":  # Split at the commas outside of the template arguments.
@@ -147,9 +156,14 @@ def signature(var, inst, spec):
             cur = ""
         else:
             cur += ch
-    if len(args) != len(spec["params"]):
+    params = spec["params"]
+    if inst.get("member"):
+        if uint_width(ret) is None:
+            sys.exit(f"{var}: unsupported member function")
+        args, params = [f"const {ret} &"] + args, ["self"] + params
+    if len(args) != len(params):
         sys.exit(f"{var}: the parameters do not match the declaration")
-    return ret, args
+    return ret, args, params
 
 
 def apply(term, width, result, values, targs=()):
@@ -189,7 +203,7 @@ REG_RESULTS = {
 def spec_rv(var, inst, spec, stack, image=False):
     """The Lean definitions of the specification of the machine code of the instance `var` that
     uses `stack` bytes below sp, in the image of the functions with calls or data if `image`."""
-    ret, args = signature(var, inst, spec)
+    ret, args, params = signature(var, inst, spec)
     reg = 10  # The arguments are in a0 (x10), a1 (x11), ...
     bufs, pre, values, post_values = [], [], [], []
     ret_width = uint_width(ret)
@@ -201,7 +215,7 @@ def spec_rv(var, inst, spec, stack, image=False):
         reg += 1
     elif ret != "void" and ret not in REG_RESULTS:
         sys.exit(f"{var}: unsupported result type {ret}")
-    for name, t in zip(spec["params"], args):
+    for name, t in zip(params, args):
         w = uint_width(t)
         span = re.fullmatch(r"std::span<(const )?uint64_t, (\d+)UL>", t)
         if t == "uint64_t":
@@ -258,6 +272,8 @@ def spec_rv(var, inst, spec, stack, image=False):
         result = None
     else:
         t, v, rframe = REG_RESULTS[ret]
+        if inst.get("negate"):  # `!=`: the result of `==` negated.
+            v = f"(!{v})"
         result = (t, v)
         frame = rframe + frame
     if stack:
@@ -271,6 +287,8 @@ def spec_rv(var, inst, spec, stack, image=False):
     post = [apply(p, width, result, post_values, targs) for p in spec["post"]] + frame + [
         "∀ i ∈ calleeSaved, x' i = x i"]
     lines = header(var, spec)
+    if inst.get("negate"):
+        lines[0] = lines[0].replace(f"`{spec['name']}`", f"`{spec['name']}`, negated (`!=`)", 1)
     if bufs or image:  # The functions of the image read the data in the memory.
         m_used = "m" if spec["pre"] else "_m"
         lines += ["/-- The addresses of the words of the arguments and the result. -/",
@@ -294,14 +312,14 @@ def spec_rv(var, inst, spec, stack, image=False):
 
 def spec_model(var, inst, spec):
     """The Lean definitions of the specification of the model `Intx.Model.var` of the instance."""
-    ret, args = signature(var, inst, spec)
+    ret, args, params = signature(var, inst, spec)
     ret_width = uint_width(ret)
     if ret_width is None or ret_width % 64:
         sys.exit(f"{var}: unsupported result type {ret}")
     if spec["pre"]:
         sys.exit(f"{var}: @pre of a model is not supported")
     vectors, values = [], []
-    for name, t in zip(spec["params"], args):
+    for name, t in zip(params, args):
         w = uint_width(t)
         if w is None or w % 64:
             sys.exit(f"{var}: unsupported parameter type {t}")
