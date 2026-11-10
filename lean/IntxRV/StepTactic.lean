@@ -65,15 +65,17 @@ macro "rv_mem" : tactic => `(tactic| (
 
 /-- Runs one instruction. -/
 macro "rv_step" : tactic => `(tactic| (
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step ?hk rfl ?_
+  case hk => decide
   simp only [StepGoal, Nat.reduceAdd, true_and, jumpIdx, BitVec.reduceToInt, Nat.reduceMul,
     Int.reduceAdd, Int.reduceToNat, Nat.reduceDiv, Nat.cast_ofNat]
+  -- The side conditions are separate goals, so a failed one fails the step.
   first
-  | refine ⟨by decide, fun hb => ?_, fun hb => ?_⟩ <;> rv_val at hb
-  | refine ⟨fun hb => ?_, fun hb => ?_⟩ <;> rv_val at hb
+  | (apply And.intro; (focus decide); apply And.intro <;> intro hb <;> rv_val at hb)
+  | (apply And.intro <;> intro hb <;> rv_val at hb)
   | (apply And.intro; (focus rv_mem); intro w hw; rv_val at hw)
   | (apply And.intro; (focus rv_mem); show Reach _ _ _ _ _ _ _ _)
-  | refine ⟨by decide, ?_⟩
+  | (apply And.intro; (focus decide); show Reach _ _ _ _ _ _ _ _)
   | intro w hw; rv_val at hw
   | (show Reach _ _ _ _ _ _ _ _; rv_val)))
 
