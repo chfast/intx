@@ -114,6 +114,9 @@ is lifted into the image by `Reach.lift`. The instances of `intx::wip` in
 `Api.cpp` get their specifications without the checks of their proofs, until they are proved
 (none at present).
 
+`bit_test()` and `count_significant_words()` ([`Api/Bits.lean`](Api/Bits.lean)) are proved
+directly, with lemmas on the bits of `words` and on `log2`.
+
 `reciprocal_2by1()` ([`Api/Reciprocal.lean`](Api/Reciprocal.lean)) reads the table of the image
 and is proved through its model `Intx.Model.reciprocal`. `NonVacuousI`
 ([`EnvImage.lean`](EnvImage.lean)) checks that the assumptions of `RunsI` hold: the data stored in
