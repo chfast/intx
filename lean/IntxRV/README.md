@@ -60,22 +60,21 @@ structure of these (`ResultWithCarry`, `DivResult` in [`Words.lean`](Words.lean)
 friend constexpr uint operator+(const uint& x, const uint& y) noexcept
 ```
 
-`rv_api.py` reads the comments from the AST that clang dumps for `Api.cpp` (clang-doc drops
-`@pre` and `@post`). The operators are hidden friends, so an instance in `Api.cpp` is a lambda
-that calls the function; the generator finds the function in the AST, and so binds the machine
-code of the instance to the documentation of the function. `Api.p.spec` states the specification
-for the machine code of the instance `p` for the RISC-V calling convention: a `uint64_t` or
-`bool` is in one register, a `uint128` in two, an `unsigned` is its 32 bits sign-extended to the
-register (the code may test the whole register), a `const uint<N>&` argument or a
-`std::span<const uint64_t, n>` is the address of its words in the next argument register, a
-`uint<N>` result wider than 128 bits is written to the buffer at the address in a0 (`sret`), a
-`bool` is 0 or 1. A `std::span<uint64_t, n>` parameter of a `void` function is the buffer it
-writes: its name stands for its value at the return, and `N` for its width. With registers only
-the specification is a `Runs`; with memory a `RunsM` (in [`RunM.lean`](RunM.lean)), the `Runs`
-with memory: the buffers are aligned, do not wrap around and the result does not overlap the arguments; the
-memory outside the result is unchanged. A function with a stack frame gets the frame below sp as
-one more buffer that overlaps no other, and the memory outside the result and the frame is
-unchanged.
+`rv_api.py` reads the comments from the AST that clang dumps for `Api.cpp` (clang-doc drops `@pre`
+and `@post`). The operators are hidden friends, so an instance in `Api.cpp` is a lambda that calls
+the function; the generator finds the function in the AST, and so binds the machine code of the
+instance to the documentation of the function. `Api.p.spec` states the specification for the machine
+code of the instance `p` for the RISC-V calling convention: a `uint64_t` or `bool` is in one
+register, a `uint128` in two, an `unsigned` is its 32 bits sign-extended to the register (the code
+may test the whole register), a `const uint<N>&` argument or a `std::span<const uint64_t, n>` is the
+address of its words in the next argument register, a `uint<N>` result wider than 128 bits is
+written to the buffer at the address in a0 (`sret`), a `bool` is 0 or 1. A `std::span<uint64_t, n>`
+parameter of a `void` function is the buffer it writes: its name stands for its value at the return,
+and `N` for its width. With registers only the specification is a `Runs`; with memory a `RunsM` (in
+[`RunM.lean`](RunM.lean)), the `Runs` with memory: the buffers are aligned, do not wrap around and
+the result does not overlap the arguments; the memory outside the result is unchanged. A function
+with a stack frame gets the frame below sp as one more buffer that overlaps no other, and the memory
+outside the result and the frame is unchanged.
 
 The proofs are in [`Api/`](Api/): the generated `Checks/IntxRVApi.lean` requires a proof
 `Api.p.proof : Api.p.spec` for every instance, with the allowed axioms only, and that the
@@ -99,6 +98,22 @@ the sums that cannot overflow by `omega` from the facts they depend on, and the 
 with its stack frame, is proved this way directly from its specification, without a model;
 `shl<9, 8>()` ([`Api/Shl.lean`](Api/Shl.lean)), the shift of a 512-bit number, through the model
 `Intx.Model.shl` and its proof.
+
+### Calls and constant data
+
+A function that calls other functions or reads constant data (the table of the reciprocal) has
+relocations. `rv_gen.py` links these functions with what they reach into one image at 0
+([`../scripts/rv_image.ld`](../scripts/rv_image.ld)): the code `Gen.image_code` and the read-only
+data `Gen.image_data` after it, and the stack that each function uses with its callees. `RunsI`
+([`Image.lean`](Image.lean)) is `RunsM` for the function at the instruction `entry` of the image,
+with the data in the memory. A call is `auipc ra` and `jalr ra`; `Reach.call`
+([`Call.lean`](Call.lean)) runs the callee by its proof: `f.reach` of a function `f` on its own code
+is lifted into the image by `Reach.lift`. The instances of `intx::wip` in
+`Api.cpp` get their specifications without the checks of their proofs, until they are proved
+(`reciprocal_2by1()`).
+
+[`Clz.lean`](Clz.lean) proves the count of the leading zeros that clang computes without the Zbb
+extension (spreading the top bit down and the SWAR population count) to be `63 - log2 x`.
 
 ### Memory
 
@@ -132,15 +147,16 @@ environment with 4 KiB of RAM, the stack at its end.
   with memory, `EnvM` and `WordOk` (above).
 * The specifications in the documentation, and `rv_api.py`: the extraction of the comments, the
   binding of an instance to its function and the calling convention.
-* The extraction of the machine code from the object file by `rv_gen.py`.
+* The extraction of the machine code from the object file and the image by `rv_gen.py`.
 
-Not covered: other compilers, other flags, the linking; loops and calls (so not the
-multiplication modulo 2^256, the shifts and the division of `uint256` yet).
+Not covered: other compilers, other flags; loops (so not the multiplication modulo 2^256, the
+shifts and the division of `uint256` yet). The linking of the image is by `ld.lld` with the
+linker script; its output is checked as the machine code is.
 
 ## Build
 
 ```sh
-sudo apt install clang g++-riscv64-linux-gnu
+sudo apt install clang lld g++-riscv64-linux-gnu
 scripts/rv_build.sh
 lake build IntxRV Checks
 ```

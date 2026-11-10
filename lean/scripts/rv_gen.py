@@ -4,19 +4,25 @@
 # Licensed under the Apache License, Version 2.0.
 """Generates the machine code of IntxRV/Gen/Code.lean from IntxRV/Api.cpp.
 
-  rv_gen.py OUT_DIR STACK_JSON OBJECT...
+  rv_gen.py OUT_DIR STACK_JSON OBJECT IMAGE
 
-The OBJECTs are compiled for RV64 (see scripts/rv_build.sh). For every [[gnu::used]] pointer
-variable `p` of them pointing to a function `f`, IntxRV/Gen/Code.lean gets `Gen.p_code`: the words
-of the machine code of `f`, `Gen.p_prog`: their instructions, and `Gen.p_decodes`: the proof that
-the decoder of the Sail model decodes the words to them. The machine code must be
-position-independent and self-contained: the section of `f` must have no relocations. STACK_JSON
-gets the bytes of the stack that each function uses below sp, for scripts/rv_api.py.
+OBJECT is compiled for RV64 (see scripts/rv_build.sh). For every [[gnu::used]] pointer variable
+`p` of it pointing to a function `f` without relocations, IntxRV/Gen/Code.lean gets
+`Gen.p_code`: the words of the machine code of `f`, `Gen.p_prog`: their instructions, and
+`Gen.p_decodes`: the proof that the decoder of the Sail model decodes the words to them. The
+functions with relocations (calls, constant data) are linked with what they reach into IMAGE
+(scripts/rv_image.ld, the linker LD, default ld.lld): `Gen.image_code`, `Gen.image_prog`,
+`Gen.image_decodes`, the data `Gen.image_data` at `Gen.image_dataOff`, `Gen.p_entry` the index of
+the first instruction of `f`, and `Gen.q_in_image` for the functions `q` without relocations in
+the image. STACK_JSON gets the bytes of the stack that each function uses below sp, with those of
+the functions it calls, for scripts/rv_api.py.
 """
 
 import json
+import os
 import re
 import struct
+import subprocess
 import sys
 from pathlib import Path
 
@@ -39,8 +45,8 @@ def read_elf(data: bytes):
     for i in range(e_shnum):
         name, typ, flags, addr, off, size, link, info, align, entsize = struct.unpack_from(
             "<IIQQQQIIQQ", data, e_shoff + i * e_shentsize)
-        sections.append(dict(name=name, type=typ, off=off, size=size, link=link, info=info,
-                             entsize=entsize))
+        sections.append(dict(name=name, type=typ, addr=addr, off=off, size=size, link=link,
+                             info=info, entsize=entsize))
     shstr = sections[e_shstrndx]
 
     def cstr(sec, off):
@@ -83,8 +89,9 @@ def function_code(data, sections, symbols, relocs, fn):
     return [struct.unpack_from("<I", code, i)[0] for i in range(0, len(code), 4)]
 
 
-def pointer_targets(sections, symbols, relocs):
-    """The [[gnu::used]] pointer variables: name -> the function symbol they point to."""
+def pointer_targets(sections, symbols, relocs, ptrs=None):
+    """The [[gnu::used]] pointer variables: name -> the function symbol they point to (and their
+    symbols to `ptrs`)."""
     targets = {}
     for sym in symbols:
         if sym["type"] != STT_OBJECT or sym["size"] != 8 or sym["shndx"] >= len(sections):
@@ -94,6 +101,8 @@ def pointer_targets(sections, symbols, relocs):
                 target = symbols[r["sym"]]
                 if target["type"] == STT_FUNC:
                     targets[demangle_var(sym["name"])] = target
+                    if ptrs is not None:
+                        ptrs[demangle_var(sym["name"])] = sym
     return targets
 
 
@@ -190,23 +199,83 @@ def stack_size(var, code):
     return 0
 
 
-def main():
-    out, stack_json, *objs = map(Path, sys.argv[1:])
-    targets, funcs = {}, {}
-    for obj in objs:
-        data = obj.read_bytes()
-        sections, symbols, relocs = read_elf(data)
-        ts = pointer_targets(sections, symbols, relocs)
-        if not ts:
-            sys.exit(f"{obj}: no [[gnu::used]] function pointers found")
-        for var in ts:
-            if var in targets:
-                sys.exit(f"{var}: defined twice")
-            targets[var] = ts[var]
-            funcs[var] = function_code(data, sections, symbols, relocs, ts[var])
-    funcs = dict(sorted(funcs.items()))
-    words = sorted({w for code in funcs.values() for w in code})
+def code_lines(name, desc, code, var):
+    """The Lean definitions of the machine code `code` named `name`."""
+    words_text = ",\n  ".join(", ".join(lean_bv(w, 32) for w in code[i:i + 4])
+                              for i in range(0, len(code), 4))
+    prog_text = ",\n  ".join(decode(w) for w in code)
+    cases = "\n".join(f"  | {k}, _, _ => decode_{w:08x}" for k, w in enumerate(code))
+    return [f"/-! ## {desc} -/", "",
+            f"/-- The machine code of {desc}. -/",
+            f"def {name}_code : Code := [\n  {words_text}]", "",
+            f"/-- The instructions of {var}. -/",
+            f"def {name}_prog : List instruction := [\n  {prog_text}]", "",
+            f"theorem {name}_decodes : Decodes {name}_code {name}_prog :=",
+            f"  decodes_of (by rfl) fun",
+            cases, f"  | _ + {len(code)}, hk, _ => absurd hk (by simp [{name}_code])", "", ""]
 
+
+def call_targets(code, base):
+    """The functions that the code at the address `base` calls: `auipc ra` and `jalr ra, ra`."""
+    targets = []
+    for k in range(len(code) - 1):
+        a, b = code[k], code[k + 1]
+        if a & 0xfff == 0x097 and b & 0xfffff == 0x080e7:  # auipc ra, hi; jalr ra, lo(ra)
+            targets.append(base + 4 * k + sext(a & 0xfffff000, 32) + sext(b >> 20, 12))
+    return targets
+
+
+def main():
+    out, stack_json, obj, image = map(Path, sys.argv[1:])
+    data = obj.read_bytes()
+    sections, symbols, relocs = read_elf(data)
+    ptrs = {}
+    targets = pointer_targets(sections, symbols, relocs, ptrs)
+    if not targets:
+        sys.exit(f"{obj}: no [[gnu::used]] function pointers found")
+    # The functions without relocations are proved on their own code, the others in the image.
+    funcs = {var: function_code(data, sections, symbols, relocs, fn)
+             for var, fn in targets.items() if not relocs.get(fn["shndx"])}
+    funcs = dict(sorted(funcs.items()))
+    in_image = sorted(var for var in targets if var not in funcs)
+
+    # The image: the functions with relocations and what they reach, linked at 0.
+    img, data_words, data_off, addr = [], [], 0, {}
+    if in_image:
+        # The roots: the sections of the pointers of the functions.
+        keep = " ".join(f"KEEP(*({sections[ptrs[var]['shndx']]['name']}))" for var in in_image)
+        script = Path(__file__).with_name("rv_image.ld").read_text().replace(
+            "/* ROOTS */", f".data : {{ {keep} }}")
+        image.with_suffix(".ld").write_text(script)
+        subprocess.run([os.environ.get("LD", "ld.lld"), "--no-relax", "-T",
+                        str(image.with_suffix(".ld")), "-e", "0", "--gc-sections", "-o",
+                        str(image), str(obj)], check=True)
+        idata = image.read_bytes()
+        isecs, isyms, _ = read_elf(idata)
+        text = next(s for s in isecs if s["name"] == ".text")
+        rodata = next((s for s in isecs if s["name"] == ".rodata"), None)
+        img = [struct.unpack_from("<I", idata, text["off"] + i)[0]
+               for i in range(0, text["size"], 4)]
+        ro = idata[rodata["off"]:rodata["off"] + rodata["size"]] if rodata else b""
+        ro += b"\0" * (-len(ro) % 8)
+        data_off = rodata["addr"] if rodata else 4 * len(img)
+        if data_off % 8 or data_off < 4 * len(img):
+            sys.exit("unexpected layout of the image")
+        data_words = [struct.unpack_from("<Q", ro, i)[0] for i in range(0, len(ro), 8)]
+        addr = {s["name"]: s for s in isyms if s["type"] == STT_FUNC}
+
+    # The stack below sp of a function of the image: its frame and the most of its callees.
+    def image_stack(name, seen=()):
+        fn = addr[name]
+        code = img[fn["value"] // 4:(fn["value"] + fn["size"]) // 4]
+        by_addr = {s["value"]: s["name"] for s in addr.values()}
+        callees = [by_addr[t] for t in call_targets(code, fn["value"])]
+        if any(c in seen for c in callees):
+            sys.exit(f"{name}: recursion")
+        frame = stack_size(name, code)
+        return frame + max([image_stack(c, seen + (name,)) for c in callees], default=0)
+
+    words = sorted({w for code in funcs.values() for w in code} | set(img if in_image else []))
     lines = ["-- Generated by scripts/rv_gen.py from IntxRV/Api.cpp. Do not edit.",
              "import IntxRV.Decode", "", "open LeanRV64D.Defs", "",
              "-- The decoder of the Sail model is a chain of a few hundred cases.",
@@ -217,22 +286,53 @@ def main():
         lines += [f"theorem decode_{w:08x} :",
                   f"    DecodesTo {lean_bv(w, 32)} ({decode(w)}) := by", "  rv_decode", ""]
     for var, code in funcs.items():
-        fn = targets[var]
-        words_text = ",\n  ".join(", ".join(lean_bv(w, 32) for w in code[i:i + 4])
-                                  for i in range(0, len(code), 4))
-        prog_text = ",\n  ".join(decode(w) for w in code)
-        cases = "\n".join(f"  | {k}, _, _ => decode_{w:08x}" for k, w in enumerate(code))
-        lines += [f"/-! ## `{fn['name']}` -/", "",
-                  f"/-- The machine code of `{fn['name']}`. -/",
-                  f"def {var}_code : Code := [\n  {words_text}]", "",
-                  f"/-- The instructions of `{var}`. -/",
-                  f"def {var}_prog : List instruction := [\n  {prog_text}]", "",
-                  f"theorem {var}_decodes : Decodes {var}_code {var}_prog :=",
-                  f"  decodes_of (by rfl) fun",
-                  cases, f"  | _ + {len(code)}, hk, _ => absurd hk (by simp [{var}_code])", "", ""]
+        name = targets[var]["name"]
+        lines += code_lines(var, f"`{name}`", code, f"`{var}`")
+    info = {var: dict(stack=stack_size(var, code)) for var, code in funcs.items()}
+    if in_image:
+        data_text = ",\n  ".join(", ".join(lean_bv(w, 64) for w in data_words[i:i + 4])
+                                 for i in range(0, len(data_words), 4))
+        # The image in chunks: a proof by cases of a long list is slow to elaborate.
+        chunks = [img[i:i + 64] for i in range(0, len(img), 64)]
+        lines += ["/-! ## The image -/", ""]
+        for c, chunk in enumerate(chunks):
+            words_text = ",\n  ".join(", ".join(lean_bv(w, 32) for w in chunk[i:i + 4])
+                                      for i in range(0, len(chunk), 4))
+            prog_text = ",\n  ".join(decode(w) for w in chunk)
+            proof = "".join(f"\n    (decodes_cons decode_{w:08x}" for w in chunk)
+            lines += [f"def image_code_{c} : Code := [\n  {words_text}]", "",
+                      f"def image_prog_{c} : List instruction := [\n  {prog_text}]", "",
+                      f"theorem image_decodes_{c} : Decodes image_code_{c} image_prog_{c} :="
+                      f"{proof} decodes_nil" + ")" * len(chunk), ""]
+        names = range(len(chunks))
+        cat = lambda f: " ++\n    ".join(f(c) for c in names)
+        proof = "image_decodes_0"
+        for c in names[1:]:
+            proof = f"decodes_append ({proof})\n    image_decodes_{c}"
+        lines += ["/-- The machine code of the image. -/",
+                  "def image_code : Code :=\n  " + cat(lambda c: f"image_code_{c}"), "",
+                  "/-- The instructions of the image. -/",
+                  "def image_prog : List instruction :=\n  " + cat(lambda c: f"image_prog_{c}"),
+                  "", "theorem image_decodes : Decodes image_code image_prog :=\n  " + proof, ""]
+        lines += ["/-- The read-only data of the image, as 64-bit words. -/",
+                  f"def image_data : List (BitVec 64) := [\n  {data_text}]", "",
+                  "/-- The offset of the data in the image. -/",
+                  f"def image_dataOff : Nat := {data_off}", ""]
+        for var in in_image:
+            fn = addr[targets[var]["name"]]
+            lines += [f"/-- The instruction where `{var}` starts in the image. -/",
+                      f"def {var}_entry : Nat := {fn['value'] // 4}", ""]
+            info[var] = dict(stack=image_stack(fn["name"]), image=True)
+        for var, code in funcs.items():
+            fn = addr.get(targets[var]["name"])
+            if fn is not None:
+                lines += [f"/-- The instruction where the code of `{var}` is in the image. -/",
+                          f"def {var}_offset : Nat := {fn['value'] // 4}", "",
+                          f"theorem {var}_in_image :",
+                          f"    (image_prog.drop {var}_offset).take {var}_prog.length = "
+                          f"{var}_prog := by rfl", ""]
     lines += ["end IntxRV.Gen", ""]
-    stack_json.write_text(json.dumps({var: stack_size(var, code) for var, code in funcs.items()},
-                                     indent=1) + "\n")
+    stack_json.write_text(json.dumps(dict(sorted(info.items())), indent=1) + "\n")
     (out / "IntxRV" / "Gen").mkdir(parents=True, exist_ok=True)
     (out / "IntxRV" / "Gen" / "Code.lean").write_text("\n".join(lines))
 
