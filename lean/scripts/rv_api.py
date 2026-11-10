@@ -133,7 +133,8 @@ def norm_type(t):
     t = re.sub(r"\bintx::", "", t.strip())
     t = re.sub(r"<(\d+) \* (\d+)U>", lambda m: f"<{int(m[1]) * int(m[2])}>", t)
     t = re.sub(r"<(\d+)U>", r"<\1>", t)
-    return {"uint<128>": "uint128", "unsigned long": "uint64_t", "_Bool": "bool"}.get(t, t)
+    return {"uint<128>": "uint128", "unsigned long": "uint64_t", "size_t": "uint64_t",
+            "_Bool": "bool"}.get(t, t)
 
 
 def uint_width(t):
@@ -192,6 +193,9 @@ def header(var, spec):
 REG_RESULTS = {
     "bool": ("Bool", "(decide (x'.get 10#5 = 1))", ["(x'.get 10#5 = 0 ∨ x'.get 10#5 = 1)"]),
     "uint64_t": ("Nat", "(x'.get 10#5).toNat", []),
+    # The calling convention: the 32 bits sign-extended to the register.
+    "unsigned int": ("Nat", "((x'.get 10#5).toNat % 2 ^ 32)",
+                     ["x'.get 10#5 = ((x'.get 10#5).setWidth 32).signExtend 64"]),
     "uint128": ("Nat", "((x'.get 10#5).toNat + 2 ^ 64 * (x'.get 11#5).toNat)", []),
     "result_with_carry<uint64_t>": (
         "ResultWithCarry", "⟨(x'.get 10#5).toNat, decide (x'.get 11#5 = 1)⟩",

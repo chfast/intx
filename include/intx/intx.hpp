@@ -1573,6 +1573,9 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
     return result;
 }
 
+/// Tests the bit of x at bit_index.
+/// @pre bit_index < N
+/// @post result <-> x.testBit bit_index
 template <unsigned N>
 constexpr bool bit_test(const uint<N>& x, size_t bit_index) noexcept
 {
@@ -1581,6 +1584,8 @@ constexpr bool bit_test(const uint<N>& x, size_t bit_index) noexcept
     return bit_test(w, b);
 }
 
+/// Counts the words of x up to its highest nonzero word.
+/// @post result = if x = 0 then 0 else Nat.log2 x / 64 + 1
 template <unsigned N>
 constexpr unsigned count_significant_words(const uint<N>& x) noexcept
 {

@@ -103,6 +103,70 @@ def spec : Prop := RunsM and_256_code bufs pre post
 end and_256
 
 
+/-! ## `bit_test_256`: `bit_test` (intx.hpp:1580)
+
+Tests the bit of x at bit_index.
+
+@pre bit_index < N
+@post result <-> x.testBit bit_index
+-/
+
+namespace bit_test_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 10#5) 4
+
+def pre (x : Regs) (m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    (fun (N : Nat) (x : Nat) (bit_index : Nat) =>
+      bit_index < N)
+      256 (words m (x 10#5) 4) ((x 11#5).toNat)
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Bool) (x : Nat) (bit_index : Nat) =>
+      result <-> x.testBit bit_index)
+      256 (decide (x'.get 10#5 = 1)) (words m (x 10#5) 4) ((x 11#5).toNat) ∧
+    (x'.get 10#5 = 0 ∨ x'.get 10#5 = 1) ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `bit_test_256`. -/
+def spec : Prop := RunsM bit_test_256_code bufs pre post
+
+end bit_test_256
+
+
+/-! ## `count_significant_words_256`: `count_significant_words` (intx.hpp:1590)
+
+Counts the words of x up to its highest nonzero word.
+
+@post result = if x = 0 then 0 else Nat.log2 x / 64 + 1
+-/
+
+namespace count_significant_words_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 10#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (x : Nat) =>
+      result = if x = 0 then 0 else Nat.log2 x / 64 + 1)
+      256 ((x'.get 10#5).toNat % 2 ^ 32) (words m (x 10#5) 4) ∧
+    x'.get 10#5 = ((x'.get 10#5).setWidth 32).signExtend 64 ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `count_significant_words_256`. -/
+def spec : Prop := RunsM count_significant_words_256_code bufs pre post
+
+end count_significant_words_256
+
+
 /-! ## `eq_256`: `operator==` (intx.hpp:1328)
 
 @post result <-> x = y
