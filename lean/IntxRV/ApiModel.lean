@@ -123,6 +123,22 @@ theorem val_zipWith_xor (xs ys : List Word) (h : xs.length = ys.length) :
     val (List.zipWith (· ^^^ ·) xs ys) = val xs ^^^ val ys :=
   val_zipWith_bitwise rfl _ (fun a b => by simp [UInt64.toNat_xor]; rfl) xs ys h
 
+/-- The complement of the words: the complement of the number. -/
+theorem val_map_not : ∀ xs : List Word,
+    val (xs.map (~~~·)) = 2 ^ (64 * xs.length) - 1 - val xs
+  | [] => rfl
+  | w :: ws => by
+    have ih := val_map_not ws
+    have hl := val_lt ws
+    have hw := w.toNat_lt
+    simp only [List.map_cons, val_cons, List.length_cons, UInt64.toNat_not] at ih ⊢
+    rw [ih, show 64 * (ws.length + 1) = 64 + 64 * ws.length by ring, pow_add,
+      show UInt64.size = 2 ^ 64 from rfl]
+    have : 2 ^ 64 * val ws < 2 ^ 64 * 2 ^ (64 * ws.length) := Nat.mul_lt_mul_of_pos_left hl
+      (by norm_num)
+    rw [Nat.mul_sub, Nat.mul_sub]
+    omega
+
 theorem length_wordList (m : Mem) (a : BitVec 64) (k : Nat) : (wordList m a k).length = k := by
   induction k generalizing a with
   | zero => rfl
