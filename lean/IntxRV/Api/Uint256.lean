@@ -46,6 +46,21 @@ theorem eq_256.proof : eq_256.spec := by
   rv_runm eq_256_decodes with eq_256_code eq_256_prog using [eq_256.bufs, eq_256.pre,
     eq_256.post, Buf]
 
+theorem ne_256.proof : ne_256.spec := by
+  rv_runm ne_256_decodes with ne_256_code ne_256_prog using [ne_256.bufs, ne_256.pre,
+    ne_256.post, Buf]
+
+theorem not_256.model : RunsM not_256_code not_256.bufs not_256.pre fun x m x' m' =>
+    wordList m' (x 10#5) 4 = (wordList m (x 11#5) 4).map (~~~·) ∧
+    UnchangedExcept m m' (x 10#5) 32 ∧ ∀ i ∈ calleeSaved, x' i = x i := by
+  rv_runm not_256_decodes with not_256_code not_256_prog using [not_256.bufs, not_256.pre, Buf,
+    Disjoint, List.map_cons, List.map_nil, UInt64.toBitVec_not]
+
+theorem not_256.proof : not_256.spec :=
+  not_256.model.mono (fun _ _ h => h) fun x m x' m' _ ⟨h, hu, hc⟩ => by
+    refine ⟨?_, hu, hc⟩
+    simp only [← val_wordList, h, val_map_not, length_wordList]
+
 theorem lt_256.proof : lt_256.spec := by
   rv_runm lt_256_decodes with lt_256_code lt_256_prog using [lt_256.bufs, lt_256.pre,
     lt_256.post, Buf]

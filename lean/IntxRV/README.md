@@ -63,14 +63,16 @@ friend constexpr uint operator+(const uint& x, const uint& y) noexcept
 `rv_api.py` reads the comments from the AST that clang dumps for `Api.cpp` (clang-doc drops `@pre`
 and `@post`). The operators are hidden friends, so an instance in `Api.cpp` is a lambda that calls
 the function; the generator finds the function in the AST, and so binds the machine code of the
-instance to the documentation of the function. `Api.p.spec` states the specification for the machine
-code of the instance `p` for the RISC-V calling convention: a `uint64_t` or `bool` is in one
-register, a `uint128` in two, an `unsigned` is its 32 bits sign-extended to the register (the code
-may test the whole register), a `const uint<N>&` argument or a `std::span<const uint64_t, n>` is the
-address of its words in the next argument register, a `uint<N>` result wider than 128 bits is
-written to the buffer at the address in a0 (`sret`), a `bool` is 0 or 1. A `std::span<uint64_t, n>`
-parameter of a `void` function is the buffer it writes: its name stands for its value at the return,
-and `N` for its width. With registers only the specification is a `Runs`; with memory a `RunsM` (in
+instance to the documentation of the function. A member function has its object as the parameter
+`self`; `x != y`, which C++20 rewrites to `!(x == y)`, gets the specification of `==` with the
+result negated. `Api.p.spec` states the specification for the machine code of the instance `p` for
+the RISC-V calling convention: a `uint64_t` or `bool` is in one register, a `uint128` in two, an
+`unsigned` is its 32 bits sign-extended to the register (the code may test the whole register), a
+`const uint<N>&` argument or a `std::span<const uint64_t, n>` is the address of its words in the
+next argument register, a `uint<N>` result wider than 128 bits is written to the buffer at the
+address in a0 (`sret`), a `bool` is 0 or 1. A `std::span<uint64_t, n>` parameter of a `void`
+function is the buffer it writes: its name stands for its value at the return, and `N` for its
+width. With registers only the specification is a `Runs`; with memory a `RunsM` (in
 [`RunM.lean`](RunM.lean)), the `Runs` with memory: the buffers are aligned, do not wrap around and
 the result does not overlap the arguments; the memory outside the result is unchanged. A function
 with a stack frame gets the frame below sp as one more buffer that overlaps no other, and the memory
@@ -81,10 +83,10 @@ The proofs are in [`Api/`](Api/): the generated `Checks/IntxRVApi.lean` requires
 assumptions of the specification hold: with `NonVacuous` ([`EnvM.lean`](EnvM.lean)) in an
 environment for the functions with memory, by a proof `Api.p.nonvacuous` otherwise. `umul()`,
 `addc()` and `udivrem_2by1()` are proved through their models ([`Api/Word.lean`](Api/Word.lean)),
-the bitwise operators through `List.zipWith` of the word operation; the comparisons and `slt()`
-directly. `operator+` and `operator-` are proved through the models `add4` and `sub4` (the
-chains of `addc()` and `subc()` of `Intx.Model`, [`ApiModel.lean`](ApiModel.lean)); the tactic
-`rv_runm` ([`TacticM.lean`](TacticM.lean)) proves that the machine code computes them.
+the bitwise operators through `List.zipWith` (and `~` through `List.map`) of the word operation; the
+comparisons and `slt()` directly. `operator+` and `operator-` are proved through the models `add4`
+and `sub4` (the chains of `addc()` and `subc()` of `Intx.Model`, [`ApiModel.lean`](ApiModel.lean));
+the tactic `rv_runm` ([`TacticM.lean`](TacticM.lean)) proves that the machine code computes them.
 
 `rv_runm` evaluates the whole run in one `simp`, which takes seconds per instruction. Longer
 functions are run one instruction at a time ([`Step.lean`](Step.lean),

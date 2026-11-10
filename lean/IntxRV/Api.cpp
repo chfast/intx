@@ -41,6 +41,9 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr Cmp eq_256 = [](const uint256& x, const uint256& y) noexcept {
     return x == y;
 };
+[[gnu::used]] constexpr Cmp ne_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x != y;
+};
 [[gnu::used]] constexpr Cmp lt_256 = [](const uint256& x, const uint256& y) noexcept {
     return x < y;
 };
@@ -65,6 +68,7 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr Binop xor_256 = [](const uint256& x, const uint256& y) noexcept {
     return x ^ y;
 };
+[[gnu::used]] constexpr auto* not_256 = +[](const uint256& x) noexcept { return ~x; };
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated

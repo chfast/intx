@@ -1281,6 +1281,8 @@ public:
     constexpr uint& operator%=(const uint& y) noexcept { return *this = *this % y; }
 
 
+    /// The bitwise complement.
+    /// @post result = 2 ^ N - 1 - self
     constexpr uint operator~() const noexcept
     {
         uint z;

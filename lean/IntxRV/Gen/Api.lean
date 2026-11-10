@@ -70,7 +70,7 @@ def spec : Prop := Runs addc_code pre post
 end addc
 
 
-/-! ## `and_256`: `operator&` (intx.hpp:1304)
+/-! ## `and_256`: `operator&` (intx.hpp:1306)
 
 @post result = x &&& y
 -/
@@ -103,7 +103,7 @@ def spec : Prop := RunsM and_256_code bufs pre post
 end and_256
 
 
-/-! ## `eq_256`: `operator==` (intx.hpp:1326)
+/-! ## `eq_256`: `operator==` (intx.hpp:1328)
 
 @post result <-> x = y
 -/
@@ -223,7 +223,7 @@ def spec : Prop := RunsM le_256_code bufs pre post
 end le_256
 
 
-/-! ## `lt_256`: `operator<` (intx.hpp:1335)
+/-! ## `lt_256`: `operator<` (intx.hpp:1337)
 
 @post result <-> x < y
 -/
@@ -253,7 +253,69 @@ def spec : Prop := RunsM lt_256_code bufs pre post
 end lt_256
 
 
-/-! ## `or_256`: `operator|` (intx.hpp:1293)
+/-! ## `ne_256`: `operator==`, negated (`!=`) (intx.hpp:1328)
+
+@post result <-> x = y
+-/
+
+namespace ne_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 10#5) 4 ++
+    bufWords (x 11#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Bool) (x : Nat) (y : Nat) =>
+      result <-> x = y)
+      256 (!(decide (x'.get 10#5 = 1))) (words m (x 10#5) 4) (words m (x 11#5) 4) ∧
+    (x'.get 10#5 = 0 ∨ x'.get 10#5 = 1) ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `ne_256`. -/
+def spec : Prop := RunsM ne_256_code bufs pre post
+
+end ne_256
+
+
+/-! ## `not_256`: `operator~` (intx.hpp:1286)
+
+The bitwise complement.
+
+@post result = 2 ^ N - 1 - self
+-/
+
+namespace not_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 11#5) 4 ++
+    bufWords (x 10#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32 ∧
+    Disjoint (x 10#5) 32 (x 11#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (self : Nat) =>
+      result = 2 ^ N - 1 - self)
+      256 (words m' (x 10#5) 4) (words m (x 11#5) 4) ∧
+    UnchangedExcept m m' (x 10#5) 32 ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `not_256`. -/
+def spec : Prop := RunsM not_256_code bufs pre post
+
+end not_256
+
+
+/-! ## `or_256`: `operator|` (intx.hpp:1295)
 
 @post result = x ||| y
 -/
@@ -355,7 +417,7 @@ def spec : Prop := RunsM shl_9_8_code bufs pre post
 end shl_9_8
 
 
-/-! ## `slt_256`: `slt` (intx.hpp:1500)
+/-! ## `slt_256`: `slt` (intx.hpp:1502)
 
 Signed less than comparison. Interprets the arguments as two's complement signed integers and checks the "less than" relation.
 
@@ -485,7 +547,7 @@ def spec : Prop := Runs umul_code pre post
 end umul
 
 
-/-! ## `umul_256`: `umul` (intx.hpp:1538)
+/-! ## `umul_256`: `umul` (intx.hpp:1540)
 
 The full product.
 
@@ -525,7 +587,7 @@ def spec : Prop := RunsM umul_256_code bufs pre post
 end umul_256
 
 
-/-! ## `xor_256`: `operator^` (intx.hpp:1315)
+/-! ## `xor_256`: `operator^` (intx.hpp:1317)
 
 @post result = x ^^^ y
 -/

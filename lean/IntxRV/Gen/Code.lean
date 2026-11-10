@@ -415,6 +415,10 @@ theorem decode_00c50633 :
     DecodesTo 0xc50633#32 (.RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 12#5, .ADD)) := by
   rv_decode
 
+theorem decode_00c53023 :
+    DecodesTo 0xc53023#32 (.STORE (0x0#12, .Regidx 12#5, .Regidx 10#5, 8)) := by
+  rv_decode
+
 theorem decode_00c53633 :
     DecodesTo 0xc53633#32 (.RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 12#5, .SLTU)) := by
   rv_decode
@@ -1507,6 +1511,22 @@ theorem decode_fff54713 :
     DecodesTo 0xfff54713#32 (.ITYPE (0xfff#12, .Regidx 10#5, .Regidx 14#5, .XORI)) := by
   rv_decode
 
+theorem decode_fff5c593 :
+    DecodesTo 0xfff5c593#32 (.ITYPE (0xfff#12, .Regidx 11#5, .Regidx 11#5, .XORI)) := by
+  rv_decode
+
+theorem decode_fff64613 :
+    DecodesTo 0xfff64613#32 (.ITYPE (0xfff#12, .Regidx 12#5, .Regidx 12#5, .XORI)) := by
+  rv_decode
+
+theorem decode_fff6c693 :
+    DecodesTo 0xfff6c693#32 (.ITYPE (0xfff#12, .Regidx 13#5, .Regidx 13#5, .XORI)) := by
+  rv_decode
+
+theorem decode_fff74713 :
+    DecodesTo 0xfff74713#32 (.ITYPE (0xfff#12, .Regidx 14#5, .Regidx 14#5, .XORI)) := by
+  rv_decode
+
 theorem decode_fff78793 :
     DecodesTo 0xfff78793#32 (.ITYPE (0xfff#12, .Regidx 15#5, .Regidx 15#5, .ADDI)) := by
   rv_decode
@@ -1624,9 +1644,9 @@ theorem addc_decodes : Decodes addc_code addc_prog :=
   | _ + 6, hk, _ => absurd hk (by simp [addc_code])
 
 
-/-! ## `_ZN4intx3api4$_138__invokeERKNS_4uintILj256EEES5_` -/
+/-! ## `_ZN4intx3api4$_148__invokeERKNS_4uintILj256EEES5_` -/
 
-/-- The machine code of `_ZN4intx3api4$_138__invokeERKNS_4uintILj256EEES5_`. -/
+/-- The machine code of `_ZN4intx3api4$_148__invokeERKNS_4uintILj256EEES5_`. -/
 def and_256_code : Code := [
   0x5b683#32, 0x85b703#32, 0x105b783#32, 0x185b583#32,
   0x63803#32, 0x863883#32, 0x1063283#32, 0x1863603#32,
@@ -1728,9 +1748,9 @@ theorem eq_256_decodes : Decodes eq_256_code eq_256_prog :=
   | _ + 17, hk, _ => absurd hk (by simp [eq_256_code])
 
 
-/-! ## `_ZN4intx3api3$_98__invokeERKNS_4uintILj256EEES5_` -/
+/-! ## `_ZN4intx3api4$_108__invokeERKNS_4uintILj256EEES5_` -/
 
-/-- The machine code of `_ZN4intx3api3$_98__invokeERKNS_4uintILj256EEES5_`. -/
+/-- The machine code of `_ZN4intx3api4$_108__invokeERKNS_4uintILj256EEES5_`. -/
 def ge_256_code : Code := [
   0x53603#32, 0x853683#32, 0x1053703#32, 0x1853503#32,
   0x5b783#32, 0x85b803#32, 0x105b883#32, 0x185b583#32,
@@ -1807,9 +1827,9 @@ theorem ge_256_decodes : Decodes ge_256_code ge_256_prog :=
   | _ + 29, hk, _ => absurd hk (by simp [ge_256_code])
 
 
-/-! ## `_ZN4intx3api3$_88__invokeERKNS_4uintILj256EEES5_` -/
+/-! ## `_ZN4intx3api3$_98__invokeERKNS_4uintILj256EEES5_` -/
 
-/-- The machine code of `_ZN4intx3api3$_88__invokeERKNS_4uintILj256EEES5_`. -/
+/-- The machine code of `_ZN4intx3api3$_98__invokeERKNS_4uintILj256EEES5_`. -/
 def gt_256_code : Code := [
   0x5b603#32, 0x85b683#32, 0x105b703#32, 0x185b583#32,
   0x53783#32, 0x853803#32, 0x1053883#32, 0x1853503#32,
@@ -1877,9 +1897,9 @@ theorem gt_256_decodes : Decodes gt_256_code gt_256_prog :=
   | _ + 25, hk, _ => absurd hk (by simp [gt_256_code])
 
 
-/-! ## `_ZN4intx3api4$_108__invokeERKNS_4uintILj256EEES5_` -/
+/-! ## `_ZN4intx3api4$_118__invokeERKNS_4uintILj256EEES5_` -/
 
-/-- The machine code of `_ZN4intx3api4$_108__invokeERKNS_4uintILj256EEES5_`. -/
+/-- The machine code of `_ZN4intx3api4$_118__invokeERKNS_4uintILj256EEES5_`. -/
 def le_256_code : Code := [
   0x5b603#32, 0x85b683#32, 0x105b703#32, 0x185b583#32,
   0x53783#32, 0x853803#32, 0x1053883#32, 0x1853503#32,
@@ -1956,9 +1976,9 @@ theorem le_256_decodes : Decodes le_256_code le_256_prog :=
   | _ + 29, hk, _ => absurd hk (by simp [le_256_code])
 
 
-/-! ## `_ZN4intx3api3$_78__invokeERKNS_4uintILj256EEES5_` -/
+/-! ## `_ZN4intx3api3$_88__invokeERKNS_4uintILj256EEES5_` -/
 
-/-- The machine code of `_ZN4intx3api3$_78__invokeERKNS_4uintILj256EEES5_`. -/
+/-- The machine code of `_ZN4intx3api3$_88__invokeERKNS_4uintILj256EEES5_`. -/
 def lt_256_code : Code := [
   0x53603#32, 0x853683#32, 0x1053703#32, 0x1853503#32,
   0x5b783#32, 0x85b803#32, 0x105b883#32, 0x185b583#32,
@@ -2026,9 +2046,104 @@ theorem lt_256_decodes : Decodes lt_256_code lt_256_prog :=
   | _ + 25, hk, _ => absurd hk (by simp [lt_256_code])
 
 
-/-! ## `_ZN4intx3api4$_128__invokeERKNS_4uintILj256EEES5_` -/
+/-! ## `_ZN4intx3api3$_78__invokeERKNS_4uintILj256EEES5_` -/
 
-/-- The machine code of `_ZN4intx3api4$_128__invokeERKNS_4uintILj256EEES5_`. -/
+/-- The machine code of `_ZN4intx3api3$_78__invokeERKNS_4uintILj256EEES5_`. -/
+def ne_256_code : Code := [
+  0x53603#32, 0x853683#32, 0x1053703#32, 0x1853503#32,
+  0x85b783#32, 0x5b803#32, 0x105b883#32, 0x185b583#32,
+  0xd7c6b3#32, 0xc84633#32, 0xe8c733#32, 0xa5c533#32,
+  0xd66633#32, 0xa76533#32, 0xa66533#32, 0xa03533#32,
+  0x8067#32]
+
+/-- The instructions of `ne_256`. -/
+def ne_256_prog : List instruction := [
+  .LOAD (0x0#12, .Regidx 10#5, .Regidx 12#5, false, 8),
+  .LOAD (0x8#12, .Regidx 10#5, .Regidx 13#5, false, 8),
+  .LOAD (0x10#12, .Regidx 10#5, .Regidx 14#5, false, 8),
+  .LOAD (0x18#12, .Regidx 10#5, .Regidx 10#5, false, 8),
+  .LOAD (0x8#12, .Regidx 11#5, .Regidx 15#5, false, 8),
+  .LOAD (0x0#12, .Regidx 11#5, .Regidx 16#5, false, 8),
+  .LOAD (0x10#12, .Regidx 11#5, .Regidx 17#5, false, 8),
+  .LOAD (0x18#12, .Regidx 11#5, .Regidx 11#5, false, 8),
+  .RTYPE (.Regidx 13#5, .Regidx 15#5, .Regidx 13#5, .XOR),
+  .RTYPE (.Regidx 12#5, .Regidx 16#5, .Regidx 12#5, .XOR),
+  .RTYPE (.Regidx 14#5, .Regidx 17#5, .Regidx 14#5, .XOR),
+  .RTYPE (.Regidx 10#5, .Regidx 11#5, .Regidx 10#5, .XOR),
+  .RTYPE (.Regidx 13#5, .Regidx 12#5, .Regidx 12#5, .OR),
+  .RTYPE (.Regidx 10#5, .Regidx 14#5, .Regidx 10#5, .OR),
+  .RTYPE (.Regidx 10#5, .Regidx 12#5, .Regidx 10#5, .OR),
+  .RTYPE (.Regidx 10#5, .Regidx 0#5, .Regidx 10#5, .SLTU),
+  .JALR (0x0#12, .Regidx 1#5, .Regidx 0#5)]
+
+theorem ne_256_decodes : Decodes ne_256_code ne_256_prog :=
+  decodes_of (by rfl) fun
+  | 0, _, _ => decode_00053603
+  | 1, _, _ => decode_00853683
+  | 2, _, _ => decode_01053703
+  | 3, _, _ => decode_01853503
+  | 4, _, _ => decode_0085b783
+  | 5, _, _ => decode_0005b803
+  | 6, _, _ => decode_0105b883
+  | 7, _, _ => decode_0185b583
+  | 8, _, _ => decode_00d7c6b3
+  | 9, _, _ => decode_00c84633
+  | 10, _, _ => decode_00e8c733
+  | 11, _, _ => decode_00a5c533
+  | 12, _, _ => decode_00d66633
+  | 13, _, _ => decode_00a76533
+  | 14, _, _ => decode_00a66533
+  | 15, _, _ => decode_00a03533
+  | 16, _, _ => decode_00008067
+  | _ + 17, hk, _ => absurd hk (by simp [ne_256_code])
+
+
+/-! ## `_ZN4intx3api4$_168__invokeERKNS_4uintILj256EEE` -/
+
+/-- The machine code of `_ZN4intx3api4$_168__invokeERKNS_4uintILj256EEE`. -/
+def not_256_code : Code := [
+  0x5b603#32, 0x85b683#32, 0x105b703#32, 0x185b583#32,
+  0xfff64613#32, 0xfff6c693#32, 0xfff74713#32, 0xfff5c593#32,
+  0xc53023#32, 0xd53423#32, 0xe53823#32, 0xb53c23#32,
+  0x8067#32]
+
+/-- The instructions of `not_256`. -/
+def not_256_prog : List instruction := [
+  .LOAD (0x0#12, .Regidx 11#5, .Regidx 12#5, false, 8),
+  .LOAD (0x8#12, .Regidx 11#5, .Regidx 13#5, false, 8),
+  .LOAD (0x10#12, .Regidx 11#5, .Regidx 14#5, false, 8),
+  .LOAD (0x18#12, .Regidx 11#5, .Regidx 11#5, false, 8),
+  .ITYPE (0xfff#12, .Regidx 12#5, .Regidx 12#5, .XORI),
+  .ITYPE (0xfff#12, .Regidx 13#5, .Regidx 13#5, .XORI),
+  .ITYPE (0xfff#12, .Regidx 14#5, .Regidx 14#5, .XORI),
+  .ITYPE (0xfff#12, .Regidx 11#5, .Regidx 11#5, .XORI),
+  .STORE (0x0#12, .Regidx 12#5, .Regidx 10#5, 8),
+  .STORE (0x8#12, .Regidx 13#5, .Regidx 10#5, 8),
+  .STORE (0x10#12, .Regidx 14#5, .Regidx 10#5, 8),
+  .STORE (0x18#12, .Regidx 11#5, .Regidx 10#5, 8),
+  .JALR (0x0#12, .Regidx 1#5, .Regidx 0#5)]
+
+theorem not_256_decodes : Decodes not_256_code not_256_prog :=
+  decodes_of (by rfl) fun
+  | 0, _, _ => decode_0005b603
+  | 1, _, _ => decode_0085b683
+  | 2, _, _ => decode_0105b703
+  | 3, _, _ => decode_0185b583
+  | 4, _, _ => decode_fff64613
+  | 5, _, _ => decode_fff6c693
+  | 6, _, _ => decode_fff74713
+  | 7, _, _ => decode_fff5c593
+  | 8, _, _ => decode_00c53023
+  | 9, _, _ => decode_00d53423
+  | 10, _, _ => decode_00e53823
+  | 11, _, _ => decode_00b53c23
+  | 12, _, _ => decode_00008067
+  | _ + 13, hk, _ => absurd hk (by simp [not_256_code])
+
+
+/-! ## `_ZN4intx3api4$_138__invokeERKNS_4uintILj256EEES5_` -/
+
+/-- The machine code of `_ZN4intx3api4$_138__invokeERKNS_4uintILj256EEES5_`. -/
 def or_256_code : Code := [
   0x5b683#32, 0x85b703#32, 0x105b783#32, 0x185b583#32,
   0x63803#32, 0x863883#32, 0x1063283#32, 0x1863603#32,
@@ -2244,9 +2359,9 @@ theorem shl_9_8_decodes : Decodes shl_9_8_code shl_9_8_prog :=
   | _ + 68, hk, _ => absurd hk (by simp [shl_9_8_code])
 
 
-/-! ## `_ZN4intx3api4$_118__invokeERKNS_4uintILj256EEES5_` -/
+/-! ## `_ZN4intx3api4$_128__invokeERKNS_4uintILj256EEES5_` -/
 
-/-- The machine code of `_ZN4intx3api4$_118__invokeERKNS_4uintILj256EEES5_`. -/
+/-- The machine code of `_ZN4intx3api4$_128__invokeERKNS_4uintILj256EEES5_`. -/
 def slt_256_code : Code := [
   0x1853683#32, 0x185b703#32, 0xd74633#32, 0x4064e63#32,
   0x53783#32, 0x853803#32, 0x1053503#32, 0x5b883#32,
@@ -2857,9 +2972,9 @@ theorem umul_256_decodes : Decodes umul_256_code umul_256_prog :=
   | _ + 162, hk, _ => absurd hk (by simp [umul_256_code])
 
 
-/-! ## `_ZN4intx3api4$_148__invokeERKNS_4uintILj256EEES5_` -/
+/-! ## `_ZN4intx3api4$_158__invokeERKNS_4uintILj256EEES5_` -/
 
-/-- The machine code of `_ZN4intx3api4$_148__invokeERKNS_4uintILj256EEES5_`. -/
+/-- The machine code of `_ZN4intx3api4$_158__invokeERKNS_4uintILj256EEES5_`. -/
 def xor_256_code : Code := [
   0x5b683#32, 0x85b703#32, 0x105b783#32, 0x185b583#32,
   0x63803#32, 0x863883#32, 0x1063283#32, 0x1863603#32,
