@@ -18,12 +18,12 @@ set_option linter.unusedSimpArgs false
 namespace IntxRV.Api
 open IntxRV IntxRV.Gen
 
-theorem shl_9_8.proof : shl_9_8.spec := by
-  apply runsM_of_reach shl_9_8_decodes
-  intro base ret hb hr hl x m hx1 hpre
+/-- The run from the start of the code to the return address in ra. -/
+theorem shl_9_8.reach (base : BitVec 64) (x : Regs) (m : Mem) (hra : x.get 1#5 &&& 3 = 0)
+    (hpre : shl_9_8.pre x m) :
+    Reach (shl_9_8.bufs x) shl_9_8_prog base (pcAt base 0) x m (x.get 1#5) (shl_9_8.post x m) := by
   simp only [shl_9_8.pre, shl_9_8.bufs, Buf, Disjoint] at hpre ⊢
-  apply Reach.start
-  simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
+  simp (disch := decide) only [Regs.eq_get x] at hpre ⊢
   obtain ⟨hbr, hbx, habi, hdis, hsh⟩ := hpre
   have hs : (x.get 12#5).toNat < 64 := by
     have := toNat_of_signExtend habi (by omega); omega
@@ -31,7 +31,7 @@ theorem shl_9_8.proof : shl_9_8.spec := by
   rv_exec
   all_goals rv_copies
   all_goals try rv_val
-  all_goals simp only [hx1, update_aligned hr]
+  all_goals simp only [update_aligned hra]
   all_goals refine Reach.refl ?_
   all_goals simp only [shl_9_8.post, calleeSaved, List.mem_cons, List.not_mem_nil, or_false,
     forall_eq_or_imp, forall_eq]
@@ -70,5 +70,11 @@ theorem shl_9_8.proof : shl_9_8.spec := by
          Nat.shiftLeft_eq, BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow, Nat.zero_mul,
          Nat.zero_mod, Nat.zero_add]
        try rw [BitVec.or_comm, toNat_funnel _ _ _ h0 hs])
+
+theorem shl_9_8.proof : shl_9_8.spec :=
+  runsM_of_reach shl_9_8_decodes fun base ret _ hr _ x m hx1 hpre => by
+    have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
+    have h := shl_9_8.reach base x m (hx ▸ hr) hpre
+    rwa [pcAt_zero, hx] at h
 
 end IntxRV.Api

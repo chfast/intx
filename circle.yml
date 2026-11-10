@@ -450,7 +450,7 @@ jobs:
           command: |
             apt-get update -q
             DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
-              ca-certificates curl git clang g++-riscv64-linux-gnu python3
+              ca-certificates curl git clang lld g++-riscv64-linux-gnu python3
       - checkout
       - run:
           name: "Install Lean"

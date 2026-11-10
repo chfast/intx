@@ -2,6 +2,7 @@
 -- include/intx/intx.hpp. Do not edit.
 import IntxRV.Gen.Code
 import IntxRV.Words
+import IntxRV.Image
 
 -- A specification need not use all of N, result and the parameters.
 set_option linter.unusedVariables false
@@ -9,7 +10,7 @@ set_option linter.unusedVariables false
 namespace IntxRV.Api
 open IntxRV.Gen
 
-/-! ## `add_256`: `operator+` (intx.hpp:1227)
+/-! ## `add_256`: `operator+` (intx.hpp:1229)
 
 The sum modulo 2^N.
 
@@ -69,7 +70,7 @@ def spec : Prop := Runs addc_code pre post
 end addc
 
 
-/-! ## `and_256`: `operator&` (intx.hpp:1302)
+/-! ## `and_256`: `operator&` (intx.hpp:1304)
 
 @post result = x &&& y
 -/
@@ -102,7 +103,7 @@ def spec : Prop := RunsM and_256_code bufs pre post
 end and_256
 
 
-/-! ## `eq_256`: `operator==` (intx.hpp:1324)
+/-! ## `eq_256`: `operator==` (intx.hpp:1326)
 
 @post result <-> x = y
 -/
@@ -222,7 +223,7 @@ def spec : Prop := RunsM le_256_code bufs pre post
 end le_256
 
 
-/-! ## `lt_256`: `operator<` (intx.hpp:1333)
+/-! ## `lt_256`: `operator<` (intx.hpp:1335)
 
 @post result <-> x < y
 -/
@@ -252,7 +253,7 @@ def spec : Prop := RunsM lt_256_code bufs pre post
 end lt_256
 
 
-/-! ## `or_256`: `operator|` (intx.hpp:1291)
+/-! ## `or_256`: `operator|` (intx.hpp:1293)
 
 @post result = x ||| y
 -/
@@ -305,14 +306,14 @@ def pre (x : Regs) (m : Mem) : Prop :=
     Buf (x 11#5) 64 ∧
     x 12#5 = ((x 12#5).setWidth 32).signExtend 64 ∧
     Disjoint (x 10#5) 72 (x 11#5) 64 ∧
-    (fun (N : Nat) (r : Nat) (x : Nat) (shift : Nat) =>
+    (fun (N : Nat) (RN : Nat) (XN : Nat) (r : Nat) (x : Nat) (shift : Nat) =>
       shift < 64)
-      576 (words m (x 10#5) 9) (words m (x 11#5) 8) ((x 12#5).toNat % 2 ^ 32)
+      576 9 8 (words m (x 10#5) 9) (words m (x 11#5) 8) ((x 12#5).toNat % 2 ^ 32)
 
 def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
-  (fun (N : Nat) (r : Nat) (x : Nat) (shift : Nat) =>
+  (fun (N : Nat) (RN : Nat) (XN : Nat) (r : Nat) (x : Nat) (shift : Nat) =>
       r = x * 2 ^ shift % 2 ^ N)
-      576 (words m' (x 10#5) 9) (words m (x 11#5) 8) ((x 12#5).toNat % 2 ^ 32) ∧
+      576 9 8 (words m' (x 10#5) 9) (words m (x 11#5) 8) ((x 12#5).toNat % 2 ^ 32) ∧
     UnchangedExcept m m' (x 10#5) 72 ∧
     ∀ i ∈ calleeSaved, x' i = x i
 
@@ -322,7 +323,7 @@ def spec : Prop := RunsM shl_9_8_code bufs pre post
 end shl_9_8
 
 
-/-! ## `slt_256`: `slt` (intx.hpp:1498)
+/-! ## `slt_256`: `slt` (intx.hpp:1500)
 
 Signed less than comparison. Interprets the arguments as two's complement signed integers and checks the "less than" relation.
 
@@ -354,7 +355,7 @@ def spec : Prop := RunsM slt_256_code bufs pre post
 end slt_256
 
 
-/-! ## `sub_256`: `operator-` (intx.hpp:1238)
+/-! ## `sub_256`: `operator-` (intx.hpp:1240)
 
 The difference modulo 2^N.
 
@@ -389,7 +390,7 @@ def spec : Prop := RunsM sub_256_code bufs pre post
 end sub_256
 
 
-/-! ## `udivrem_2by1`: `udivrem_2by1` (intx.hpp:828)
+/-! ## `udivrem_2by1`: `udivrem_2by1` (intx.hpp:830)
 
 Divides u by the normalized d with its reciprocal v (Moller and Granlund, Algorithm 4).
 
@@ -452,7 +453,7 @@ def spec : Prop := Runs umul_code pre post
 end umul
 
 
-/-! ## `umul_256`: `umul` (intx.hpp:1536)
+/-! ## `umul_256`: `umul` (intx.hpp:1538)
 
 The full product.
 
@@ -482,7 +483,7 @@ def pre (x : Regs) (_m : Mem) : Prop :=
 def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
   (fun (N : Nat) (result : Nat) (x : Nat) (y : Nat) =>
       result = x * y)
-      512 (words m' (x 10#5) 8) (words m (x 11#5) 4) (words m (x 12#5) 4) ∧
+      256 (words m' (x 10#5) 8) (words m (x 11#5) 4) (words m (x 12#5) 4) ∧
     UnchangedExcept2 m m' (x 10#5) 64 (x 2#5 - 160#64) 160 ∧
     ∀ i ∈ calleeSaved, x' i = x i
 
@@ -492,7 +493,7 @@ def spec : Prop := RunsM umul_256_code bufs pre post
 end umul_256
 
 
-/-! ## `xor_256`: `operator^` (intx.hpp:1313)
+/-! ## `xor_256`: `operator^` (intx.hpp:1315)
 
 @post result = x ^^^ y
 -/
@@ -523,6 +524,38 @@ def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
 def spec : Prop := RunsM xor_256_code bufs pre post
 
 end xor_256
+
+
+/-! ## `reciprocal_2by1`: `reciprocal_2by1` (intx.hpp:780)
+
+Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
+
+@pre 2 ^ 63 <= d
+@post result = (2 ^ 128 - 1) / d - 2 ^ 64
+-/
+
+namespace reciprocal_2by1
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  []
+
+def pre (x : Regs) (m : Mem) : Prop :=
+  (fun (N : Nat) (d : Nat) =>
+      2 ^ 63 <= d)
+      64 ((x 10#5).toNat)
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (d : Nat) =>
+      result = (2 ^ 128 - 1) / d - 2 ^ 64)
+      64 (x'.get 10#5).toNat ((x 10#5).toNat) ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `reciprocal_2by1`. -/
+def spec : Prop := RunsI image_code reciprocal_2by1_entry image_data image_dataOff bufs pre post
+
+end reciprocal_2by1
 
 
 end IntxRV.Api

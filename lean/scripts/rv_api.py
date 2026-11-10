@@ -100,14 +100,25 @@ def instances(decls, namespace):
                 target = n  # The address of the function.
             else:
                 sys.exit(f"{n['name']}: must be initialized by a lambda or a function address")
-            callee = next((m["referencedDecl"] for m, _ in walk(target)
-                           if m.get("kind") == "DeclRefExpr"
-                           and m["referencedDecl"].get("kind") == "FunctionDecl"), None)
-            if callee is None:
+            ref = next((m for m, _ in walk(target) if m.get("kind") == "DeclRefExpr"
+                        and m["referencedDecl"].get("kind") == "FunctionDecl"), None)
+            if ref is None:
                 sys.exit(f"{n['name']}: no function found")
+            callee = ref["referencedDecl"]
             decl = by_id[callee["id"]]
+            # The template arguments of a function template instance, by the parameter names.
+            targs = []
+            tmpl = by_id.get(ref.get("foundReferencedDecl", {}).get("id"))
+            if tmpl is not None and tmpl.get("kind") == "FunctionTemplateDecl":
+                names = [c["name"] for c in tmpl.get("inner", [])
+                         if c.get("kind") == "NonTypeTemplateParmDecl"]
+                vals = [c["value"] for c in decl.get("inner", [])
+                        if c.get("kind") == "TemplateArgument" and "value" in c]
+                if len(names) != len(vals):
+                    sys.exit(f"{n['name']}: unsupported template arguments")
+                targs = list(zip(names, vals))
             result[n["name"]] = dict(name=callee["name"], offset=decl["loc"]["offset"],
-                                     type=callee["type"]["qualType"])
+                                     type=callee["type"]["qualType"], targs=targs)
     return result
 
 
@@ -141,12 +152,16 @@ def signature(var, inst, spec):
     return ret, args
 
 
-def apply(term, width, result, values):
-    """The term with N, result and the parameters bound to their values: `result` is
-    (type, value) or None, `values` are (name, type, value)."""
-    binders = "(N : Nat)" + (f" (result : {result[0]})" if result else "")
+def apply(term, width, result, values, targs=()):
+    """The term with N, the template parameters, result and the parameters bound to their
+    values: N is the width unless a template parameter is named N, `targs` are (name, value),
+    `result` is (type, value) or None, `values` are (name, type, value)."""
+    params = ([] if any(n == "N" for n, _ in targs) else [("N", width)]) + list(targs)
+    binders = "".join(f"({n} : Nat) " for n, _ in params).rstrip()
+    binders += f" (result : {result[0]})" if result else ""
     binders += "".join(f" ({n} : {t})" for n, t, _ in values)
-    args = [str(width)] + ([result[1]] if result else []) + [f"({v})" for _, _, v in values]
+    args = [str(v) for _, v in params] + ([result[1]] if result else []) + [
+        f"({v})" for _, _, v in values]
     return f"(fun {binders} =>\n      {term})\n      " + " ".join(args)
 
 
@@ -171,9 +186,9 @@ REG_RESULTS = {
 }
 
 
-def spec_rv(var, inst, spec, stack):
+def spec_rv(var, inst, spec, stack, image=False):
     """The Lean definitions of the specification of the machine code of the instance `var` that
-    uses `stack` bytes below sp."""
+    uses `stack` bytes below sp, in the image of the functions with calls or data if `image`."""
     ret, args = signature(var, inst, spec)
     reg = 10  # The arguments are in a0 (x10), a1 (x11), ...
     bufs, pre, values, post_values = [], [], [], []
@@ -235,7 +250,8 @@ def spec_rv(var, inst, spec, stack):
         frame = [f"UnchangedExcept2 m m' {out} {sp} {stack}" if stack else
                  f"UnchangedExcept m m' {out}"]
     else:
-        frame = ([f"UnchangedExcept m m' {sp} {stack}"] if stack else ["m' = m"] if bufs else [])
+        frame = ([f"UnchangedExcept m m' {sp} {stack}"] if stack else
+                 ["m' = m"] if bufs or image else [])
     if ret_width is not None and ret_width > 128:
         result = ("Nat", f"(words m' (x {outs[0][0]}#5) {ret_width // 64})")
     elif ret == "void":
@@ -250,19 +266,23 @@ def spec_rv(var, inst, spec, stack):
         for r, w in ins + outs:
             pre.append(f"Disjoint {sp} {stack} (x {r}#5) {w // 8}")
     width = ret_width or (outs[0][1] if outs else None) or uint_width(args[0]) or 64
-    pre += [apply(p, width, None, values) for p in spec["pre"]]
-    post = [apply(p, width, result, post_values) for p in spec["post"]] + frame + [
+    targs = inst["targs"]
+    pre += [apply(p, width, None, values, targs) for p in spec["pre"]]
+    post = [apply(p, width, result, post_values, targs) for p in spec["post"]] + frame + [
         "∀ i ∈ calleeSaved, x' i = x i"]
     lines = header(var, spec)
-    if bufs:
+    if bufs or image:  # The functions of the image read the data in the memory.
         m_used = "m" if spec["pre"] else "_m"
         lines += ["/-- The addresses of the words of the arguments and the result. -/",
-                  "def bufs (x : Regs) : List (BitVec 64) :=\n  " + " ++\n    ".join(bufs), "",
-                  f"def pre (x : Regs) ({m_used} : Mem) : Prop :=\n  " + " ∧\n    ".join(pre),
+                  "def bufs (x : Regs) : List (BitVec 64) :=\n  " +
+                  (" ++\n    ".join(bufs) or "[]"), "",
+                  f"def pre (x : Regs) ({m_used} : Mem) : Prop :=\n  " +
+                  (" ∧\n    ".join(pre) or "True"),
                   "", "def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=\n  " +
                   " ∧\n    ".join(post), "",
                   f"/-- The specification of the machine code of `{var}`. -/",
-                  f"def spec : Prop := RunsM {var}_code bufs pre post"]
+                  f"def spec : Prop := RunsI image_code {var}_entry image_data image_dataOff bufs "
+                  "pre post" if image else f"def spec : Prop := RunsM {var}_code bufs pre post"]
     else:
         lines += ["def pre (x : Regs) : Prop :=\n  " + (" ∧\n    ".join(pre) or "True"), "",
                   "def post (x x' : Regs) : Prop :=\n  " + " ∧\n    ".join(post), "",
@@ -300,7 +320,9 @@ def spec_model(var, inst, spec):
 
 def main():
     ast, stack_json, out = map(Path, sys.argv[1:])
-    stacks = json.loads(stack_json.read_text())
+    info = json.loads(stack_json.read_text())
+    stacks = {var: i["stack"] for var, i in info.items()}
+    images = {var for var, i in info.items() if i.get("image")}
     decls = read_ast(ast)
     specs = documented_functions(decls)
 
@@ -313,9 +335,10 @@ def main():
     api = instances(decls, "api")
     if not api:
         sys.exit("no instances in the namespace intx::api")
+    wip = instances(decls, "wip")  # The specifications without proofs yet.
     lines = ["-- Generated by scripts/rv_api.py from IntxRV/Api.cpp and the documentation of",
              "-- include/intx/intx.hpp. Do not edit.", "import IntxRV.Gen.Code",
-             "import IntxRV.Words", "",
+             "import IntxRV.Words", "import IntxRV.Image", "",
              "-- A specification need not use all of N, result and the parameters.",
              "set_option linter.unusedVariables false", "",
              "namespace IntxRV.Api", "open IntxRV.Gen", ""]
@@ -328,7 +351,7 @@ def main():
               "assumptions hold in an environment (they are not vacuous). -/", ""]
     for var in sorted(api):
         spec_lines, mem, has_pre = spec_rv(var, api[var], spec_of(var, api[var]),
-                                                stacks[var])
+                                                stacks[var], var in images)
         lines += spec_lines
         a = f"IntxRV.Api.{var}"
         checks += [f"example : {a}.spec := {a}.proof", f"#check_rv_axioms {a}.proof"]
@@ -341,6 +364,8 @@ def main():
             checks += [f"example : ∃ x, {a}.pre x := {a}.nonvacuous", ""]
         else:
             checks += [""]
+    for var in sorted(wip):
+        lines += spec_rv(var, wip[var], spec_of(var, wip[var]), stacks[var], var in images)[0]
     lines += ["end IntxRV.Api", ""]
     (out / "IntxRV" / "Gen" / "Api.lean").write_text("\n".join(lines))
     (out / "Checks" / "IntxRVApi.lean").write_text("\n".join(checks))

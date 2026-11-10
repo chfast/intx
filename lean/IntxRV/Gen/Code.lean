@@ -11,6 +11,10 @@ namespace IntxRV.Gen
 
 /-! ## The instructions decoded by the Sail model -/
 
+theorem decode_00000617 :
+    DecodesTo 0x617#32 (.UTYPE (0x0#20, .Regidx 12#5, .AUIPC)) := by
+  rv_decode
+
 theorem decode_00008067 :
     DecodesTo 0x8067#32 (.JALR (0x0#12, .Regidx 1#5, .Regidx 0#5)) := by
   rv_decode
@@ -67,6 +71,10 @@ theorem decode_00068593 :
     DecodesTo 0x68593#32 (.ITYPE (0x0#12, .Regidx 13#5, .Regidx 11#5, .ADDI)) := by
   rv_decode
 
+theorem decode_00100713 :
+    DecodesTo 0x100713#32 (.ITYPE (0x1#12, .Regidx 0#5, .Regidx 14#5, .ADDI)) := by
+  rv_decode
+
 theorem decode_00153513 :
     DecodesTo 0x153513#32 (.ITYPE (0x1#12, .Regidx 10#5, .Regidx 10#5, .SLTIU)) := by
   rv_decode
@@ -75,8 +83,24 @@ theorem decode_00154693 :
     DecodesTo 0x154693#32 (.ITYPE (0x1#12, .Regidx 10#5, .Regidx 13#5, .XORI)) := by
   rv_decode
 
+theorem decode_00155693 :
+    DecodesTo 0x155693#32 (.SHIFTIOP (0x1#6, .Regidx 10#5, .Regidx 13#5, .SRLI)) := by
+  rv_decode
+
+theorem decode_00157613 :
+    DecodesTo 0x157613#32 (.ITYPE (0x1#12, .Regidx 10#5, .Regidx 12#5, .ANDI)) := by
+  rv_decode
+
 theorem decode_00158693 :
     DecodesTo 0x158693#32 (.ITYPE (0x1#12, .Regidx 11#5, .Regidx 13#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_0015d593 :
+    DecodesTo 0x15d593#32 (.SHIFTIOP (0x1#6, .Regidx 11#5, .Regidx 11#5, .SRLI)) := by
+  rv_decode
+
+theorem decode_0015d713 :
+    DecodesTo 0x15d713#32 (.SHIFTIOP (0x1#6, .Regidx 11#5, .Regidx 14#5, .SRLI)) := by
   rv_decode
 
 theorem decode_00163593 :
@@ -89,6 +113,10 @@ theorem decode_00163793 :
 
 theorem decode_00164593 :
     DecodesTo 0x164593#32 (.ITYPE (0x1#12, .Regidx 12#5, .Regidx 11#5, .XORI)) := by
+  rv_decode
+
+theorem decode_00168693 :
+    DecodesTo 0x168693#32 (.ITYPE (0x1#12, .Regidx 13#5, .Regidx 13#5, .ADDI)) := by
   rv_decode
 
 theorem decode_0016b593 :
@@ -327,12 +355,20 @@ theorem decode_00b675b3 :
     DecodesTo 0xb675b3#32 (.RTYPE (.Regidx 11#5, .Regidx 12#5, .Regidx 11#5, .AND)) := by
   rv_decode
 
+theorem decode_00b685b3 :
+    DecodesTo 0xb685b3#32 (.RTYPE (.Regidx 11#5, .Regidx 13#5, .Regidx 11#5, .ADD)) := by
+  rv_decode
+
 theorem decode_00b6e5b3 :
     DecodesTo 0xb6e5b3#32 (.RTYPE (.Regidx 11#5, .Regidx 13#5, .Regidx 11#5, .OR)) := by
   rv_decode
 
 theorem decode_00b6f5b3 :
     DecodesTo 0xb6f5b3#32 (.RTYPE (.Regidx 11#5, .Regidx 13#5, .Regidx 11#5, .AND)) := by
+  rv_decode
+
+theorem decode_00b705b3 :
+    DecodesTo 0xb705b3#32 (.RTYPE (.Regidx 11#5, .Regidx 14#5, .Regidx 11#5, .ADD)) := by
   rv_decode
 
 theorem decode_00b765b3 :
@@ -401,6 +437,10 @@ theorem decode_00c5e5b3 :
 
 theorem decode_00c68633 :
     DecodesTo 0xc68633#32 (.RTYPE (.Regidx 12#5, .Regidx 13#5, .Regidx 12#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00c686b3 :
+    DecodesTo 0xc686b3#32 (.RTYPE (.Regidx 12#5, .Regidx 13#5, .Regidx 13#5, .ADD)) := by
   rv_decode
 
 theorem decode_00c71733 :
@@ -503,6 +543,10 @@ theorem decode_00d585b3 :
     DecodesTo 0xd585b3#32 (.RTYPE (.Regidx 13#5, .Regidx 11#5, .Regidx 11#5, .ADD)) := by
   rv_decode
 
+theorem decode_00d59593 :
+    DecodesTo 0xd59593#32 (.SHIFTIOP (0xd#6, .Regidx 11#5, .Regidx 11#5, .SLLI)) := by
+  rv_decode
+
 theorem decode_00d66633 :
     DecodesTo 0xd66633#32 (.RTYPE (.Regidx 13#5, .Regidx 12#5, .Regidx 12#5, .OR)) := by
   rv_decode
@@ -585,6 +629,10 @@ theorem decode_00e60733 :
 
 theorem decode_00e63633 :
     DecodesTo 0xe63633#32 (.RTYPE (.Regidx 14#5, .Regidx 12#5, .Regidx 12#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_00e67633 :
+    DecodesTo 0xe67633#32 (.RTYPE (.Regidx 14#5, .Regidx 12#5, .Regidx 12#5, .AND)) := by
   rv_decode
 
 theorem decode_00e6b6b3 :
@@ -839,6 +887,10 @@ theorem decode_01853683 :
     DecodesTo 0x1853683#32 (.LOAD (0x18#12, .Regidx 10#5, .Regidx 13#5, false, 8)) := by
   rv_decode
 
+theorem decode_01855693 :
+    DecodesTo 0x1855693#32 (.SHIFTIOP (0x18#6, .Regidx 10#5, .Regidx 13#5, .SRLI)) := by
+  rv_decode
+
 theorem decode_0185b583 :
     DecodesTo 0x185b583#32 (.LOAD (0x18#12, .Regidx 11#5, .Regidx 11#5, false, 8)) := by
   rv_decode
@@ -923,6 +975,10 @@ theorem decode_01e636b3 :
     DecodesTo 0x1e636b3#32 (.RTYPE (.Regidx 30#5, .Regidx 12#5, .Regidx 13#5, .SLTU)) := by
   rv_decode
 
+theorem decode_01f59693 :
+    DecodesTo 0x1f59693#32 (.SHIFTIOP (0x1f#6, .Regidx 11#5, .Regidx 13#5, .SLLI)) := by
+  rv_decode
+
 theorem decode_01f80833 :
     DecodesTo 0x1f80833#32 (.RTYPE (.Regidx 31#5, .Regidx 16#5, .Regidx 16#5, .ADD)) := by
   rv_decode
@@ -971,6 +1027,10 @@ theorem decode_0285b783 :
     DecodesTo 0x285b783#32 (.LOAD (0x28#12, .Regidx 11#5, .Regidx 15#5, false, 8)) := by
   rv_decode
 
+theorem decode_02865613 :
+    DecodesTo 0x2865613#32 (.SHIFTIOP (0x28#6, .Regidx 12#5, .Regidx 12#5, .SRLI)) := by
+  rv_decode
+
 theorem decode_02a13423 :
     DecodesTo 0x2a13423#32 (.STORE (0x28#12, .Regidx 10#5, .Regidx 2#5, 8)) := by
   rv_decode
@@ -981,6 +1041,10 @@ theorem decode_02a58633 :
 
 theorem decode_02a5b5b3 :
     DecodesTo 0x2a5b5b3#32 (.MUL (.Regidx 10#5, .Regidx 11#5, .Regidx 11#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02a5b6b3 :
+    DecodesTo 0x2a5b6b3#32 (.MUL (.Regidx 10#5, .Regidx 11#5, .Regidx 13#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
   rv_decode
 
 theorem decode_02a8bc23 :
@@ -995,12 +1059,20 @@ theorem decode_02b33633 :
     DecodesTo 0x2b33633#32 (.MUL (.Regidx 11#5, .Regidx 6#5, .Regidx 12#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
   rv_decode
 
+theorem decode_02b635b3 :
+    DecodesTo 0x2b635b3#32 (.MUL (.Regidx 11#5, .Regidx 12#5, .Regidx 11#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
 theorem decode_02b68733 :
     DecodesTo 0x2b68733#32 (.MUL (.Regidx 11#5, .Regidx 13#5, .Regidx 14#5, ⟨.Low, .Signed, .Signed⟩)) := by
   rv_decode
 
 theorem decode_02b6b6b3 :
     DecodesTo 0x2b6b6b3#32 (.MUL (.Regidx 11#5, .Regidx 13#5, .Regidx 13#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02b70733 :
+    DecodesTo 0x2b70733#32 (.MUL (.Regidx 11#5, .Regidx 14#5, .Regidx 14#5, ⟨.Low, .Signed, .Signed⟩)) := by
   rv_decode
 
 theorem decode_02b800b3 :
@@ -1025,6 +1097,10 @@ theorem decode_02be83b3 :
 
 theorem decode_02bebeb3 :
     DecodesTo 0x2bebeb3#32 (.MUL (.Regidx 11#5, .Regidx 29#5, .Regidx 29#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02c68633 :
+    DecodesTo 0x2c68633#32 (.MUL (.Regidx 12#5, .Regidx 13#5, .Regidx 12#5, ⟨.Low, .Signed, .Signed⟩)) := by
   rv_decode
 
 theorem decode_02c68733 :
@@ -1053,6 +1129,10 @@ theorem decode_02d53423 :
 
 theorem decode_02d53823 :
     DecodesTo 0x2d53823#32 (.STORE (0x30#12, .Regidx 13#5, .Regidx 10#5, 8)) := by
+  rv_decode
+
+theorem decode_02d586b3 :
+    DecodesTo 0x2d586b3#32 (.MUL (.Regidx 13#5, .Regidx 11#5, .Regidx 13#5, ⟨.Low, .Signed, .Signed⟩)) := by
   rv_decode
 
 theorem decode_02d80d33 :
@@ -1135,6 +1215,10 @@ theorem decode_02f33833 :
     DecodesTo 0x2f33833#32 (.MUL (.Regidx 15#5, .Regidx 6#5, .Regidx 16#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
   rv_decode
 
+theorem decode_02f75713 :
+    DecodesTo 0x2f75713#32 (.SHIFTIOP (0x2f#6, .Regidx 14#5, .Regidx 14#5, .SRLI)) := by
+  rv_decode
+
 theorem decode_02f80533 :
     DecodesTo 0x2f80533#32 (.MUL (.Regidx 15#5, .Regidx 16#5, .Regidx 10#5, ⟨.Low, .Signed, .Signed⟩)) := by
   rv_decode
@@ -1183,6 +1267,10 @@ theorem decode_0340006f :
     DecodesTo 0x340006f#32 (.JAL (0x34#21, .Regidx 0#5)) := by
   rv_decode
 
+theorem decode_03455593 :
+    DecodesTo 0x3455593#32 (.SHIFTIOP (0x34#6, .Regidx 10#5, .Regidx 11#5, .SRLI)) := by
+  rv_decode
+
 theorem decode_03813d83 :
     DecodesTo 0x3813d83#32 (.LOAD (0x38#12, .Regidx 2#5, .Regidx 27#5, false, 8)) := by
   rv_decode
@@ -1193,6 +1281,10 @@ theorem decode_0385b703 :
 
 theorem decode_03b13c23 :
     DecodesTo 0x3b13c23#32 (.STORE (0x38#12, .Regidx 27#5, .Regidx 2#5, 8)) := by
+  rv_decode
+
+theorem decode_03c71713 :
+    DecodesTo 0x3c71713#32 (.SHIFTIOP (0x3c#6, .Regidx 14#5, .Regidx 14#5, .SLLI)) := by
   rv_decode
 
 theorem decode_03d13823 :
@@ -1315,6 +1407,10 @@ theorem decode_09813083 :
     DecodesTo 0x9813083#32 (.LOAD (0x98#12, .Regidx 2#5, .Regidx 1#5, false, 8)) := by
   rv_decode
 
+theorem decode_09c60613 :
+    DecodesTo 0x9c60613#32 (.ITYPE (0x9c#12, .Regidx 12#5, .Regidx 12#5, .ADDI)) := by
+  rv_decode
+
 theorem decode_0a010113 :
     DecodesTo 0xa010113#32 (.ITYPE (0xa0#12, .Regidx 2#5, .Regidx 2#5, .ADDI)) := by
   rv_decode
@@ -1325,6 +1421,18 @@ theorem decode_0a060463 :
 
 theorem decode_405708b3 :
     DecodesTo 0x405708b3#32 (.RTYPE (.Regidx 5#5, .Regidx 14#5, .Regidx 17#5, .SUB)) := by
+  rv_decode
+
+theorem decode_40a58533 :
+    DecodesTo 0x40a58533#32 (.RTYPE (.Regidx 10#5, .Regidx 11#5, .Regidx 10#5, .SUB)) := by
+  rv_decode
+
+theorem decode_40c00633 :
+    DecodesTo 0x40c00633#32 (.RTYPE (.Regidx 12#5, .Regidx 0#5, .Regidx 12#5, .SUB)) := by
+  rv_decode
+
+theorem decode_40c50533 :
+    DecodesTo 0x40c50533#32 (.RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, .SUB)) := by
   rv_decode
 
 theorem decode_40c585b3 :
@@ -1341,6 +1449,14 @@ theorem decode_40c705b3 :
 
 theorem decode_40c78633 :
     DecodesTo 0x40c78633#32 (.RTYPE (.Regidx 12#5, .Regidx 15#5, .Regidx 12#5, .SUB)) := by
+  rv_decode
+
+theorem decode_40d60633 :
+    DecodesTo 0x40d60633#32 (.RTYPE (.Regidx 13#5, .Regidx 12#5, .Regidx 12#5, .SUB)) := by
+  rv_decode
+
+theorem decode_40d70733 :
+    DecodesTo 0x40d70733#32 (.RTYPE (.Regidx 13#5, .Regidx 14#5, .Regidx 14#5, .SUB)) := by
   rv_decode
 
 theorem decode_40d886b3 :
@@ -1367,12 +1483,28 @@ theorem decode_41168833 :
     DecodesTo 0x41168833#32 (.RTYPE (.Regidx 17#5, .Regidx 13#5, .Regidx 16#5, .SUB)) := by
   rv_decode
 
+theorem decode_8005e603 :
+    DecodesTo 0x8005e603#32 (.LOAD (0x800#12, .Regidx 11#5, .Regidx 12#5, true, 4)) := by
+  rv_decode
+
+theorem decode_8045e583 :
+    DecodesTo 0x8045e583#32 (.LOAD (0x804#12, .Regidx 11#5, .Regidx 11#5, true, 4)) := by
+  rv_decode
+
 theorem decode_f6010113 :
     DecodesTo 0xf6010113#32 (.ITYPE (0xf60#12, .Regidx 2#5, .Regidx 2#5, .ADDI)) := by
   rv_decode
 
+theorem decode_ff85f593 :
+    DecodesTo 0xff85f593#32 (.ITYPE (0xff8#12, .Regidx 11#5, .Regidx 11#5, .ANDI)) := by
+  rv_decode
+
 theorem decode_fff50793 :
     DecodesTo 0xfff50793#32 (.ITYPE (0xfff#12, .Regidx 10#5, .Regidx 15#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_fff54713 :
+    DecodesTo 0xfff54713#32 (.ITYPE (0xfff#12, .Regidx 10#5, .Regidx 14#5, .XORI)) := by
   rv_decode
 
 theorem decode_fff78793 :
@@ -2776,5 +2908,187 @@ theorem xor_256_decodes : Decodes xor_256_code xor_256_prog :=
   | 16, _, _ => decode_00008067
   | _ + 17, hk, _ => absurd hk (by simp [xor_256_code])
 
+
+/-! ## The image -/
+
+def image_code_0 : Code := [
+  0x3455593#32, 0x617#32, 0x1855693#32, 0xff85f593#32,
+  0x9c60613#32, 0xc585b3#32, 0x8005e603#32, 0x100713#32,
+  0x8045e583#32, 0x168693#32, 0x2c68633#32, 0x2865613#32,
+  0x40c585b3#32, 0x157613#32, 0x3c71713#32, 0x2d586b3#32,
+  0x40d70733#32, 0x155693#32, 0xc686b3#32, 0x40c00633#32,
+  0x2b70733#32, 0xd59593#32, 0x2f75713#32, 0xb705b3#32,
+  0x15d713#32, 0xe67633#32, 0xfff54713#32, 0x2d586b3#32,
+  0x40d60633#32, 0x1f59693#32, 0x2b635b3#32, 0x15d593#32,
+  0xb685b3#32, 0x2a58633#32, 0x2a5b6b3#32, 0xc73633#32,
+  0xd50533#32, 0x40a58533#32, 0x40c50533#32, 0x8067#32]
+
+def image_prog_0 : List instruction := [
+  .SHIFTIOP (0x34#6, .Regidx 10#5, .Regidx 11#5, .SRLI),
+  .UTYPE (0x0#20, .Regidx 12#5, .AUIPC),
+  .SHIFTIOP (0x18#6, .Regidx 10#5, .Regidx 13#5, .SRLI),
+  .ITYPE (0xff8#12, .Regidx 11#5, .Regidx 11#5, .ANDI),
+  .ITYPE (0x9c#12, .Regidx 12#5, .Regidx 12#5, .ADDI),
+  .RTYPE (.Regidx 12#5, .Regidx 11#5, .Regidx 11#5, .ADD),
+  .LOAD (0x800#12, .Regidx 11#5, .Regidx 12#5, true, 4),
+  .ITYPE (0x1#12, .Regidx 0#5, .Regidx 14#5, .ADDI),
+  .LOAD (0x804#12, .Regidx 11#5, .Regidx 11#5, true, 4),
+  .ITYPE (0x1#12, .Regidx 13#5, .Regidx 13#5, .ADDI),
+  .MUL (.Regidx 12#5, .Regidx 13#5, .Regidx 12#5, ⟨.Low, .Signed, .Signed⟩),
+  .SHIFTIOP (0x28#6, .Regidx 12#5, .Regidx 12#5, .SRLI),
+  .RTYPE (.Regidx 12#5, .Regidx 11#5, .Regidx 11#5, .SUB),
+  .ITYPE (0x1#12, .Regidx 10#5, .Regidx 12#5, .ANDI),
+  .SHIFTIOP (0x3c#6, .Regidx 14#5, .Regidx 14#5, .SLLI),
+  .MUL (.Regidx 13#5, .Regidx 11#5, .Regidx 13#5, ⟨.Low, .Signed, .Signed⟩),
+  .RTYPE (.Regidx 13#5, .Regidx 14#5, .Regidx 14#5, .SUB),
+  .SHIFTIOP (0x1#6, .Regidx 10#5, .Regidx 13#5, .SRLI),
+  .RTYPE (.Regidx 12#5, .Regidx 13#5, .Regidx 13#5, .ADD),
+  .RTYPE (.Regidx 12#5, .Regidx 0#5, .Regidx 12#5, .SUB),
+  .MUL (.Regidx 11#5, .Regidx 14#5, .Regidx 14#5, ⟨.Low, .Signed, .Signed⟩),
+  .SHIFTIOP (0xd#6, .Regidx 11#5, .Regidx 11#5, .SLLI),
+  .SHIFTIOP (0x2f#6, .Regidx 14#5, .Regidx 14#5, .SRLI),
+  .RTYPE (.Regidx 11#5, .Regidx 14#5, .Regidx 11#5, .ADD),
+  .SHIFTIOP (0x1#6, .Regidx 11#5, .Regidx 14#5, .SRLI),
+  .RTYPE (.Regidx 14#5, .Regidx 12#5, .Regidx 12#5, .AND),
+  .ITYPE (0xfff#12, .Regidx 10#5, .Regidx 14#5, .XORI),
+  .MUL (.Regidx 13#5, .Regidx 11#5, .Regidx 13#5, ⟨.Low, .Signed, .Signed⟩),
+  .RTYPE (.Regidx 13#5, .Regidx 12#5, .Regidx 12#5, .SUB),
+  .SHIFTIOP (0x1f#6, .Regidx 11#5, .Regidx 13#5, .SLLI),
+  .MUL (.Regidx 11#5, .Regidx 12#5, .Regidx 11#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .SHIFTIOP (0x1#6, .Regidx 11#5, .Regidx 11#5, .SRLI),
+  .RTYPE (.Regidx 11#5, .Regidx 13#5, .Regidx 11#5, .ADD),
+  .MUL (.Regidx 10#5, .Regidx 11#5, .Regidx 12#5, ⟨.Low, .Signed, .Signed⟩),
+  .MUL (.Regidx 10#5, .Regidx 11#5, .Regidx 13#5, ⟨.High, .Unsigned, .Unsigned⟩),
+  .RTYPE (.Regidx 12#5, .Regidx 14#5, .Regidx 12#5, .SLTU),
+  .RTYPE (.Regidx 13#5, .Regidx 10#5, .Regidx 10#5, .ADD),
+  .RTYPE (.Regidx 10#5, .Regidx 11#5, .Regidx 10#5, .SUB),
+  .RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, .SUB),
+  .JALR (0x0#12, .Regidx 1#5, .Regidx 0#5)]
+
+theorem image_decodes_0 : Decodes image_code_0 image_prog_0 :=
+    (decodes_cons decode_03455593
+    (decodes_cons decode_00000617
+    (decodes_cons decode_01855693
+    (decodes_cons decode_ff85f593
+    (decodes_cons decode_09c60613
+    (decodes_cons decode_00c585b3
+    (decodes_cons decode_8005e603
+    (decodes_cons decode_00100713
+    (decodes_cons decode_8045e583
+    (decodes_cons decode_00168693
+    (decodes_cons decode_02c68633
+    (decodes_cons decode_02865613
+    (decodes_cons decode_40c585b3
+    (decodes_cons decode_00157613
+    (decodes_cons decode_03c71713
+    (decodes_cons decode_02d586b3
+    (decodes_cons decode_40d70733
+    (decodes_cons decode_00155693
+    (decodes_cons decode_00c686b3
+    (decodes_cons decode_40c00633
+    (decodes_cons decode_02b70733
+    (decodes_cons decode_00d59593
+    (decodes_cons decode_02f75713
+    (decodes_cons decode_00b705b3
+    (decodes_cons decode_0015d713
+    (decodes_cons decode_00e67633
+    (decodes_cons decode_fff54713
+    (decodes_cons decode_02d586b3
+    (decodes_cons decode_40d60633
+    (decodes_cons decode_01f59693
+    (decodes_cons decode_02b635b3
+    (decodes_cons decode_0015d593
+    (decodes_cons decode_00b685b3
+    (decodes_cons decode_02a58633
+    (decodes_cons decode_02a5b6b3
+    (decodes_cons decode_00c73633
+    (decodes_cons decode_00d50533
+    (decodes_cons decode_40a58533
+    (decodes_cons decode_40c50533
+    (decodes_cons decode_00008067 decodes_nil))))))))))))))))))))))))))))))))))))))))
+
+/-- The machine code of the image. -/
+def image_code : Code :=
+  image_code_0
+
+/-- The instructions of the image. -/
+def image_prog : List instruction :=
+  image_prog_0
+
+theorem image_decodes : Decodes image_code image_prog :=
+  image_decodes_0
+
+/-- The read-only data of the image, as 64-bit words. -/
+def image_data : List (BitVec 64) := [
+  0x3fe7ff003fd009#64, 0x3fa7ff003f5079#64, 0x3f67ff003ed169#64, 0x3f27ff003e52d9#64,
+  0x3ee7ff003dd4c9#64, 0x3ea7ff003d5739#64, 0x3e6fff003ce9c4#64, 0x3e2fff003c6d24#64,
+  0x3df7ff003c0081#64, 0x3db7ff003b84d1#64, 0x3d7fff003b1900#64, 0x3d3fff003a9e40#64,
+  0x3d07ff003a3341#64, 0x3ccfff0039c8a4#64, 0x3c8fff00394f44#64, 0x3c57ff0038e579#64,
+  0x3c1fff00387c10#64, 0x3be7ff00381309#64, 0x3bafff0037aa64#64, 0x3b77ff00374221#64,
+  0x3b3fff0036da40#64, 0x3b07ff003672c1#64, 0x3ad7ff00361a59#64, 0x3a9fff0035b390#64,
+  0x3a67ff00354d29#64, 0x3a37ff0034f5b1#64, 0x39ffff00349000#64, 0x39c7ff00342ab1#64,
+  0x3997ff0033d429#64, 0x395fff00336f90#64, 0x392fff003319a4#64, 0x38ffff0032c400#64,
+  0x38c7ff00326071#64, 0x3897ff00320b69#64, 0x3867ff0031b6a9#64, 0x3837ff00316231#64,
+  0x37ffff00310000#64, 0x37cfff0030ac24#64, 0x379fff00305890#64, 0x376fff00300544#64,
+  0x373fff002fb240#64, 0x370fff002f5f84#64, 0x36dfff002f0d10#64, 0x36afff002ebae4#64,
+  0x3687ff002e76a1#64, 0x3657ff002e24f9#64, 0x3627ff002dd399#64, 0x35f7ff002d8281#64,
+  0x35cfff002d3f24#64, 0x359fff002cee90#64, 0x356fff002c9e44#64, 0x3547ff002c5b91#64,
+  0x3517ff002c0bc9#64, 0x34efff002bc984#64, 0x34bfff002b7a40#64, 0x3497ff002b3869#64,
+  0x3467ff002ae9a9#64, 0x343fff002aa840#64, 0x3417ff002a6709#64, 0x33e7ff002a1909#64,
+  0x33bfff0029d840#64, 0x3397ff002997a9#64, 0x336fff00295744#64, 0x3347ff00291711#64,
+  0x331fff0028d710#64, 0x32efff00288a84#64, 0x32c7ff00284af1#64, 0x329fff00280b90#64,
+  0x3277ff0027cc61#64, 0x324fff00278d64#64, 0x3227ff00274e99#64, 0x31ffff00271000#64,
+  0x31dfff0026de10#64, 0x31b7ff00269fd1#64, 0x318fff002661c4#64, 0x3167ff002623e9#64,
+  0x313fff0025e640#64, 0x311fff0025b510#64, 0x30f7ff002577c1#64, 0x30cfff00253aa4#64,
+  0x30afff002509e4#64, 0x3087ff0024cd21#64, 0x305fff00249090#64, 0x303fff00246040#64,
+  0x3017ff00242409#64, 0x2ff7ff0023f401#64, 0x2fcfff0023b824#64, 0x2fafff00238864#64,
+  0x2f87ff00234ce1#64, 0x2f67ff00231d69#64, 0x2f47ff0022ee11#64, 0x2f1fff0022b310#64,
+  0x2effff00228400#64, 0x2edfff00225510#64, 0x2eb7ff00221a91#64, 0x2e97ff0021ebe9#64,
+  0x2e77ff0021bd61#64, 0x2e57ff00218ef9#64, 0x2e2fff00215524#64, 0x2e0fff00212704#64,
+  0x2defff0020f904#64, 0x2dcfff0020cb24#64, 0x2dafff00209d64#64, 0x2d8fff00206fc4#64,
+  0x2d6fff00204244#64, 0x2d4fff002014e4#64, 0x2d2fff001fe7a4#64, 0x2d0fff001fba84#64,
+  0x2cefff001f8d84#64, 0x2ccfff001f60a4#64, 0x2cafff001f33e4#64, 0x2c8fff001f0744#64,
+  0x2c6fff001edac4#64, 0x2c4fff001eae64#64, 0x2c2fff001e8224#64, 0x2c17ff001e6109#64,
+  0x2bf7ff001e3501#64, 0x2bd7ff001e0919#64, 0x2bb7ff001ddd51#64, 0x2b9fff001dbc90#64,
+  0x2b7fff001d9100#64, 0x2b5fff001d6590#64, 0x2b3fff001d3a40#64, 0x2b27ff001d19d9#64,
+  0x2b07ff001ceec1#64, 0x2aefff001cce84#64, 0x2acfff001ca3a4#64, 0x2aafff001c78e4#64,
+  0x2a97ff001c58e9#64, 0x2a77ff001c2e61#64, 0x2a5fff001c0e90#64, 0x2a3fff001be440#64,
+  0x2a27ff001bc499#64, 0x2a07ff001b9a81#64, 0x29efff001b7b04#64, 0x29cfff001b5124#64,
+  0x29b7ff001b31d1#64, 0x299fff001b1290#64, 0x297fff001ae900#64, 0x2967ff001ac9e9#64,
+  0x294fff001aaae4#64, 0x292fff001a81a4#64, 0x2917ff001a62c9#64, 0x28ffff001a4400#64,
+  0x28dfff001a1b10#64, 0x28c7ff0019fc71#64, 0x28afff0019dde4#64, 0x2897ff0019bf69#64,
+  0x2877ff001996e1#64, 0x285fff00197890#64, 0x2847ff00195a51#64, 0x282fff00193c24#64,
+  0x2817ff00191e09#64, 0x27ffff00190000#64, 0x27dfff0018d810#64, 0x27c7ff0018ba31#64,
+  0x27afff00189c64#64, 0x2797ff00187ea9#64, 0x277fff00186100#64, 0x2767ff00184369#64,
+  0x274fff001825e4#64, 0x2737ff00180871#64, 0x271fff0017eb10#64, 0x2707ff0017cdc1#64,
+  0x26efff0017b084#64, 0x26d7ff00179359#64, 0x26bfff00177640#64, 0x26a7ff00175939#64,
+  0x268fff00173c44#64, 0x2677ff00171f61#64, 0x265fff00170290#64, 0x264fff0016ef64#64,
+  0x2637ff0016d2b1#64, 0x261fff0016b610#64, 0x2607ff00169981#64, 0x25efff00167d04#64,
+  0x25d7ff00166099#64, 0x25c7ff00164db1#64, 0x25afff00163164#64, 0x2597ff00161529#64,
+  0x257fff0015f900#64, 0x2567ff0015dce9#64, 0x2557ff0015ca39#64, 0x253fff0015ae40#64,
+  0x2527ff00159259#64, 0x2517ff00157fc9#64, 0x24ffff00156400#64, 0x24e7ff00154849#64,
+  0x24d7ff001535d9#64, 0x24bfff00151a40#64, 0x24a7ff0014feb9#64, 0x2497ff0014ec69#64,
+  0x247fff0014d100#64, 0x2467ff0014b5a9#64, 0x2457ff0014a379#64, 0x243fff00148840#64,
+  0x242fff00147624#64, 0x2417ff00145b09#64, 0x2407ff00144901#64, 0x23efff00142e04#64,
+  0x23dfff00141c10#64, 0x23c7ff00140131#64, 0x23b7ff0013ef51#64, 0x239fff0013d490#64,
+  0x238fff0013c2c4#64, 0x2377ff0013a821#64, 0x2367ff00139669#64, 0x234fff00137be4#64,
+  0x233fff00136a40#64, 0x2327ff00134fd9#64, 0x2317ff00133e49#64, 0x2307ff00132cc1#64,
+  0x22efff00131284#64, 0x22dfff00130110#64, 0x22c7ff0012e6f1#64, 0x22b7ff0012d591#64,
+  0x22a7ff0012c439#64, 0x228fff0012aa44#64, 0x227fff00129900#64, 0x226fff001287c4#64,
+  0x2257ff00126df9#64, 0x2247ff00125cd1#64, 0x2237ff00124bb1#64, 0x221fff00123210#64,
+  0x220fff00122104#64, 0x21ffff00121000#64, 0x21efff0011ff04#64, 0x21d7ff0011e599#64,
+  0x21c7ff0011d4b1#64, 0x21b7ff0011c3d1#64, 0x21a7ff0011b2f9#64, 0x218fff001199c4#64,
+  0x217fff00118900#64, 0x216fff00117844#64, 0x215fff00116790#64, 0x214fff001156e4#64,
+  0x213fff00114640#64, 0x2127ff00112d59#64, 0x2117ff00111cc9#64, 0x2107ff00110c41#64,
+  0x20f7ff0010fbc1#64, 0x20e7ff0010eb49#64, 0x20d7ff0010dad9#64, 0x20c7ff0010ca71#64,
+  0x20b7ff0010ba11#64, 0x209fff0010a190#64, 0x208fff00109144#64, 0x207fff00108100#64,
+  0x206fff001070c4#64, 0x205fff00106090#64, 0x204fff00105064#64, 0x203fff00104040#64,
+  0x202fff00103024#64, 0x201fff00102010#64, 0x200fff00101004#64, 0x1fffff00100000#64]
+
+/-- The offset of the data in the image. -/
+def image_dataOff : Nat := 160
+
+/-- The instruction where `reciprocal_2by1` starts in the image. -/
+def reciprocal_2by1_entry : Nat := 0
 
 end IntxRV.Gen

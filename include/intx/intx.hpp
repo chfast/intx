@@ -775,6 +775,8 @@ constexpr uint64_t reciprocal(T d) noexcept
 }  // namespace internal
 
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
+/// @pre 2 ^ 63 <= d
+/// @post result = (2 ^ 128 - 1) / d - 2 ^ 64
 constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
     INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
