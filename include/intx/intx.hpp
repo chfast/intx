@@ -498,6 +498,21 @@ constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
     return {lo, hi};
 }
 
+/// Multiply-accumulate 64 + 64 x 64 + 64 -> 128: computes a + x * y + c.
+/// The result never overflows: (2^64 - 1) + (2^64 - 1)^2 + (2^64 - 1) = 2^128 - 1.
+/// In multi-word loops pass the carry from the previous word as c.
+constexpr uint128 mac(uint64_t a, uint64_t x, uint64_t y, uint64_t c) noexcept
+{
+    // c is added last, so only one add/adc pair waits for the carry.
+#if INTX_HAS_BUILTIN_INT128 && defined(__GNUC__) && !defined(__clang__)
+    // TODO(gcc): The builtin type keeps the additions in add/adc chains, see operator+,
+    //   but GCC zeroes a register for the high word of each addend.
+    return builtin_uint128{x} * builtin_uint128{y} + a + c;
+#else
+    return umul(x, y) + a + c;
+#endif
+}
+
 constexpr uint64_t bit_test(uint64_t x, size_t bit_index) noexcept
 {
     // This pattern matches BT instruction on x86.
@@ -1238,6 +1253,8 @@ public:
             uint64_t k = 0;
             for (size_t i = 0; i < (num_words - j - 1); i++)
             {
+                // TODO: mac() here makes evmone's EXP slower with GCC and MUL slower with clang
+                //   at x86-64-v2.
                 auto a = addc(p[i + j], k);
                 auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
                 p[i + j] = t[0];
@@ -1518,8 +1535,7 @@ constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
         uint64_t k = 0;
         for (size_t i = 0; i < num_words; ++i)
         {
-            auto a = addc(p[i + j], k);
-            auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
+            const auto t = mac(p[i + j], x[i], y[j], k);
             p[i + j] = t[0];
             k = t[1];
         }
@@ -1760,7 +1776,7 @@ constexpr uint64_t submul(
     bool borrow = false;
     for (size_t i = 0; i < y.size(); ++i)
     {
-        const auto p = umul(y[i], multiplier) + k;
+        const auto p = mac(0, y[i], multiplier, k);
         k = p[1];
         std::tie(r[i], borrow) = subc(x[i], p[0], borrow);
     }

@@ -472,6 +472,29 @@ TEST(int128, umul)
     }
 }
 
+TEST(int128, mac)
+{
+    constexpr auto MAX = ~uint64_t{0};
+    static_assert(mac(MAX, MAX, MAX, MAX) == ~uint128{0});
+    static_assert(mac(1, 2, 3, 4) == 11);
+    static_assert(mac(1, 2, 3, 0) == 7);
+
+    constexpr uint64_t inputs[] = {
+        0, 1, 2, 12243, 682017770, 7043980147839196358, 12005172997151200154u, MAX - 1, MAX};
+    for (const auto a : inputs)
+    {
+        for (const auto x : inputs)
+        {
+            for (const auto y : inputs)
+            {
+                for (const auto c : inputs)
+                    EXPECT_EQ(uint256{mac(a, x, y, c)}, uint256{x} * y + a + c)
+                        << a << " + " << x << " x " << y << " + " << c;
+            }
+        }
+    }
+}
+
 TEST(int128, clz)
 {
     EXPECT_EQ(clz(intx::uint128{0}), 128u);
