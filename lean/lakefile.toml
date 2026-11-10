@@ -1,0 +1,32 @@
+name = "intx"
+version = "0.1.0"
+defaultTargets = ["Intx"]
+
+# Mathlib at the release tag matching lean-toolchain. The proofs use its lemmas about Nat
+# arithmetic and its tactics (linarith, nlinarith, linear_combination, positivity, ring).
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.32.2"
+
+# The Sail RISC-V model translated to Lean (sail-riscv-lean): the semantics of the RV64 machine code.
+[[require]]
+name = "Lean_RV64D"
+git = "https://github.com/opencompl/sail-riscv-lean.git"
+rev = "11d8fa212a60c05dcc9fe5db925dd4d06dad65b5"
+
+# The specification, the model of the C++ and the proofs.
+[[lean_lib]]
+name = "Intx"
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
+
+# The proofs that the RV64 machine code of intx functions computes their models (see IntxRV/README.md).
+[[lean_lib]]
+name = "IntxRV"
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
+moreLeanArgs = ["--tstack=4000000"]
+
+# CI-only axiom-footprint guards, kept out of the default targets.
+[[lean_lib]]
+name = "Checks"
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
