@@ -23,6 +23,31 @@ theorem decodes_of {code : Code} {prog : List instruction} (hl : code.length = p
     Decodes code prog :=
   ⟨hl, fun k hk hk' S s val pc npc x e hi => h k hk hk' S s val pc npc x e hi⟩
 
+theorem decodes_nil : Decodes [] [] :=
+  decodes_of rfl fun _ hk => absurd hk (by simp)
+
+theorem decodes_cons {w : BitVec 32} {i : instruction} {code : Code} {prog : List instruction}
+    (h : DecodesTo w i) (t : Decodes code prog) : Decodes (w :: code) (i :: prog) := by
+  refine decodes_of (by simp [t.1]) fun k hk hk' => ?_
+  cases k with
+  | zero => exact h
+  | succ k =>
+    intro S s val pc npc x e hi
+    exact t.2 k (by simpa using hk) (by simpa using hk') S s val pc npc x e hi
+
+theorem decodes_append {c₁ c₂ : Code} {p₁ p₂ : List instruction} (h₁ : Decodes c₁ p₁)
+    (h₂ : Decodes c₂ p₂) : Decodes (c₁ ++ c₂) (p₁ ++ p₂) := by
+  refine decodes_of (by simp [h₁.1, h₂.1]) fun k hk hk' => ?_
+  intro S s val pc npc x e hi
+  by_cases hl : k < c₁.length
+  · rw [List.getElem_append_left hl, List.getElem_append_left (h₁.1 ▸ hl)]
+    exact h₁.2 k hl (h₁.1 ▸ hl) S s val pc npc x e hi
+  · rw [List.getElem_append_right (by omega), List.getElem_append_right (by rw [← h₁.1]; omega)]
+    simp only [List.length_append] at hk hk'
+    have h := h₂.2 (k - c₁.length) (by omega) (by rw [← h₂.1]; omega) S s val pc npc x e hi
+    simp only [h₁.1] at h ⊢
+    exact h
+
 /-- Proves `DecodesTo w i` for a word `w` by evaluating the decoder. -/
 macro "rv_decode" : tactic => `(tactic| (
   intro S s val pc npc x e h
