@@ -137,6 +137,7 @@ struct div_result
 };
 
 /// Addition with carry.
+/// @post result.value + 2 ^ 64 * result.carry.toNat = x + y + carry.toNat
 constexpr result_with_carry<uint64_t> addc(uint64_t x, uint64_t y, bool carry = false) noexcept
 {
 #if __has_builtin(__builtin_addcll)
@@ -465,6 +466,7 @@ using uint128 = uint<128>;
 
 
 /// Full unsigned multiplication 64 x 64 -> 128.
+/// @post result = x * y
 constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
 {
 #if INTX_HAS_BUILTIN_INT128
@@ -605,6 +607,8 @@ namespace internal
 /// Left-shifts a little-endian word array x by shift bits and stores the result in r.
 /// The r must have the same size as x, or one word more to also receive the bits shifted out.
 /// The r may alias x. The shift must be less than 64.
+/// @pre shift < 64
+/// @post r = x * 2 ^ shift % 2 ^ N
 template <size_t RN, size_t XN>
 constexpr void shl(
     std::span<uint64_t, RN> r, std::span<const uint64_t, XN> x, unsigned shift) noexcept
@@ -786,6 +790,8 @@ constexpr uint64_t reciprocal(T d) noexcept
 }  // namespace internal
 
 /// Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
+/// @pre 2 ^ 63 <= d
+/// @post result = (2 ^ 128 - 1) / d - 2 ^ 64
 constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 {
     INTX_REQUIRE(d & 0x8000000000000000);  // Must be normalized.
@@ -830,6 +836,12 @@ constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
     return internal::reciprocal(d);
 }
 
+/// Divides u by the normalized d with its reciprocal v (Moller and Granlund, Algorithm 4).
+/// @pre 2 ^ 63 <= d
+/// @pre u < d * 2 ^ 64
+/// @pre v = (2 ^ 128 - 1) / d - 2 ^ 64
+/// @post result.quot = u / d
+/// @post result.rem = u % d
 constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
 {
     assert(d & 0x8000000000000000);  // Must be normalized.
@@ -1227,6 +1239,8 @@ public:
         return *this;
     }
 
+    /// The sum modulo 2^N.
+    /// @post result = (x + y) % 2 ^ N
     friend constexpr uint operator+(const uint& x, const uint& y) noexcept
     {
         return addc(x, y).value;
@@ -1236,6 +1250,8 @@ public:
 
     constexpr uint operator-() const noexcept { return ~*this + uint{1}; }
 
+    /// The difference modulo 2^N.
+    /// @post result = (x + 2 ^ N - y) % 2 ^ N
     friend constexpr uint operator-(const uint& x, const uint& y) noexcept
     {
         return subc(x, y).value;
@@ -1282,6 +1298,8 @@ public:
     constexpr uint& operator%=(const uint& y) noexcept { return *this = *this % y; }
 
 
+    /// The bitwise complement.
+    /// @post result = 2 ^ N - 1 - self
     constexpr uint operator~() const noexcept
     {
         uint z;
@@ -1290,6 +1308,7 @@ public:
         return z;
     }
 
+    /// @post result = x ||| y
     friend constexpr uint operator|(const uint& x, const uint& y) noexcept
     {
         uint z;
@@ -1300,6 +1319,7 @@ public:
 
     constexpr uint& operator|=(const uint& y) noexcept { return *this = *this | y; }
 
+    /// @post result = x &&& y
     friend constexpr uint operator&(const uint& x, const uint& y) noexcept
     {
         uint z;
@@ -1310,6 +1330,7 @@ public:
 
     constexpr uint& operator&=(const uint& y) noexcept { return *this = *this & y; }
 
+    /// @post result = x ^^^ y
     friend constexpr uint operator^(const uint& x, const uint& y) noexcept
     {
         uint z;
@@ -1320,6 +1341,7 @@ public:
 
     constexpr uint& operator^=(const uint& y) noexcept { return *this = *this ^ y; }
 
+    /// @post result <-> x = y
     friend constexpr bool operator==(const uint& x, const uint& y) noexcept
     {
         uint64_t folded = 0;
@@ -1328,12 +1350,16 @@ public:
         return folded == 0;
     }
 
+    /// @post result <-> x < y
     friend constexpr bool operator<(const uint& x, const uint& y) noexcept
     {
         return subc(x, y).carry;
     }
+    /// @post result <-> x > y
     friend constexpr bool operator>(const uint& x, const uint& y) noexcept { return y < x; }
+    /// @post result <-> x >= y
     friend constexpr bool operator>=(const uint& x, const uint& y) noexcept { return !(x < y); }
+    /// @post result <-> x <= y
     friend constexpr bool operator<=(const uint& x, const uint& y) noexcept { return !(y < x); }
 
     friend constexpr std::strong_ordering operator<=>(const uint& x, const uint& y) noexcept
@@ -1488,6 +1514,7 @@ using uint256 = uint<256>;
 ///
 /// Interprets the arguments as two's complement signed integers
 /// and checks the "less than" relation.
+/// @post result <-> signed N x < signed N y
 template <unsigned N>
 constexpr bool slt(const uint<N>& x, const uint<N>& y) noexcept
 {
@@ -1524,6 +1551,8 @@ inline const uint8_t* as_bytes(const T& x) noexcept
     return reinterpret_cast<const uint8_t*>(&x);
 }
 
+/// The full product.
+/// @post result = x * y
 template <unsigned N>
 constexpr uint<2 * N> umul(const uint<N>& x, const uint<N>& y) noexcept
 {
@@ -1560,6 +1589,9 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
     return result;
 }
 
+/// Tests the bit of x at bit_index.
+/// @pre bit_index < N
+/// @post result <-> x.testBit bit_index
 template <unsigned N>
 constexpr bool bit_test(const uint<N>& x, size_t bit_index) noexcept
 {
@@ -1568,6 +1600,8 @@ constexpr bool bit_test(const uint<N>& x, size_t bit_index) noexcept
     return bit_test(w, b);
 }
 
+/// Counts the words of x up to its highest nonzero word.
+/// @post result = if x = 0 then 0 else Nat.log2 x / 64 + 1
 template <unsigned N>
 constexpr unsigned count_significant_words(const uint<N>& x) noexcept
 {
@@ -1591,6 +1625,8 @@ constexpr unsigned count_significant_bytes(const uint<N>& x) noexcept
     return (w != 0) ? count_significant_bytes(x[w - 1]) + (w - 1) * 8 : 0;
 }
 
+/// Counts the leading zero bits of x.
+/// @post result = N - (if x = 0 then 0 else Nat.log2 x + 1)
 template <unsigned N>
 constexpr unsigned clz(const uint<N>& x) noexcept
 {
@@ -1613,6 +1649,7 @@ constexpr unsigned ctz(const uint<N>& x) noexcept
 }
 
 /// Counts the number of bits needed to represent the value. For 0 returns 0.
+/// @post result = if x = 0 then 0 else Nat.log2 x + 1
 template <unsigned N>
 constexpr unsigned bit_width(const uint<N>& x) noexcept
 {
@@ -2306,6 +2343,7 @@ constexpr uint256 addmod(const uint256& x, const uint256& y, const uint256& mod)
 }
 
 /// Computes (x * y) % mod with the 512-bit product. A modulus of 0 gives 0.
+/// @post result = if mod = 0 then 0 else x * y % mod
 constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod) noexcept
 {
     return udivrem(umul(x, y), mod).rem;
