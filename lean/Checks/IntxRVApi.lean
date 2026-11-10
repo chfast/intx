@@ -26,6 +26,18 @@ example :
     IntxRV.NonVacuous IntxRV.Gen.and_256_code IntxRV.Api.and_256.bufs IntxRV.Api.and_256.pre := by
   rv_nonvacuous [10, 11, 12] using [IntxRV.Api.and_256.bufs, IntxRV.Api.and_256.pre, IntxRV.Gen.and_256_code]
 
+example : IntxRV.Api.bit_test_256.spec := IntxRV.Api.bit_test_256.proof
+#check_rv_axioms IntxRV.Api.bit_test_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.bit_test_256_code IntxRV.Api.bit_test_256.bufs IntxRV.Api.bit_test_256.pre := by
+  rv_nonvacuous [10] using [IntxRV.Api.bit_test_256.bufs, IntxRV.Api.bit_test_256.pre, IntxRV.Gen.bit_test_256_code]
+
+example : IntxRV.Api.count_significant_words_256.spec := IntxRV.Api.count_significant_words_256.proof
+#check_rv_axioms IntxRV.Api.count_significant_words_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.count_significant_words_256_code IntxRV.Api.count_significant_words_256.bufs IntxRV.Api.count_significant_words_256.pre := by
+  rv_nonvacuous [10] using [IntxRV.Api.count_significant_words_256.bufs, IntxRV.Api.count_significant_words_256.pre, IntxRV.Gen.count_significant_words_256_code]
+
 example : IntxRV.Api.eq_256.spec := IntxRV.Api.eq_256.proof
 #check_rv_axioms IntxRV.Api.eq_256.proof
 example :
