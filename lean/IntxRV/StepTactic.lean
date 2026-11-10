@@ -45,6 +45,8 @@ macro "rv_val" loc:(Lean.Parser.Tactic.location)? : tactic => `(tactic| (
     rtypeVal_sll, rtypeVal_srl, rtypewVal_subw,
     itypeVal_addi, itypeVal_xori, itypeVal_andi, itypeVal_ori, itypeVal_seqz, shiftiopVal_srli,
     shiftiopVal_slli, utypeVal_lui, utypeVal_auipc, BitVec.reduceAppend, BitVec.reduceToNat,
+    BitVec.reduceHShiftLeft, BitVec.reduceHShiftRight, BitVec.reduceShiftLeft,
+    BitVec.reduceUShiftRight,
     mulVal_lo, mulVal_hu, BitVec.reduceSignExtend, BitVec.add_zero, BitVec.add_assoc,
     BitVec.reduceAdd, memWord_memStore_self, btypeTaken, beq_iff_eq, bne_iff_ne, ne_eq,
     Bool.not_eq_true, decide_eq_true_eq, decide_eq_false_iff_not] $(loc)?))
@@ -53,6 +55,22 @@ theorem Reach.start {A : List (BitVec 64)} {prog : List instruction} {base tgt :
     {x : Regs} {m : Mem} {Q : Regs → Mem → Prop} (h : Reach A prog base (pcAt base 0) x m tgt Q) :
     Reach A prog base base x m tgt Q := by
   rwa [pcAt_zero] at h
+
+open Lean Meta Elab Tactic in
+/-- Substitutes the name of the definition `h` if its value is a numeral or a numeral added to a
+value (an address): the addresses of the loads and stores must show their base. -/
+elab "rv_const " h:ident : tactic => withMainContext do
+  let d ← getLocalDeclFromUserName h.getId
+  let t ← instantiateMVars d.type
+  let isNum := fun (e : Expr) => e.isAppOfArity ``BitVec.ofNat 2 && (e.getArg! 1).nat?.isSome
+  if let some (_, v) := t.app2? ``Defn then
+    let addNum := v.isAppOfArity ``HAdd.hAdd 6 && (isNum (v.getArg! 4) || isNum (v.getArg! 5))
+    if isNum v || addNum then
+      if addNum && isNum (v.getArg! 4) then  -- The numeral to the right, as in the addresses.
+        evalTactic (← `(tactic| rw [Defn, BitVec.add_comm] at $h:ident))
+      else
+        evalTactic (← `(tactic| unfold Defn at $h:ident))
+      evalTactic (← `(tactic| subst $h:ident))
 
 /-- The membership of an address in the list of the words of the buffers. -/
 macro "rv_mem" : tactic => `(tactic| (
@@ -73,10 +91,10 @@ macro "rv_step" : tactic => `(tactic| (
   first
   | (apply And.intro; (focus decide); apply And.intro <;> intro hb <;> rv_val at hb)
   | (apply And.intro <;> intro hb <;> rv_val at hb)
-  | (apply And.intro; (focus rv_mem); intro w hw; rv_val at hw)
+  | (apply And.intro; (focus rv_mem); intro w hw; rv_val at hw; rv_const hw)
   | (apply And.intro; (focus rv_mem); show Reach _ _ _ _ _ _ _ _)
   | (apply And.intro; (focus decide); show Reach _ _ _ _ _ _ _ _)
-  | intro w hw; rv_val at hw
+  | (intro w hw; rv_val at hw; rv_const hw)
   | (show Reach _ _ _ _ _ _ _ _; rv_val)))
 
 /-- Runs the instructions until the address `tgt`. -/

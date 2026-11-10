@@ -137,6 +137,66 @@ def spec : Prop := RunsM bit_test_256_code bufs pre post
 end bit_test_256
 
 
+/-! ## `bit_width_256`: `bit_width` (intx.hpp:1638)
+
+Counts the number of bits needed to represent the value. For 0 returns 0.
+
+@post result = if x = 0 then 0 else Nat.log2 x + 1
+-/
+
+namespace bit_width_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 10#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (x : Nat) =>
+      result = if x = 0 then 0 else Nat.log2 x + 1)
+      256 ((x'.get 10#5).toNat % 2 ^ 32) (words m (x 10#5) 4) ∧
+    x'.get 10#5 = ((x'.get 10#5).setWidth 32).signExtend 64 ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `bit_width_256`. -/
+def spec : Prop := RunsM bit_width_256_code bufs pre post
+
+end bit_width_256
+
+
+/-! ## `clz_256`: `clz` (intx.hpp:1615)
+
+Counts the leading zero bits of x.
+
+@post result = N - (if x = 0 then 0 else Nat.log2 x + 1)
+-/
+
+namespace clz_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 10#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (x : Nat) =>
+      result = N - (if x = 0 then 0 else Nat.log2 x + 1))
+      256 ((x'.get 10#5).toNat % 2 ^ 32) (words m (x 10#5) 4) ∧
+    x'.get 10#5 = ((x'.get 10#5).setWidth 32).signExtend 64 ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `clz_256`. -/
+def spec : Prop := RunsM clz_256_code bufs pre post
+
+end clz_256
+
+
 /-! ## `count_significant_words_256`: `count_significant_words` (intx.hpp:1590)
 
 Counts the words of x up to its highest nonzero word.

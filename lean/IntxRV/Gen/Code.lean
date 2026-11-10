@@ -11,6 +11,10 @@ namespace IntxRV.Gen
 
 /-! ## The instructions decoded by the Sail model -/
 
+theorem decode_00000513 :
+    DecodesTo 0x513#32 (.ITYPE (0x0#12, .Regidx 0#5, .Regidx 10#5, .ADDI)) := by
+  rv_decode
+
 theorem decode_00000617 :
     DecodesTo 0x617#32 (.UTYPE (0x0#20, .Regidx 12#5, .AUIPC)) := by
   rv_decode
@@ -25,6 +29,10 @@ theorem decode_00050893 :
 
 theorem decode_00053503 :
     DecodesTo 0x53503#32 (.LOAD (0x0#12, .Regidx 10#5, .Regidx 10#5, false, 8)) := by
+  rv_decode
+
+theorem decode_00053583 :
+    DecodesTo 0x53583#32 (.LOAD (0x0#12, .Regidx 10#5, .Regidx 11#5, false, 8)) := by
   rv_decode
 
 theorem decode_00053603 :
@@ -79,6 +87,10 @@ theorem decode_00068593 :
     DecodesTo 0x68593#32 (.ITYPE (0x0#12, .Regidx 13#5, .Regidx 11#5, .ADDI)) := by
   rv_decode
 
+theorem decode_00100593 :
+    DecodesTo 0x100593#32 (.ITYPE (0x1#12, .Regidx 0#5, .Regidx 11#5, .ADDI)) := by
+  rv_decode
+
 theorem decode_00100713 :
     DecodesTo 0x100713#32 (.ITYPE (0x1#12, .Regidx 0#5, .Regidx 14#5, .ADDI)) := by
   rv_decode
@@ -91,8 +103,16 @@ theorem decode_00154693 :
     DecodesTo 0x154693#32 (.ITYPE (0x1#12, .Regidx 10#5, .Regidx 13#5, .XORI)) := by
   rv_decode
 
+theorem decode_00155613 :
+    DecodesTo 0x155613#32 (.SHIFTIOP (0x1#6, .Regidx 10#5, .Regidx 12#5, .SRLI)) := by
+  rv_decode
+
 theorem decode_00155693 :
     DecodesTo 0x155693#32 (.SHIFTIOP (0x1#6, .Regidx 10#5, .Regidx 13#5, .SRLI)) := by
+  rv_decode
+
+theorem decode_00155793 :
+    DecodesTo 0x155793#32 (.SHIFTIOP (0x1#6, .Regidx 10#5, .Regidx 15#5, .SRLI)) := by
   rv_decode
 
 theorem decode_00157513 :
@@ -151,8 +171,28 @@ theorem decode_00200513 :
     DecodesTo 0x200513#32 (.ITYPE (0x2#12, .Regidx 0#5, .Regidx 10#5, .ADDI)) := by
   rv_decode
 
+theorem decode_00200593 :
+    DecodesTo 0x200593#32 (.ITYPE (0x2#12, .Regidx 0#5, .Regidx 11#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_00255513 :
+    DecodesTo 0x255513#32 (.SHIFTIOP (0x2#6, .Regidx 10#5, .Regidx 10#5, .SRLI)) := by
+  rv_decode
+
+theorem decode_00255793 :
+    DecodesTo 0x255793#32 (.SHIFTIOP (0x2#6, .Regidx 10#5, .Regidx 15#5, .SRLI)) := by
+  rv_decode
+
 theorem decode_00300513 :
     DecodesTo 0x300513#32 (.ITYPE (0x3#12, .Regidx 0#5, .Regidx 10#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_00300593 :
+    DecodesTo 0x300593#32 (.ITYPE (0x3#12, .Regidx 0#5, .Regidx 11#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_00359613 :
+    DecodesTo 0x359613#32 (.SHIFTIOP (0x3#6, .Regidx 11#5, .Regidx 12#5, .SLLI)) := by
   rv_decode
 
 theorem decode_0035d613 :
@@ -161,6 +201,18 @@ theorem decode_0035d613 :
 
 theorem decode_00400513 :
     DecodesTo 0x400513#32 (.ITYPE (0x4#12, .Regidx 0#5, .Regidx 10#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_00400593 :
+    DecodesTo 0x400593#32 (.ITYPE (0x4#12, .Regidx 0#5, .Regidx 11#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_00455613 :
+    DecodesTo 0x455613#32 (.SHIFTIOP (0x4#6, .Regidx 10#5, .Regidx 12#5, .SRLI)) := by
+  rv_decode
+
+theorem decode_00455793 :
+    DecodesTo 0x455793#32 (.SHIFTIOP (0x4#6, .Regidx 10#5, .Regidx 15#5, .SRLI)) := by
   rv_decode
 
 theorem decode_0056b833 :
@@ -183,12 +235,20 @@ theorem decode_00584833 :
     DecodesTo 0x584833#32 (.RTYPE (.Regidx 5#5, .Regidx 16#5, .Regidx 16#5, .XOR)) := by
   rv_decode
 
+theorem decode_00659593 :
+    DecodesTo 0x659593#32 (.SHIFTIOP (0x6#6, .Regidx 11#5, .Regidx 11#5, .SLLI)) := by
+  rv_decode
+
 theorem decode_006e3833 :
     DecodesTo 0x6e3833#32 (.RTYPE (.Regidx 6#5, .Regidx 28#5, .Regidx 16#5, .SLTU)) := by
   rv_decode
 
 theorem decode_00763833 :
     DecodesTo 0x763833#32 (.RTYPE (.Regidx 7#5, .Regidx 12#5, .Regidx 16#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_0080006f :
+    DecodesTo 0x80006f#32 (.JAL (0x8#21, .Regidx 0#5)) := by
   rv_decode
 
 theorem decode_00813f83 :
@@ -205,6 +265,10 @@ theorem decode_00853683 :
 
 theorem decode_00853803 :
     DecodesTo 0x853803#32 (.LOAD (0x8#12, .Regidx 10#5, .Regidx 16#5, false, 8)) := by
+  rv_decode
+
+theorem decode_00855793 :
+    DecodesTo 0x855793#32 (.SHIFTIOP (0x8#6, .Regidx 10#5, .Regidx 15#5, .SRLI)) := by
   rv_decode
 
 theorem decode_0085b283 :
@@ -459,6 +523,10 @@ theorem decode_00c53633 :
     DecodesTo 0xc53633#32 (.RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 12#5, .SLTU)) := by
   rv_decode
 
+theorem decode_00c56533 :
+    DecodesTo 0xc56533#32 (.RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, .OR)) := by
+  rv_decode
+
 theorem decode_00c58533 :
     DecodesTo 0xc58533#32 (.RTYPE (.Regidx 12#5, .Regidx 11#5, .Regidx 10#5, .ADD)) := by
   rv_decode
@@ -575,6 +643,14 @@ theorem decode_00d53c23 :
     DecodesTo 0xd53c23#32 (.STORE (0x18#12, .Regidx 13#5, .Regidx 10#5, 8)) := by
   rv_decode
 
+theorem decode_00d57533 :
+    DecodesTo 0xd57533#32 (.RTYPE (.Regidx 13#5, .Regidx 10#5, .Regidx 10#5, .AND)) := by
+  rv_decode
+
+theorem decode_00d57633 :
+    DecodesTo 0xd57633#32 (.RTYPE (.Regidx 13#5, .Regidx 10#5, .Regidx 12#5, .AND)) := by
+  rv_decode
+
 theorem decode_00d58533 :
     DecodesTo 0xd58533#32 (.RTYPE (.Regidx 13#5, .Regidx 11#5, .Regidx 10#5, .ADD)) := by
   rv_decode
@@ -655,6 +731,10 @@ theorem decode_00e53c23 :
     DecodesTo 0xe53c23#32 (.STORE (0x18#12, .Regidx 14#5, .Regidx 10#5, 8)) := by
   rv_decode
 
+theorem decode_00e57533 :
+    DecodesTo 0xe57533#32 (.RTYPE (.Regidx 14#5, .Regidx 10#5, .Regidx 10#5, .AND)) := by
+  rv_decode
+
 theorem decode_00e585b3 :
     DecodesTo 0xe585b3#32 (.RTYPE (.Regidx 14#5, .Regidx 11#5, .Regidx 11#5, .ADD)) := by
   rv_decode
@@ -723,6 +803,14 @@ theorem decode_00f53823 :
     DecodesTo 0xf53823#32 (.STORE (0x10#12, .Regidx 15#5, .Regidx 10#5, 8)) := by
   rv_decode
 
+theorem decode_00f56533 :
+    DecodesTo 0xf56533#32 (.RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR)) := by
+  rv_decode
+
+theorem decode_00f60633 :
+    DecodesTo 0xf60633#32 (.RTYPE (.Regidx 15#5, .Regidx 12#5, .Regidx 12#5, .ADD)) := by
+  rv_decode
+
 theorem decode_00f607b3 :
     DecodesTo 0xf607b3#32 (.RTYPE (.Regidx 15#5, .Regidx 12#5, .Regidx 15#5, .ADD)) := by
   rv_decode
@@ -735,6 +823,14 @@ theorem decode_00f637b3 :
     DecodesTo 0xf637b3#32 (.RTYPE (.Regidx 15#5, .Regidx 12#5, .Regidx 15#5, .SLTU)) := by
   rv_decode
 
+theorem decode_00f686b3 :
+    DecodesTo 0xf686b3#32 (.RTYPE (.Regidx 15#5, .Regidx 13#5, .Regidx 13#5, .ADD)) := by
+  rv_decode
+
+theorem decode_00f70733 :
+    DecodesTo 0xf70733#32 (.RTYPE (.Regidx 15#5, .Regidx 14#5, .Regidx 14#5, .ADD)) := by
+  rv_decode
+
 theorem decode_00f707b3 :
     DecodesTo 0xf707b3#32 (.RTYPE (.Regidx 15#5, .Regidx 14#5, .Regidx 15#5, .ADD)) := by
   rv_decode
@@ -745,6 +841,14 @@ theorem decode_00f807b3 :
 
 theorem decode_00feb7b3 :
     DecodesTo 0xfeb7b3#32 (.RTYPE (.Regidx 15#5, .Regidx 29#5, .Regidx 15#5, .SLTU)) := by
+  rv_decode
+
+theorem decode_0100006f :
+    DecodesTo 0x100006f#32 (.JAL (0x10#21, .Regidx 0#5)) := by
+  rv_decode
+
+theorem decode_010106b7 :
+    DecodesTo 0x10106b7#32 (.UTYPE (0x1010#20, .Regidx 13#5, .LUI)) := by
   rv_decode
 
 theorem decode_01013283 :
@@ -777,6 +881,10 @@ theorem decode_01053703 :
 
 theorem decode_01053883 :
     DecodesTo 0x1053883#32 (.LOAD (0x10#12, .Regidx 10#5, .Regidx 17#5, false, 8)) := by
+  rv_decode
+
+theorem decode_01055793 :
+    DecodesTo 0x1055793#32 (.SHIFTIOP (0x10#6, .Regidx 10#5, .Regidx 15#5, .SRLI)) := by
   rv_decode
 
 theorem decode_0105b583 :
@@ -1039,8 +1147,16 @@ theorem decode_01fe8eb3 :
     DecodesTo 0x1fe8eb3#32 (.RTYPE (.Regidx 31#5, .Regidx 29#5, .Regidx 29#5, .ADD)) := by
   rv_decode
 
+theorem decode_0200006f :
+    DecodesTo 0x200006f#32 (.JAL (0x20#21, .Regidx 0#5)) := by
+  rv_decode
+
 theorem decode_02013803 :
     DecodesTo 0x2013803#32 (.LOAD (0x20#12, .Regidx 2#5, .Regidx 16#5, false, 8)) := by
+  rv_decode
+
+theorem decode_02055793 :
+    DecodesTo 0x2055793#32 (.SHIFTIOP (0x20#6, .Regidx 10#5, .Regidx 15#5, .SRLI)) := by
   rv_decode
 
 theorem decode_0205b683 :
@@ -1053,6 +1169,22 @@ theorem decode_0205b703 :
 
 theorem decode_0205b783 :
     DecodesTo 0x205b783#32 (.LOAD (0x20#12, .Regidx 11#5, .Regidx 15#5, false, 8)) := by
+  rv_decode
+
+theorem decode_02061793 :
+    DecodesTo 0x2061793#32 (.SHIFTIOP (0x20#6, .Regidx 12#5, .Regidx 15#5, .SLLI)) := by
+  rv_decode
+
+theorem decode_02069613 :
+    DecodesTo 0x2069613#32 (.SHIFTIOP (0x20#6, .Regidx 13#5, .Regidx 12#5, .SLLI)) := by
+  rv_decode
+
+theorem decode_02069793 :
+    DecodesTo 0x2069793#32 (.SHIFTIOP (0x20#6, .Regidx 13#5, .Regidx 15#5, .SLLI)) := by
+  rv_decode
+
+theorem decode_02071793 :
+    DecodesTo 0x2071793#32 (.SHIFTIOP (0x20#6, .Regidx 14#5, .Regidx 15#5, .SLLI)) := by
   rv_decode
 
 theorem decode_02713023 :
@@ -1145,6 +1277,10 @@ theorem decode_02be83b3 :
 
 theorem decode_02bebeb3 :
     DecodesTo 0x2bebeb3#32 (.MUL (.Regidx 11#5, .Regidx 29#5, .Regidx 29#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
+  rv_decode
+
+theorem decode_02c50533 :
+    DecodesTo 0x2c50533#32 (.MUL (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, ⟨.Low, .Signed, .Signed⟩)) := by
   rv_decode
 
 theorem decode_02c68633 :
@@ -1295,6 +1431,10 @@ theorem decode_02febfb3 :
     DecodesTo 0x2febfb3#32 (.MUL (.Regidx 15#5, .Regidx 29#5, .Regidx 31#5, ⟨.High, .Unsigned, .Unsigned⟩)) := by
   rv_decode
 
+theorem decode_0300006f :
+    DecodesTo 0x300006f#32 (.JAL (0x30#21, .Regidx 0#5)) := by
+  rv_decode
+
 theorem decode_03013283 :
     DecodesTo 0x3013283#32 (.LOAD (0x30#12, .Regidx 2#5, .Regidx 5#5, false, 8)) := by
   rv_decode
@@ -1323,6 +1463,10 @@ theorem decode_03813d83 :
     DecodesTo 0x3813d83#32 (.LOAD (0x38#12, .Regidx 2#5, .Regidx 27#5, false, 8)) := by
   rv_decode
 
+theorem decode_03855513 :
+    DecodesTo 0x3855513#32 (.SHIFTIOP (0x38#6, .Regidx 10#5, .Regidx 10#5, .SRLI)) := by
+  rv_decode
+
 theorem decode_0385b703 :
     DecodesTo 0x385b703#32 (.LOAD (0x38#12, .Regidx 11#5, .Regidx 14#5, false, 8)) := by
   rv_decode
@@ -1345,6 +1489,10 @@ theorem decode_03d8b023 :
 
 theorem decode_03f6d513 :
     DecodesTo 0x3f6d513#32 (.SHIFTIOP (0x3f#6, .Regidx 13#5, .Regidx 10#5, .SRLI)) := by
+  rv_decode
+
+theorem decode_04000513 :
+    DecodesTo 0x4000513#32 (.ITYPE (0x40#12, .Regidx 0#5, .Regidx 10#5, .ADDI)) := by
   rv_decode
 
 theorem decode_04000693 :
@@ -1463,8 +1611,44 @@ theorem decode_0a010113 :
     DecodesTo 0xa010113#32 (.ITYPE (0xa0#12, .Regidx 2#5, .Regidx 2#5, .ADDI)) := by
   rv_decode
 
+theorem decode_0a050663 :
+    DecodesTo 0xa050663#32 (.BTYPE (0xac#13, .Regidx 0#5, .Regidx 10#5, .BEQ)) := by
+  rv_decode
+
 theorem decode_0a060463 :
     DecodesTo 0xa060463#32 (.BTYPE (0xa8#13, .Regidx 0#5, .Regidx 12#5, .BEQ)) := by
+  rv_decode
+
+theorem decode_0c058863 :
+    DecodesTo 0xc058863#32 (.BTYPE (0xd0#13, .Regidx 0#5, .Regidx 11#5, .BEQ)) := by
+  rv_decode
+
+theorem decode_0c058a63 :
+    DecodesTo 0xc058a63#32 (.BTYPE (0xd4#13, .Regidx 0#5, .Regidx 11#5, .BEQ)) := by
+  rv_decode
+
+theorem decode_0f0f17b7 :
+    DecodesTo 0xf0f17b7#32 (.UTYPE (0xf0f1#20, .Regidx 15#5, .LUI)) := by
+  rv_decode
+
+theorem decode_10000513 :
+    DecodesTo 0x10000513#32 (.ITYPE (0x100#12, .Regidx 0#5, .Regidx 10#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_10050513 :
+    DecodesTo 0x10050513#32 (.ITYPE (0x100#12, .Regidx 10#5, .Regidx 10#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_10168693 :
+    DecodesTo 0x10168693#32 (.ITYPE (0x101#12, .Regidx 13#5, .Regidx 13#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_33333737 :
+    DecodesTo 0x33333737#32 (.UTYPE (0x33333#20, .Regidx 14#5, .LUI)) := by
+  rv_decode
+
+theorem decode_33370693 :
+    DecodesTo 0x33370693#32 (.ITYPE (0x333#12, .Regidx 14#5, .Regidx 13#5, .ADDI)) := by
   rv_decode
 
 theorem decode_405708b3 :
@@ -1473,6 +1657,10 @@ theorem decode_405708b3 :
 
 theorem decode_40a58533 :
     DecodesTo 0x40a58533#32 (.RTYPE (.Regidx 10#5, .Regidx 11#5, .Regidx 10#5, .SUB)) := by
+  rv_decode
+
+theorem decode_40b50533 :
+    DecodesTo 0x40b50533#32 (.RTYPE (.Regidx 11#5, .Regidx 10#5, .Regidx 10#5, .SUB)) := by
   rv_decode
 
 theorem decode_40c00633 :
@@ -1531,6 +1719,14 @@ theorem decode_41168833 :
     DecodesTo 0x41168833#32 (.RTYPE (.Regidx 17#5, .Regidx 13#5, .Regidx 16#5, .SUB)) := by
   rv_decode
 
+theorem decode_555556b7 :
+    DecodesTo 0x555556b7#32 (.UTYPE (0x55555#20, .Regidx 13#5, .LUI)) := by
+  rv_decode
+
+theorem decode_55568613 :
+    DecodesTo 0x55568613#32 (.ITYPE (0x555#12, .Regidx 13#5, .Regidx 12#5, .ADDI)) := by
+  rv_decode
+
 theorem decode_8005e603 :
     DecodesTo 0x8005e603#32 (.LOAD (0x800#12, .Regidx 11#5, .Regidx 12#5, true, 4)) := by
   rv_decode
@@ -1539,8 +1735,16 @@ theorem decode_8045e583 :
     DecodesTo 0x8045e583#32 (.LOAD (0x804#12, .Regidx 11#5, .Regidx 11#5, true, 4)) := by
   rv_decode
 
+theorem decode_f0f78713 :
+    DecodesTo 0xf0f78713#32 (.ITYPE (0xf0f#12, .Regidx 15#5, .Regidx 14#5, .ADDI)) := by
+  rv_decode
+
 theorem decode_f6010113 :
     DecodesTo 0xf6010113#32 (.ITYPE (0xf60#12, .Regidx 2#5, .Regidx 2#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_ff853503 :
+    DecodesTo 0xff853503#32 (.LOAD (0xff8#12, .Regidx 10#5, .Regidx 10#5, false, 8)) := by
   rv_decode
 
 theorem decode_ff85f593 :
@@ -1553,6 +1757,10 @@ theorem decode_ff867613 :
 
 theorem decode_fff50793 :
     DecodesTo 0xfff50793#32 (.ITYPE (0xfff#12, .Regidx 10#5, .Regidx 15#5, .ADDI)) := by
+  rv_decode
+
+theorem decode_fff54513 :
+    DecodesTo 0xfff54513#32 (.ITYPE (0xfff#12, .Regidx 10#5, .Regidx 10#5, .XORI)) := by
   rv_decode
 
 theorem decode_fff54713 :
@@ -1771,6 +1979,336 @@ theorem bit_test_256_decodes : Decodes bit_test_256_code bit_test_256_prog :=
   | 5, _, _ => decode_00157513
   | 6, _, _ => decode_00008067
   | _ + 7, hk, _ => absurd hk (by simp [bit_test_256_code])
+
+
+/-! ## `_ZN4intx3api4$_208__invokeERKNS_4uintILj256EEE` -/
+
+/-- The machine code of `_ZN4intx3api4$_208__invokeERKNS_4uintILj256EEE`. -/
+def bit_width_256_code : Code := [
+  0x1853583#32, 0x58663#32, 0x400593#32, 0x300006f#32,
+  0x1053583#32, 0x58663#32, 0x300593#32, 0x200006f#32,
+  0x853583#32, 0x58663#32, 0x200593#32, 0x100006f#32,
+  0x53583#32, 0xc058863#32, 0x100593#32, 0x359613#32,
+  0xa60533#32, 0xff853503#32, 0xa050663#32, 0x155613#32,
+  0x555556b7#32, 0x33333737#32, 0xf0f17b7#32, 0xc56533#32,
+  0x55568613#32, 0x33370693#32, 0xf0f78713#32, 0x255793#32,
+  0xf56533#32, 0x2061793#32, 0xf60633#32, 0x2069793#32,
+  0xf686b3#32, 0x2071793#32, 0xf70733#32, 0x455793#32,
+  0xf56533#32, 0x855793#32, 0xf56533#32, 0x1055793#32,
+  0xf56533#32, 0x2055793#32, 0xf56533#32, 0xfff54513#32,
+  0x155793#32, 0xc7f633#32, 0x40c50533#32, 0xd57633#32,
+  0x255513#32, 0xd57533#32, 0x10106b7#32, 0x10168693#32,
+  0xa60533#32, 0x455613#32, 0xc50533#32, 0x2069613#32,
+  0xe57533#32, 0xc68633#32, 0x2c50533#32, 0x3855513#32,
+  0x80006f#32, 0x4000513#32, 0x659593#32, 0x40a58533#32,
+  0x8067#32, 0x513#32, 0x8067#32]
+
+/-- The instructions of `bit_width_256`. -/
+def bit_width_256_prog : List instruction := [
+  .LOAD (0x18#12, .Regidx 10#5, .Regidx 11#5, false, 8),
+  .BTYPE (0xc#13, .Regidx 0#5, .Regidx 11#5, .BEQ),
+  .ITYPE (0x4#12, .Regidx 0#5, .Regidx 11#5, .ADDI),
+  .JAL (0x30#21, .Regidx 0#5),
+  .LOAD (0x10#12, .Regidx 10#5, .Regidx 11#5, false, 8),
+  .BTYPE (0xc#13, .Regidx 0#5, .Regidx 11#5, .BEQ),
+  .ITYPE (0x3#12, .Regidx 0#5, .Regidx 11#5, .ADDI),
+  .JAL (0x20#21, .Regidx 0#5),
+  .LOAD (0x8#12, .Regidx 10#5, .Regidx 11#5, false, 8),
+  .BTYPE (0xc#13, .Regidx 0#5, .Regidx 11#5, .BEQ),
+  .ITYPE (0x2#12, .Regidx 0#5, .Regidx 11#5, .ADDI),
+  .JAL (0x10#21, .Regidx 0#5),
+  .LOAD (0x0#12, .Regidx 10#5, .Regidx 11#5, false, 8),
+  .BTYPE (0xd0#13, .Regidx 0#5, .Regidx 11#5, .BEQ),
+  .ITYPE (0x1#12, .Regidx 0#5, .Regidx 11#5, .ADDI),
+  .SHIFTIOP (0x3#6, .Regidx 11#5, .Regidx 12#5, .SLLI),
+  .RTYPE (.Regidx 10#5, .Regidx 12#5, .Regidx 10#5, .ADD),
+  .LOAD (0xff8#12, .Regidx 10#5, .Regidx 10#5, false, 8),
+  .BTYPE (0xac#13, .Regidx 0#5, .Regidx 10#5, .BEQ),
+  .SHIFTIOP (0x1#6, .Regidx 10#5, .Regidx 12#5, .SRLI),
+  .UTYPE (0x55555#20, .Regidx 13#5, .LUI),
+  .UTYPE (0x33333#20, .Regidx 14#5, .LUI),
+  .UTYPE (0xf0f1#20, .Regidx 15#5, .LUI),
+  .RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .ITYPE (0x555#12, .Regidx 13#5, .Regidx 12#5, .ADDI),
+  .ITYPE (0x333#12, .Regidx 14#5, .Regidx 13#5, .ADDI),
+  .ITYPE (0xf0f#12, .Regidx 15#5, .Regidx 14#5, .ADDI),
+  .SHIFTIOP (0x2#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .SHIFTIOP (0x20#6, .Regidx 12#5, .Regidx 15#5, .SLLI),
+  .RTYPE (.Regidx 15#5, .Regidx 12#5, .Regidx 12#5, .ADD),
+  .SHIFTIOP (0x20#6, .Regidx 13#5, .Regidx 15#5, .SLLI),
+  .RTYPE (.Regidx 15#5, .Regidx 13#5, .Regidx 13#5, .ADD),
+  .SHIFTIOP (0x20#6, .Regidx 14#5, .Regidx 15#5, .SLLI),
+  .RTYPE (.Regidx 15#5, .Regidx 14#5, .Regidx 14#5, .ADD),
+  .SHIFTIOP (0x4#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .SHIFTIOP (0x8#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .SHIFTIOP (0x10#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .SHIFTIOP (0x20#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .ITYPE (0xfff#12, .Regidx 10#5, .Regidx 10#5, .XORI),
+  .SHIFTIOP (0x1#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 12#5, .Regidx 15#5, .Regidx 12#5, .AND),
+  .RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, .SUB),
+  .RTYPE (.Regidx 13#5, .Regidx 10#5, .Regidx 12#5, .AND),
+  .SHIFTIOP (0x2#6, .Regidx 10#5, .Regidx 10#5, .SRLI),
+  .RTYPE (.Regidx 13#5, .Regidx 10#5, .Regidx 10#5, .AND),
+  .UTYPE (0x1010#20, .Regidx 13#5, .LUI),
+  .ITYPE (0x101#12, .Regidx 13#5, .Regidx 13#5, .ADDI),
+  .RTYPE (.Regidx 10#5, .Regidx 12#5, .Regidx 10#5, .ADD),
+  .SHIFTIOP (0x4#6, .Regidx 10#5, .Regidx 12#5, .SRLI),
+  .RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, .ADD),
+  .SHIFTIOP (0x20#6, .Regidx 13#5, .Regidx 12#5, .SLLI),
+  .RTYPE (.Regidx 14#5, .Regidx 10#5, .Regidx 10#5, .AND),
+  .RTYPE (.Regidx 12#5, .Regidx 13#5, .Regidx 12#5, .ADD),
+  .MUL (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, ⟨.Low, .Signed, .Signed⟩),
+  .SHIFTIOP (0x38#6, .Regidx 10#5, .Regidx 10#5, .SRLI),
+  .JAL (0x8#21, .Regidx 0#5),
+  .ITYPE (0x40#12, .Regidx 0#5, .Regidx 10#5, .ADDI),
+  .SHIFTIOP (0x6#6, .Regidx 11#5, .Regidx 11#5, .SLLI),
+  .RTYPE (.Regidx 10#5, .Regidx 11#5, .Regidx 10#5, .SUB),
+  .JALR (0x0#12, .Regidx 1#5, .Regidx 0#5),
+  .ITYPE (0x0#12, .Regidx 0#5, .Regidx 10#5, .ADDI),
+  .JALR (0x0#12, .Regidx 1#5, .Regidx 0#5)]
+
+theorem bit_width_256_decodes : Decodes bit_width_256_code bit_width_256_prog :=
+  decodes_of (by rfl) fun
+  | 0, _, _ => decode_01853583
+  | 1, _, _ => decode_00058663
+  | 2, _, _ => decode_00400593
+  | 3, _, _ => decode_0300006f
+  | 4, _, _ => decode_01053583
+  | 5, _, _ => decode_00058663
+  | 6, _, _ => decode_00300593
+  | 7, _, _ => decode_0200006f
+  | 8, _, _ => decode_00853583
+  | 9, _, _ => decode_00058663
+  | 10, _, _ => decode_00200593
+  | 11, _, _ => decode_0100006f
+  | 12, _, _ => decode_00053583
+  | 13, _, _ => decode_0c058863
+  | 14, _, _ => decode_00100593
+  | 15, _, _ => decode_00359613
+  | 16, _, _ => decode_00a60533
+  | 17, _, _ => decode_ff853503
+  | 18, _, _ => decode_0a050663
+  | 19, _, _ => decode_00155613
+  | 20, _, _ => decode_555556b7
+  | 21, _, _ => decode_33333737
+  | 22, _, _ => decode_0f0f17b7
+  | 23, _, _ => decode_00c56533
+  | 24, _, _ => decode_55568613
+  | 25, _, _ => decode_33370693
+  | 26, _, _ => decode_f0f78713
+  | 27, _, _ => decode_00255793
+  | 28, _, _ => decode_00f56533
+  | 29, _, _ => decode_02061793
+  | 30, _, _ => decode_00f60633
+  | 31, _, _ => decode_02069793
+  | 32, _, _ => decode_00f686b3
+  | 33, _, _ => decode_02071793
+  | 34, _, _ => decode_00f70733
+  | 35, _, _ => decode_00455793
+  | 36, _, _ => decode_00f56533
+  | 37, _, _ => decode_00855793
+  | 38, _, _ => decode_00f56533
+  | 39, _, _ => decode_01055793
+  | 40, _, _ => decode_00f56533
+  | 41, _, _ => decode_02055793
+  | 42, _, _ => decode_00f56533
+  | 43, _, _ => decode_fff54513
+  | 44, _, _ => decode_00155793
+  | 45, _, _ => decode_00c7f633
+  | 46, _, _ => decode_40c50533
+  | 47, _, _ => decode_00d57633
+  | 48, _, _ => decode_00255513
+  | 49, _, _ => decode_00d57533
+  | 50, _, _ => decode_010106b7
+  | 51, _, _ => decode_10168693
+  | 52, _, _ => decode_00a60533
+  | 53, _, _ => decode_00455613
+  | 54, _, _ => decode_00c50533
+  | 55, _, _ => decode_02069613
+  | 56, _, _ => decode_00e57533
+  | 57, _, _ => decode_00c68633
+  | 58, _, _ => decode_02c50533
+  | 59, _, _ => decode_03855513
+  | 60, _, _ => decode_0080006f
+  | 61, _, _ => decode_04000513
+  | 62, _, _ => decode_00659593
+  | 63, _, _ => decode_40a58533
+  | 64, _, _ => decode_00008067
+  | 65, _, _ => decode_00000513
+  | 66, _, _ => decode_00008067
+  | _ + 67, hk, _ => absurd hk (by simp [bit_width_256_code])
+
+
+/-! ## `_ZN4intx3api4$_198__invokeERKNS_4uintILj256EEE` -/
+
+/-- The machine code of `_ZN4intx3api4$_198__invokeERKNS_4uintILj256EEE`. -/
+def clz_256_code : Code := [
+  0x1853583#32, 0x58663#32, 0x400593#32, 0x300006f#32,
+  0x1053583#32, 0x58663#32, 0x300593#32, 0x200006f#32,
+  0x853583#32, 0x58663#32, 0x200593#32, 0x100006f#32,
+  0x53583#32, 0xc058a63#32, 0x100593#32, 0x359613#32,
+  0xa60533#32, 0xff853503#32, 0xa050663#32, 0x155613#32,
+  0x555556b7#32, 0x33333737#32, 0xf0f17b7#32, 0xc56533#32,
+  0x55568613#32, 0x33370693#32, 0xf0f78713#32, 0x255793#32,
+  0xf56533#32, 0x2061793#32, 0xf60633#32, 0x2069793#32,
+  0xf686b3#32, 0x2071793#32, 0xf70733#32, 0x455793#32,
+  0xf56533#32, 0x855793#32, 0xf56533#32, 0x1055793#32,
+  0xf56533#32, 0x2055793#32, 0xf56533#32, 0xfff54513#32,
+  0x155793#32, 0xc7f633#32, 0x40c50533#32, 0xd57633#32,
+  0x255513#32, 0xd57533#32, 0x10106b7#32, 0x10168693#32,
+  0xa60533#32, 0x455613#32, 0xc50533#32, 0x2069613#32,
+  0xe57533#32, 0xc68633#32, 0x2c50533#32, 0x3855513#32,
+  0x80006f#32, 0x4000513#32, 0x659593#32, 0x40b50533#32,
+  0x10050513#32, 0x8067#32, 0x10000513#32, 0x8067#32]
+
+/-- The instructions of `clz_256`. -/
+def clz_256_prog : List instruction := [
+  .LOAD (0x18#12, .Regidx 10#5, .Regidx 11#5, false, 8),
+  .BTYPE (0xc#13, .Regidx 0#5, .Regidx 11#5, .BEQ),
+  .ITYPE (0x4#12, .Regidx 0#5, .Regidx 11#5, .ADDI),
+  .JAL (0x30#21, .Regidx 0#5),
+  .LOAD (0x10#12, .Regidx 10#5, .Regidx 11#5, false, 8),
+  .BTYPE (0xc#13, .Regidx 0#5, .Regidx 11#5, .BEQ),
+  .ITYPE (0x3#12, .Regidx 0#5, .Regidx 11#5, .ADDI),
+  .JAL (0x20#21, .Regidx 0#5),
+  .LOAD (0x8#12, .Regidx 10#5, .Regidx 11#5, false, 8),
+  .BTYPE (0xc#13, .Regidx 0#5, .Regidx 11#5, .BEQ),
+  .ITYPE (0x2#12, .Regidx 0#5, .Regidx 11#5, .ADDI),
+  .JAL (0x10#21, .Regidx 0#5),
+  .LOAD (0x0#12, .Regidx 10#5, .Regidx 11#5, false, 8),
+  .BTYPE (0xd4#13, .Regidx 0#5, .Regidx 11#5, .BEQ),
+  .ITYPE (0x1#12, .Regidx 0#5, .Regidx 11#5, .ADDI),
+  .SHIFTIOP (0x3#6, .Regidx 11#5, .Regidx 12#5, .SLLI),
+  .RTYPE (.Regidx 10#5, .Regidx 12#5, .Regidx 10#5, .ADD),
+  .LOAD (0xff8#12, .Regidx 10#5, .Regidx 10#5, false, 8),
+  .BTYPE (0xac#13, .Regidx 0#5, .Regidx 10#5, .BEQ),
+  .SHIFTIOP (0x1#6, .Regidx 10#5, .Regidx 12#5, .SRLI),
+  .UTYPE (0x55555#20, .Regidx 13#5, .LUI),
+  .UTYPE (0x33333#20, .Regidx 14#5, .LUI),
+  .UTYPE (0xf0f1#20, .Regidx 15#5, .LUI),
+  .RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .ITYPE (0x555#12, .Regidx 13#5, .Regidx 12#5, .ADDI),
+  .ITYPE (0x333#12, .Regidx 14#5, .Regidx 13#5, .ADDI),
+  .ITYPE (0xf0f#12, .Regidx 15#5, .Regidx 14#5, .ADDI),
+  .SHIFTIOP (0x2#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .SHIFTIOP (0x20#6, .Regidx 12#5, .Regidx 15#5, .SLLI),
+  .RTYPE (.Regidx 15#5, .Regidx 12#5, .Regidx 12#5, .ADD),
+  .SHIFTIOP (0x20#6, .Regidx 13#5, .Regidx 15#5, .SLLI),
+  .RTYPE (.Regidx 15#5, .Regidx 13#5, .Regidx 13#5, .ADD),
+  .SHIFTIOP (0x20#6, .Regidx 14#5, .Regidx 15#5, .SLLI),
+  .RTYPE (.Regidx 15#5, .Regidx 14#5, .Regidx 14#5, .ADD),
+  .SHIFTIOP (0x4#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .SHIFTIOP (0x8#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .SHIFTIOP (0x10#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .SHIFTIOP (0x20#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 15#5, .Regidx 10#5, .Regidx 10#5, .OR),
+  .ITYPE (0xfff#12, .Regidx 10#5, .Regidx 10#5, .XORI),
+  .SHIFTIOP (0x1#6, .Regidx 10#5, .Regidx 15#5, .SRLI),
+  .RTYPE (.Regidx 12#5, .Regidx 15#5, .Regidx 12#5, .AND),
+  .RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, .SUB),
+  .RTYPE (.Regidx 13#5, .Regidx 10#5, .Regidx 12#5, .AND),
+  .SHIFTIOP (0x2#6, .Regidx 10#5, .Regidx 10#5, .SRLI),
+  .RTYPE (.Regidx 13#5, .Regidx 10#5, .Regidx 10#5, .AND),
+  .UTYPE (0x1010#20, .Regidx 13#5, .LUI),
+  .ITYPE (0x101#12, .Regidx 13#5, .Regidx 13#5, .ADDI),
+  .RTYPE (.Regidx 10#5, .Regidx 12#5, .Regidx 10#5, .ADD),
+  .SHIFTIOP (0x4#6, .Regidx 10#5, .Regidx 12#5, .SRLI),
+  .RTYPE (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, .ADD),
+  .SHIFTIOP (0x20#6, .Regidx 13#5, .Regidx 12#5, .SLLI),
+  .RTYPE (.Regidx 14#5, .Regidx 10#5, .Regidx 10#5, .AND),
+  .RTYPE (.Regidx 12#5, .Regidx 13#5, .Regidx 12#5, .ADD),
+  .MUL (.Regidx 12#5, .Regidx 10#5, .Regidx 10#5, ⟨.Low, .Signed, .Signed⟩),
+  .SHIFTIOP (0x38#6, .Regidx 10#5, .Regidx 10#5, .SRLI),
+  .JAL (0x8#21, .Regidx 0#5),
+  .ITYPE (0x40#12, .Regidx 0#5, .Regidx 10#5, .ADDI),
+  .SHIFTIOP (0x6#6, .Regidx 11#5, .Regidx 11#5, .SLLI),
+  .RTYPE (.Regidx 11#5, .Regidx 10#5, .Regidx 10#5, .SUB),
+  .ITYPE (0x100#12, .Regidx 10#5, .Regidx 10#5, .ADDI),
+  .JALR (0x0#12, .Regidx 1#5, .Regidx 0#5),
+  .ITYPE (0x100#12, .Regidx 0#5, .Regidx 10#5, .ADDI),
+  .JALR (0x0#12, .Regidx 1#5, .Regidx 0#5)]
+
+theorem clz_256_decodes : Decodes clz_256_code clz_256_prog :=
+  decodes_of (by rfl) fun
+  | 0, _, _ => decode_01853583
+  | 1, _, _ => decode_00058663
+  | 2, _, _ => decode_00400593
+  | 3, _, _ => decode_0300006f
+  | 4, _, _ => decode_01053583
+  | 5, _, _ => decode_00058663
+  | 6, _, _ => decode_00300593
+  | 7, _, _ => decode_0200006f
+  | 8, _, _ => decode_00853583
+  | 9, _, _ => decode_00058663
+  | 10, _, _ => decode_00200593
+  | 11, _, _ => decode_0100006f
+  | 12, _, _ => decode_00053583
+  | 13, _, _ => decode_0c058a63
+  | 14, _, _ => decode_00100593
+  | 15, _, _ => decode_00359613
+  | 16, _, _ => decode_00a60533
+  | 17, _, _ => decode_ff853503
+  | 18, _, _ => decode_0a050663
+  | 19, _, _ => decode_00155613
+  | 20, _, _ => decode_555556b7
+  | 21, _, _ => decode_33333737
+  | 22, _, _ => decode_0f0f17b7
+  | 23, _, _ => decode_00c56533
+  | 24, _, _ => decode_55568613
+  | 25, _, _ => decode_33370693
+  | 26, _, _ => decode_f0f78713
+  | 27, _, _ => decode_00255793
+  | 28, _, _ => decode_00f56533
+  | 29, _, _ => decode_02061793
+  | 30, _, _ => decode_00f60633
+  | 31, _, _ => decode_02069793
+  | 32, _, _ => decode_00f686b3
+  | 33, _, _ => decode_02071793
+  | 34, _, _ => decode_00f70733
+  | 35, _, _ => decode_00455793
+  | 36, _, _ => decode_00f56533
+  | 37, _, _ => decode_00855793
+  | 38, _, _ => decode_00f56533
+  | 39, _, _ => decode_01055793
+  | 40, _, _ => decode_00f56533
+  | 41, _, _ => decode_02055793
+  | 42, _, _ => decode_00f56533
+  | 43, _, _ => decode_fff54513
+  | 44, _, _ => decode_00155793
+  | 45, _, _ => decode_00c7f633
+  | 46, _, _ => decode_40c50533
+  | 47, _, _ => decode_00d57633
+  | 48, _, _ => decode_00255513
+  | 49, _, _ => decode_00d57533
+  | 50, _, _ => decode_010106b7
+  | 51, _, _ => decode_10168693
+  | 52, _, _ => decode_00a60533
+  | 53, _, _ => decode_00455613
+  | 54, _, _ => decode_00c50533
+  | 55, _, _ => decode_02069613
+  | 56, _, _ => decode_00e57533
+  | 57, _, _ => decode_00c68633
+  | 58, _, _ => decode_02c50533
+  | 59, _, _ => decode_03855513
+  | 60, _, _ => decode_0080006f
+  | 61, _, _ => decode_04000513
+  | 62, _, _ => decode_00659593
+  | 63, _, _ => decode_40b50533
+  | 64, _, _ => decode_10050513
+  | 65, _, _ => decode_00008067
+  | 66, _, _ => decode_10000513
+  | 67, _, _ => decode_00008067
+  | _ + 68, hk, _ => absurd hk (by simp [clz_256_code])
 
 
 /-! ## `_ZN4intx3api4$_188__invokeERKNS_4uintILj256EEE` -/

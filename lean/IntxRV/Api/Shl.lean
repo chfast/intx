@@ -29,7 +29,6 @@ theorem shl_9_8.reach (base : BitVec 64) (x : Regs) (m : Mem) (hra : x.get 1#5 &
     have := toNat_of_signExtend habi (by omega); omega
   rw [← toNat_of_signExtend habi (by omega)] at hsh
   rv_exec
-  all_goals rv_copies
   all_goals try rv_val
   all_goals simp only [update_aligned hra]
   all_goals refine Reach.refl ?_

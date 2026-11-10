@@ -1609,6 +1609,8 @@ constexpr unsigned count_significant_bytes(const uint<N>& x) noexcept
     return (w != 0) ? count_significant_bytes(x[w - 1]) + (w - 1) * 8 : 0;
 }
 
+/// Counts the leading zero bits of x.
+/// @post result = N - (if x = 0 then 0 else Nat.log2 x + 1)
 template <unsigned N>
 constexpr unsigned clz(const uint<N>& x) noexcept
 {
@@ -1631,6 +1633,7 @@ constexpr unsigned ctz(const uint<N>& x) noexcept
 }
 
 /// Counts the number of bits needed to represent the value. For 0 returns 0.
+/// @post result = if x = 0 then 0 else Nat.log2 x + 1
 template <unsigned N>
 constexpr unsigned bit_width(const uint<N>& x) noexcept
 {

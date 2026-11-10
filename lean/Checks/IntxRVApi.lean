@@ -32,6 +32,18 @@ example :
     IntxRV.NonVacuous IntxRV.Gen.bit_test_256_code IntxRV.Api.bit_test_256.bufs IntxRV.Api.bit_test_256.pre := by
   rv_nonvacuous [10] using [IntxRV.Api.bit_test_256.bufs, IntxRV.Api.bit_test_256.pre, IntxRV.Gen.bit_test_256_code]
 
+example : IntxRV.Api.bit_width_256.spec := IntxRV.Api.bit_width_256.proof
+#check_rv_axioms IntxRV.Api.bit_width_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.bit_width_256_code IntxRV.Api.bit_width_256.bufs IntxRV.Api.bit_width_256.pre := by
+  rv_nonvacuous [10] using [IntxRV.Api.bit_width_256.bufs, IntxRV.Api.bit_width_256.pre, IntxRV.Gen.bit_width_256_code]
+
+example : IntxRV.Api.clz_256.spec := IntxRV.Api.clz_256.proof
+#check_rv_axioms IntxRV.Api.clz_256.proof
+example :
+    IntxRV.NonVacuous IntxRV.Gen.clz_256_code IntxRV.Api.clz_256.bufs IntxRV.Api.clz_256.pre := by
+  rv_nonvacuous [10] using [IntxRV.Api.clz_256.bufs, IntxRV.Api.clz_256.pre, IntxRV.Gen.clz_256_code]
+
 example : IntxRV.Api.count_significant_words_256.spec := IntxRV.Api.count_significant_words_256.proof
 #check_rv_axioms IntxRV.Api.count_significant_words_256.proof
 example :
