@@ -110,7 +110,12 @@ with the data in the memory. A call is `auipc ra` and `jalr ra`; `Reach.call`
 ([`Call.lean`](Call.lean)) runs the callee by its proof: `f.reach` of a function `f` on its own code
 is lifted into the image by `Reach.lift`. The instances of `intx::wip` in
 `Api.cpp` get their specifications without the checks of their proofs, until they are proved
-(`reciprocal_2by1()`).
+(none at present).
+
+`reciprocal_2by1()` ([`Api/Reciprocal.lean`](Api/Reciprocal.lean)) reads the table of the image
+and is proved through its model `Intx.Model.reciprocal`. `NonVacuousI`
+([`EnvImage.lean`](EnvImage.lean)) checks that the assumptions of `RunsI` hold: the data stored in
+the RAM of the environment.
 
 [`Clz.lean`](Clz.lean) proves the count of the leading zeros that clang computes without the Zbb
 extension (spreading the top bit down and the SWAR population count) to be `63 - log2 x`.
