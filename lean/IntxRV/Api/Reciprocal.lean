@@ -158,7 +158,6 @@ theorem reciprocal_2by1.proof : reciprocal_2by1.spec := by
   rw [hdv]
   refine congrArg BitVec.toNat ?_
   clear hv hdv hv1 hv2 hsq hsc hlo hhi hidx hreq hnw hhold hbufs
-  rw [show (1#64 <<< 60 : BitVec 64) = 1152921504606846976#64 from rfl]
   generalize d >>> 24 + 1#64 = D at *
   rw [BitVec.mul_comm L.toBitVec D] at hv'
   generalize H.toBitVec - (D * L.toBitVec) >>> 40 = v1 at *

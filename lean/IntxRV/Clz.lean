@@ -1,4 +1,5 @@
 import Mathlib.Data.BitVec
+import Mathlib.Tactic.SplitIfs
 /-!
 # The count of the leading zeros
 
@@ -84,9 +85,9 @@ theorem smear_eq (x : BitVec 64) (hx : x ≠ 0) :
     rw [BitVec.getLsbD, show i + (Nat.log2 x.toNat - i) = Nat.log2 x.toNat by omega]
     exact htop
 
-/-- The population count of `~s` by the SWAR steps of the compiler. -/
+/-- The population count of `~s` (`xori -1`) by the SWAR steps of the compiler. -/
 def swarClz (s : BitVec 64) : BitVec 64 :=
-  let n := ~~~s
+  let n := s ^^^ 0xffffffffffffffff#64
   let a := n - ((n >>> 1) &&& 0x5555555555555555#64)
   let b := (a &&& 0x3333333333333333#64) + ((a >>> 2) &&& 0x3333333333333333#64)
   let c := (b + (b >>> 4)) &&& 0x0f0f0f0f0f0f0f0f#64
@@ -100,5 +101,37 @@ theorem clz_eq (x : BitVec 64) (hx : x ≠ 0) :
     swarClz (smear x) = BitVec.ofNat 64 (63 - Nat.log2 x.toNat) := by
   have hx0 : x.toNat ≠ 0 := fun h => hx (BitVec.eq_of_toNat_eq (by simpa using h))
   rw [smear_eq x hx, swarClz_ones _ ((Nat.log2_lt hx0).mpr x.isLt)]
+
+/-- `smear` without the names, as the run of the code shows it. -/
+theorem smear_expand (x : BitVec 64) :
+    smear x = (((((x ||| x >>> 1) ||| (x ||| x >>> 1) >>> 2) ||| ((x ||| x >>> 1) ||| (x ||| x
+      >>> 1) >>> 2) >>> 4) ||| (((x ||| x >>> 1) ||| (x ||| x >>> 1) >>> 2) ||| ((x ||| x
+      >>> 1) ||| (x ||| x >>> 1) >>> 2) >>> 4) >>> 8) ||| ((((x ||| x >>> 1) ||| (x ||| x
+      >>> 1) >>> 2) ||| ((x ||| x >>> 1) ||| (x ||| x >>> 1) >>> 2) >>> 4) ||| (((x ||| x
+      >>> 1) ||| (x ||| x >>> 1) >>> 2) ||| ((x ||| x >>> 1) ||| (x ||| x >>> 1) >>> 2) >>> 4)
+      >>> 8) >>> 16) ||| (((((x ||| x >>> 1) ||| (x ||| x >>> 1) >>> 2) ||| ((x ||| x >>> 1)
+      ||| (x ||| x >>> 1) >>> 2) >>> 4) ||| (((x ||| x >>> 1) ||| (x ||| x >>> 1) >>> 2)
+      ||| ((x ||| x >>> 1) ||| (x ||| x >>> 1) >>> 2) >>> 4) >>> 8) ||| ((((x ||| x >>> 1)
+      ||| (x ||| x >>> 1) >>> 2) ||| ((x ||| x >>> 1) ||| (x ||| x >>> 1) >>> 2) >>> 4)
+      ||| (((x ||| x >>> 1) ||| (x ||| x >>> 1) >>> 2) ||| ((x ||| x >>> 1) ||| (x ||| x >>> 1)
+      >>> 2) >>> 4) >>> 8) >>> 16) >>> 32 := rfl
+
+/-- `swarClz` without the names, as the run of the code shows it. -/
+theorem swarClz_expand (s : BitVec 64) :
+    swarClz s = (((((((s ^^^ 0xffffffffffffffff#64) - ((s ^^^ 0xffffffffffffffff#64) >>> 1
+      &&& 0x5555555555555555#64)) &&& 0x3333333333333333#64) + (((s ^^^ 0xffffffffffffffff#64)
+      - ((s ^^^ 0xffffffffffffffff#64) >>> 1 &&& 0x5555555555555555#64)) >>> 2
+      &&& 0x3333333333333333#64)) + ((((s ^^^ 0xffffffffffffffff#64) - ((s
+      ^^^ 0xffffffffffffffff#64) >>> 1 &&& 0x5555555555555555#64)) &&& 0x3333333333333333#64)
+      + (((s ^^^ 0xffffffffffffffff#64) - ((s ^^^ 0xffffffffffffffff#64) >>> 1
+      &&& 0x5555555555555555#64)) >>> 2 &&& 0x3333333333333333#64)) >>> 4)
+      &&& 0x0f0f0f0f0f0f0f0f#64) * 0x0101010101010101#64) >>> 56 := rfl
+
+/-- The count of the leading zeros of every word, 64 for 0. -/
+theorem clz_ite (x : BitVec 64) :
+    swarClz (smear x) = BitVec.ofNat 64 (if x = 0 then 64 else 63 - Nat.log2 x.toNat) := by
+  split_ifs with h
+  · subst h; decide
+  · exact clz_eq x h
 
 end IntxRV
