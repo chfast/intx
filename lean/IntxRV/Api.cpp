@@ -73,6 +73,9 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
     +[](const uint256& x, size_t i) noexcept { return bit_test(x, i); };
 [[gnu::used]] constexpr auto* count_significant_words_256 =
     +[](const uint256& x) noexcept { return count_significant_words(x); };
+[[gnu::used]] constexpr auto* clz_256 = +[](const uint256& x) noexcept { return clz(x); };
+[[gnu::used]] constexpr auto* bit_width_256 =
+    +[](const uint256& x) noexcept { return bit_width(x); };
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
