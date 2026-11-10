@@ -26,7 +26,7 @@ theorem Regs.get_zero (x : Regs) : x.get 0 = 0 := rfl
 theorem itypeVal_seqz (a : BitVec 64) :
     itypeVal .SLTIU 1#12 a = if a = 0#64 then 1#64 else 0#64 := by
   rw [itypeVal_sltiu]
-  by_cases h : a = 0#64 <;> simp [h] <;> bv_omega
+  by_cases h : a = 0#64 <;> simp [h]
 
 /-- A register of the start: the specifications read `x i`, the runs `x.get i`. -/
 theorem Regs.eq_get (x : Regs) {i : BitVec 5} (h : i ≠ 0) : x i = x.get i := by
@@ -44,6 +44,7 @@ macro "rv_val" loc:(Lean.Parser.Tactic.location)? : tactic => `(tactic| (
     rtypeVal_add, rtypeVal_sub, rtypeVal_and, rtypeVal_or, rtypeVal_xor, rtypeVal_sltu,
     rtypeVal_sll, rtypeVal_srl, rtypewVal_subw,
     itypeVal_addi, itypeVal_xori, itypeVal_andi, itypeVal_ori, itypeVal_seqz, shiftiopVal_srli,
+    shiftiopVal_slli, utypeVal_lui, utypeVal_auipc, BitVec.reduceAppend, BitVec.reduceToNat,
     mulVal_lo, mulVal_hu, BitVec.reduceSignExtend, BitVec.add_zero, BitVec.add_assoc,
     BitVec.reduceAdd, memWord_memStore_self, btypeTaken, beq_iff_eq, bne_iff_ne, ne_eq,
     Bool.not_eq_true, decide_eq_true_eq, decide_eq_false_iff_not] $(loc)?))
@@ -70,8 +71,8 @@ macro "rv_step" : tactic => `(tactic| (
   first
   | refine ⟨by decide, fun hb => ?_, fun hb => ?_⟩ <;> rv_val at hb
   | refine ⟨fun hb => ?_, fun hb => ?_⟩ <;> rv_val at hb
-  | refine ⟨by rv_mem, fun w hw => ?_⟩; rv_val at hw
-  | refine ⟨by rv_mem, ?_⟩
+  | (apply And.intro; (focus rv_mem); intro w hw; rv_val at hw)
+  | (apply And.intro; (focus rv_mem); show Reach _ _ _ _ _ _ _ _)
   | refine ⟨by decide, ?_⟩
   | intro w hw; rv_val at hw
   | (show Reach _ _ _ _ _ _ _ _; rv_val)))

@@ -2,6 +2,7 @@
 import Checks.IntxRV
 import IntxRV.Api
 import IntxRV.EnvM
+import IntxRV.EnvImage
 set_option warningAsError true
 -- rv_nonvacuous evaluates the addresses of all the words of the buffers.
 set_option maxRecDepth 100000
@@ -60,6 +61,12 @@ example : IntxRV.Api.or_256.spec := IntxRV.Api.or_256.proof
 example :
     IntxRV.NonVacuous IntxRV.Gen.or_256_code IntxRV.Api.or_256.bufs IntxRV.Api.or_256.pre := by
   rv_nonvacuous [10, 11, 12] using [IntxRV.Api.or_256.bufs, IntxRV.Api.or_256.pre, IntxRV.Gen.or_256_code]
+
+example : IntxRV.Api.reciprocal_2by1.spec := IntxRV.Api.reciprocal_2by1.proof
+#check_rv_axioms IntxRV.Api.reciprocal_2by1.proof
+example :
+    IntxRV.NonVacuousI IntxRV.Gen.image_code IntxRV.Gen.image_data IntxRV.Gen.image_dataOff IntxRV.Api.reciprocal_2by1.bufs
+      IntxRV.Api.reciprocal_2by1.pre := IntxRV.Api.reciprocal_2by1.nonvacuous
 
 example : IntxRV.Api.shl_9_8.spec := IntxRV.Api.shl_9_8.proof
 #check_rv_axioms IntxRV.Api.shl_9_8.proof

@@ -286,6 +286,38 @@ def spec : Prop := RunsM or_256_code bufs pre post
 end or_256
 
 
+/-! ## `reciprocal_2by1`: `reciprocal_2by1` (intx.hpp:780)
+
+Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
+
+@pre 2 ^ 63 <= d
+@post result = (2 ^ 128 - 1) / d - 2 ^ 64
+-/
+
+namespace reciprocal_2by1
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  []
+
+def pre (x : Regs) (m : Mem) : Prop :=
+  (fun (N : Nat) (d : Nat) =>
+      2 ^ 63 <= d)
+      64 ((x 10#5).toNat)
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (d : Nat) =>
+      result = (2 ^ 128 - 1) / d - 2 ^ 64)
+      64 (x'.get 10#5).toNat ((x 10#5).toNat) ∧
+    m' = m ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `reciprocal_2by1`. -/
+def spec : Prop := RunsI image_code reciprocal_2by1_entry image_data image_dataOff bufs pre post
+
+end reciprocal_2by1
+
+
 /-! ## `shl_9_8`: `shl` (intx.hpp:598)
 
 Left-shifts a little-endian word array x by shift bits and stores the result in r. The r must have the same size as x, or one word more to also receive the bits shifted out. The r may alias x. The shift must be less than 64.
@@ -524,38 +556,6 @@ def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
 def spec : Prop := RunsM xor_256_code bufs pre post
 
 end xor_256
-
-
-/-! ## `reciprocal_2by1`: `reciprocal_2by1` (intx.hpp:780)
-
-Computes the reciprocal (2^128 - 1) / d - 2^64 for normalized d.
-
-@pre 2 ^ 63 <= d
-@post result = (2 ^ 128 - 1) / d - 2 ^ 64
--/
-
-namespace reciprocal_2by1
-
-/-- The addresses of the words of the arguments and the result. -/
-def bufs (x : Regs) : List (BitVec 64) :=
-  []
-
-def pre (x : Regs) (m : Mem) : Prop :=
-  (fun (N : Nat) (d : Nat) =>
-      2 ^ 63 <= d)
-      64 ((x 10#5).toNat)
-
-def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
-  (fun (N : Nat) (result : Nat) (d : Nat) =>
-      result = (2 ^ 128 - 1) / d - 2 ^ 64)
-      64 (x'.get 10#5).toNat ((x 10#5).toNat) ∧
-    m' = m ∧
-    ∀ i ∈ calleeSaved, x' i = x i
-
-/-- The specification of the machine code of `reciprocal_2by1`. -/
-def spec : Prop := RunsI image_code reciprocal_2by1_entry image_data image_dataOff bufs pre post
-
-end reciprocal_2by1
 
 
 end IntxRV.Api
