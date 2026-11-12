@@ -45,10 +45,6 @@
     #define __has_builtin(NAME) 0
 #endif
 
-#ifndef __has_feature
-    #define __has_feature(NAME) 0
-#endif
-
 #ifdef _MSC_VER
     #include <intrin.h>
 #endif
@@ -792,8 +788,8 @@ constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 
 #if INTX_HAS_DIV_WIDE_X86
     // On x86-64 this is a single 128/64 division instruction.
-    // Historically, this instruction was very slow, but it better/same latency
-    // as portable procedure on AMD Zen (2017) and Intel Ice Lake (2021).
+    // Historically, this instruction was very slow, but it has better or the same latency
+    // as the portable procedure on AMD Zen (2017) and Intel Ice Lake (2021).
     if (!std::is_constant_evaluated())
         return internal::div_wide_x86(~d, ~uint64_t{0}, d).quot;
 #endif
@@ -1144,8 +1140,8 @@ struct uint
     static constexpr auto num_bits = N;
     static constexpr auto num_words = num_bits / word_num_bits;
 
-    static_assert(N >= 2 * word_num_bits, "Number of bits must be at lest 128");
-    static_assert(N % word_num_bits == 0, "Number of bits must be a multiply of 64");
+    static_assert(N >= 2 * word_num_bits, "Number of bits must be at least 128");
+    static_assert(N % word_num_bits == 0, "Number of bits must be a multiple of 64");
 
 private:
     uint64_t words_[num_words]{};
@@ -2205,7 +2201,6 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
         if (num_numerator_words <= n)
             return {0, static_cast<uint<N>>(u)};
 
-        static_assert(uint<N>::num_words >= 2, "no support for uint<64> yet");
         if (n == 1)  // Divide at least 2 words: the words above m are 0.
         {
             if (v[0] == 0) [[unlikely]]
