@@ -2542,13 +2542,31 @@ inline DstT store(const SrcT& x) noexcept
 
 /// Stores the truncated value of an uint in a bytes array.
 /// Only the least significant bytes from big-endian representation of the uint
-/// are stored in the result bytes array up to array's size.
+/// are stored in the result bytes array up to array's size. The dst must not overlap x.
 template <unsigned M, unsigned N>
 inline void trunc(uint8_t (&dst)[M], const uint<N>& x) noexcept
 {
     static_assert(M < N / 8, "destination must be smaller than the source value");
-    const auto d = to_big_endian(x);
-    std::memcpy(dst, &as_bytes(d)[sizeof(d) - M], M);
+    INTX_REQUIRE(reinterpret_cast<uintptr_t>(dst + M) <= reinterpret_cast<uintptr_t>(&x) ||
+                 reinterpret_cast<uintptr_t>(&x + 1) <= reinterpret_cast<uintptr_t>(dst));
+
+    // Store the words from the start of dst and the remaining low bytes at its end.
+    constexpr auto WORD_SIZE = sizeof(typename uint<N>::word_type);
+    constexpr auto NUM_WORDS = M / WORD_SIZE;
+    constexpr auto NUM_REM_BYTES = M % WORD_SIZE;
+    for (size_t i = 0; i < NUM_WORDS; ++i)
+    {
+        const auto w = NUM_REM_BYTES != 0 ? fshr(x[i + 1], x[i], NUM_REM_BYTES * 8) : x[i];
+        unsafe::store(&dst[(NUM_WORDS - 1 - i) * WORD_SIZE], w);
+    }
+
+    if constexpr (NUM_REM_BYTES != 0)
+    {
+        using T = std::conditional_t<NUM_REM_BYTES <= sizeof(uint32_t), uint32_t, uint64_t>;
+        const auto w = to_big_endian(static_cast<T>(x[0]));
+        std::memcpy(
+            &dst[M - NUM_REM_BYTES], &as_bytes(w)[sizeof(w) - NUM_REM_BYTES], NUM_REM_BYTES);
+    }
 }
 
 /// Stores the truncated value of an integer into the span of bytes.

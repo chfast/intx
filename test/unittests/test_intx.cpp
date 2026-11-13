@@ -320,6 +320,30 @@ TYPED_TEST(uint_test, be_store_all_bytes)
     }
 }
 
+namespace
+{
+template <size_t M, typename T>
+void expect_be_trunc(const T& x)
+{
+    uint8_t data[M]{};
+    be::trunc(data, x);
+    for (size_t i = 0; i < M; ++i)
+        EXPECT_EQ(data[i], sizeof(x) - M + i + 1);
+}
+}  // namespace
+
+TYPED_TEST(uint_test, be_trunc_all_bytes)
+{
+    TypeParam x;
+    for (size_t i = 0; i < sizeof(x); ++i)
+        x = (x << 8) | TypeParam{i + 1};  // Big-endian bytes: 1, 2, 3, ...
+
+    // The remaining bytes: 0, 4 and 7.
+    expect_be_trunc<sizeof(x) - 8>(x);
+    expect_be_trunc<sizeof(x) - 4>(x);
+    expect_be_trunc<sizeof(x) - 1>(x);
+}
+
 TYPED_TEST(uint_test, typed_trunc)
 {
     const auto x = TypeParam{0xaabb};
