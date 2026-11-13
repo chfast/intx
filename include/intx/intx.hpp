@@ -1716,11 +1716,29 @@ constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
     if (base == 2)
         return result << exponent;
 
-    for (size_t i = bit_width(exponent); i > 0; --i)
+    // Process the exponent in 2-bit windows from the top: square the result twice
+    // and multiply it by base^w for a nonzero window w.
+    const size_t n = bit_width(exponent);
+    if (n == 0)
+        return result;
+    const auto base2 = base * base;
+    const std::array<uint<N>, 3> powers{base, base2, base * base2};
+    const auto window = [&exponent](size_t s) {
+        const auto w = exponent[s / uint<N>::word_num_bits];
+        return static_cast<size_t>(w >> (s % uint<N>::word_num_bits)) & 3;
+    };
+    // The windows start at even bit positions, so none spans two words.
+    // The top window holds the top set bit, so it is nonzero.
+    auto s = (n - 1) & ~size_t{1};
+    result = powers[window(s) - 1];
+    while (s != 0)
     {
-        result *= result;
-        if (bit_test(exponent, i - 1))
-            result *= base;
+        s -= 2;
+        const auto r = result * result;
+        if (const auto w = window(s); w != 0)
+            result = powers[w - 1] * (r * r);
+        else
+            result = r * r;
     }
     return result;
 }
