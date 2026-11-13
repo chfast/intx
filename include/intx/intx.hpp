@@ -95,6 +95,7 @@ namespace intx
 
 /// Alias for the compiler supported unsigned __int128 type.
 using builtin_uint128 = unsigned __int128;
+using builtin_int128 = __int128;
 
 /// Alias for the compiler supported signed __int128 type.
 using builtin_int128 = __int128;
@@ -105,6 +106,9 @@ using builtin_int128 = __int128;
 
 template <unsigned N>
 struct uint;
+
+template <unsigned N>
+struct sint;
 
 /// Contains result of add/sub/etc with a carry flag.
 template <typename T>
@@ -2576,6 +2580,410 @@ inline T trunc(const uint<N>& x) noexcept
 }
 
 }  // namespace be
+
+// Signed types
+template <unsigned N>
+struct sint
+{
+    using internal = uint<N>;
+    using word_type = typename internal::word_type;
+    static constexpr auto word_num_bits = internal::word_num_bits;
+    static constexpr unsigned num_bits = internal::num_bits;
+    static constexpr auto num_words = internal::num_words;
+
+private:
+    /// The two's complement bits of the value.
+    internal u_{};
+
+    constexpr explicit sint(const internal& u) noexcept : u_{u} {}
+
+    /// Returns a word with every bit equal to the sign bit of the given top word.
+    static constexpr uint64_t sign_word(uint64_t top) noexcept
+    {
+        return static_cast<uint64_t>(static_cast<int64_t>(top) >> (word_num_bits - 1));
+    }
+
+    /// Returns the word that fills the upper words when v is widened:
+    /// the sign of v for signed types, 0 for unsigned types.
+    template <std::integral T>
+    static constexpr uint64_t extension_word(T v) noexcept
+    {
+        if constexpr (std::is_signed_v<T>)
+            return v < 0 ? ~uint64_t{0} : 0;
+        else
+            return 0;
+    }
+
+public:
+    constexpr sint() noexcept = default;
+
+    /// Implicit converting constructor from narrower sint types, with sign extension.
+    template <unsigned M>
+    constexpr explicit(false) sint(const sint<M>& x) noexcept
+        requires(M < N)
+    {
+        for (size_t i = 0; i < sint<M>::num_words; ++i)
+            u_[i] = x[i];
+        const auto fill = sign_word(x[sint<M>::num_words - 1]);
+        for (size_t i = sint<M>::num_words; i < num_words; ++i)
+            u_[i] = fill;
+    }
+
+#if INTX_HAS_BUILTIN_INT128
+    /// Constructs from the builtin signed 128-bit integer, with sign extension.
+    constexpr explicit(false) sint(builtin_int128 x) noexcept : u_{uint64_t(x), uint64_t(x >> 64)}
+    {
+        const auto fill = uint64_t(x >> 127);
+        for (size_t i = 2; i < num_words; ++i)
+            u_[i] = fill;
+    }
+#endif
+
+    /// Constructs from a builtin integer value.
+    /// Signed values are sign-extended, unsigned values are zero-extended.
+    template <std::integral T>
+    constexpr explicit(false) sint(T v) noexcept
+        requires(sizeof(T) <= sizeof(uint64_t))
+    {
+        *this = v;
+    }
+
+    /// Constructs from words with v[0] being the least significant word.
+    /// The words are taken as raw two's complement bits, missing high words are set to 0.
+    template <typename... T>
+    constexpr explicit(false) sint(T... v) noexcept
+        requires(sizeof...(T) >= 2 && std::conjunction_v<std::is_convertible<T, uint64_t>...>)
+      : u_{static_cast<uint64_t>(v)...}
+    {}
+
+
+    /// Constructs from words with words[0] being the least significant word.
+    /// The size of the span must be less than or equal to num_words.
+    constexpr explicit sint(std::span<const uint64_t> words) noexcept
+    {
+        INTX_REQUIRE(words.size() <= num_words);
+        std::ranges::copy(words, as_words(u_).begin());
+    }
+
+    // This is just to get each words, it won't mean much by themselves since it's
+    // part of a signed type
+    constexpr uint64_t& operator[](size_t i) noexcept { return u_[i]; }
+
+    constexpr const uint64_t& operator[](size_t i) const noexcept { return u_[i]; }
+
+    constexpr explicit operator bool() const noexcept { return *this != sint{}; }
+
+    /// Explicit converting operator to smaller sint types.
+    template <unsigned M>
+    constexpr explicit operator sint<M>() const noexcept
+        requires(M < N)
+    {
+        sint<M> r;
+        for (size_t i = 0; i < sint<M>::num_words; ++i)
+            r[i] = u_[i];
+        return r;
+    }
+
+    /// Explicit converting operator for all builtin integral types.
+    template <typename Int>
+    constexpr explicit operator Int() const noexcept
+        requires(std::is_integral_v<Int>)
+    {
+        static_assert(sizeof(Int) <= sizeof(uint64_t));
+        return static_cast<Int>(u_[0]);
+    }
+
+    /// Assigns a builtin integer value.
+    /// Signed values are sign-extended, unsigned values are zero-extended.
+    template <std::integral T>
+    constexpr sint& operator=(T v) noexcept
+        requires(sizeof(T) <= sizeof(uint64_t))
+    {
+        // Widen to int64_t first so signed values are sign-extended explicitly.
+        u_[0] = static_cast<uint64_t>(static_cast<int64_t>(v));
+        const auto fill = extension_word(v);
+        for (size_t i = 1; i < num_words; ++i)
+            u_[i] = fill;
+        return *this;
+    }
+
+    /// Assigns a sint of the same or narrower width, with sign extension.
+    template <unsigned M>
+    constexpr sint& operator=(const sint<M>& x) noexcept
+        requires(M <= N)
+    {
+        for (size_t i = 0; i < sint<M>::num_words; ++i)
+            u_[i] = x[i];
+        const auto fill = sign_word(x[sint<M>::num_words - 1]);
+        for (size_t i = sint<M>::num_words; i < num_words; ++i)
+            u_[i] = fill;
+        return *this;
+    }
+
+    friend constexpr sint operator+(const sint& x, const sint& y) noexcept
+    {
+        return sint{addc(x.u_, y.u_).value};
+    }
+
+    constexpr sint& operator+=(const sint& y) noexcept { return *this = *this + y; }
+
+    constexpr sint operator-() const noexcept { return ~*this + sint{1}; }
+
+    friend constexpr sint operator-(const sint& x, const sint& y) noexcept
+    {
+        return sint{subc(x.u_, y.u_).value};
+    }
+
+    constexpr sint& operator-=(const sint& y) noexcept { return *this = *this - y; }
+
+    /// Multiplication implementation using word access
+    /// and discarding the high part of the result product.
+    /// For two's complement, the low N bits of the product are the same as unsigned.
+    friend constexpr sint operator*(const sint& x, const sint& y) noexcept
+    {
+        return sint{x.u_ * y.u_};
+    }
+
+    constexpr sint& operator*=(const sint& y) noexcept { return *this = *this * y; }
+
+    friend constexpr sint operator/(const sint& x, const sint& y) noexcept
+    {
+        return sint{sdivrem(x.u_, y.u_).quot};
+    }
+
+    friend constexpr sint operator%(const sint& x, const sint& y) noexcept
+    {
+        return sint{sdivrem(x.u_, y.u_).rem};
+    }
+
+    constexpr sint& operator/=(const sint& y) noexcept { return *this = *this / y; }
+
+    constexpr sint& operator%=(const sint& y) noexcept { return *this = *this % y; }
+
+
+    constexpr sint operator~() const noexcept
+    {
+        sint z;
+        for (size_t i = 0; i < num_words; ++i)
+            z[i] = ~u_[i];
+        return z;
+    }
+
+    friend constexpr sint operator|(const sint& x, const sint& y) noexcept
+    {
+        sint z;
+        for (size_t i = 0; i < num_words; ++i)
+            z[i] = x[i] | y[i];
+        return z;
+    }
+
+    constexpr sint& operator|=(const sint& y) noexcept { return *this = *this | y; }
+
+    friend constexpr sint operator&(const sint& x, const sint& y) noexcept
+    {
+        sint z;
+        for (size_t i = 0; i < num_words; ++i)
+            z[i] = x[i] & y[i];
+        return z;
+    }
+
+    constexpr sint& operator&=(const sint& y) noexcept { return *this = *this & y; }
+
+    friend constexpr sint operator^(const sint& x, const sint& y) noexcept
+    {
+        sint z;
+        for (size_t i = 0; i < num_words; ++i)
+            z[i] = x[i] ^ y[i];
+        return z;
+    }
+
+    constexpr sint& operator^=(const sint& y) noexcept { return *this = *this ^ y; }
+
+    friend constexpr bool operator==(const sint& x, const sint& y) noexcept
+    {
+        uint64_t folded = 0;
+        for (size_t i = 0; i < num_words; ++i)
+            folded |= (x[i] ^ y[i]);
+        return folded == 0;
+    }
+
+    friend constexpr bool operator<(const sint& x, const sint& y) noexcept
+    {
+        return slt(x.u_, y.u_);
+    }
+    friend constexpr bool operator>(const sint& x, const sint& y) noexcept { return y < x; }
+    friend constexpr bool operator>=(const sint& x, const sint& y) noexcept { return !(x < y); }
+    friend constexpr bool operator<=(const sint& x, const sint& y) noexcept { return !(y < x); }
+
+    friend constexpr std::strong_ordering operator<=>(const sint& x, const sint& y) noexcept
+    {
+        if (x == y)
+            return std::strong_ordering::equal;
+
+        return (x < y) ? std::strong_ordering::less : std::strong_ordering::greater;
+    }
+
+    friend constexpr sint operator<<(const sint& x, uint64_t shift) noexcept
+    {
+        if (shift >= num_bits) [[unlikely]]
+            return 0;
+
+        if constexpr (N == 256)
+        {
+            constexpr auto half_bits = num_bits / 2;
+
+            const auto xlo = uint128{x[0], x[1]};
+
+            if (shift < half_bits)
+            {
+                const auto lo = xlo << shift;
+
+                const auto xhi = uint128{x[2], x[3]};
+
+                // Find the part moved from lo to hi.
+                // The shift right here can be invalid:
+                // for shift == 0 => rshift == half_bits.
+                // Split it into 2 valid shifts by (rshift - 1) and 1.
+                const auto rshift = half_bits - shift;
+                const auto lo_overflow = (xlo >> (rshift - 1)) >> 1;
+                const auto hi = (xhi << shift) | lo_overflow;
+                return {lo[0], lo[1], hi[0], hi[1]};
+            }
+
+            const auto hi = xlo << (shift - half_bits);
+            return {0, 0, hi[0], hi[1]};
+        }
+        else
+        {
+            constexpr auto word_bits = sizeof(uint64_t) * 8;
+
+            const auto s = shift % word_bits;
+            const auto skip = static_cast<size_t>(shift / word_bits);
+
+            sint r;
+            uint64_t carry = 0;
+            for (size_t i = 0; i < (num_words - skip); ++i)
+            {
+                r[i + skip] = (x[i] << s) | carry;
+                carry = (x[i] >> (word_bits - s - 1)) >> 1;
+            }
+            return r;
+        }
+    }
+
+    friend constexpr sint operator<<(const sint& x, std::integral auto shift) noexcept
+    {
+        static_assert(sizeof(shift) <= sizeof(uint64_t));
+        return x << static_cast<uint64_t>(shift);
+    }
+
+    friend constexpr sint operator<<(const sint& x, const sint& shift) noexcept
+    {
+        // TODO: This optimisation should be handled by operator<.
+        uint64_t high_words_fold = 0;
+        for (size_t i = 1; i < num_words; ++i)
+            high_words_fold |= shift[i];
+
+        if (high_words_fold != 0) [[unlikely]]
+            return 0;
+
+        return x << shift[0];
+    }
+
+    friend constexpr sint operator>>(const sint& x, uint64_t shift) noexcept
+    {
+        constexpr auto word_bits = sizeof(uint64_t) * 8;
+        const auto sign_fill = sign_word(x[num_words - 1]);
+
+        if (shift >= num_bits) [[unlikely]]
+        {
+            sint r;
+            for (size_t i = 0; i < num_words; ++i)
+                r[i] = sign_fill;
+            return r;
+        }
+
+        const auto s = shift % word_bits;
+        const auto skip = static_cast<size_t>(shift / word_bits);
+
+        sint r;
+        // For s > 0: prime the carry with sign bits so the top s bits of the MSW are filled.
+        // For s == 0: no sub-word carry is needed (sign_fill << word_bits would be UB).
+        uint64_t carry = s != 0 ? (sign_fill << (word_bits - s)) : 0;
+        for (size_t i = 0; i < (num_words - skip); ++i)
+        {
+            r[num_words - 1 - i - skip] = (x[num_words - 1 - i] >> s) | carry;
+            // The trick (x << (word_bits - s - 1)) << 1 avoids UB when s == 0
+            // (equivalent to x << word_bits, which yields 0).
+            carry = (x[num_words - 1 - i] << (word_bits - s - 1)) << 1;
+        }
+        // Fill the vacated high words with the sign.
+        for (size_t i = num_words - skip; i < num_words; ++i)
+            r[i] = sign_fill;
+        return r;
+    }
+
+    friend constexpr sint operator>>(const sint& x, std::integral auto shift) noexcept
+    {
+        static_assert(sizeof(shift) <= sizeof(uint64_t));
+        return x >> static_cast<uint64_t>(shift);
+    }
+
+    friend constexpr sint operator>>(const sint& x, const sint& shift) noexcept
+    {
+        uint64_t high_words_fold = 0;
+        for (size_t i = 1; i < num_words; ++i)
+            high_words_fold |= shift[i];
+
+        if (high_words_fold != 0) [[unlikely]]
+        {
+            // Shift amount >= 2^64 >= num_bits: result is all sign bits.
+            const auto sign_fill = sign_word(x[num_words - 1]);
+            sint r;
+            for (size_t i = 0; i < num_words; ++i)
+                r[i] = sign_fill;
+            return r;
+        }
+
+        return x >> shift[0];
+    }
+
+    constexpr sint& operator<<=(sint shift) noexcept { return *this = *this << shift; }
+    constexpr sint& operator>>=(sint shift) noexcept { return *this = *this >> shift; }
+};
+using int128 = sint<128>;
+using int256 = sint<256>;
+using int512 = sint<512>;
+
+
+template <unsigned N>
+inline std::string to_string(sint<N> x, int base = 10)
+{
+    // Handle the positive case and zero directly by converting to uint<N>
+    if (x >= 0)
+    {
+        uint<N> ux;
+        for (size_t i = 0; i < sint<N>::num_words; ++i)
+            ux[i] = x[i];
+        return to_string(ux, base);
+    }
+
+    // For negative numbers, calculate the absolute value magnitude.
+    // In two's complement, -x for sint::min() results in the same bit pattern,
+    // which correctly represents the magnitude 2^(N-1) when stored in uint.
+    auto abs_x = -x;
+    uint<N> ux;
+    for (size_t i = 0; i < sint<N>::num_words; ++i)
+        ux[i] = abs_x[i];
+
+    return "-" + to_string(ux, base);
+}
+
+template <unsigned N>
+inline std::string hex(sint<N> x)
+{
+    return to_string(x, 16);
+}
 
 }  // namespace intx
 
