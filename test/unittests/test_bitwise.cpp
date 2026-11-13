@@ -71,6 +71,16 @@ TYPED_TEST(uint_test, slt)
     EXPECT_FALSE(slt(max, neg_one));
     EXPECT_FALSE(slt(max, min_m1));
     EXPECT_FALSE(slt(max, min));
+
+    // Equal top words: the lower words decide. For uint192 and wider, mid and one also
+    // differ in opposite directions in word 0 and in the word below the top word.
+    const auto mid = TypeParam{2} << (TypeParam::num_bits - 128);
+    EXPECT_TRUE(slt(one, mid));
+    EXPECT_FALSE(slt(mid, one));
+    EXPECT_TRUE(slt(min + one, min + mid));
+    EXPECT_FALSE(slt(min + mid, min + one));
+    EXPECT_TRUE(slt(~mid, ~one));
+    EXPECT_FALSE(slt(~one, ~mid));
 }
 
 TYPED_TEST(uint_test, bitwise)
