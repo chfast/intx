@@ -298,6 +298,28 @@ TYPED_TEST(uint_test, typed_store)
     EXPECT_EQ(s.bytes[sizeof(x) - 1], 2);
 }
 
+TYPED_TEST(uint_test, be_store_all_bytes)
+{
+    TypeParam x;
+    for (size_t i = 0; i < sizeof(x); ++i)
+        x = (x << 8) | TypeParam{i + 1};  // Big-endian bytes: 1, 2, 3, ...
+
+    uint8_t data[sizeof(x)]{};
+    be::store(data, x);
+    uint8_t span_data[sizeof(x)]{};
+    be::store(std::span<uint8_t, sizeof(x)>{span_data}, x);
+    uint8_t unsafe_data[sizeof(x)]{};
+    be::unsafe::store(unsafe_data, x);
+    const auto s = be::store<storage<sizeof(x)>>(x);
+    for (size_t i = 0; i < sizeof(x); ++i)
+    {
+        EXPECT_EQ(data[i], i + 1);
+        EXPECT_EQ(span_data[i], i + 1);
+        EXPECT_EQ(unsafe_data[i], i + 1);
+        EXPECT_EQ(s.bytes[i], i + 1);
+    }
+}
+
 TYPED_TEST(uint_test, typed_trunc)
 {
     const auto x = TypeParam{0xaabb};

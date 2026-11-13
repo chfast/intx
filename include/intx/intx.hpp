@@ -2408,6 +2408,51 @@ inline void store(uint8_t* dst, const T& x) noexcept
 
 namespace be  // Conversions to/from BE bytes.
 {
+namespace unsafe
+{
+/// Loads an uint value from a buffer. The user must make sure
+/// that the provided buffer is big enough. Therefore, marked "unsafe".
+template <typename IntT>
+inline IntT load(const uint8_t* src) noexcept
+{
+    // Align bytes.
+    // TODO: Using memcpy() directly triggers this optimization bug in GCC:
+    //   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
+    alignas(IntT) std::byte aligned_storage[sizeof(IntT)];
+    std::memcpy(&aligned_storage, src, sizeof(IntT));
+    // TODO(C++23): Use std::start_lifetime_as<uint256>().
+    return to_big_endian(*reinterpret_cast<const IntT*>(&aligned_storage));
+}
+
+/// Stores an integer value at the provided pointer in big-endian order. The user must make sure
+/// that the provided buffer is big enough to fit the value. Therefore, marked "unsafe".
+template <typename T>
+inline void store(uint8_t* dst, const T& x) noexcept
+{
+    const auto d = to_big_endian(x);
+    std::memcpy(dst, &d, sizeof(d));
+}
+
+/// Overload for uint256.
+inline void store(uint8_t* dst, const uint256& x) noexcept
+{
+    // Store byte-swapped words in primitive temporaries. This helps with memory aliasing
+    // and GCC bug https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
+    // TODO: Use std::byte instead of uint8_t.
+    const auto v0 = to_big_endian(x[0]);
+    const auto v1 = to_big_endian(x[1]);
+    const auto v2 = to_big_endian(x[2]);
+    const auto v3 = to_big_endian(x[3]);
+
+    // Store words in reverse (big-endian) order, write addresses are ascending.
+    std::memcpy(dst, &v3, sizeof(v3));
+    std::memcpy(dst + 8, &v2, sizeof(v2));
+    std::memcpy(dst + 16, &v1, sizeof(v1));
+    std::memcpy(dst + 24, &v0, sizeof(v0));
+}
+
+}  // namespace unsafe
+
 /// Loads an integer value from bytes of big-endian order.
 /// If the size of bytes is smaller than the result, the value is zero-extended.
 template <typename T, unsigned M>
@@ -2446,16 +2491,14 @@ inline IntT load(const T& t) noexcept
 template <typename T>
 inline void store(uint8_t (&dst)[sizeof(T)], const T& x) noexcept
 {
-    const auto d = to_big_endian(x);
-    std::memcpy(dst, &d, sizeof(d));
+    unsafe::store(dst, x);
 }
 
 /// Stores an integer value into the span of bytes in big-endian order.
 template <typename T>
 inline void store(std::span<uint8_t, sizeof(T)> dst, const T& x) noexcept
 {
-    const auto d = to_big_endian(x);
-    std::memcpy(dst.data(), &d, sizeof(d));
+    unsafe::store(dst.data(), x);
 }
 
 /// Stores an SrcT value in .bytes field of type DstT. The .bytes must be an array of uint8_t
@@ -2502,51 +2545,6 @@ inline T trunc(const uint<N>& x) noexcept
     trunc(r.bytes, x);
     return r;
 }
-
-namespace unsafe
-{
-/// Loads an uint value from a buffer. The user must make sure
-/// that the provided buffer is big enough. Therefore, marked "unsafe".
-template <typename IntT>
-inline IntT load(const uint8_t* src) noexcept
-{
-    // Align bytes.
-    // TODO: Using memcpy() directly triggers this optimization bug in GCC:
-    //   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
-    alignas(IntT) std::byte aligned_storage[sizeof(IntT)];
-    std::memcpy(&aligned_storage, src, sizeof(IntT));
-    // TODO(C++23): Use std::start_lifetime_as<uint256>().
-    return to_big_endian(*reinterpret_cast<const IntT*>(&aligned_storage));
-}
-
-/// Stores an integer value at the provided pointer in big-endian order. The user must make sure
-/// that the provided buffer is big enough to fit the value. Therefore, marked "unsafe".
-template <typename T>
-inline void store(uint8_t* dst, const T& x) noexcept
-{
-    const auto d = to_big_endian(x);
-    std::memcpy(dst, &d, sizeof(d));
-}
-
-/// Specialization for uint256.
-inline void store(uint8_t* dst, const uint256& x) noexcept
-{
-    // Store byte-swapped words in primitive temporaries. This helps with memory aliasing
-    // and GCC bug https://gcc.gnu.org/bugzilla/show_bug.cgi?id=107837
-    // TODO: Use std::byte instead of uint8_t.
-    const auto v0 = to_big_endian(x[0]);
-    const auto v1 = to_big_endian(x[1]);
-    const auto v2 = to_big_endian(x[2]);
-    const auto v3 = to_big_endian(x[3]);
-
-    // Store words in reverse (big-endian) order, write addresses are ascending.
-    std::memcpy(dst, &v3, sizeof(v3));
-    std::memcpy(dst + 8, &v2, sizeof(v2));
-    std::memcpy(dst + 16, &v1, sizeof(v1));
-    std::memcpy(dst + 24, &v0, sizeof(v0));
-}
-
-}  // namespace unsafe
 
 }  // namespace be
 
