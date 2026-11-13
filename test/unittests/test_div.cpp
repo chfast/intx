@@ -1570,6 +1570,7 @@ constexpr div_test_case<uint256> sdivrem_test_cases[] = {
     {13_u256, -3_u256, -4_u256, 1_u256},
     {-13_u256, -3_u256, 4_u256, -1_u256},
     {1_u256 << 255, -1_u256, 1_u256 << 255, 0},
+    {1_u256 << 255, (1_u256 << 255) - 1, -1_u256, -1_u256},
 };
 
 TEST(div, by_zero)
@@ -1621,6 +1622,10 @@ TEST(div, sdivrem_512)
     EXPECT_EQ(sdivrem(-n, d).rem, -1_u512);
     EXPECT_EQ(sdivrem(n, -d).quot, -4_u512);
     EXPECT_EQ(sdivrem(n, -d).rem, 1_u512);
+
+    const auto int_min = 1_u512 << 511;
+    EXPECT_EQ(sdivrem(int_min, int_min - 1).quot, -1_u512);
+    EXPECT_EQ(sdivrem(int_min, int_min - 1).rem, -1_u512);
 }
 
 namespace
