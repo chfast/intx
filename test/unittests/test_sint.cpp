@@ -32,6 +32,7 @@ static_assert((int256{-8} >> 1) == int256{-4});
 static_assert((int256{-8} >> 300) == int256{-1});
 static_assert(int128{7} / int128{-2} == int128{-3});
 static_assert(int128{7} % int128{-2} == int128{1});
+static_assert(smul(-1, -1) == int128{1});
 
 namespace
 {
@@ -313,3 +314,20 @@ TEST(sint, builtin_int128)
     }
 }
 #endif
+
+TEST(sint, smul)
+{
+    constexpr auto MIN = std::numeric_limits<int64_t>::min();
+    constexpr auto MAX = std::numeric_limits<int64_t>::max();
+    static_assert(smul(-1, 1) == -1);
+    static_assert(smul(MIN, MIN) == int128{1} << 126);
+    static_assert(smul(MAX, MIN) == int128{uint128{0x8000000000000000, 0xc000000000000000}});
+
+    constexpr int64_t inputs[] = {0, 1, 2, 12243, 682017770, 7043980147839196358, MAX, MIN,
+        -7043980147839196358, -682017770, -2, -1};
+    for (const auto x : inputs)
+    {
+        for (const auto y : inputs)
+            EXPECT_EQ(smul(x, y), int128{x} * int128{y}) << x << " x " << y;
+    }
+}

@@ -472,27 +472,6 @@ TEST(int128, umul)
     }
 }
 
-TEST(int128, smul)
-{
-    constexpr auto MIN = std::numeric_limits<int64_t>::min();
-    constexpr auto MAX = std::numeric_limits<int64_t>::max();
-    static_assert(smul(-1, -1) == 1);
-    static_assert(smul(-1, 1) == ~uint128{0});
-    static_assert(smul(MIN, MIN) == uint128{1} << 126);
-    static_assert(smul(MAX, MIN) == uint128{0x8000000000000000, 0xc000000000000000});
-
-    const auto sext = [](int64_t v) {
-        return uint128{static_cast<uint64_t>(v), v < 0 ? ~uint64_t{0} : 0};
-    };
-    constexpr int64_t inputs[] = {0, 1, 2, 12243, 682017770, 7043980147839196358, MAX, MIN,
-        -7043980147839196358, -682017770, -2, -1};
-    for (const auto x : inputs)
-    {
-        for (const auto y : inputs)
-            EXPECT_EQ(smul(x, y), sext(x) * sext(y)) << x << " x " << y;
-    }
-}
-
 TEST(int128, mac)
 {
     constexpr auto MAX = ~uint64_t{0};
