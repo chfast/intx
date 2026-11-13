@@ -1488,9 +1488,10 @@ template <unsigned N>
 constexpr bool slt(const uint<N>& x, const uint<N>& y) noexcept
 {
     constexpr auto top_word_idx = uint<N>::num_words - 1;
-    const auto x_neg = static_cast<int64_t>(x[top_word_idx]) < 0;
-    const auto y_neg = static_cast<int64_t>(y[top_word_idx]) < 0;
-    return ((x_neg ^ y_neg) != 0) ? x_neg : x < y;
+    // For different signs the signed order is the opposite of the unsigned one.
+    // TODO: Ideally, the result is one instruction: setl after the sbb of the top words.
+    const auto signs_differ = static_cast<int64_t>(x[top_word_idx] ^ y[top_word_idx]) < 0;
+    return (x < y) != signs_differ;
 }
 
 
