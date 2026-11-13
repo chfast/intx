@@ -96,6 +96,9 @@ namespace intx
 /// Alias for the compiler supported unsigned __int128 type.
 using builtin_uint128 = unsigned __int128;
 
+/// Alias for the compiler supported signed __int128 type.
+using builtin_int128 = __int128;
+
     #pragma GCC diagnostic pop
 #endif
 
@@ -492,6 +495,31 @@ constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
     uint64_t lo = (u2 << 32) | (t0 & 0xffffffff);
     uint64_t hi = t3 + (u2 >> 32) + (u1 >> 32);
     return {lo, hi};
+}
+
+/// Full signed multiplication 64 x 64 -> 128.
+/// Returns the product in two's complement.
+constexpr uint128 smul(int64_t x, int64_t y) noexcept
+{
+#if INTX_HAS_BUILTIN_INT128
+    return static_cast<builtin_uint128>(builtin_int128{x} * builtin_int128{y});
+#elif defined(_MSC_VER) && defined(_M_X64)
+    if (!std::is_constant_evaluated())
+    {
+        __int64 hi = 0;
+        const auto lo = _mul128(x, y, &hi);
+        return {static_cast<uint64_t>(lo), static_cast<uint64_t>(hi)};
+    }
+    // For constexpr fallback to the portable variant.
+#endif
+
+    // Modulo 2^128, the unsigned product of the operands' bits exceeds the signed product
+    // by 2^64 * y if x is negative and by 2^64 * x if y is negative.
+    const auto ux = static_cast<uint64_t>(x);
+    const auto uy = static_cast<uint64_t>(y);
+    auto p = umul(ux, uy);
+    p[1] -= (uy & static_cast<uint64_t>(x >> 63)) + (ux & static_cast<uint64_t>(y >> 63));
+    return p;
 }
 
 /// Multiply-accumulate 64 + 64 x 64 + 64 -> 128: computes a + x * y + c.
