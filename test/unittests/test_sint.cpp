@@ -1,439 +1,315 @@
 // intx: extended precision integer library.
-// Copyright 2019 Pawel Bylica.
+// Copyright 2026 Pawel Bylica.
 // Licensed under the Apache License, Version 2.0.
 
-#include "test_suite.hpp"
+#include <gtest/gtest.h>
+#include <intx/intx.hpp>
+#include <limits>
+#include <vector>
 
 using namespace intx;
 
-TYPED_TEST(sint_test, comparison)
+static_assert(std::is_convertible_v<int64_t, int128>);
+static_assert(std::is_convertible_v<uint64_t, int128>);
+static_assert(std::is_convertible_v<int128, int256>);
+static_assert(!std::is_convertible_v<int256, int128>);
+static_assert(std::is_constructible_v<int128, int256>);
+static_assert(!std::is_convertible_v<uint128, int128>);
+static_assert(std::is_constructible_v<int128, uint128>);
+static_assert(!std::is_convertible_v<int128, uint128>);
+static_assert(std::is_constructible_v<uint128, int128>);
+static_assert(!std::is_convertible_v<int128, int64_t>);
+static_assert(std::is_constructible_v<int64_t, int128>);
+static_assert(!std::is_constructible_v<int128, double>);
+static_assert(!std::is_constructible_v<int128, uint256>);
+#if INTX_HAS_BUILTIN_INT128
+static_assert(!std::is_constructible_v<int128, builtin_int128>);
+#endif
+
+static_assert(int128{-1} == -int128{1});
+static_assert(int256{int128{-2}} == int256{-2});
+static_assert((int256{-8} >> 1) == int256{-4});
+static_assert((int256{-8} >> 300) == int256{-1});
+static_assert(int128{7} / int128{-2} == int128{-3});
+static_assert(int128{7} % int128{-2} == int128{1});
+
+namespace
 {
-    // Signed order: min < ... < -1 < 0 < 1 < ... < max
-    constexpr auto zero = TypeParam{};
-    constexpr auto one = TypeParam{1};
-    constexpr auto neg_one = -TypeParam{1};
-    constexpr auto min = TypeParam{1} << (TypeParam::num_bits - 1);  // 100...0, most negative
-    constexpr auto max = ~min;                                       // 011...1, most positive
+template <typename T>
+class sint_test : public testing::Test
+{
+};
 
-    EXPECT_EQ(zero, zero);
-    EXPECT_EQ(one, one);
-    EXPECT_EQ(neg_one, neg_one);
-    EXPECT_EQ(min, min);
-    EXPECT_EQ(max, max);
+struct sint_type_name
+{
+    template <typename T>
+    static std::string GetName(int /*unused*/)
+    {
+        return "int" + std::to_string(T::num_bits);
+    }
+};
 
-    EXPECT_NE(zero, one);
-    EXPECT_NE(zero, neg_one);
-    EXPECT_NE(min, max);
+using sint_types = testing::Types<sint<128>, sint<192>, sint<256>, sint<384>, sint<512>>;
+TYPED_TEST_SUITE(sint_test, sint_types, sint_type_name);
 
-    // Negative values are less than positive/zero
-    EXPECT_LT(min, neg_one);
-    EXPECT_LT(min, zero);
-    EXPECT_LT(min, one);
-    EXPECT_LT(min, max);
-    EXPECT_LT(neg_one, zero);
-    EXPECT_LT(neg_one, one);
-    EXPECT_LT(neg_one, max);
-    EXPECT_LT(zero, one);
-    EXPECT_LT(zero, max);
-    EXPECT_LT(one, max);
+template <typename S>
+using bits_t = intx::uint<S::num_bits>;
 
-    EXPECT_GT(max, one);
-    EXPECT_GT(max, zero);
-    EXPECT_GT(max, neg_one);
-    EXPECT_GT(max, min);
-    EXPECT_GT(one, zero);
-    EXPECT_GT(one, neg_one);
-    EXPECT_GT(zero, neg_one);
-    EXPECT_GT(neg_one, min);
-
-    EXPECT_LE(min, min);
-    EXPECT_LE(min, zero);
-    EXPECT_LE(neg_one, neg_one);
-    EXPECT_LE(neg_one, zero);
-    EXPECT_LE(zero, zero);
-    EXPECT_LE(zero, one);
-    EXPECT_LE(max, max);
-
-    EXPECT_GE(max, max);
-    EXPECT_GE(max, zero);
-    EXPECT_GE(one, zero);
-    EXPECT_GE(zero, zero);
-    EXPECT_GE(zero, neg_one);
-    EXPECT_GE(neg_one, neg_one);
-    EXPECT_GE(neg_one, min);
-    EXPECT_GE(min, min);
+/// The two's complement bits of the builtin integer x extended to N bits.
+template <unsigned N, typename T>
+intx::uint<N> extend_ref(T x)
+{
+    if constexpr (std::is_signed_v<T>)
+    {
+        if (x < 0)
+            return ~intx::uint<N>{~static_cast<uint64_t>(x)};
+    }
+    return intx::uint<N>{static_cast<uint64_t>(x)};
 }
 
-TYPED_TEST(sint_test, negation_overflow)
+/// The arithmetic shift right computed from the logical one.
+template <unsigned N>
+intx::uint<N> sar_ref(const intx::uint<N>& x, uint64_t shift)
 {
-    // -INT_MIN == INT_MIN (two's complement overflow)
-    constexpr auto min = TypeParam{1} << (TypeParam::num_bits - 1);
-    EXPECT_EQ(-min, min);
+    return slt(x, intx::uint<N>{}) ? ~(~x >> shift) : x >> shift;
+}
 
-    EXPECT_EQ(-TypeParam{}, TypeParam{});
-    EXPECT_EQ(-(-TypeParam{1}), TypeParam{1});
+/// Values with all words used and with the sign bit both set and clear.
+template <typename S>
+std::vector<S> sample_values()
+{
+    using U = bits_t<S>;
+    constexpr auto N = S::num_bits;
+    U mixed;
+    for (size_t i = 0; i < U::num_words; ++i)
+        mixed[i] = 0x0123456789abcdef * (2 * i + 1);
+    const U bits[] = {U{}, U{1}, U{2}, U{3}, U{7}, U{1} << 63, U{1} << 64, U{1} << (N - 2),
+        U{1} << (N - 1), (U{1} << (N - 1)) + 1, mixed, mixed >> 1, mixed << 64};
+    std::vector<S> values;
+    for (const auto& b : bits)
+    {
+        values.emplace_back(b);
+        values.emplace_back(~b);
+    }
+    return values;
+}
+}  // namespace
+
+TYPED_TEST(sint_test, from_builtin_integer)
+{
+    using S = TypeParam;
+    constexpr auto N = S::num_bits;
+    const auto check = [](auto x) { EXPECT_EQ(bits_t<S>{S{x}}, extend_ref<N>(x)) << int64_t(x); };
+    for (const auto x : {int64_t{0}, int64_t{1}, int64_t{-1}, int64_t{-2},
+             std::numeric_limits<int64_t>::min(), std::numeric_limits<int64_t>::max()})
+    {
+        check(x);
+        check(static_cast<int32_t>(x));
+        check(static_cast<int16_t>(x));
+        check(static_cast<int8_t>(x));
+        check(static_cast<char>(x));
+        check(static_cast<uint64_t>(x));
+        check(static_cast<uint32_t>(x));
+        check(static_cast<uint16_t>(x));
+        check(static_cast<uint8_t>(x));
+        check(x != 0);
+    }
+}
+
+TYPED_TEST(sint_test, widening_and_narrowing)
+{
+    using S = TypeParam;
+    using W = sint<S::num_bits + 64>;
+    for (const auto& x : sample_values<S>())
+    {
+        const W w = x;
+        EXPECT_EQ(bits_t<W>{w},
+            slt(bits_t<S>{x}, {}) ? ~bits_t<W>{~bits_t<S>{x}} : bits_t<W>{bits_t<S>{x}});
+        EXPECT_EQ(static_cast<S>(w), x);
+        EXPECT_EQ(static_cast<int128>(x), int128{static_cast<uint128>(bits_t<S>{x})});
+    }
+}
+
+TYPED_TEST(sint_test, to_builtin_integer)
+{
+    for (const auto& x : sample_values<TypeParam>())
+    {
+        const auto w = bits_t<TypeParam>{x}[0];
+        EXPECT_EQ(static_cast<int64_t>(x), static_cast<int64_t>(w));
+        EXPECT_EQ(static_cast<uint32_t>(x), static_cast<uint32_t>(w));
+        EXPECT_EQ(static_cast<int8_t>(x), static_cast<int8_t>(w));
+        EXPECT_EQ(static_cast<bool>(x), bits_t<TypeParam>{x} != 0);
+    }
 }
 
 TYPED_TEST(sint_test, arithmetic)
 {
-    constexpr auto zero = TypeParam{};
-    constexpr auto one = TypeParam{1};
-    constexpr auto neg_one = -TypeParam{1};
-    constexpr auto min = TypeParam{1} << (TypeParam::num_bits - 1);
-    constexpr auto max = ~min;
+    using S = TypeParam;
+    const auto MIN = S{bits_t<S>{1} << (S::num_bits - 1)};
+    const auto MAX = ~MIN;
+    EXPECT_EQ(MAX + 1, MIN);
+    EXPECT_EQ(MIN - 1, MAX);
+    EXPECT_EQ(-MIN, MIN);
+    EXPECT_EQ(-S{-1}, S{1});
+    EXPECT_EQ(S{3} * S{-2}, S{-6});
+    EXPECT_EQ(MIN * S{-1}, MIN);
 
-    EXPECT_EQ(zero + zero, zero);
-    EXPECT_EQ(one + zero, one);
-    EXPECT_EQ(neg_one + one, zero);
-    EXPECT_EQ(neg_one + neg_one, -TypeParam{2});
-    EXPECT_EQ(max + one, min);  // INT_MAX + 1 wraps to INT_MIN
+    // The results in the low 128 bits match the ones of int128 (checked against __int128).
+    for (const auto& a : sample_values<int128>())
+    {
+        for (const auto& b : sample_values<int128>())
+        {
+            const S x = a;
+            const S y = b;
+            EXPECT_EQ(static_cast<int128>(x + y), a + b);
+            EXPECT_EQ(static_cast<int128>(x - y), a - b);
+            EXPECT_EQ(static_cast<int128>(x * y), a * b);
+            EXPECT_EQ(static_cast<int128>(-x), -a);
+            if (b != 0 && (a != int128{1} << 127 || b != -1))
+            {
+                EXPECT_EQ(x / y, S{a / b});
+                EXPECT_EQ(x % y, S{a % b});
+            }
 
-    EXPECT_EQ(zero - zero, zero);
-    EXPECT_EQ(one - one, zero);
-    EXPECT_EQ(zero - one, neg_one);
-    EXPECT_EQ(neg_one - neg_one, zero);
-    EXPECT_EQ(min - one, max);  // INT_MIN - 1 wraps to INT_MAX
-
-    EXPECT_EQ(zero * one, zero);
-    EXPECT_EQ(one * one, one);
-    EXPECT_EQ(neg_one * one, neg_one);
-    EXPECT_EQ(neg_one * neg_one, one);
-    EXPECT_EQ(TypeParam{3} * neg_one, -TypeParam{3});
-    EXPECT_EQ(-TypeParam{3} * TypeParam{2}, -TypeParam{6});
-}
-
-TYPED_TEST(sint_test, assignment_operators)
-{
-    auto x = TypeParam{5};
-    x += TypeParam{3};
-    EXPECT_EQ(x, TypeParam{8});
-    x -= TypeParam{3};
-    EXPECT_EQ(x, TypeParam{5});
-    x *= TypeParam{2};
-    EXPECT_EQ(x, TypeParam{10});
-    x /= TypeParam{3};
-    EXPECT_EQ(x, TypeParam{3});
-    x %= TypeParam{2};
-    EXPECT_EQ(x, TypeParam{1});
-
-    auto y = TypeParam{3};
-    y |= TypeParam{5};
-    EXPECT_EQ(y, TypeParam{7});
-    y &= TypeParam{5};
-    EXPECT_EQ(y, TypeParam{5});
-    y ^= TypeParam{3};
-    EXPECT_EQ(y, TypeParam{6});
-
-    auto z = TypeParam{2};
-    z <<= TypeParam{2};
-    EXPECT_EQ(z, TypeParam{8});
-    z >>= TypeParam{1};
-    EXPECT_EQ(z, TypeParam{4});
-
-    // Arithmetic right shift via assignment
-    auto w = -TypeParam{8};
-    w >>= TypeParam{1};
-    EXPECT_EQ(w, -TypeParam{4});
+            S z = x;
+            EXPECT_EQ(z += y, x + y);
+            EXPECT_EQ(z -= y, x);
+            EXPECT_EQ(z *= y, x * y);
+            z = x;
+            EXPECT_EQ(z /= y, x / y);
+            z = x;
+            EXPECT_EQ(z %= y, x % y);
+        }
+    }
 }
 
 TYPED_TEST(sint_test, division)
 {
-    // Truncation toward zero
-    EXPECT_EQ(TypeParam{7} / TypeParam{3}, TypeParam{2});
-    EXPECT_EQ(TypeParam{7} % TypeParam{3}, TypeParam{1});
-    EXPECT_EQ(-TypeParam{7} / TypeParam{3}, -TypeParam{2});
-    EXPECT_EQ(-TypeParam{7} % TypeParam{3}, -TypeParam{1});
-    EXPECT_EQ(TypeParam{7} / -TypeParam{3}, -TypeParam{2});
-    EXPECT_EQ(TypeParam{7} % -TypeParam{3}, TypeParam{1});
-    EXPECT_EQ(-TypeParam{7} / -TypeParam{3}, TypeParam{2});
-    EXPECT_EQ(-TypeParam{7} % -TypeParam{3}, -TypeParam{1});
-
-    EXPECT_EQ(TypeParam{42} / TypeParam{1}, TypeParam{42});
-    EXPECT_EQ(-TypeParam{42} / TypeParam{1}, -TypeParam{42});
-    EXPECT_EQ(TypeParam{42} % TypeParam{42}, TypeParam{});
-
-    EXPECT_EQ(TypeParam{} / TypeParam{7}, TypeParam{});
-    EXPECT_EQ(TypeParam{} % TypeParam{7}, TypeParam{});
-
-    EXPECT_EQ(TypeParam{3} / TypeParam{7}, TypeParam{});
-    EXPECT_EQ(-TypeParam{3} / TypeParam{7}, TypeParam{});
-    EXPECT_EQ(TypeParam{3} % TypeParam{7}, TypeParam{3});
-    EXPECT_EQ(-TypeParam{3} % TypeParam{7}, -TypeParam{3});
+    using S = TypeParam;
+    const auto MIN = S{bits_t<S>{1} << (S::num_bits - 1)};
+    const auto MAX = ~MIN;
+    const std::pair<S, S> cases[][2] = {
+        // {{x, y}, {quotient, remainder}}
+        {{7, 3}, {2, 1}},
+        {{-7, 3}, {-2, -1}},
+        {{7, -3}, {-2, 1}},
+        {{-7, -3}, {2, -1}},
+        {{7, 0}, {0, 0}},
+        {{-7, 0}, {0, 0}},
+        {{MIN, -1}, {MIN, 0}},
+        {{MIN, 1}, {MIN, 0}},
+        {{MIN, MAX}, {-1, -1}},
+        {{MAX, MIN}, {0, MAX}},
+        {{MIN, MIN}, {1, 0}},
+    };
+    for (const auto& [args, expected] : cases)
+    {
+        EXPECT_EQ(args.first / args.second, expected.first);
+        EXPECT_EQ(args.first % args.second, expected.second);
+    }
 }
 
-TYPED_TEST(sint_test, arithmetic_right_shift)
+TYPED_TEST(sint_test, comparison)
 {
-    constexpr auto neg_one = ~TypeParam{};                                // -1, all ones
-    constexpr auto min = TypeParam{1} << (TypeParam::num_bits - 1);       // 100...0
-    constexpr auto min_shr1 = TypeParam{3} << (TypeParam::num_bits - 2);  // 110...0
-
-    // Negative: fill with 1s
-    EXPECT_EQ(neg_one >> 1u, neg_one);
-    EXPECT_EQ(neg_one >> uint64_t{TypeParam::num_bits - 1}, neg_one);
-    EXPECT_EQ(min >> 1u, min_shr1);
-    EXPECT_EQ(min >> uint64_t{TypeParam::num_bits - 1}, neg_one);
-
-    // Positive: fill with 0s
-    EXPECT_EQ(TypeParam{8} >> 1u, TypeParam{4});
-    EXPECT_EQ(TypeParam{1} >> 1u, TypeParam{});
-
-    // Overflow (shift >= N): return all sign bits
-    EXPECT_EQ(neg_one >> uint64_t{TypeParam::num_bits}, neg_one);
-    EXPECT_EQ(TypeParam{1} >> uint64_t{TypeParam::num_bits}, TypeParam{});
-    EXPECT_EQ(min >> uint64_t{TypeParam::num_bits}, neg_one);
+    using S = TypeParam;
+    const auto MIN = S{bits_t<S>{1} << (S::num_bits - 1)};
+    const auto P64 = S{bits_t<S>{1} << 64};
+    const S ordered[] = {MIN, MIN + 1, -P64 - 1, -P64, -P64 + 1, -2, -1, 0, 1, 2, P64 - 1, P64,
+        P64 + 1, ~(MIN + 1), ~MIN};
+    for (size_t i = 0; i < std::size(ordered); ++i)
+    {
+        for (size_t j = 0; j < std::size(ordered); ++j)
+        {
+            const auto& x = ordered[i];
+            const auto& y = ordered[j];
+            EXPECT_EQ(x == y, i == j);
+            EXPECT_EQ(x != y, i != j);
+            EXPECT_EQ(x < y, i < j);
+            EXPECT_EQ(x > y, i > j);
+            EXPECT_EQ(x <= y, i <= j);
+            EXPECT_EQ(x >= y, i >= j);
+        }
+    }
 }
 
-TYPED_TEST(sint_test, left_shift)
+TYPED_TEST(sint_test, shift)
 {
-    EXPECT_EQ(TypeParam{1} << 1u, TypeParam{2});
-    EXPECT_EQ(TypeParam{1} << 0u, TypeParam{1});
-
-    // Overflow: returns 0
-    EXPECT_EQ(TypeParam{1} << uint64_t{TypeParam::num_bits}, TypeParam{});
-    EXPECT_EQ(~TypeParam{} << uint64_t{TypeParam::num_bits}, TypeParam{});
+    using S = TypeParam;
+    constexpr uint64_t N = S::num_bits;
+    const uint64_t shifts[] = {0, 1, 2, 62, 63, 64, 65, 127, 128, 129, N - 65, N - 64, N - 63,
+        N - 2, N - 1, N, N + 1, uint64_t{1} << 63, ~uint64_t{0}};
+    for (const auto& x : sample_values<S>())
+    {
+        for (const auto s : shifts)
+        {
+            const auto expected_shl = bits_t<S>{x} << s;
+            const auto expected_shr = sar_ref(bits_t<S>{x}, s);
+            EXPECT_EQ(bits_t<S>{x << s}, expected_shl) << s;
+            EXPECT_EQ(bits_t<S>{x >> s}, expected_shr) << s;
+            auto y = x;
+            EXPECT_EQ(bits_t<S>{y <<= s}, expected_shl);
+            y = x;
+            EXPECT_EQ(bits_t<S>{y >>= s}, expected_shr);
+        }
+    }
 }
 
 TYPED_TEST(sint_test, bitwise)
 {
-    constexpr auto zero = TypeParam{};
-    constexpr auto neg_one = ~TypeParam{};
-    constexpr auto one = TypeParam{1};
-
-    EXPECT_EQ(zero & neg_one, zero);
-    EXPECT_EQ(neg_one & neg_one, neg_one);
-    EXPECT_EQ(zero | neg_one, neg_one);
-    EXPECT_EQ(zero | zero, zero);
-    EXPECT_EQ(neg_one ^ neg_one, zero);
-    EXPECT_EQ(zero ^ neg_one, neg_one);
-    EXPECT_EQ(~zero, neg_one);
-    EXPECT_EQ(~neg_one, zero);
-    EXPECT_EQ(one & neg_one, one);
-    EXPECT_EQ(one | neg_one, neg_one);
-    EXPECT_EQ(one ^ neg_one, ~one);
+    using S = TypeParam;
+    for (const auto& x : sample_values<S>())
+    {
+        const auto y = S{bits_t<S>{x} * 0x9e3779b97f4a7c15};
+        const auto u = bits_t<S>{x};
+        const auto v = bits_t<S>{y};
+        EXPECT_EQ(bits_t<S>{~x}, ~u);
+        EXPECT_EQ(bits_t<S>{x & y}, u & v);
+        EXPECT_EQ(bits_t<S>{x | y}, u | v);
+        EXPECT_EQ(bits_t<S>{x ^ y}, u ^ v);
+        auto z = x;
+        EXPECT_EQ(bits_t<S>{z &= y}, u & v);
+        z = x;
+        EXPECT_EQ(bits_t<S>{z |= y}, u | v);
+        z = x;
+        EXPECT_EQ(bits_t<S>{z ^= y}, u ^ v);
+    }
 }
-
-TYPED_TEST(sint_test, convert_to_bool)
-{
-    constexpr auto min = TypeParam{1} << (TypeParam::num_bits - 1);
-    EXPECT_FALSE((TypeParam{}));
-    EXPECT_TRUE((TypeParam{1}));
-    EXPECT_TRUE((-TypeParam{1}));
-    EXPECT_TRUE(min);
-}
-
-TYPED_TEST(sint_test, sign_extension)
-{
-    const TypeParam a{int64_t{-1}};
-    for (size_t i = 0; i < TypeParam::num_words; ++i)
-        EXPECT_EQ(a[i], ~uint64_t{0});
-    EXPECT_EQ(a, -TypeParam{1});
-    EXPECT_LT(a, 0);
-
-    EXPECT_EQ(TypeParam{int32_t{-5}}, -TypeParam{5});
-    EXPECT_EQ(TypeParam{int8_t{-128}}, -TypeParam{128});
-    EXPECT_EQ(TypeParam{-1}, -TypeParam{1});
-
-    // Unsigned values are zero-extended.
-    const TypeParam b{~uint64_t{0}};
-    EXPECT_GT(b, 0);
-    EXPECT_EQ(b[0], ~uint64_t{0});
-    for (size_t i = 1; i < TypeParam::num_words; ++i)
-        EXPECT_EQ(b[i], 0);
-
-    // The multi-word constructor takes raw words.
-    const TypeParam c{~uint64_t{0}, ~uint64_t{0}};
-    EXPECT_EQ(c[0], ~uint64_t{0});
-    EXPECT_EQ(c[1], ~uint64_t{0});
-    for (size_t i = 2; i < TypeParam::num_words; ++i)
-        EXPECT_EQ(c[i], 0);
-
-    TypeParam d;
-    d = int64_t{-3};
-    EXPECT_EQ(d, -TypeParam{3});
-    d = uint64_t{3};
-    EXPECT_EQ(d, TypeParam{3});
-    d = -7;
-    EXPECT_EQ(d, -TypeParam{7});
-}
-
-namespace static_test_sint_sign_extension
-{
-static_assert(int128{int64_t{-1}} == -int128{1});
-static_assert(int128{int64_t{-1}}[1] == ~uint64_t{0});
-static_assert(int512{-42} == -int512{42});
-static_assert(int128{~uint64_t{0}}[1] == 0);
-
-// Widening construction and assignment from narrower sint.
-static_assert(int256{int128{-1}} == -int256{1});
-static_assert(int512{int256{-7}} == -int512{7});
-static_assert(sint<192>{int128{-1}}[2] == ~uint64_t{0});
-static_assert(int256{int128{5}} == int256{5});
-static_assert(int256{int128{~uint64_t{0}, 0x7fffffffffffffff}}[2] == 0);
-
-static constexpr int256 assign(const int128& x) noexcept
-{
-    int256 r{1, 2, 3, 4};
-    r = x;
-    return r;
-}
-static_assert(assign(int128{-1}) == -int256{1});
-static_assert(assign(int128{5}) == int256{5});
-static_assert(assign(-int128{5}) == -int256{5});
-}  // namespace static_test_sint_sign_extension
 
 #if INTX_HAS_BUILTIN_INT128
-TEST(sint, sign_extension_builtin_int128)
+TEST(sint, builtin_int128)
 {
-    constexpr auto m1 = builtin_int128{-1};
-    static_assert(int128{m1} == -int128{1});
-    static_assert(int256{m1} == -int256{1});
-    static_assert(int512{m1} == -int512{1});
-
-    // -2^100 - 3
-    const auto big_neg = -(builtin_int128{1} << 100) - 3;
-    const int256 x{big_neg};
-    EXPECT_EQ(x, -((int256{1} << 100) + 3));
-    EXPECT_EQ(x[2], ~uint64_t{0});
-    EXPECT_EQ(x[3], ~uint64_t{0});
-
-    const auto big_pos = (builtin_int128{1} << 126) + 3;
-    const int256 y{big_pos};
-    EXPECT_EQ(y, (int256{1} << 126) + 3);
-    EXPECT_EQ(y[2], 0);
-    EXPECT_EQ(y[3], 0);
-
-    int256 z{1, 2, 3, 4};
-    z = int128{m1};
-    EXPECT_EQ(z, -int256{1});
+    // Compares the two's complement bits as uint128 to have them printed on failures.
+    const auto bits = [](builtin_int128 v) { return uint128{static_cast<builtin_uint128>(v)}; };
+    const auto builtin = [](const int128& x) {
+        return static_cast<builtin_int128>(static_cast<builtin_uint128>(static_cast<uint128>(x)));
+    };
+    const auto MIN = static_cast<builtin_int128>(builtin_uint128{1} << 127);
+    const auto values = sample_values<int128>();
+    for (const auto& x : values)
+    {
+        const auto a = builtin(x);
+        const auto ua = static_cast<builtin_uint128>(a);
+        EXPECT_EQ(static_cast<uint128>(-x), uint128{-ua});
+        for (const auto& y : values)
+        {
+            const auto b = builtin(y);
+            const auto ub = static_cast<builtin_uint128>(b);
+            EXPECT_EQ(static_cast<uint128>(x + y), uint128{ua + ub});
+            EXPECT_EQ(static_cast<uint128>(x - y), uint128{ua - ub});
+            EXPECT_EQ(static_cast<uint128>(x * y), uint128{ua * ub});
+            if (b != 0 && (a != MIN || b != -1))
+            {
+                EXPECT_EQ(static_cast<uint128>(x / y), bits(a / b));
+                EXPECT_EQ(static_cast<uint128>(x % y), bits(a % b));
+            }
+            EXPECT_EQ(x < y, a < b);
+            EXPECT_EQ(x == y, a == b);
+        }
+        for (uint64_t s = 0; s < 128; ++s)
+        {
+            EXPECT_EQ(static_cast<uint128>(x >> s), bits(a >> s)) << s;
+            EXPECT_EQ(static_cast<uint128>(x << s), uint128{ua << s}) << s;
+        }
+    }
 }
 #endif
-
-TYPED_TEST(sint_test, convert_to_builtin_integer)
-{
-    const auto neg_five = -TypeParam{5};
-    EXPECT_EQ(static_cast<uint64_t>(neg_five), uint64_t(-5));
-    EXPECT_EQ(static_cast<int64_t>(neg_five), -5);
-    EXPECT_EQ(static_cast<int32_t>(neg_five), -5);
-    EXPECT_EQ(static_cast<uint8_t>(neg_five), uint8_t(-5));
-
-    const TypeParam x{0x0123456789abcdef, 1};
-    EXPECT_EQ(static_cast<uint64_t>(x), 0x0123456789abcdef);
-    EXPECT_EQ(static_cast<uint32_t>(x), 0x89abcdef);
-}
-
-namespace static_test_sint_convert_to_builtin_integer
-{
-static_assert(static_cast<uint64_t>(-int128{1}) == ~uint64_t{0});
-static_assert(static_cast<int64_t>(-int128{5}) == -5);
-static_assert(static_cast<int>(int128{7}) == 7);
-static_assert(static_cast<uint64_t>(int256{42}) == 42);
-static_assert(static_cast<int16_t>(-int512{3}) == -3);
-}  // namespace static_test_sint_convert_to_builtin_integer
-
-// int128-specific static and runtime tests
-
-namespace static_test_sint128_comparison
-{
-constexpr int128 zero;
-constexpr int128 one = 1;
-constexpr int128 neg_one = -int128{1};
-constexpr int128 min = int128{1} << 127;
-constexpr int128 max = ~min;
-
-static_assert(zero == 0);
-static_assert(zero != 1);
-static_assert(one > 0);
-static_assert(zero < 1);
-
-static_assert(neg_one < zero);
-static_assert(neg_one < one);
-static_assert(min < neg_one);
-static_assert(min < zero);
-static_assert(max > zero);
-static_assert(max > neg_one);
-static_assert(max > min);
-
-static_assert((int128{1} <=> int128{2}) == std::strong_ordering::less);
-static_assert((int128{2} <=> int128{1}) == std::strong_ordering::greater);
-static_assert((int128{1} <=> int128{1}) == std::strong_ordering::equal);
-static_assert((neg_one <=> zero) == std::strong_ordering::less);
-static_assert((zero <=> neg_one) == std::strong_ordering::greater);
-}  // namespace static_test_sint128_comparison
-
-namespace static_test_sint128_arith
-{
-constexpr int128 one = 1;
-constexpr int128 neg_one = -int128{1};
-
-static_assert(neg_one + one == 0);
-static_assert(one - one == 0);  // NOLINT(misc-redundant-expression): part of the test
-static_assert(neg_one * neg_one == one);
-static_assert(neg_one * one == neg_one);
-static_assert(int128{3} * int128{4} == int128{12});
-static_assert(-int128{3} * int128{4} == -int128{12});
-static_assert((int128{1} << 127) + (-int128{1} << 127) == 0);
-}  // namespace static_test_sint128_arith
-
-TEST(sint128, comparison)
-{
-    constexpr auto neg_one = -int128{1};
-    constexpr auto min = int128{1} << 127;
-    constexpr auto max = ~min;
-
-    EXPECT_LT(neg_one, int128{0});
-    EXPECT_LT(min, neg_one);
-    EXPECT_GT(max, int128{0});
-    EXPECT_GT(int128{0}, neg_one);
-    EXPECT_GT(max, min);
-}
-
-TEST(sint128, negation)
-{
-    constexpr auto min = int128{1} << 127;
-    EXPECT_EQ(-min, min);
-    EXPECT_EQ(-int128{0}, int128{0});
-    EXPECT_EQ(-(-int128{42}), int128{42});
-    EXPECT_EQ(-int128{1}, ~int128{0});
-}
-
-TEST(sint128, division)
-{
-    // Use the same values as the sdivrem test in test_int128.cpp.
-    // Read words from the uint128 literals to avoid manual hex decomposition errors.
-    constexpr auto xu = 0x83017fa6deecda0063b1977_u128;
-    constexpr auto yu = 0x1bc83504ea8f7_u128;
-    constexpr int128 x{xu[0], xu[1]};
-    constexpr int128 y{yu[0], yu[1]};
-
-    EXPECT_EQ(x / y, int128{0x4b729f5338f});
-    EXPECT_EQ(x % y, int128{0x13e5e3b3e827e});
-
-    EXPECT_EQ((-x) / (-y), int128{0x4b729f5338f});
-    EXPECT_EQ((-x) % (-y), -int128{0x13e5e3b3e827e});
-
-    EXPECT_EQ((-x) / y, -int128{0x4b729f5338f});
-    EXPECT_EQ((-x) % y, -int128{0x13e5e3b3e827e});
-
-    EXPECT_EQ(x / (-y), -int128{0x4b729f5338f});
-    EXPECT_EQ(x % (-y), int128{0x13e5e3b3e827e});
-}
-
-TEST(sint128, arithmetic_right_shift)
-{
-    constexpr auto neg_one = ~int128{0};
-    constexpr auto min = int128{1} << 127;
-
-    static_assert((neg_one >> 1) == neg_one);
-    static_assert((neg_one >> 127) == neg_one);
-    static_assert((neg_one >> 128) == neg_one);
-    static_assert((int128{4} >> 1) == int128{2});
-    static_assert((min >> 127) == neg_one);
-
-    EXPECT_EQ(neg_one >> 1, neg_one);
-    EXPECT_EQ(neg_one >> 127, neg_one);
-    EXPECT_EQ(neg_one >> 128, neg_one);
-    EXPECT_EQ(int128{4} >> 1, int128{2});
-    EXPECT_EQ(min >> 1, int128{3} << 126);
-    EXPECT_EQ(min >> 127, neg_one);
-    EXPECT_EQ(min >> 128, neg_one);
-}
