@@ -40,3 +40,21 @@ class uint_test : public testing::Test
 using test_types =
     testing::Types<intx::uint128, intx::uint192, intx::uint256, intx::uint384, intx::uint512>;
 TYPED_TEST_SUITE(uint_test, test_types, type_to_name);
+
+struct sint_type_to_name
+{
+    template <typename T>
+    static std::string GetName([[maybe_unused]] int i)
+    {
+        return "sint" + std::to_string(T::num_bits);
+    }
+};
+
+template <typename T>
+class sint_test : public testing::Test
+{
+};
+
+using sint_test_types = testing::Types<intx::sint<128>, intx::sint<192>, intx::sint<256>,
+    intx::sint<384>, intx::sint<512>>;
+TYPED_TEST_SUITE(sint_test, sint_test_types, sint_type_to_name);
