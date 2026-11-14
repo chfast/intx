@@ -720,6 +720,14 @@ constexpr uint128 bswap(uint128 x) noexcept
     return {bswap(x[1]), bswap(x[0])};
 }
 
+/// Returns the sign bit of x as a two's complement signed integer: true for negative values.
+template <unsigned N>
+constexpr bool signbit(const uint<N>& x) noexcept
+{
+    using T = std::make_signed_t<typename uint<N>::word_type>;
+    return static_cast<T>(x[uint<N>::num_words - 1]) < 0;
+}
+
 
 /// Division.
 /// @{
@@ -928,18 +936,14 @@ constexpr div_result<uint64_t, uint128> udivrem_3by2(
 /// Divides x by y as signed numbers. A division by 0 gives 0 as the quotient and the remainder.
 constexpr div_result<uint128> sdivrem(uint128 x, uint128 y) noexcept
 {
-    constexpr auto sign_mask = uint128{1} << 127;
-    const auto x_is_neg = (x & sign_mask) != 0;
-    const auto y_is_neg = (y & sign_mask) != 0;
-
-    const auto x_abs = x_is_neg ? -x : x;
-    const auto y_abs = y_is_neg ? -y : y;
-
-    const auto q_is_neg = x_is_neg ^ y_is_neg;
-
-    const auto res = udivrem(x_abs, y_abs);
-
-    return {q_is_neg ? -res.quot : res.quot, x_is_neg ? -res.rem : res.rem};
+    const auto x_is_neg = signbit(x);
+    const auto y_is_neg = signbit(y);
+    auto res = udivrem(x_is_neg ? -x : x, y_is_neg ? -y : y);
+    if (x_is_neg != y_is_neg)
+        res.quot = -res.quot;
+    if (x_is_neg)
+        res.rem = -res.rem;
+    return res;
 }
 
 /// @}
@@ -1258,7 +1262,7 @@ public:
 
     constexpr uint& operator+=(const uint& y) noexcept { return *this = *this + y; }
 
-    constexpr uint operator-() const noexcept { return ~*this + uint{1}; }
+    constexpr uint operator-() const noexcept { return uint{} - *this; }
 
     friend constexpr uint operator-(const uint& x, const uint& y) noexcept
     {
@@ -2265,18 +2269,14 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
 template <unsigned N>
 constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
-    const auto sign_mask = uint<N>{1} << (uint<N>::num_bits - 1);
-    auto u_is_neg = (u & sign_mask) != 0;
-    auto v_is_neg = (v & sign_mask) != 0;
-
-    auto u_abs = u_is_neg ? -u : u;
-    auto v_abs = v_is_neg ? -v : v;
-
-    auto q_is_neg = u_is_neg ^ v_is_neg;
-
-    auto res = udivrem(u_abs, v_abs);
-
-    return {q_is_neg ? -res.quot : res.quot, u_is_neg ? -res.rem : res.rem};
+    const auto u_is_neg = signbit(u);
+    const auto v_is_neg = signbit(v);
+    auto res = udivrem(u_is_neg ? -u : u, v_is_neg ? -v : v);
+    if (u_is_neg != v_is_neg)
+        res.quot = -res.quot;
+    if (u_is_neg)
+        res.rem = -res.rem;
+    return res;
 }
 
 constexpr uint256 bswap(const uint256& x) noexcept

@@ -6,6 +6,17 @@
 
 using namespace intx;
 
+TYPED_TEST(uint_test, signbit)
+{
+    const auto min = TypeParam{1} << (TypeParam::num_bits - 1);
+
+    EXPECT_TRUE(signbit(min));
+    EXPECT_TRUE(signbit(~TypeParam{0}));
+    EXPECT_FALSE(signbit(min - 1));
+    EXPECT_FALSE(signbit(TypeParam{0}));
+    EXPECT_FALSE(signbit(TypeParam{1}));
+}
+
 TYPED_TEST(uint_test, slt)
 {
     const auto max = ~TypeParam{0} >> 1;
