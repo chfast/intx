@@ -284,6 +284,12 @@ void wrap(mpz_ptr z, unsigned num_bits) noexcept
     mpz_fdiv_r_2exp(z, z, num_bits);
 }
 
+/// Sets z to v. Unlike mpz_set_ui(), it takes all 64 bits where unsigned long has 32.
+void set_u64(mpz_ptr z, uint64_t v) noexcept
+{
+    mpz_import(z, 1, -1, sizeof(v), 0, 0, &v);
+}
+
 /// Sets r to the two's complement signed value of z.
 void to_signed(mpz_ptr r, mpz_srcptr z, unsigned num_bits) noexcept
 {
@@ -697,7 +703,10 @@ bool Machine::exec(const Instr& in) noexcept
         if (is_add)
             mpz_add(t1_, t1_, y.z);
         else
-            mpz_submul_ui(t1_, y.z, m);
+        {
+            set_u64(t2_, m);
+            mpz_submul(t1_, y.z, t2_);
+        }
         mpz_fdiv_q_2exp(t2_, t1_, low_bits);
         mpz_fdiv_r_2exp(t1_, t1_, low_bits);
         mpz_add(x.z, x.z, t1_);
@@ -1029,7 +1038,8 @@ bool Machine::exec(const Instr& in) noexcept
         r.set(intx::exp(x, T{y[0]}));
         mpz_set_ui(t1_, 0);
         mpz_setbit(t1_, N);
-        mpz_powm_ui(r.z, r.z, y[0], t1_);
+        set_u64(t2_, y[0]);
+        mpz_powm(r.z, r.z, t2_, t1_);
         break;
     case lt:
         r.set(T{uint64_t{x < y}});
