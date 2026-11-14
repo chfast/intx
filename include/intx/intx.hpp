@@ -2261,22 +2261,38 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
     }
 }
 
+namespace internal
+{
+/// Returns -x if the mask is all ones or x if the mask is 0.
+template <unsigned N>
+constexpr uint<N> negate_if(const uint<N>& x, uint64_t mask) noexcept
+{
+    uint<N> m;
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        m[i] = mask;
+    const auto s = x + m;
+    uint<N> r;
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 14
+    // TODO(gcc): GCC vectorizes the XOR with a wide reload of s, which fails store forwarding.
+    #pragma GCC novector
+#endif
+    for (size_t i = 0; i < uint<N>::num_words; ++i)
+        r[i] = s[i] ^ mask;  // With all ones in m: (x - 1) ^ m = ~(x - 1) = -x.
+    return r;
+}
+}  // namespace internal
+
 /// Divides u by v as signed numbers. A division by 0 gives 0 as the quotient and the remainder.
 template <unsigned N>
 constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
 {
-    const auto sign_mask = uint<N>{1} << (uint<N>::num_bits - 1);
-    auto u_is_neg = (u & sign_mask) != 0;
-    auto v_is_neg = (v & sign_mask) != 0;
+    constexpr auto TOP = uint<N>::num_words - 1;
+    // The sign masks: all ones for negative values.
+    const auto u_mask = static_cast<uint64_t>(static_cast<int64_t>(u[TOP]) >> 63);
+    const auto v_mask = static_cast<uint64_t>(static_cast<int64_t>(v[TOP]) >> 63);
 
-    auto u_abs = u_is_neg ? -u : u;
-    auto v_abs = v_is_neg ? -v : v;
-
-    auto q_is_neg = u_is_neg ^ v_is_neg;
-
-    auto res = udivrem(u_abs, v_abs);
-
-    return {q_is_neg ? -res.quot : res.quot, u_is_neg ? -res.rem : res.rem};
+    const auto res = udivrem(internal::negate_if(u, u_mask), internal::negate_if(v, v_mask));
+    return {internal::negate_if(res.quot, u_mask ^ v_mask), internal::negate_if(res.rem, u_mask)};
 }
 
 constexpr uint256 bswap(const uint256& x) noexcept
