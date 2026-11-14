@@ -5,7 +5,8 @@
 /// @file
 /// The fuzzer input is a program for a stack machine. A stack item is an intx::uint<N> of one of
 /// the WIDTHS paired with its GMP value. Every instruction runs on both and the results are
-/// compared. The program is validated up front and invalid programs are rejected.
+/// compared. The sint instructions take the bits of the items as intx::sint<N>.
+/// The program is validated up front and invalid programs are rejected.
 
 #include <gmp.h>
 #include <intx/intx.hpp>
@@ -96,6 +97,13 @@ enum Op : uint8_t
     bytes_io,   // [1 byte]: store x with a byte API and load it back, or check hex(x).
 
     from_string,  // [w] [2 bytes: n] [n bytes]: push from_string() of the bytes up to the first 0.
+
+    sint_arith,  // [1 byte]: x op y and x op= y for op in + - * / % & | ^.
+    sint_shift,  // [1 byte]: x << y[0] or x >> y[0], or op=, by uint64_t or by int.
+    sint_unary,  // [1 byte]: -x, ~x, or x converted to a built-in integer and back.
+    sint_cast,   // [w]: change the width of the top item with the sign extension.
+    sint_cmp,    // Pushes the bits of all comparisons of x and y, <=> and bool(x).
+    smul,        // Pushes smul() of the low words of x and y. The widths may differ.
     num_ops
 };
 
@@ -162,6 +170,12 @@ constexpr OpInfo op_info[] = {
     {assign_op, "assign_op", 2, 1, false, 1},
     {bytes_io, "bytes_io", 1, 1, false, 1},
     {from_string, "from_string", 0, 1, true, 2},
+    {sint_arith, "sint_arith", 2, 1, false, 1},
+    {sint_shift, "sint_shift", 2, 1, false, 1},
+    {sint_unary, "sint_unary", 1, 1, false, 1},
+    {sint_cast, "sint_cast", 1, 1, true, 0},
+    {sint_cmp, "sint_cmp", 2, 1, false, 0},
+    {smul, "smul", 2, 1, false, 0},
 };
 static_assert(std::size(op_info) == num_ops);
 static_assert([] {
@@ -282,6 +296,12 @@ struct Instr
 void wrap(mpz_ptr z, unsigned num_bits) noexcept
 {
     mpz_fdiv_r_2exp(z, z, num_bits);
+}
+
+/// Sets r to z modulo 2^num_bits.
+void wrap(mpz_ptr r, mpz_srcptr z, unsigned num_bits) noexcept
+{
+    mpz_fdiv_r_2exp(r, z, num_bits);
 }
 
 /// Sets z to v. Unlike mpz_set_ui(), it takes all 64 bits where unsigned long has 32.
@@ -477,6 +497,9 @@ bool Machine::decode(const uint8_t* data, size_t size) noexcept
                 return false;
             results[0] = below;
             break;
+        case smul:
+            results[0] = 2;
+            break;
         default:
             for (unsigned i = 1; i < info.num_args; ++i)
             {
@@ -556,6 +579,7 @@ template <unsigned N>
 bool Machine::exec(const Instr& in) noexcept
 {
     using T = intx::uint<N>;
+    using S = intx::sint<N>;
     static constexpr auto num_bytes = N / 8;
 
     if (op_info[in.op].num_args == 0)  // Push.
@@ -632,6 +656,41 @@ bool Machine::exec(const Instr& in) noexcept
         });
         wrap(a.z, N);
         check(a);
+        return true;
+    }
+    case sint_cast:  // The words are truncated or sign-extended.
+    {
+        auto& a = stack_[sp_ - 1];
+        to_signed(t1_, a.z, a.words * 64);
+        with_width(a.words, [&]<unsigned M> {
+            const auto x = sint<M>{a.get<M>()};
+            if constexpr (M <= N)
+            {
+                const S r = x;
+                a.set(T{r});
+            }
+            else
+                a.set(T{static_cast<S>(x)});
+        });
+        wrap(a.z, t1_, N);
+        check(a);
+        return true;
+    }
+    case smul:
+    {
+        auto& b = stack_[sp_ - 1];
+        auto& r = stack_[sp_ - 2];
+        const auto u = static_cast<int64_t>(r.words_span()[0]);
+        const auto v = static_cast<int64_t>(b.words_span()[0]);
+        r.set(uint128{intx::smul(u, v)});
+        mpz_fdiv_r_2exp(t1_, r.z, 64);
+        to_signed(t1_, t1_, 64);
+        mpz_fdiv_r_2exp(t2_, b.z, 64);
+        to_signed(t2_, t2_, 64);
+        mpz_mul(r.z, t1_, t2_);
+        wrap(r.z, 128);
+        --sp_;
+        check(r);
         return true;
     }
     case udivrem:
@@ -883,6 +942,43 @@ bool Machine::exec(const Instr& in) noexcept
             if (std::memcmp(bytes, expected, num_bytes) != 0)
                 fail("store", &a);
             a.set(loaded);
+            break;
+        }
+        case sint_unary:
+        {
+            const auto sx = S{x};
+            S s;
+            switch (in.imm % 6)
+            {
+            case 0:
+                s = -sx;
+                mpz_neg(a.z, a.z);
+                break;
+            case 1:
+                s = ~sx;
+                mpz_com(a.z, a.z);
+                break;
+            case 2:
+                s = static_cast<int64_t>(sx);
+                mpz_fdiv_r_2exp(t1_, a.z, 64);
+                to_signed(a.z, t1_, 64);
+                break;
+            case 3:
+                s = static_cast<uint32_t>(sx);
+                mpz_fdiv_r_2exp(a.z, a.z, 32);
+                break;
+            case 4:
+                s = static_cast<int8_t>(sx);
+                mpz_fdiv_r_2exp(t1_, a.z, 8);
+                to_signed(a.z, t1_, 8);
+                break;
+            default:
+                s = static_cast<bool>(sx);
+                mpz_set_ui(a.z, mpz_sgn(a.z.z) != 0);
+                break;
+            }
+            a.set(T{s});
+            wrap(a.z, N);
             break;
         }
         default:  // store_le, store_be
@@ -1140,6 +1236,112 @@ bool Machine::exec(const Instr& in) noexcept
         }
         r.set(v);
         wrap(r.z, N);
+        break;
+    }
+    case sint_arith:
+    {
+        const auto sx = S{x};
+        const auto sy = S{y};
+        auto v = sx;
+        S s;
+        to_signed(t1_, r.z, N);
+        to_signed(t2_, b.z, N);
+        switch (in.imm % 8)
+        {
+        case 0:
+            s = sx + sy;
+            v += sy;
+            mpz_add(r.z, t1_, t2_);
+            break;
+        case 1:
+            s = sx - sy;
+            v -= sy;
+            mpz_sub(r.z, t1_, t2_);
+            break;
+        case 2:
+            s = sx * sy;
+            v *= sy;
+            mpz_mul(r.z, t1_, t2_);
+            break;
+        case 3:
+            s = sx / sy;
+            v /= sy;
+            if (y == 0)  // The EVM semantics.
+                mpz_set_ui(r.z, 0);
+            else
+                mpz_tdiv_q(r.z, t1_, t2_);
+            break;
+        case 4:
+            s = sx % sy;
+            v %= sy;
+            if (y == 0)  // The EVM semantics.
+                mpz_set_ui(r.z, 0);
+            else
+                mpz_tdiv_r(r.z, t1_, t2_);
+            break;
+        case 5:
+            s = sx & sy;
+            v &= sy;
+            mpz_and(r.z, t1_, t2_);
+            break;
+        case 6:
+            s = sx | sy;
+            v |= sy;
+            mpz_ior(r.z, t1_, t2_);
+            break;
+        default:
+            s = sx ^ sy;
+            v ^= sy;
+            mpz_xor(r.z, t1_, t2_);
+            break;
+        }
+        if (v != s)
+            fail("sint compound assignment");
+        r.set(T{s});
+        wrap(r.z, N);
+        break;
+    }
+    case sint_shift:
+    {
+        const auto sx = S{x};
+        const auto left = (in.imm & 1) != 0;
+        const auto shift_by = [&](auto n) {
+            auto v = sx;
+            if ((in.imm & 2) == 0)
+                v = left ? sx << n : sx >> n;
+            else if (left)
+                v <<= n;
+            else
+                v >>= n;
+            return v;
+        };
+        const auto as_int = (in.imm & 4) != 0;
+        // A negative amount fails an assertion, so the int amount keeps the low 31 bits.
+        const auto amount = as_int ? y[0] & 0x7fffffff : y[0];
+        r.set(T{as_int ? shift_by(static_cast<int>(amount)) : shift_by(amount)});
+        to_signed(t1_, r.z, N);
+        if (amount >= N)
+            mpz_set_si(r.z, !left && mpz_sgn(t1_.z) < 0 ? -1 : 0);
+        else if (left)
+            mpz_mul_2exp(r.z, t1_, amount);
+        else
+            mpz_fdiv_q_2exp(r.z, t1_, amount);
+        wrap(r.z, N);
+        break;
+    }
+    case sint_cmp:
+    {
+        const auto sx = S{x};
+        const auto sy = S{y};
+        const auto c = sx <=> sy;
+        r.set(T{pack_bits({(sx < sy), (sx <= sy), (sx > sy), (sx >= sy), (sx == sy), (sx != sy),
+            (c < 0), (c > 0), static_cast<bool>(sx)})});
+        to_signed(t1_, r.z, N);
+        to_signed(t2_, b.z, N);
+        const auto e = mpz_cmp(t1_, t2_);
+        const auto nz = mpz_sgn(t1_.z) != 0;
+        mpz_set_ui(
+            r.z, pack_bits({e < 0, e <= 0, e > 0, e >= 0, e == 0, e != 0, e < 0, e > 0, nz}));
         break;
     }
     default:  // eq
