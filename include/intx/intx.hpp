@@ -1048,7 +1048,7 @@ constexpr Int from_string(const char* str)
         const auto d = from_dec_digit(c);
         if (x > MAX_DEC || (x == MAX_DEC && d > MAX_LAST_DIGIT))
             throw_<std::out_of_range>(str);
-        x = x * Int{10} + d;
+        x = Int{10} * x + d;
     }
     return x;
 }
@@ -1273,6 +1273,9 @@ public:
 
     /// Multiplication implementation using word access
     /// and discarding the high part of the result product.
+    ///
+    /// The words of y form the outer loop. In chained products pass the previous product as y:
+    /// each row then needs only one of its words, so consecutive products overlap.
     friend constexpr uint operator*(const uint& x, const uint& y) noexcept
     {
         uint<N> p;
@@ -1293,7 +1296,11 @@ public:
         return p;
     }
 
-    constexpr uint& operator*=(const uint& y) noexcept { return *this = *this * y; }
+    constexpr uint& operator*=(const uint& y) noexcept
+    {
+        // Pass *this as y of operator*, the outer loop, for chains like result *= base.
+        return *this = y * *this;
+    }
 
     friend constexpr uint operator/(const uint& x, const uint& y) noexcept
     {
