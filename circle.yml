@@ -374,6 +374,26 @@ jobs:
           arch: arm64
           forks: 2
 
+  fuzzing-32bit:
+    environment:
+      BUILD_TYPE: Release
+      CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_FUZZING=ON -DINTX_BENCHMARKING=OFF
+      CC: clang-22
+      CXX: clang++-22
+    machine:
+      image: ubuntu-2604:2026.10.1
+    steps:
+      - run:
+          name: "Install dependencies"
+          command: |
+            sudo dpkg --add-architecture i386
+            sudo apt -q update
+            sudo apt install -qy clang-22 libclang-rt-22-dev g++-multilib libgmp-dev:i386
+      - build_and_test
+      - fuzz:
+          arch: i386
+          forks: 2
+
   macos:
     environment:
       BUILD_TYPE: Release
@@ -452,6 +472,7 @@ workflows:
       - linux-32bit-coverage
       - fuzzing
       - fuzzing-arm64
+      - fuzzing-32bit
       - macos
       - macos-coverage
       - cmake-min
