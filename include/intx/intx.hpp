@@ -1418,9 +1418,13 @@ public:
             uint64_t k = 0;
             for (size_t i = 0; i < (num_words - j - 1); i++)
             {
-                // TODO: mac() here removes setb on x86-64, but clang makes uint512 longer on arm64.
+#if INTX_HAS_ADDC_X86
+                const auto t = mac(p[i + j], x[i], y[j], k);
+#else
+                // TODO(clang): mac() here makes uint512 longer on arm64.
                 auto a = addc(p[i + j], k);
                 auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
+#endif
                 p[i + j] = t[0];
                 k = t[1];
             }
