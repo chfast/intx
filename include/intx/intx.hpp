@@ -583,6 +583,10 @@ constexpr uint128 mac(uint64_t a, uint64_t x, uint64_t y, uint64_t c) noexcept
     //   but GCC zeroes a register for the high word of each addend.
     return builtin_uint128{x} * builtin_uint128{y} + a + c;
 #else
+    #if INTX_HAS_BUILTIN_INT128
+    if (std::is_constant_evaluated())  // The builtin type takes fewer evaluation steps.
+        return builtin_uint128{x} * builtin_uint128{y} + a + c;
+    #endif
     #if INTX_HAS_ADDC_X86
     if (!std::is_constant_evaluated())
     {
