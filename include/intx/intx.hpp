@@ -76,6 +76,13 @@
     #define INTX_HAS_DIV_WIDE_X86 0
 #endif
 
+// Detect the x86-64 add-with-carry builtin for internal::addc_x86()
+#if __has_builtin(__builtin_ia32_addcarryx_u64)
+    #define INTX_HAS_ADDC_X86 1
+#else
+    #define INTX_HAS_ADDC_X86 0
+#endif
+
 namespace intx
 {
 /// Mark a possible code path as unreachable (invokes undefined behavior).
@@ -191,6 +198,23 @@ constexpr result_with_carry<uint64_t> subc(uint64_t x, uint64_t y, bool carry = 
     const auto carry2 = d < uint64_t{carry};
     return {e, static_cast<bool>(carry1 | carry2)};
 }
+
+#if INTX_HAS_ADDC_X86
+namespace internal
+{
+/// Addition with carry with the x86-64 add-with-carry builtin.
+///
+/// TODO(clang, gcc): With __builtin_addcll an addition whose carry out is unused becomes a plain
+///   addition, which compilers reassociate across carry chains, keeping the carries with setb.
+///   The carry chains of the x86 builtin are not reassociated.
+inline uint64_t addc_x86(uint64_t x, uint64_t y, uint8_t& carry) noexcept
+{
+    unsigned long long s = 0;  // NOLINT(google-runtime-int)
+    carry = __builtin_ia32_addcarryx_u64(carry, x, y, &s);
+    return s;
+}
+}  // namespace internal
+#endif
 
 /// Addition with carry.
 template <unsigned N>
@@ -559,6 +583,17 @@ constexpr uint128 mac(uint64_t a, uint64_t x, uint64_t y, uint64_t c) noexcept
     //   but GCC zeroes a register for the high word of each addend.
     return builtin_uint128{x} * builtin_uint128{y} + a + c;
 #else
+    #if INTX_HAS_ADDC_X86
+    if (!std::is_constant_evaluated())
+    {
+        // Keep the addition of a in one add/adc pair, see addc_x86().
+        const auto p = umul(x, y);
+        uint8_t k = 0;
+        const auto lo = internal::addc_x86(p[0], a, k);
+        const auto hi = internal::addc_x86(p[1], 0, k);
+        return uint128{lo, hi} + c;
+    }
+    #endif
     return umul(x, y) + a + c;
 #endif
 }
@@ -1335,14 +1370,51 @@ public:
     /// each row then needs only one of its words, so consecutive products overlap.
     friend constexpr uint operator*(const uint& x, const uint& y) noexcept
     {
+#if INTX_HAS_ADDC_X86
+        // Only uint256 on x86-64 takes the rows: on RISC-V and with GCC on arm64 they take more
+        // instructions than the loop, and for more words they run out of registers.
+        if constexpr (N == 256)
+        {
+            if (!std::is_constant_evaluated())
+            {
+                // The rows y[j] * x: each summed by one adc chain and added to the result by
+                // another.
+                using internal::addc_x86;
+                const auto q03 = y[0] * x[3];
+                const auto p00 = umul(y[0], x[0]);
+                const auto p01 = umul(y[0], x[1]);
+                const auto p02 = umul(y[0], x[2]);
+                uint8_t k = 0;
+                auto r1 = addc_x86(p00[1], p01[0], k);
+                auto r2 = addc_x86(p01[1], p02[0], k);
+                auto r3 = addc_x86(p02[1], q03, k);
+                const auto q12 = y[1] * x[2];
+                const auto p10 = umul(y[1], x[0]);
+                const auto p11 = umul(y[1], x[1]);
+                k = 0;
+                const auto t2 = addc_x86(p10[1], p11[0], k);
+                const auto t3 = addc_x86(p11[1], q12, k);
+                k = 0;
+                r1 = addc_x86(r1, p10[0], k);
+                r2 = addc_x86(r2, t2, k);
+                r3 = addc_x86(r3, t3, k);
+                const auto q21 = y[2] * x[1];
+                const auto p20 = umul(y[2], x[0]);
+                const auto t3b = p20[1] + q21;  // Before r2: between two adc GCC saves the carry.
+                k = 0;
+                r2 = addc_x86(r2, p20[0], k);
+                r3 = addc_x86(r3, t3b, k);
+                return {p00[0], r1, r2, r3 + y[3] * x[0]};
+            }
+        }
+#endif
         uint<N> p;
         for (size_t j = 0; j < num_words; j++)
         {
             uint64_t k = 0;
             for (size_t i = 0; i < (num_words - j - 1); i++)
             {
-                // TODO: mac() here makes evmone's EXP slower with GCC and MUL slower with clang
-                //   at x86-64-v2.
+                // TODO: mac() here removes setb on x86-64, but clang makes uint512 longer on arm64.
                 auto a = addc(p[i + j], k);
                 auto t = umul(x[i], y[j]) + uint128{a.value, a.carry};
                 p[i + j] = t[0];
