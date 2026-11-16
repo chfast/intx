@@ -2283,7 +2283,10 @@ constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& 
 {
     if constexpr (M == 128)  // A uint128 numerator: the 128-bit division if v fits in 128 bits.
     {
-        if (v <= ~uint128{})
+        uint64_t high_words = 0;  // The words of v above 128 bits, OR-ed.
+        for (size_t i = 2; i < uint<N>::num_words; ++i)
+            high_words |= v[i];
+        if (high_words == 0)
         {
             const auto res = udivrem(u, static_cast<uint128>(v));
             return {res.quot, res.rem};
