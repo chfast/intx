@@ -228,6 +228,15 @@ constexpr result_with_carry<uint<N>> subc(
 constexpr uint<128> umul(uint64_t x, uint64_t y) noexcept;
 
 
+namespace internal
+{
+/// Integer types wider than 64 bits, like __int128 and _BitInt(256), and unscoped enums of them.
+template <typename T>
+concept wide_integer =
+    !std::is_class_v<T> && !std::is_union_v<T> && (sizeof(T) > sizeof(uint64_t)) &&
+    std::is_convertible_v<T, uint64_t> && requires(T x) { x >> 1; };
+}  // namespace internal
+
 /// The 128-bit unsigned integer.
 ///
 /// This type is defined as a specialization of uint<> to easier integration with full intx package,
@@ -250,9 +259,13 @@ public:
 
     template <typename T>
     constexpr explicit(false) uint(T x) noexcept
-        requires std::is_convertible_v<T, uint64_t>
+        requires std::is_convertible_v<T, uint64_t> && (!internal::wide_integer<T>)
       : words_{static_cast<uint64_t>(x), 0}
     {}
+
+    /// Integers wider than 64 bits other than __int128 are not supported.
+    template <internal::wide_integer T>
+    uint(T) = delete;
 
     /// Constructs from words with words[0] being the least significant word.
     /// The size of the span must be less than or equal to num_words.
@@ -267,9 +280,22 @@ public:
       : words_{uint64_t(x), uint64_t(x >> 64)}
     {}
 
+    /// Converts x modulo 2^128.
+    template <internal::wide_integer T>
+        requires std::same_as<T, builtin_int128>
+    constexpr explicit(false) uint(T x) noexcept : uint{static_cast<builtin_uint128>(x)}
+    {
+        // A template, so that braced arguments go to the builtin_uint128 constructor only.
+    }
+
     constexpr explicit operator builtin_uint128() const noexcept
     {
         return (builtin_uint128{words_[1]} << 64) | words_[0];
+    }
+
+    constexpr explicit operator builtin_int128() const noexcept
+    {
+        return static_cast<builtin_int128>(static_cast<builtin_uint128>(*this));
     }
 #endif
 
@@ -278,10 +304,10 @@ public:
 
     constexpr explicit operator bool() const noexcept { return (words_[0] | words_[1]) != 0; }
 
-    /// Explicit converting operator for all builtin integral types.
+    /// Explicit converting operator for builtin integral types of up to 64 bits.
     template <typename Int>
     constexpr explicit operator Int() const noexcept
-        requires std::is_integral_v<Int>
+        requires std::is_integral_v<Int> && (!internal::wide_integer<Int>)
     {
         return static_cast<Int>(words_[0]);
     }
@@ -1194,13 +1220,26 @@ public:
     constexpr explicit(false) uint(builtin_uint128 x) noexcept
       : words_{uint64_t(x), uint64_t(x >> 64)}
     {}
+
+    /// Converts x modulo 2^128.
+    template <internal::wide_integer T>
+        requires std::same_as<T, builtin_int128>
+    constexpr explicit(false) uint(T x) noexcept : uint{static_cast<builtin_uint128>(x)}
+    {
+        // A template, so that braced arguments go to the builtin_uint128 constructor only.
+    }
 #endif
 
     template <typename... T>
     constexpr explicit(false) uint(T... v) noexcept
-        requires std::conjunction_v<std::is_convertible<T, uint64_t>...>
+        requires std::conjunction_v<std::is_convertible<T, uint64_t>...> &&
+                 (!internal::wide_integer<T> && ...)
       : words_{static_cast<uint64_t>(v)...}
     {}
+
+    /// Integers wider than 64 bits other than __int128 are not supported.
+    template <internal::wide_integer T>
+    uint(T) = delete;
 
     /// Constructs from words with words[0] being the least significant word.
     /// The size of the span must be less than or equal to num_words.
@@ -1243,6 +1282,24 @@ public:
             words_[i] = 0;
         return *this;
     }
+
+    template <internal::wide_integer T>
+    uint& operator=(T) = delete;
+
+#if INTX_HAS_BUILTIN_INT128
+    template <internal::wide_integer T>
+        requires std::same_as<T, builtin_uint128> || std::same_as<T, builtin_int128>
+    constexpr uint& operator=(T v) noexcept
+    {
+        // The template head constraint makes this overload more constrained than the deleted one.
+        const auto u = static_cast<builtin_uint128>(v);
+        words_[0] = static_cast<uint64_t>(u);
+        words_[1] = static_cast<uint64_t>(u >> 64);
+        for (size_t i = 2; i < num_words; ++i)
+            words_[i] = 0;
+        return *this;
+    }
+#endif
 
     template <unsigned M>
     constexpr uint& operator=(const uint<M>& x) noexcept
