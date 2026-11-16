@@ -2010,8 +2010,9 @@ constexpr void udivrem_knuth_normalized(uint64_t q[], std::span<uint64_t> u,
 
 /// Divides arbitrary long unsigned integer by unsigned integer of at least 3 words with the Knuth
 /// algorithm. The words are normalized into un and dn.
-/// @param q   The quotient words: u.size() - d.size() + 1 of them, outside un. The ones for the
-///            zero top words of u are not written.
+/// @param q   The quotient words: u.size() - d.size() + 1 of them, outside un. The zero ones above
+///            the computed ones are not written: for the zero top words of u, and q[m - d.size()]
+///            if u[m - 1] < d.back().
 /// @param r   The remainder words: d.size() of them.
 /// @param u   The numerator words. The top ones may be 0.
 /// @param m   The number of significant words of u: more than d.size(), or d.size() if
@@ -2044,7 +2045,6 @@ template <size_t D = std::dynamic_extent, size_t W>
     // and so are the bits shifted out of u.
     const auto ulen = m + size_t{u[m - 1] >= d.back()};  // The normalized words to divide.
     INTX_REQUIRE(ulen > dlen);                           // At least 1 quotient word.
-    q[m - dlen] = 0;  // The top quotient word if it is not computed below.
 
     udivrem_knuth_normalized<D>(q, std::span{un, ulen}, dn);
     shr(r, std::span<const uint64_t>{un, dlen}, shift);

@@ -38,6 +38,10 @@ TEST(div, udivrem_constexpr)
     static_assert(udivrem(u3, p3).rem == p3 - (uint256{1} << 128) + 0x77);
     static_assert(udivrem(u4, p4).quot == (uint512{1} << 192) - 1);
     static_assert(udivrem(u4, p4).rem == p4 - (uint256{1} << 192) + 0x77);
+    // The top word of the numerator below the top word of the divisor.
+    static_assert(udivrem(x >> 1, w0).quot * w0 + udivrem(x >> 1, w0).rem == x >> 1);
+    static_assert(udivrem(u3 >> 1, p3).quot * p3 + udivrem(u3 >> 1, p3).rem == u3 >> 1);
+    static_assert(udivrem(u4 >> 1, p4).quot * p4 + udivrem(u4 >> 1, p4).rem == u4 >> 1);
     // 192/256, with the divisor words limited to the numerator words.
     static_assert(udivrem(static_cast<uint192>(p3 * 5 + 7), p3).quot == 5);
     static_assert(udivrem(static_cast<uint192>(p3 * 5 + 7), p3).rem == 7);
@@ -1755,12 +1759,13 @@ TEST(div, udivrem_knuth_dynamic_extent)
     EXPECT_EQ(q, (std::array<uint64_t, 3>{0x7f2bfe557925c44a, 0x51710cd071e782b4, 1}));
     EXPECT_EQ(r, (std::array<uint64_t, 3>{0x6f2f1f3601318dfb, 0xc9a46a02e85147b1, 3}));
 
-    // The shift 0, a zero top word of u and the next one below the top word of d.
+    // The shift 0, a zero top word of u and the next one below the top word of d: the zero
+    // quotient words above the computed one are not written.
     const std::array<uint64_t, 5> w{1, 2, 3, 0x7fffffffffffffff, 0};
     const std::array<uint64_t, 3> e{5, 6, 0x8000000000000001};
     q = {0xbad, 0xbad, 0xbad};
     internal::udivrem_knuth(q.data(), r, std::span<const uint64_t>{w}, 4, e, un.data(), dn);
-    EXPECT_EQ(q, (std::array<uint64_t, 3>{0xfffffffffffffffc, 0, 0xbad}));
+    EXPECT_EQ(q, (std::array<uint64_t, 3>{0xfffffffffffffffc, 0xbad, 0xbad}));
     EXPECT_EQ(r, (std::array<uint64_t, 3>{0x15, 0x15, 1}));
 }
 
