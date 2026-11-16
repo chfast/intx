@@ -189,6 +189,20 @@ static_assert(-a == (~a + 1));
 static_assert(+a == a);
 }  // namespace static_test_arith
 
+#if INTX_HAS_BUILTIN_INT128
+TEST(int128, conversion_from_builtin_int128)
+{
+    auto x = builtin_int128{1} << 100;
+    const uint128 a = x;
+    const auto b = uint128{builtin_int128{-1}};
+
+    EXPECT_EQ(a, uint128{1} << 100);
+    EXPECT_EQ(b, ~uint128{});
+    EXPECT_EQ(static_cast<builtin_int128>(a), x);
+    EXPECT_EQ(static_cast<builtin_int128>(b), -1);
+}
+#endif
+
 TEST(int128, numeric_limits)
 {
     static_assert(!std::numeric_limits<uint128>::is_signed);

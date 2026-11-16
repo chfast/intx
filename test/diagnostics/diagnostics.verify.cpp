@@ -37,24 +37,83 @@ uint256 construct_floating(double a)
     return a;
 }
 
+uint256 construct_long_double(long double a)
+{
+    // TODO: Reject floating-point values.
+    return a;
+}
+
 #if INTX_HAS_BUILTIN_INT128
 void assign_int128(uint256& x, builtin_int128 a)
 {
-    // TODO: Keep all 128 bits.
-    x = a;  // expected-warning {{loses integer precision}}
+    // TODO: Negative values convert modulo 2^128 instead of 2^256, without a warning.
+    x = a;
 }
 
 uint256 construct_int128(builtin_int128 a)
 {
-    // TODO: Keep all 128 bits.
+    // TODO: Negative values convert modulo 2^128 instead of 2^256, without a warning.
     return a;
 }
 
 builtin_int128 convert_to_int128(const uint128& x)
 {
-    // TODO: Keep all 128 bits.
     return static_cast<builtin_int128>(x);
 }
+
+uint256 construct_from_int128_words(builtin_int128 a)
+{
+    return {a, a};  // expected-error {{no matching constructor}}
+}
+
+enum int128_enum : builtin_int128
+{
+};
+
+uint256 construct_from_int128_enum(int128_enum a)
+{
+    return a;  // expected-error {{invokes a deleted function}}
+}
+
+void assign_int128_enum(uint256& x, int128_enum a)
+{
+    x = a;  // expected-error {{selected deleted operator '='}}
+}
+#endif
+
+uint256 construct_from_empty_braces()
+{
+    return uint256{{}};
+}
+
+uint128 construct_uint128_from_empty_braces()
+{
+    return uint128{{}};
+}
+
+#if defined(__BITINT_MAXWIDTH__) && __BITINT_MAXWIDTH__ >= 128
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wbit-int-extension"
+uint128 construct_uint128_from_bit_int(unsigned _BitInt(128) a)
+{
+    return a;  // expected-error {{invokes a deleted function}}
+}
+
+uint256 construct_bit_int(unsigned _BitInt(128) a)
+{
+    return a;  // expected-error {{invokes a deleted function}}
+}
+
+void assign_bit_int(uint256& x, unsigned _BitInt(128) a)
+{
+    x = a;  // expected-error {{selected deleted operator '='}}
+}
+
+unsigned _BitInt(128) convert_to_bit_int(const uint128& x)
+{
+    return static_cast<unsigned _BitInt(128)>(x);  // expected-error {{no matching conversion}}
+}
+    #pragma clang diagnostic pop
 #endif
 
 uint256 shift_by_int(const uint256& x, int s)

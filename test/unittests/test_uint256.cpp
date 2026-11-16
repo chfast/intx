@@ -274,5 +274,27 @@ TEST(uint256, conversion_from_builtin_uint128)
 
     EXPECT_EQ(a, expected);
     EXPECT_EQ(b, expected);
+
+    auto c = ~uint256{};
+    c = x;
+    EXPECT_EQ(c, expected);
+}
+
+TEST(uint256, conversion_from_builtin_int128)
+{
+    const auto x = builtin_int128{1} << 100;
+    const auto expected = uint256{1} << 100;
+
+    const auto a = uint256{x};
+    auto b = ~uint256{};
+    b = x;
+
+    EXPECT_EQ(a, expected);
+    EXPECT_EQ(b, expected);
+    EXPECT_EQ(uint256{builtin_int128{-1}}, uint256{~uint128{}});
+
+    auto c = ~uint256{};
+    c = builtin_int128{-1};
+    EXPECT_EQ(c, uint256{~uint128{}});
 }
 #endif
