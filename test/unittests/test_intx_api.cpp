@@ -27,6 +27,7 @@ static_assert(uint512{2} - uint512{1} == 1);
 static_assert(uint128{2} * uint128{2} == 4);
 static_assert(uint256{2} * uint256{2} == 4);
 static_assert(uint512{2} * uint512{2} == 4);
+static_assert(~uint512{} * ~uint512{} == 1);
 
 static_assert(umul(uint256{2}, uint256{3}) == 6);
 
@@ -158,6 +159,8 @@ TYPED_TEST(uint_api, arithmetic)
     EXPECT_TRUE(b * x == 0);
     EXPECT_TRUE(c * x == 0);
     EXPECT_TRUE(d * x == 0);
+
+    EXPECT_EQ(~TypeParam{} * ~TypeParam{}, 1);
 }
 
 
