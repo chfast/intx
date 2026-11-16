@@ -91,6 +91,28 @@ uint128 construct_uint128_from_empty_braces()
     return uint128{{}};
 }
 
+#if INTX_HAS_BUILTIN_INT128
+struct to_uint128
+{
+    constexpr operator builtin_uint128() const { return builtin_uint128{1} << 100; }
+};
+
+// TODO: Keep all 128 bits of classes converting to 128-bit builtins.
+static_assert(uint256{to_uint128{}} == 0);
+static_assert(uint128{to_uint128{}} == 0);
+static_assert([] {
+    uint128 x;
+    x = to_uint128{};
+    return x;
+}() == 0);
+
+void assign_class(uint256& x)
+{
+    // TODO: Keep all 128 bits of classes converting to 128-bit builtins.
+    x = to_uint128{};  // expected-error {{is ambiguous}}
+}
+#endif
+
 #if defined(__BITINT_MAXWIDTH__) && __BITINT_MAXWIDTH__ >= 128
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wbit-int-extension"
