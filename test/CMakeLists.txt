@@ -12,6 +12,7 @@ add_compile_options(
 )
 
 add_subdirectory(analysis)
+add_subdirectory(diagnostics)
 add_subdirectory(experimental)
 add_subdirectory(utils)
 add_subdirectory(integration)
