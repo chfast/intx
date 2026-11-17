@@ -1821,6 +1821,44 @@ TEST(div, reciprocal_3by2)
     EXPECT_EQ(reciprocal_3by2({0x99127966ed869913, 0x8699127966ed8699}), 0xe6e6e6e6e6e6e6e5u);
 }
 
+TEST(div, udivrem_3by2)
+{
+    // Operands for which the second correction is taken: r >= d after the first one.
+    struct TestCase
+    {
+        uint64_t u2 = 0;
+        uint64_t u1 = 0;
+        uint64_t u0 = 0;
+        uint128 d;
+        uint64_t q = 0;
+        uint128 r;
+    };
+    static constexpr TestCase test_cases[] = {
+        {0x75d6c493799199a9, 0xf7cad3bab6436153, 0x617c5cc6df90ae8e,
+            0x8000030ec902d5c1355c8481947255dd_u128, 0xebad8385a8f7fdef,
+            0x1c2ca56aa739409eb807a29d69bc1c3b_u128},
+        {0x30e7d5d5cddf3f95, 0xf5cb632b6fcbd7eb, 0xa95713e547b6374a,
+            0x801ec326d7446ad4cf94063a693f341e_u128, 0x61b82f843957e8bc,
+            0x0bb70aedd6dd7f3640fc591151dec142_u128},
+        {0x5b74a905b3d24e44, 0xf3c8be2ae0d08969, 0x2ee6d4d01910104e,
+            0x80008d7914bdea793461e47b1b60d5b2_u128, 0xb6e887e23c813a64,
+            0x09401abdbd36dd851cf4ad80102042c6_u128},
+    };
+
+    // The portable code, which x86-64 runs only in constant evaluation.
+    static_assert(std::ranges::all_of(test_cases, [](const TestCase& t) {
+        const auto res = udivrem_3by2(t.u2, t.u1, t.u0, t.d, reciprocal_3by2(t.d));
+        return res.quot == t.q && res.rem == t.r;
+    }));
+
+    for (const auto& t : test_cases)
+    {
+        const auto res = udivrem_3by2(t.u2, t.u1, t.u0, t.d, reciprocal_3by2(t.d));
+        EXPECT_EQ(res.quot, t.q);
+        EXPECT_EQ(res.rem, t.r);
+    }
+}
+
 namespace
 {
 /// Checks that v = reciprocal_3by2(d) satisfies (2^64 + v) * d <= 2^192 - 1 < (2^64 + v + 1) * d,
