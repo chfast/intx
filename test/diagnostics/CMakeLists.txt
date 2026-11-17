@@ -16,10 +16,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT S
             ${target} PRIVATE
             -fsyntax-only -Xclang=-verify -Xclang=-verify-ignore-unexpected=note
         )
-        # The extensions make __int128 an integral type also in libstdc++ before 16.
         set_target_properties(
             ${target} PROPERTIES
-            CXX_EXTENSIONS ON
             COMPILE_WARNING_AS_ERROR OFF
             CXX_CLANG_TIDY ""
         )
