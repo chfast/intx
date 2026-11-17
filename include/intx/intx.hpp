@@ -113,6 +113,9 @@ using builtin_int128 = __int128;
 template <unsigned N>
 struct uint;
 
+template <unsigned N>
+struct sint;
+
 namespace internal
 {
 /// Converts a shift amount of a builtin integer type of up to 64 bits.
@@ -569,31 +572,6 @@ constexpr uint128 umul(uint64_t x, uint64_t y) noexcept
     uint64_t lo = (u2 << 32) | (t0 & 0xffffffff);
     uint64_t hi = t3 + (u2 >> 32) + (u1 >> 32);
     return {lo, hi};
-}
-
-/// Full signed multiplication 64 x 64 -> 128.
-/// Returns the product in two's complement.
-constexpr uint128 smul(int64_t x, int64_t y) noexcept
-{
-#if INTX_HAS_BUILTIN_INT128
-    return static_cast<builtin_uint128>(builtin_int128{x} * builtin_int128{y});
-#elif defined(_MSC_VER) && defined(_M_X64)
-    if (!std::is_constant_evaluated())
-    {
-        __int64 hi = 0;
-        const auto lo = _mul128(x, y, &hi);
-        return {static_cast<uint64_t>(lo), static_cast<uint64_t>(hi)};
-    }
-    // For constexpr fallback to the portable variant.
-#endif
-
-    // Modulo 2^128, the unsigned product of the operands' bits exceeds the signed product
-    // by 2^64 * y if x is negative and by 2^64 * x if y is negative.
-    const auto ux = static_cast<uint64_t>(x);
-    const auto uy = static_cast<uint64_t>(y);
-    auto p = umul(ux, uy);
-    p[1] -= (uy & static_cast<uint64_t>(x >> 63)) + (ux & static_cast<uint64_t>(y >> 63));
-    return p;
 }
 
 /// Multiply-accumulate 64 + 64 x 64 + 64 -> 128: computes a + x * y + c.
@@ -1075,6 +1053,26 @@ struct numeric_limits<intx::uint<N>>  // NOLINT(cert-dcl58-cpp)
     static constexpr type signaling_NaN() noexcept { return 0; }
     static constexpr type denorm_min() noexcept { return 0; }
 };
+
+template <unsigned N>
+struct numeric_limits<intx::sint<N>> : numeric_limits<intx::uint<N>>  // NOLINT(cert-dcl58-cpp)
+{
+    using type = intx::sint<N>;
+
+    static constexpr bool is_signed = true;
+    static constexpr int digits = static_cast<int>(N - 1);
+    static constexpr int digits10 = int(0.3010299956639812 * digits);
+
+    static constexpr type min() noexcept { return type{intx::uint<N>{1} << (N - 1)}; }
+    static constexpr type lowest() noexcept { return min(); }
+    static constexpr type max() noexcept { return ~min(); }
+    static constexpr type epsilon() noexcept { return 0; }
+    static constexpr type round_error() noexcept { return 0; }
+    static constexpr type infinity() noexcept { return 0; }
+    static constexpr type quiet_NaN() noexcept { return 0; }
+    static constexpr type signaling_NaN() noexcept { return 0; }
+    static constexpr type denorm_min() noexcept { return 0; }
+};
 }  // namespace std
 
 namespace intx
@@ -1109,6 +1107,7 @@ constexpr uint8_t from_hex_digit(char c)
 template <typename Int>
 constexpr Int from_string(const char* str)
 {
+    static_assert(std::numeric_limits<Int>::is_specialized);
     auto s = str;
     auto x = Int{};
 
@@ -2449,6 +2448,216 @@ constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexce
     return res;
 }
 
+/// Signed integer of N bits in two's complement representation.
+/// Overflow wraps around modulo 2^N.
+template <unsigned N>
+struct sint
+{
+    static constexpr unsigned num_bits = N;
+
+private:
+    uint<N> u_;
+
+    /// Fills the words from the i-th with the sign bit of the (i-1)-th.
+    constexpr void sign_extend_from(size_t i) noexcept
+    {
+        const auto sign_word = static_cast<uint64_t>(static_cast<int64_t>(u_[i - 1]) >> 63);
+        for (; i < uint<N>::num_words; ++i)
+            u_[i] = sign_word;
+    }
+
+public:
+    constexpr sint() noexcept = default;
+
+    /// Constructs from the two's complement bits.
+    template <std::same_as<uint<N>> U>
+    constexpr explicit sint(const U& bits) noexcept : u_{bits}
+    {
+        // A template, so that no implicit conversion to uint<N> applies, e.g. from double.
+    }
+
+    /// Constructs from a builtin integer of up to 64 bits.
+    /// Sign-extends signed types and zero-extends unsigned ones.
+    template <std::integral T>
+    constexpr explicit(false) sint(T x) noexcept
+        requires(sizeof(T) <= sizeof(uint64_t))
+      : u_{static_cast<uint64_t>(x)}
+    {
+        if constexpr (std::is_signed_v<T>)
+            sign_extend_from(1);
+    }
+
+    /// Sign-extends a narrower sint.
+    template <unsigned M>
+    constexpr explicit(false) sint(const sint<M>& x) noexcept
+        requires(M < N)
+      : u_{static_cast<uint<M>>(x)}
+    {
+        sign_extend_from(uint<M>::num_words);
+    }
+
+    /// Returns the two's complement bits.
+    constexpr explicit operator uint<N>() const noexcept { return u_; }
+
+    /// Truncates to a narrower sint.
+    template <unsigned M>
+    constexpr explicit operator sint<M>() const noexcept
+        requires(M < N)
+    {
+        return sint<M>{static_cast<uint<M>>(u_)};
+    }
+
+    /// Truncates to a builtin integer of up to 64 bits.
+    template <std::integral T>
+    constexpr explicit operator T() const noexcept
+        requires(sizeof(T) <= sizeof(uint64_t))
+    {
+        return static_cast<T>(u_);
+    }
+
+    constexpr explicit operator bool() const noexcept { return static_cast<bool>(u_); }
+
+    friend constexpr sint operator+(const sint& x, const sint& y) noexcept
+    {
+        return sint{x.u_ + y.u_};
+    }
+
+    friend constexpr sint operator-(const sint& x, const sint& y) noexcept
+    {
+        return sint{x.u_ - y.u_};
+    }
+
+    constexpr sint operator-() const noexcept { return sint{-u_}; }
+
+    friend constexpr sint operator*(const sint& x, const sint& y) noexcept
+    {
+        return sint{x.u_ * y.u_};
+    }
+
+    /// Divides with the quotient truncated toward zero, like the builtin division.
+    /// Division by 0 gives 0 and MIN / -1 gives MIN.
+    friend constexpr sint operator/(const sint& x, const sint& y) noexcept
+    {
+        return sint{sdivrem(x.u_, y.u_).quot};
+    }
+
+    /// Returns the remainder of the division, which has the sign of x.
+    /// Division by 0 and MIN / -1 give the remainder 0.
+    friend constexpr sint operator%(const sint& x, const sint& y) noexcept
+    {
+        return sint{sdivrem(x.u_, y.u_).rem};
+    }
+
+    constexpr sint& operator+=(const sint& y) noexcept { return *this = *this + y; }
+    constexpr sint& operator-=(const sint& y) noexcept { return *this = *this - y; }
+    constexpr sint& operator*=(const sint& y) noexcept { return *this = *this * y; }
+    constexpr sint& operator/=(const sint& y) noexcept { return *this = *this / y; }
+    constexpr sint& operator%=(const sint& y) noexcept { return *this = *this % y; }
+
+    constexpr sint operator~() const noexcept { return sint{~u_}; }
+
+    friend constexpr sint operator&(const sint& x, const sint& y) noexcept
+    {
+        return sint{x.u_ & y.u_};
+    }
+
+    friend constexpr sint operator|(const sint& x, const sint& y) noexcept
+    {
+        return sint{x.u_ | y.u_};
+    }
+
+    friend constexpr sint operator^(const sint& x, const sint& y) noexcept
+    {
+        return sint{x.u_ ^ y.u_};
+    }
+
+    constexpr sint& operator&=(const sint& y) noexcept { return *this = *this & y; }
+    constexpr sint& operator|=(const sint& y) noexcept { return *this = *this | y; }
+    constexpr sint& operator^=(const sint& y) noexcept { return *this = *this ^ y; }
+
+    friend constexpr bool operator==(const sint& x, const sint& y) noexcept = default;
+
+    friend constexpr bool operator<(const sint& x, const sint& y) noexcept
+    {
+        return slt(x.u_, y.u_);
+    }
+
+    friend constexpr bool operator>(const sint& x, const sint& y) noexcept { return y < x; }
+    friend constexpr bool operator<=(const sint& x, const sint& y) noexcept { return !(y < x); }
+    friend constexpr bool operator>=(const sint& x, const sint& y) noexcept { return !(x < y); }
+
+    friend constexpr std::strong_ordering operator<=>(const sint& x, const sint& y) noexcept
+    {
+        if (x == y)
+            return std::strong_ordering::equal;
+        return x < y ? std::strong_ordering::less : std::strong_ordering::greater;
+    }
+
+    /// Shifts left. Shifting by N or more bits gives 0. The shift must not be negative.
+    friend constexpr sint operator<<(const sint& x, std::integral auto shift) noexcept
+    {
+        return sint{x.u_ << internal::shift_amount(shift)};
+    }
+
+    /// Shifts right arithmetically: the result is rounded toward negative infinity.
+    /// Shifting by N or more bits gives 0 or -1. The shift must not be negative.
+    friend constexpr sint operator>>(const sint& x, std::integral auto shift) noexcept
+    {
+        // Shifting the top word as int64_t makes it a single sar. Shifting ~x as uint<N> for
+        // negative x, or flipping the sign bits around the shift, is up to 18% slower in safegcd.
+        constexpr auto TOP = uint<N>::num_words - 1;
+        const auto top = static_cast<int64_t>(x.u_[TOP]);
+        // The shift by N - 1 gives the sign words.
+        const auto sh = std::min(internal::shift_amount(shift), uint64_t{N - 1});
+        const auto s = sh % 64;
+        const auto skip = static_cast<size_t>(sh / 64);
+        uint<N> r;
+        for (size_t i = 0; i < TOP - skip; ++i)
+            r[i] = (x.u_[i + skip] >> s) | ((x.u_[i + skip + 1] << (63 - s)) << 1);
+        r[TOP - skip] = static_cast<uint64_t>(top >> s);
+        for (size_t i = TOP - skip + 1; i <= TOP; ++i)
+            r[i] = static_cast<uint64_t>(top >> 63);
+        return sint{r};
+    }
+
+    constexpr sint& operator<<=(std::integral auto shift) noexcept
+    {
+        return *this = *this << shift;
+    }
+
+    constexpr sint& operator>>=(std::integral auto shift) noexcept
+    {
+        return *this = *this >> shift;
+    }
+};
+
+using int128 = sint<128>;
+using int256 = sint<256>;
+
+/// Full signed multiplication 64 x 64 -> 128.
+constexpr int128 smul(int64_t x, int64_t y) noexcept
+{
+#if INTX_HAS_BUILTIN_INT128
+    return int128{uint128{static_cast<builtin_uint128>(builtin_int128{x} * builtin_int128{y})}};
+#elif defined(_MSC_VER) && defined(_M_X64)
+    if (!std::is_constant_evaluated())
+    {
+        __int64 hi = 0;
+        const auto lo = _mul128(x, y, &hi);
+        return int128{uint128{static_cast<uint64_t>(lo), static_cast<uint64_t>(hi)}};
+    }
+    // For constexpr fallback to the portable variant.
+#endif
+
+    // Modulo 2^128, the unsigned product of the operands' bits exceeds the signed product
+    // by 2^64 * y if x is negative and by 2^64 * x if y is negative.
+    const auto ux = static_cast<uint64_t>(x);
+    const auto uy = static_cast<uint64_t>(y);
+    auto p = umul(ux, uy);
+    p[1] -= (uy & static_cast<uint64_t>(x >> 63)) + (ux & static_cast<uint64_t>(y >> 63));
+    return int128{p};
+}
+
 constexpr uint256 bswap(const uint256& x) noexcept
 {
     return {bswap(x[3]), bswap(x[2]), bswap(x[1]), bswap(x[0])};
@@ -2531,7 +2740,7 @@ DEFINE_ALIAS_AND_LITERAL(512)
 using namespace literals;
 
 /// Convert native representation to/from little-endian byte order.
-/// intx and built-in integral types are supported.
+/// uint and built-in integral types are supported.
 template <typename T>
 constexpr T to_little_endian(const T& x) noexcept
 {
@@ -2549,7 +2758,7 @@ constexpr T to_little_endian(const T& x) noexcept
 }
 
 /// Convert native representation to/from big-endian byte order.
-/// intx and built-in integral types are supported.
+/// uint and built-in integral types are supported.
 template <typename T>
 constexpr T to_big_endian(const T& x) noexcept
 {
