@@ -226,6 +226,9 @@ TEST(uint256, addmod)
         EXPECT_EQ(impl(c, 0, m), 0xffffffffffffffffffffffffffffffff8000000000000001_u256);
         EXPECT_EQ(impl(0, c, m), 0xffffffffffffffffffffffffffffffff8000000000000001_u256);
         EXPECT_EQ(impl(100, 0, 7), 2);
+        // A modulus above 2^255: the sum of the reduced arguments overflows 2^256.
+        const auto n = ~uint256{};
+        EXPECT_EQ(impl(n - 1, n - 1, n), n - 2);
     }
 }
 
