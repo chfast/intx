@@ -261,6 +261,17 @@ jobs:
       - collect_coverage_gcc
       - upload_coverage:
           flags: gcc
+      - run:
+          name: "Collect coverage data for SonarQube Cloud"
+          working_directory: ~/build
+          # The failing side of the assertions cannot be covered: exclude their branches.
+          command: |
+            mkdir -p ~/sonar
+            gcovr --filter ~/project --exclude-branches-by-pattern '.*(INTX_REQUIRE|assert)\(.*' --sonarqube ~/sonar/coverage.xml
+      - persist_to_workspace:
+          root: ~/sonar
+          paths:
+            - coverage.xml
 
   linux-clang-coverage:
     environment:
@@ -476,6 +487,8 @@ jobs:
             fi
       - checkout:
           method: full
+      - attach_workspace:
+          at: ~/sonar
       - run:
           name: "Install dependencies"
           command: |
@@ -502,6 +515,8 @@ jobs:
               -Dsonar.projectKey=chfast_intx \
               '-Dsonar.exclusions=test/integration/**' \
               -Dsonar.cfamily.compile-commands=$HOME/build/compile_commands.json \
+              -Dsonar.coverageReportPaths=$HOME/sonar/coverage.xml \
+              '-Dsonar.coverage.exclusions=test/**,examples/**,conanfile.py' \
               -Dsonar.python.version=3
 
 workflows:
@@ -528,4 +543,6 @@ workflows:
       - windows-32bit
       - windows-debug
       - windows-release
-      - sonarcloud
+      - sonarcloud:
+          requires:
+            - linux-gcc-coverage
