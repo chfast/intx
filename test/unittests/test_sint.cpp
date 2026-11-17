@@ -62,6 +62,15 @@ static_assert([] {
     return x == -2 && x - 1 == -3 && (x & 3) == 2 && (x ^ 1) == -1 && x <= 0 && x >= -2 &&
            (x <=> 0) < 0 && static_cast<bool>(x) && static_cast<int128>(x) == -2;
 }());
+static_assert([] {
+    const int128 x = -2;
+    return x[0] == ~uint64_t{1} && x[1] == ~uint64_t{0};
+}());
+static_assert([] {
+    int256 x = 1;
+    x[3] = uint64_t{1} << 63;
+    return x;
+}() == std::numeric_limits<int256>::min() + 1);
 
 namespace
 {
@@ -169,6 +178,22 @@ TYPED_TEST(sint_test, to_builtin_integer)
         EXPECT_EQ(static_cast<uint32_t>(x), static_cast<uint32_t>(w));
         EXPECT_EQ(static_cast<int8_t>(x), static_cast<int8_t>(w));
         EXPECT_EQ(static_cast<bool>(x), bits_t<TypeParam>{x} != 0);
+    }
+}
+
+TYPED_TEST(sint_test, words)
+{
+    using S = TypeParam;
+    for (const auto& x : sample_values<S>())
+    {
+        const auto u = bits_t<S>{x};
+        auto y = x;
+        for (size_t i = 0; i < S::num_words; ++i)
+        {
+            EXPECT_EQ(x[i], u[i]);
+            y[i] = ~u[i];
+        }
+        EXPECT_EQ(y, ~x);
     }
 }
 
