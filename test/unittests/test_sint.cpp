@@ -325,6 +325,9 @@ concept shr_assign_is_constant =
 TYPED_TEST(sint_test, shift_by_negative)
 {
     using S = TypeParam;
+    // MSVC needs the shifts evaluated once before the requires-expressions below.
+    static_assert((S{1} << 1) == 2 && (S{2} >> 1) == 1);
+    static_assert(shl_assign(S{1}, 1) == 2 && shr_assign(S{2}, 1) == 1);
     static_assert(shl_is_constant<S, 1> && shr_is_constant<S, 1>);
     static_assert(shl_assign_is_constant<S, 1> && shr_assign_is_constant<S, 1>);
 #ifndef NDEBUG
