@@ -22,7 +22,13 @@ static_assert(std::is_constructible_v<uint128, int128>);
 static_assert(!std::is_convertible_v<int128, int64_t>);
 static_assert(std::is_constructible_v<int64_t, int128>);
 static_assert(!std::is_constructible_v<int128, double>);
-static_assert(!std::is_constructible_v<int128, uint256>);
+static_assert(!std::is_convertible_v<uint256, int128>);
+static_assert(std::is_constructible_v<int128, uint256>);
+static_assert(std::is_convertible_v<uint128, int256>);
+static_assert(!std::is_convertible_v<int256, uint128>);
+static_assert(std::is_constructible_v<uint128, int256>);
+static_assert(!std::is_convertible_v<int128, uint256>);
+static_assert(std::is_constructible_v<uint256, int128>);
 #if INTX_HAS_BUILTIN_INT128
 static_assert(!std::is_constructible_v<int128, builtin_int128>);
 static_assert(!std::is_constructible_v<int256, builtin_uint128>);
@@ -42,6 +48,11 @@ static_assert(from_string<int128>("0x7fffffffffffffffffffffffffffffff") ==
 
 static_assert(int128{-1} == -int128{1});
 static_assert(int256{int128{-2}} == int256{-2});
+static_assert(int256{~uint128{}} == (int256{1} << 128) - 1);
+static_assert(int256{-1} + uint128{1} == 0);
+static_assert(static_cast<uint128>(int256{-2}) == ~uint128{1});
+static_assert(int128{~uint256{1}} == -2);
+static_assert(static_cast<uint256>(int128{-2}) == ~uint256{1});
 static_assert((int256{-8} >> 1) == int256{-4});
 static_assert((int256{-8} >> 300) == int256{-1});
 static_assert(int128{7} / int128{-2} == int128{-3});
@@ -157,6 +168,15 @@ TYPED_TEST(sint_test, widening_and_narrowing)
             slt(bits_t<S>{x}, {}) ? ~bits_t<W>{~bits_t<S>{x}} : bits_t<W>{bits_t<S>{x}});
         EXPECT_EQ(static_cast<S>(w), x);
         EXPECT_EQ(static_cast<int128>(x), int128{static_cast<uint128>(bits_t<S>{x})});
+        EXPECT_EQ(static_cast<bits_t<W>>(x), bits_t<W>{w});
+        const W z = bits_t<S>{x};
+        EXPECT_EQ(bits_t<W>{z}, bits_t<W>{bits_t<S>{x}});
+    }
+    for (const auto& y : sample_values<W>())
+    {
+        const auto u = bits_t<W>{y};
+        EXPECT_EQ(bits_t<S>{S{u}}, static_cast<bits_t<S>>(u));
+        EXPECT_EQ(static_cast<bits_t<S>>(y), static_cast<bits_t<S>>(u));
     }
 }
 
