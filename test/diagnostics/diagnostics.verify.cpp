@@ -161,13 +161,38 @@ uint256 shift_by_enum(const uint256& x)
     return x >> ONE;
 }
 
-// TODO: Reject negative shift amounts.
-static_assert((uint256{1} << -1) == 0);
+// A negative shift amount fails the assertion in debug builds and gives 0 in release builds.
+// debug-note@*:* 4 {{in call to 'shift_amount<int>(-1)'}}
+static_assert((uint256{1} << -1) == 0);  // debug-error {{not an integral constant expression}}
+static_assert((uint256{1} >> -1) == 0);  // debug-error {{not an integral constant expression}}
+// debug-error@+1 {{not an integral constant expression}}
 static_assert([] {
     auto x = uint256{1};
     x <<= -1;
     return x;
 }() == 0);
+// debug-error@+1 {{not an integral constant expression}}
+static_assert([] {
+    auto x = uint256{1};
+    x >>= -1;
+    return x;
+}() == 0);
+
+// The compound shifts convert amounts other than builtin integers of up to 64 bits to uint.
+static_assert([] {
+    auto x = uint256{8};
+    x <<= std::integral_constant<int, 1>{};
+    x >>= std::integral_constant<int, 2>{};
+    return x;
+}() == 4);
+#if INTX_HAS_BUILTIN_INT128
+static_assert([] {
+    auto x = uint256{1};
+    x <<= builtin_uint128{1};
+    x >>= builtin_int128{1} << 64;
+    return x;
+}() == 0);
+#endif
 
 // TODO: Keep the type of the shifted value.
 static_assert(std::same_as<decltype(uint128{1} << uint256{128}), uint256>);

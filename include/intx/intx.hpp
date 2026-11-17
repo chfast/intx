@@ -113,6 +113,20 @@ using builtin_int128 = __int128;
 template <unsigned N>
 struct uint;
 
+namespace internal
+{
+/// Converts a shift amount of a builtin integer type of up to 64 bits.
+/// The amount must not be negative.
+[[gnu::always_inline, msvc::forceinline]] constexpr uint64_t shift_amount(
+    std::integral auto shift) noexcept
+{
+    static_assert(sizeof(shift) <= sizeof(uint64_t));
+    if constexpr (std::is_signed_v<decltype(shift)>)
+        assert(shift >= 0);
+    return static_cast<uint64_t>(shift);
+}
+}  // namespace internal
+
 /// Contains result of add/sub/etc with a carry flag.
 template <typename T>
 struct result_with_carry
@@ -444,8 +458,7 @@ public:
 
     friend constexpr uint operator<<(uint x, std::integral auto shift) noexcept
     {
-        static_assert(sizeof(shift) <= sizeof(uint64_t));
-        return x << static_cast<uint64_t>(shift);
+        return x << internal::shift_amount(shift);
     }
 
     friend constexpr uint operator<<(uint x, uint shift) noexcept
@@ -477,8 +490,7 @@ public:
 
     friend constexpr uint operator>>(uint x, std::integral auto shift) noexcept
     {
-        static_assert(sizeof(shift) <= sizeof(uint64_t));
-        return x >> static_cast<uint64_t>(shift);
+        return x >> internal::shift_amount(shift);
     }
 
     friend constexpr uint operator>>(uint x, uint shift) noexcept
@@ -505,7 +517,19 @@ public:
     constexpr uint& operator&=(uint y) noexcept { return *this = *this & y; }
     constexpr uint& operator^=(uint y) noexcept { return *this = *this ^ y; }
     constexpr uint& operator<<=(uint shift) noexcept { return *this = *this << shift; }
+    template <std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    constexpr uint& operator<<=(T shift) noexcept
+    {
+        return *this = *this << shift;
+    }
     constexpr uint& operator>>=(uint shift) noexcept { return *this = *this >> shift; }
+    template <std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    constexpr uint& operator>>=(T shift) noexcept
+    {
+        return *this = *this >> shift;
+    }
     constexpr uint& operator/=(uint y) noexcept { return *this = *this / y; }
     constexpr uint& operator%=(uint y) noexcept { return *this = *this % y; }
 };
@@ -1558,8 +1582,7 @@ public:
 
     friend constexpr uint operator<<(const uint& x, std::integral auto shift) noexcept
     {
-        static_assert(sizeof(shift) <= sizeof(uint64_t));
-        return x << static_cast<uint64_t>(shift);
+        return x << internal::shift_amount(shift);
     }
 
     friend constexpr uint operator<<(const uint& x, const uint& shift) noexcept
@@ -1625,8 +1648,7 @@ public:
 
     friend constexpr uint operator>>(const uint& x, std::integral auto shift) noexcept
     {
-        static_assert(sizeof(shift) <= sizeof(uint64_t));
-        return x >> static_cast<uint64_t>(shift);
+        return x >> internal::shift_amount(shift);
     }
 
     friend constexpr uint operator>>(const uint& x, const uint& shift) noexcept
@@ -1642,7 +1664,19 @@ public:
     }
 
     constexpr uint& operator<<=(uint shift) noexcept { return *this = *this << shift; }
+    template <std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    constexpr uint& operator<<=(T shift) noexcept
+    {
+        return *this = *this << shift;
+    }
     constexpr uint& operator>>=(uint shift) noexcept { return *this = *this >> shift; }
+    template <std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    constexpr uint& operator>>=(T shift) noexcept
+    {
+        return *this = *this >> shift;
+    }
 };
 
 using uint256 = uint<256>;
