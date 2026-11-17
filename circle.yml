@@ -460,6 +460,50 @@ jobs:
       - install_deps
       - build_and_test
 
+  sonarcloud:
+    environment:
+      SONAR_SCANNER_VERSION: 8.4.0.16527
+    executor: linux-clang-latest
+    resource_class: large  # 4 CPUs: the analysis runs one compilation unit per CPU.
+    steps:
+      - run:
+          name: "Check the SonarQube Cloud token"
+          command: |
+            # Pull requests from forks do not get the token.
+            if [ -z "$SONAR_TOKEN" ]; then
+              echo "SONAR_TOKEN is not set: skipping the analysis"
+              circleci-agent step halt
+            fi
+      - checkout:
+          method: full
+      - run:
+          name: "Install dependencies"
+          command: |
+            sudo apt -q update
+            sudo apt install -qy libgmp-dev unzip
+      - run:
+          name: "Install SonarScanner"
+          working_directory: ~/
+          command: |
+            curl -sSL -o sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux-x64.zip
+            unzip -q sonar-scanner.zip
+            mv sonar-scanner-$SONAR_SCANNER_VERSION-linux-x64 sonar-scanner
+      - run:
+          name: "Configure"
+          # The compilation database gives the analysis the compiler options, e.g. the C++ standard.
+          command: cmake -B ~/build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DINTX_FUZZING=ON
+      - run:
+          name: "Analyze"
+          command: |
+            # test/integration has the Conan test package, which the Python analysis takes for tests.
+            ~/sonar-scanner/bin/sonar-scanner \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.organization=chfast \
+              -Dsonar.projectKey=chfast_intx \
+              '-Dsonar.exclusions=test/integration/**' \
+              -Dsonar.cfamily.compile-commands=$HOME/build/compile_commands.json \
+              -Dsonar.python.version=3
+
 workflows:
   version: 2
   intx:
@@ -484,3 +528,4 @@ workflows:
       - windows-32bit
       - windows-debug
       - windows-release
+      - sonarcloud
