@@ -193,6 +193,12 @@ TEST(uint256, exp)
     // The max exponent: 3^(2^256 - 1) is the inverse of 3 mod 2^256.
     EXPECT_EQ(exp(3_u256, ~0_u256),
         0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab_u256);
+    // Every bit of an exponent below 2^254 counts: 3 has the order 2^254 mod 2^256.
+    EXPECT_EQ(exp(3_u256, 0x0fedcba9876543210123456789abcdeff0e1d2c3b4a5968778695a4b3c2d1e0f_u256),
+        0x7f5c49a3966b0aaf7c03742b4364ed43515a631e088949ec2e54bb57af3a7a6b_u256);
+    // Constant evaluation also rejects reads past the last word and oversized shifts.
+    static_assert(exp(3_u128, 0xf0e1d2c3b4a5968778695a4b3c2d1e0f_u128) ==
+                  0x515a631e088949ec2e54bb57af3a7a6b_u128);
 }
 
 constexpr decltype(&addmod) addmod_impls[] = {

@@ -66,7 +66,7 @@ enum Op : uint8_t
     bit_xor,
     bit_not,
     neg,
-    exp,  // The exponent is truncated to 64 bits: higher bits only repeat the loop.
+    exp,  // The exponent is truncated to 2 words: enough to read windows from a higher word.
     lt,
     slt,
     eq,
@@ -1131,10 +1131,10 @@ bool Machine::exec(const Instr& in) noexcept
         mpz_xor(r.z, r.z, b.z);
         break;
     case exp:
-        r.set(intx::exp(x, T{y[0]}));
+        r.set(intx::exp(x, T{y[0], y[1]}));
         mpz_set_ui(t1_, 0);
         mpz_setbit(t1_, N);
-        set_u64(t2_, y[0]);
+        mpz_fdiv_r_2exp(t2_, b.z, 128);
         mpz_powm(r.z, r.z, t2_, t1_);
         break;
     case lt:
