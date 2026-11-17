@@ -60,5 +60,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t data_size) noe
         }
     }
 
+    const auto mulmod_expected = intx::gmp::mulmod(a, b, m);
+    const auto mulmod_result = intx::mulmod(a, b, m);
+    if (INTX_UNLIKELY(mulmod_result != mulmod_expected))
+    {
+        std::cerr << "FAILED: mulmod\n  " << a << " * " << b << " mod " << m
+                  << "\n  result:   " << mulmod_result << "\n  expected: " << mulmod_expected
+                  << "\n";
+        __builtin_trap();
+    }
+
     return 0;
 }
