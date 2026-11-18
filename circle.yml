@@ -8,7 +8,7 @@ parameters:
     description: "Run only the Mull mutation testing: diff (the lines changed since main) or full."
     type: enum
     enum: [none, diff, full]
-    default: none
+    default: full
 
 executors:
   linux-gcc-latest:
