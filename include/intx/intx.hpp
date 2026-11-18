@@ -2532,7 +2532,15 @@ public:
 
     friend constexpr sint operator+(const sint& x, const sint& y) noexcept
     {
-        return sint{x.u_ + y.u_};
+#if INTX_HAS_BUILTIN_INT128
+        // TODO(clang): uint128 adds with addc() for Clang's division code, but in sums of several
+        //   values Clang then saves the carries with setb, see addc_x86(). The builtin type keeps
+        //   the add/adc pairs.
+        if constexpr (N == 128)
+            return sint{uint<N>{builtin_uint128{x.u_} + builtin_uint128{y.u_}}};
+        else
+#endif
+            return sint{x.u_ + y.u_};
     }
 
     friend constexpr sint operator-(const sint& x, const sint& y) noexcept
