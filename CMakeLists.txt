@@ -35,6 +35,8 @@ if(INTX_FUZZING)
     set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined,address)
     add_compile_options(${fuzzing_flags} -fno-sanitize-recover=all)
     add_compile_definitions(_GLIBCXX_ASSERTIONS)  # Bounds checks of std::span and std::array.
+    # Uninitialized locals get a garbage pattern, so reading one changes the result.
+    add_compile_options(-ftrivial-auto-var-init=pattern)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${fuzzing_flags}")
 endif()
 
