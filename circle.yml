@@ -218,6 +218,12 @@ commands:
           key: corpus-<<parameters.arch>>-{{ epoch }}
           paths:
             - ~/corpus
+      - run:
+          name: "Archive fuzzing corpus"
+          command: tar -czf ~/corpus-<<parameters.arch>>.tar.gz -C ~ --transform='s,^corpus,corpus-<<parameters.arch>>,' corpus
+      - store_artifacts:
+          path: ~/corpus-<<parameters.arch>>.tar.gz
+          destination: corpus-<<parameters.arch>>.tar.gz
 
 
 jobs:
