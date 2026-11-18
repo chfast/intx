@@ -295,6 +295,8 @@ jobs:
       BUILD_TYPE: RelWithDebInfo
       # Strict C++20 (no GNU extensions): with libstdc++ before 16 __int128 is not an integral type.
       CMAKE_OPTIONS: -DSANITIZE=address,undefined,implicit-conversion,nullability -DCMAKE_CXX_CLANG_TIDY=clang-tidy -DCMAKE_CXX_EXTENSIONS=OFF
+      # Uninitialized locals get a garbage pattern, so reading one changes the result.
+      CXXFLAGS: -ftrivial-auto-var-init=pattern
       UBSAN_OPTIONS: halt_on_error=1
     executor: linux-clang-latest
     resource_class: large
@@ -306,8 +308,10 @@ jobs:
   linux-gcc-sanitizers:
     environment:
       BUILD_TYPE: RelWithDebInfo
+      CMAKE_OPTIONS: -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined
       # _GLIBCXX_ASSERTIONS checks the bounds of std::span and std::array, also inside an object.
-      CMAKE_OPTIONS: -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined -DCMAKE_CXX_FLAGS=-D_GLIBCXX_ASSERTIONS
+      # Uninitialized locals get a garbage pattern, so reading one changes the result.
+      CXXFLAGS: -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=pattern
       ASAN_OPTIONS: detect_invalid_pointer_pairs=2
       UBSAN_OPTIONS: halt_on_error=1
     executor: linux-gcc-latest
