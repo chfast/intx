@@ -299,7 +299,8 @@ jobs:
   linux-gcc-sanitizers:
     environment:
       BUILD_TYPE: RelWithDebInfo
-      CMAKE_OPTIONS: -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined
+      # _GLIBCXX_ASSERTIONS checks the bounds of std::span and std::array, also inside an object.
+      CMAKE_OPTIONS: -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined -DCMAKE_CXX_FLAGS=-D_GLIBCXX_ASSERTIONS
       ASAN_OPTIONS: detect_invalid_pointer_pairs=2
       UBSAN_OPTIONS: halt_on_error=1
     executor: linux-gcc-latest

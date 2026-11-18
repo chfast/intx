@@ -34,6 +34,7 @@ cable_configure_compiler(NO_STACK_PROTECTION)
 if(INTX_FUZZING)
     set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined,address)
     add_compile_options(${fuzzing_flags} -fno-sanitize-recover=all)
+    add_compile_definitions(_GLIBCXX_ASSERTIONS)  # Bounds checks of std::span and std::array.
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${fuzzing_flags}")
 endif()
 
