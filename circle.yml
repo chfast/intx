@@ -293,7 +293,8 @@ jobs:
   linux-clang-sanitizers:
     environment:
       BUILD_TYPE: RelWithDebInfo
-      CMAKE_OPTIONS: -DSANITIZE=address,undefined,implicit-conversion,nullability -DCMAKE_CXX_CLANG_TIDY=clang-tidy
+      # Strict C++20 (no GNU extensions): with libstdc++ before 16 __int128 is not an integral type.
+      CMAKE_OPTIONS: -DSANITIZE=address,undefined,implicit-conversion,nullability -DCMAKE_CXX_CLANG_TIDY=clang-tidy -DCMAKE_CXX_EXTENSIONS=OFF
       UBSAN_OPTIONS: halt_on_error=1
     executor: linux-clang-latest
     resource_class: large
