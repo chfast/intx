@@ -2270,8 +2270,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
     vl[TOP - 3] = (vl[TOP - 3] << s) >> s;
 
     std::array<uint64_t, TOP> rw{};  // r0 * 2^k + u mod 2^k, less than v.
-    for (size_t i = 0; i < TOP - 2; ++i)
-        rw[i] = u[i];
+    std::ranges::copy(as_words(u).template first<TOP - 2>(), rw.begin());
     rw[TOP - 3] = fshr(r0[0], rw[TOP - 3] << s, s);
     rw[TOP - 2] = fshr(r0[1], r0[0], s);
     if constexpr (EQUAL)
