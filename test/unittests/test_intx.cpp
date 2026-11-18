@@ -133,6 +133,15 @@ TYPED_TEST(uint_test, bswap)
 {
     auto x = TypeParam{1};
     EXPECT_EQ(bswap(x), x << ((sizeof(x) - 1) * 8));
+
+    TypeParam y;
+    TypeParam expected;
+    for (size_t i = 0; i < sizeof(y); ++i)
+    {
+        y = (y << 8) | TypeParam{i + 1};                        // Big-endian bytes: 1, 2, 3, ...
+        expected = (expected << 8) | TypeParam{sizeof(y) - i};  // Reversed: ..., 3, 2, 1.
+    }
+    EXPECT_EQ(bswap(y), expected);
 }
 
 TYPED_TEST(uint_test, endianness)
