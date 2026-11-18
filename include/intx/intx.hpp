@@ -2454,6 +2454,7 @@ template <unsigned N>
 struct sint
 {
     static constexpr unsigned num_bits = N;
+    static constexpr auto num_words = uint<N>::num_words;
 
 private:
     uint<N> u_;
@@ -2523,6 +2524,11 @@ public:
     }
 
     constexpr explicit operator bool() const noexcept { return static_cast<bool>(u_); }
+
+    /// Returns the i-th word of the two's complement bits, the least significant first.
+    /// i must be less than num_words.
+    constexpr uint64_t& operator[](size_t i) noexcept { return u_[i]; }
+    constexpr const uint64_t& operator[](size_t i) const noexcept { return u_[i]; }
 
     friend constexpr sint operator+(const sint& x, const sint& y) noexcept
     {
