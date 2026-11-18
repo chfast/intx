@@ -258,6 +258,63 @@ TYPED_TEST(sint_test, arithmetic)
     }
 }
 
+TYPED_TEST(sint_test, unary_plus)
+{
+    for (const auto& x : sample_values<TypeParam>())
+    {
+        const auto& y = +x;
+        EXPECT_EQ(y, x);
+        EXPECT_NE(&y, &x);
+    }
+}
+
+TYPED_TEST(sint_test, increment)
+{
+    using S = TypeParam;
+    static_assert([] {
+        S x = -1;
+        return ++x;
+    }() == 0);
+    static_assert([] {
+        S x = -1;
+        return x++;
+    }() == -1);
+    static_assert([] {
+        S x;
+        return --x;
+    }() == -1);
+    static_assert([] {
+        S x;
+        return x--;
+    }() == 0);
+
+    const auto MIN = S{bits_t<S>{1} << (S::num_bits - 1)};
+    const auto MAX = ~MIN;
+
+    auto a = MAX;
+    EXPECT_EQ(++a, MIN);
+    EXPECT_EQ(a, MIN);
+    EXPECT_EQ(--a, MAX);
+    EXPECT_EQ(a, MAX);
+
+    auto b = MIN;
+    EXPECT_EQ(b--, MIN);
+    EXPECT_EQ(b, MAX);
+    EXPECT_EQ(b++, MAX);
+    EXPECT_EQ(b, MIN);
+
+    for (const auto& x : sample_values<S>())
+    {
+        auto y = x;
+        EXPECT_EQ(++y, x + 1);
+        EXPECT_EQ(y--, x + 1);
+        EXPECT_EQ(y, x);
+        EXPECT_EQ(--y, x - 1);
+        EXPECT_EQ(y++, x - 1);
+        EXPECT_EQ(y, x);
+    }
+}
+
 TYPED_TEST(sint_test, division)
 {
     using S = TypeParam;

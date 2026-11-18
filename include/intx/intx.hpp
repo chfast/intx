@@ -392,14 +392,14 @@ public:
 
     constexpr uint& operator--() noexcept { return *this -= 1; }
 
-    constexpr const uint operator++(int) noexcept  // NOLINT(*-const-return-type)
+    constexpr uint operator++(int) noexcept
     {
         const auto ret = *this;
         *this += 1;
         return ret;
     }
 
-    constexpr const uint operator--(int) noexcept  // NOLINT(*-const-return-type)
+    constexpr uint operator--(int) noexcept
     {
         const auto ret = *this;
         *this -= 1;
@@ -1377,6 +1377,8 @@ public:
 
     constexpr uint& operator+=(const uint& y) noexcept { return *this = *this + y; }
 
+    constexpr uint operator+() const noexcept { return *this; }
+
     constexpr uint operator-() const noexcept { return uint{} - *this; }
 
     friend constexpr uint operator-(const uint& x, const uint& y) noexcept
@@ -1385,6 +1387,24 @@ public:
     }
 
     constexpr uint& operator-=(const uint& y) noexcept { return *this = *this - y; }
+
+    constexpr uint& operator++() noexcept { return *this += 1; }
+
+    constexpr uint& operator--() noexcept { return *this -= 1; }
+
+    constexpr uint operator++(int) noexcept
+    {
+        const auto ret = *this;
+        *this += 1;
+        return ret;
+    }
+
+    constexpr uint operator--(int) noexcept
+    {
+        const auto ret = *this;
+        *this -= 1;
+        return ret;
+    }
 
     /// Multiplication implementation using word access
     /// and discarding the high part of the result product.
@@ -2548,6 +2568,8 @@ public:
         return sint{x.u_ - y.u_};
     }
 
+    constexpr sint operator+() const noexcept { return *this; }
+
     constexpr sint operator-() const noexcept { return sint{-u_}; }
 
     friend constexpr sint operator*(const sint& x, const sint& y) noexcept
@@ -2574,6 +2596,24 @@ public:
     constexpr sint& operator*=(const sint& y) noexcept { return *this = *this * y; }
     constexpr sint& operator/=(const sint& y) noexcept { return *this = *this / y; }
     constexpr sint& operator%=(const sint& y) noexcept { return *this = *this % y; }
+
+    constexpr sint& operator++() noexcept { return *this += 1; }
+
+    constexpr sint& operator--() noexcept { return *this -= 1; }
+
+    constexpr sint operator++(int) noexcept
+    {
+        const auto ret = *this;
+        *this += 1;
+        return ret;
+    }
+
+    constexpr sint operator--(int) noexcept
+    {
+        const auto ret = *this;
+        *this -= 1;
+        return ret;
+    }
 
     constexpr sint operator~() const noexcept { return sint{~u_}; }
 

@@ -100,7 +100,7 @@ enum Op : uint8_t
 
     sint_arith,  // [1 byte]: x op y and x op= y for op in + - * / % & | ^.
     sint_shift,  // [1 byte]: x << y[0] or x >> y[0], or op=, by uint64_t or by int.
-    sint_unary,  // [1 byte]: -x, ~x, or x converted to a built-in integer and back.
+    sint_unary,  // [1 byte]: -x, ~x, x to a built-in integer and back, ++x, x++, --x, x--, +x.
     sint_cast,   // [w]: change the width of the top item with the sign extension.
     sint_cmp,    // Pushes the bits of all comparisons of x and y, <=> and bool(x).
     smul,        // Pushes smul() of the low words of x and y. The widths may differ.
@@ -948,7 +948,8 @@ bool Machine::exec(const Instr& in) noexcept
         {
             const auto sx = S{x};
             S s;
-            switch (in.imm % 6)
+            const auto k = in.imm % 11;
+            switch (k)
             {
             case 0:
                 s = -sx;
@@ -972,9 +973,26 @@ bool Machine::exec(const Instr& in) noexcept
                 mpz_fdiv_r_2exp(t1_, a.z, 8);
                 to_signed(a.z, t1_, 8);
                 break;
-            default:
+            case 5:
                 s = static_cast<bool>(sx);
                 mpz_set_ui(a.z, mpz_sgn(a.z.z) != 0);
+                break;
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            {
+                const auto is_inc = k < 8;
+                s = sx;
+                if (k % 2 == 0)
+                    is_inc ? ++s : --s;
+                else if ((is_inc ? s++ : s--) != sx)
+                    fail("sint postfix increment or decrement");
+                (is_inc ? mpz_add_ui : mpz_sub_ui)(a.z, a.z, 1);
+                break;
+            }
+            default:
+                s = +sx;
                 break;
             }
             a.set(T{s});
@@ -1215,23 +1233,16 @@ bool Machine::exec(const Instr& in) noexcept
         case 12:
         case 13:
         {
-            // Only uint128 has the increment and decrement operators.
             const auto is_inc = k < 12;
-            if constexpr (requires { ++v; })
-            {
-                if (k % 2 == 0)
-                    is_inc ? ++v : --v;
-                else if ((is_inc ? v++ : v--) != x)
-                    fail("postfix increment or decrement");
-            }
-            else
-                v = is_inc ? v + 1 : v - 1;
+            if (k % 2 == 0)
+                is_inc ? ++v : --v;
+            else if ((is_inc ? v++ : v--) != x)
+                fail("postfix increment or decrement");
             (is_inc ? mpz_add_ui : mpz_sub_ui)(r.z, r.z, 1);
             break;
         }
         default:
-            if constexpr (requires { +v; })
-                v = +v;
+            v = +v;
             break;
         }
         r.set(v);

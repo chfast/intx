@@ -94,6 +94,51 @@ TYPED_TEST(uint_test, negation_overflow)
     EXPECT_EQ(-m, m);
 }
 
+TYPED_TEST(uint_test, unary_plus)
+{
+    const auto x = ~TypeParam{} << 1;
+    const auto& y = +x;
+    EXPECT_EQ(y, x);
+    EXPECT_NE(&y, &x);
+}
+
+TYPED_TEST(uint_test, increment)
+{
+    static_assert([] {
+        TypeParam x;
+        return ++x;
+    }() == 1);
+    static_assert([] {
+        TypeParam x;
+        return x++;
+    }() == 0);
+    static_assert([] {
+        TypeParam x = 1;
+        return --x;
+    }() == 0);
+    static_assert([] {
+        TypeParam x = 1;
+        return x--;
+    }() == 1);
+
+    // The carry and the borrow cross all the words.
+    const auto max = ~TypeParam{};
+    const auto top = TypeParam{1} << (sizeof(TypeParam) * 8 - 64);
+    const auto below_top = top - 1;
+
+    auto a = max;
+    EXPECT_EQ(++a, 0);
+    EXPECT_EQ(a, 0);
+    EXPECT_EQ(--a, max);
+    EXPECT_EQ(a, max);
+
+    auto b = below_top;
+    EXPECT_EQ(b++, below_top);
+    EXPECT_EQ(b, top);
+    EXPECT_EQ(b--, top);
+    EXPECT_EQ(b, below_top);
+}
+
 TYPED_TEST(uint_test, carry_in)
 {
     EXPECT_EQ(addc(~TypeParam{0}, TypeParam{0}, true).value, 0);
