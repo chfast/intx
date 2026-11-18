@@ -165,7 +165,7 @@ constexpr result_with_carry<uint64_t> addc(uint64_t x, uint64_t y, bool carry = 
 #if __has_builtin(__builtin_addcll)
     if (!std::is_constant_evaluated())
     {
-        unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
+        unsigned long long carryout;  // NOLINT(google-runtime-int, *-init-variables)
         const auto s = __builtin_addcll(x, y, carry, &carryout);
         static_assert(sizeof(s) == sizeof(uint64_t));
         return {s, static_cast<bool>(carryout)};
@@ -173,7 +173,7 @@ constexpr result_with_carry<uint64_t> addc(uint64_t x, uint64_t y, bool carry = 
 #elif __has_builtin(__builtin_ia32_addcarryx_u64)
     if (!std::is_constant_evaluated())
     {
-        unsigned long long s = 0;  // NOLINT(google-runtime-int)
+        unsigned long long s;  // NOLINT(google-runtime-int, *-init-variables)
         static_assert(sizeof(s) == sizeof(uint64_t));
         const auto carryout = __builtin_ia32_addcarryx_u64(carry, x, y, &s);
         return {s, static_cast<bool>(carryout)};
@@ -194,7 +194,7 @@ constexpr result_with_carry<uint64_t> subc(uint64_t x, uint64_t y, bool carry = 
 #if __has_builtin(__builtin_subcll) && __apple_build_version__ != 14030022
     if (!std::is_constant_evaluated())
     {
-        unsigned long long carryout = 0;  // NOLINT(google-runtime-int)
+        unsigned long long carryout;  // NOLINT(google-runtime-int, *-init-variables)
         const auto d = __builtin_subcll(x, y, carry, &carryout);
         static_assert(sizeof(d) == sizeof(uint64_t));
         return {d, static_cast<bool>(carryout)};
@@ -202,7 +202,7 @@ constexpr result_with_carry<uint64_t> subc(uint64_t x, uint64_t y, bool carry = 
 #elif __has_builtin(__builtin_ia32_sbb_u64)
     if (!std::is_constant_evaluated())
     {
-        unsigned long long d = 0;  // NOLINT(google-runtime-int)
+        unsigned long long d;  // NOLINT(google-runtime-int, *-init-variables)
         static_assert(sizeof(d) == sizeof(uint64_t));
         const auto carryout = __builtin_ia32_sbb_u64(carry, x, y, &d);
         return {d, static_cast<bool>(carryout)};
@@ -226,7 +226,7 @@ namespace internal
 ///   The carry chains of the x86 builtin are not reassociated.
 inline uint64_t addc_x86(uint64_t x, uint64_t y, uint8_t& carry) noexcept
 {
-    unsigned long long s = 0;  // NOLINT(google-runtime-int)
+    unsigned long long s;  // NOLINT(google-runtime-int, *-init-variables)
     carry = __builtin_ia32_addcarryx_u64(carry, x, y, &s);
     return s;
 }
@@ -840,7 +840,7 @@ constexpr uint64_t reciprocal(T d) noexcept
 {
     constexpr bool WIDE = std::is_same_v<T, uint128>;  // The 3/2 reciprocal.
 
-    uint64_t d1 = 0;  // The top word.
+    uint64_t d1;  // The top word. NOLINT(*-init-variables)
     if constexpr (WIDE)
         d1 = d[1];
     else
@@ -2169,7 +2169,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
             return static_cast<uint<N>>(u);
     }();
     const auto vw = as_words(v).template first<TOP + 1>();
-    uint64_t borrow = 0;
+    uint64_t borrow;  // NOLINT(*-init-variables)
     if constexpr (WIDER)
         borrow = submul(as_words(r).data(), as_words(u).data(), vw, q) - ue;
     else
@@ -2214,16 +2214,16 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
     auto t1 = fshl(u[TOP - 1], u[TOP - 2], s);
     const auto t0 = fshl(u[TOP - 2], u[TOP - 3], s);
 
-    uint64_t qe = 0;     // The quotient bit 128.
+    uint64_t qe;         // The quotient bit 128. NOLINT(*-init-variables)
     bool clamp = false;  // The top 2 words of the normalized u equal vt.
     if constexpr (EQUAL)
     {
         // The quotient is below 2^129. Subtract v * 2^128 if u is not less: in the normalized u
         // these are the top 3 words minus the normalized v. Then u < v * 2^128.
-        bool less = false;  // u < v * 2^128: the borrow of the subtraction.
-        uint64_t d3 = 0;
-        uint64_t d2 = 0;
-        uint64_t d1 = 0;
+        bool less;    // u < v * 2^128: the borrow of the subtraction. NOLINT(*-init-variables)
+        uint64_t d3;  // NOLINT(*-init-variables)
+        uint64_t d2;  // NOLINT(*-init-variables)
+        uint64_t d1;  // NOLINT(*-init-variables)
         std::tie(d1, less) = subc(t1, v[0] << s);
         std::tie(d2, less) = subc(t2, vt[0], less);
         std::tie(d3, less) = subc(t3, vt[1], less);
@@ -2240,8 +2240,8 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
 
     // The estimate is at most 2 too large (Knuth, TAOCP Vol. 2, 4.3.1, Theorem B, base 2^128).
     // The first division does not overflow because t3:t2 < vt (when not clamped).
-    uint64_t q1 = 0;
-    uint64_t q0 = 0;
+    uint64_t q1;  // NOLINT(*-init-variables)
+    uint64_t q0;  // NOLINT(*-init-variables)
     uint128 r0;
     bool r0h = false;  // The bit 128 of r0 (when clamped).
     if (clamp) [[unlikely]]
@@ -2282,7 +2282,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint
     // r -= q * vl. The result is in (-2v, v), the borrow is its sign.
     const auto b0 = submul(rw.data(), vl, q0);
     const auto b1 = submul(&rw[1], vl, q1);
-    bool borrow = false;
+    bool borrow;  // NOLINT(*-init-variables)
     std::tie(rw[TOP - 2], borrow) = subc(rw[TOP - 2], b0);
     std::tie(rw[TOP - 1], borrow) = subc(rw[TOP - 1], b1, borrow);
     // With r0h the result is not negative: r0 * 2^k >= 2^(128 + k) > q * vl. Then a borrow out
