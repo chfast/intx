@@ -2469,12 +2469,11 @@ private:
 public:
     constexpr sint() noexcept = default;
 
-    /// Constructs from the two's complement bits.
-    template <std::same_as<uint<N>> U>
-    constexpr explicit sint(const U& bits) noexcept : u_{bits}
-    {
-        // A template, so that no implicit conversion to uint<N> applies, e.g. from double.
-    }
+    /// Constructs from the two's complement bits: zero-extends a narrower uint and truncates
+    /// a wider one. Only a narrower uint always keeps its value, so only it converts implicitly.
+    template <unsigned M>
+    constexpr explicit(M >= N) sint(const uint<M>& bits) noexcept : u_{static_cast<uint<N>>(bits)}
+    {}
 
     /// Constructs from a builtin integer of up to 64 bits.
     /// Sign-extends signed types and zero-extends unsigned ones.
@@ -2496,15 +2495,23 @@ public:
         sign_extend_from(uint<M>::num_words);
     }
 
-    /// Returns the two's complement bits.
-    constexpr explicit operator uint<N>() const noexcept { return u_; }
+    /// Returns the two's complement bits: truncated to a narrower uint and sign-extended to
+    /// a wider one.
+    template <unsigned M>
+    constexpr explicit operator uint<M>() const noexcept
+    {
+        if constexpr (M <= N)
+            return static_cast<uint<M>>(u_);
+        else
+            return static_cast<uint<M>>(sint<M>{*this});
+    }
 
     /// Truncates to a narrower sint.
     template <unsigned M>
     constexpr explicit operator sint<M>() const noexcept
         requires(M < N)
     {
-        return sint<M>{static_cast<uint<M>>(u_)};
+        return sint<M>{u_};
     }
 
     /// Truncates to a builtin integer of up to 64 bits.
