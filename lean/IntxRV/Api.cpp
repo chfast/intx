@@ -30,7 +30,6 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr auto* udivrem_2by1 =
     +[](uint128 u, uint64_t d, uint64_t v) noexcept { return intx::udivrem_2by1(u, d, v); };
 
-[[gnu::used]] constexpr auto* umul_256 = &intx::umul<256>;
 [[gnu::used]] constexpr auto* shl_9_8 = &intx::shl<9, 8>;
 [[gnu::used]] constexpr Binop add_256 = [](const uint256& x, const uint256& y) noexcept {
     return x + y;
@@ -82,4 +81,6 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
+// umul() adds with mac(): rv_arith does not bound the sums of the top words (IntxRV/README.md).
+[[gnu::used]] constexpr auto* umul_256 = &intx::umul<256>;
 }  // namespace intx::wip

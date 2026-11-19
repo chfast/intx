@@ -129,12 +129,6 @@ example : ∃ x, IntxRV.Api.udivrem_2by1.pre x := IntxRV.Api.udivrem_2by1.nonvac
 example : IntxRV.Api.umul.spec := IntxRV.Api.umul.proof
 #check_rv_axioms IntxRV.Api.umul.proof
 
-example : IntxRV.Api.umul_256.spec := IntxRV.Api.umul_256.proof
-#check_rv_axioms IntxRV.Api.umul_256.proof
-example :
-    IntxRV.NonVacuous IntxRV.Gen.umul_256_code IntxRV.Api.umul_256.bufs IntxRV.Api.umul_256.pre := by
-  rv_nonvacuous [10, 11, 12] using [IntxRV.Api.umul_256.bufs, IntxRV.Api.umul_256.pre, IntxRV.Gen.umul_256_code]
-
 example : IntxRV.Api.xor_256.spec := IntxRV.Api.xor_256.proof
 #check_rv_axioms IntxRV.Api.xor_256.proof
 example :

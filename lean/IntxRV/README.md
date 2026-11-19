@@ -96,10 +96,11 @@ name with its definition (`Defn`) in the context, so a step does not grow with t
 run. The specification then follows from the definitions by `rv_arith`
 ([`Arith.lean`](Arith.lean)): the carries and the words of the products as exact linear facts,
 the sums that cannot overflow by `omega` from the facts they depend on, and the result by
-`linarith`. `umul()` of `uint256` ([`Api/Mul.lean`](Api/Mul.lean)), the full 512-bit product
-with its stack frame, is proved this way directly from its specification, without a model;
-`shl<9, 8>()` ([`Api/Shl.lean`](Api/Shl.lean)), the shift of a 512-bit number, through the model
-`Intx.Model.shl` and its proof.
+`linarith`. `shl<9, 8>()` ([`Api/Shl.lean`](Api/Shl.lean)), the shift of a 512-bit number, is
+proved this way, through the model `Intx.Model.shl` and its proof. `umul()` of `uint256`, the
+512-bit product, is in `intx::wip`: since it adds the products with `mac()`, clang orders the
+additions of the carries across the columns, and `rv_arith` does not prove that the carry into the
+top word and the top word do not overflow, which needs bounds of the product over several columns.
 
 ### Calls and constant data
 
@@ -112,7 +113,7 @@ with the data in the memory. A call is `auipc ra` and `jalr ra`; `Reach.call`
 ([`Call.lean`](Call.lean)) runs the callee by its proof: `f.reach` of a function `f` on its own code
 is lifted into the image by `Reach.lift`. The instances of `intx::wip` in
 `Api.cpp` get their specifications without the checks of their proofs, until they are proved
-(none at present).
+(`umul()` of `uint256` at present).
 
 `bit_test()` and `count_significant_words()` ([`Api/Bits.lean`](Api/Bits.lean)) are proved
 directly, with lemmas on the bits of `words` and on `log2`.
