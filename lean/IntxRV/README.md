@@ -11,8 +11,10 @@ models (`Intx.Proofs`) then give the specification of the machine code.
 1. The documentation of a function in `intx.hpp` states its specification (below).
    [`Api.cpp`](Api.cpp) lists the instances to verify: in `intx::api` the functions whose machine
    code is proved (a lambda that calls the function, or the address of a function template
-   instance), in `intx::model` those whose model is proved (none at present). A `[[gnu::used]]`
-   pointer to a function makes the compiler emit its out-of-line copy.
+   instance; a lambda with `[[gnu::flatten]]` has the code of a function that clang does not
+   inline otherwise, as the shifts), in `intx::model` those whose model is proved (none at
+   present). A `[[gnu::used]]` pointer to a function makes the compiler emit its out-of-line
+   copy.
 2. [`../scripts/rv_build.sh`](../scripts/rv_build.sh) compiles `Api.cpp` for RV64 (clang 21,
    `-O2 -march=rv64imafd`) and runs [`../scripts/rv_gen.py`](../scripts/rv_gen.py), which writes
    `Gen/Code.lean`: the machine code of each function (the words of its section of the object
@@ -57,6 +59,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `operator^` of `uint256` | [`xor_256`](Api/xor_256.lean) |
 | `operator~` of `uint256` | [`not_256`](Api/not_256.lean) |
 | `shl<9, 8>()` | [`shl_9_8`](Api/shl_9_8.lean) |
+| `operator<<` of `uint256` by `uint64_t` | [`shl_256`](Api/shl_256.lean) |
 | `bit_test()` of `uint256` | [`bit_test_256`](Api/bit_test_256.lean) |
 | `count_significant_words()` of `uint256` | [`count_significant_words_256`](Api/count_significant_words_256.lean) |
 | `clz()` of `uint256` | [`clz_256`](Api/clz_256.lean) |
@@ -133,10 +136,11 @@ run. The specification then follows from the definitions by `rv_arith`
 ([`Arith.lean`](Arith.lean)): the carries and the words of the products as exact linear facts,
 the sums that cannot overflow by `omega` from the facts they depend on, and the result by
 `linarith`. `shl<9, 8>()`, the shift of a 512-bit number, is proved this way, through the model
-`Intx.Model.shl` and its proof. `umul()` of `uint256`, the 512-bit product, is in `intx::wip`:
-since it adds the products with `mac()`, clang orders the additions of the carries across the
-columns, and `rv_arith` does not prove that the carry into the top word and the top word do not
-overflow, which needs bounds of the product over several columns.
+`Intx.Model.shl` and its proof; `operator<<` of `uint256` with the lemmas of
+[`Shift.lean`](Shift.lean) on the funnel shifts of the words. `umul()` of `uint256`, the 512-bit
+product, is in `intx::wip`: since it adds the products with `mac()`, clang orders the additions of
+the carries across the columns, and `rv_arith` does not prove that the carry into the top word and
+the top word do not overflow, which needs bounds of the product over several columns.
 
 ### Calls and constant data
 
@@ -149,7 +153,7 @@ with the data in the memory. A call is `auipc ra` and `jalr ra`; `Reach.call`
 ([`Call.lean`](Call.lean)) runs the callee by its proof: `f.reach` of a function `f` on its own code
 is lifted into the image by `Reach.lift`. The instances of `intx::wip` in
 `Api.cpp` get their specifications without the checks of their proofs, until they are proved
-(`umul()` of `uint256` at present).
+(`umul()` of `uint256` and `operator>>` at present).
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
 `words` and on `log2` ([`Bits.lean`](Bits.lean)).

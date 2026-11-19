@@ -7,7 +7,8 @@
 //
 // Each instance is a lambda that calls one documented function (the operators are hidden friends,
 // so they have no qualified name to point to) or the address of a function template instance, the
-// out-of-line function that other functions call. scripts/rv_api.py finds the function in the AST
+// out-of-line function that other functions call. A lambda with [[gnu::flatten]] gets the code of a
+// function that clang does not inline otherwise. scripts/rv_api.py finds the function in the AST
 // of this file and states its specification for the instance:
 // - intx::api: a [[gnu::used]] pointer `p` whose RV64 machine code is proved (the specification
 //   `Api.p.spec` in the generated IntxRV/Gen/Api.lean, the proof in IntxRV/Api/p.lean),
@@ -15,6 +16,9 @@
 //   model Intx.Model.<name>, the proofs in Intx/Proofs/); none at present.
 
 #include <intx/intx.hpp>
+
+// The attributes of lambdas before the parameters, of C++23, are an extension of clang in C++20.
+#pragma clang diagnostic ignored "-Wc++23-lambda-attributes"
 
 namespace intx::api
 {
@@ -75,6 +79,8 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr auto* clz_256 = +[](const uint256& x) noexcept { return clz(x); };
 [[gnu::used]] constexpr auto* bit_width_256 =
     +[](const uint256& x) noexcept { return bit_width(x); };
+[[gnu::used]] constexpr auto* shl_256 =
+    +[] [[gnu::flatten]] (const uint256& x, uint64_t shift) noexcept { return x << shift; };
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
@@ -83,4 +89,6 @@ namespace intx::wip
 {
 // umul() adds with mac(): rv_arith does not bound the sums of the top words (IntxRV/README.md).
 [[gnu::used]] constexpr auto* umul_256 = &intx::umul<256>;
+[[gnu::used]] constexpr auto* shr_256 =
+    +[] [[gnu::flatten]] (const uint256& x, uint64_t shift) noexcept { return x >> shift; };
 }  // namespace intx::wip
