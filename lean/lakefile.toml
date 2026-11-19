@@ -20,9 +20,11 @@ rev = "11d8fa212a60c05dcc9fe5db925dd4d06dad65b5"
 name = "Intx"
 leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
 
-# The proofs that the RV64 machine code of intx functions computes their models (see IntxRV/README.md).
+# The proofs that the RV64 machine code of intx functions computes their models (see IntxRV/README.md):
+# all the modules, the proof of each function in IntxRV/Api/ and the generated IntxRV/Gen/.
 [[lean_lib]]
 name = "IntxRV"
+globs = ["IntxRV.*"]
 leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
 moreLeanArgs = ["--tstack=4000000"]
 

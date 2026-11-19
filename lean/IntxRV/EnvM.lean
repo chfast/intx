@@ -8,7 +8,7 @@ import IntxRV.Words
 (`WordOk`), present in the memory and outside the code. `envM_exists` builds such an environment:
 a machine with 4 KiB of RAM at 0x80000000 and no other memory. `api_nonvacuous` shows that the
 assumptions of a specification hold there: `NonVacuous`, proved by `rv_nonvacuous` with the
-buffers of the arguments at 0x80000000, 0x80000100, ... (Checks/IntxRVApi.lean).
+buffers of the arguments at 0x80000000, 0x80000100, ... (the generated Checks/Gen/IntxRVApi.lean).
 -/
 
 open Sail Sail.ConcurrencyInterfaceV1 PreSail

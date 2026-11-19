@@ -13,18 +13,54 @@ models (`Intx.Proofs`) then give the specification of the machine code.
    code is proved (a lambda that calls the function, or the address of a function template
    instance), in `intx::model` those whose model is proved (none at present). A `[[gnu::used]]`
    pointer to a function makes the compiler emit its out-of-line copy.
-2. [`../scripts/rv_build.sh`](../scripts/rv_build.sh) compiles `Api.cpp` for RV64 (clang,
+2. [`../scripts/rv_build.sh`](../scripts/rv_build.sh) compiles `Api.cpp` for RV64 (clang 21,
    `-O2 -march=rv64imafd`) and runs [`../scripts/rv_gen.py`](../scripts/rv_gen.py), which writes
-   [`Gen/Code.lean`](Gen/Code.lean): the machine code of each function (the words of its
-   section of the object file, which must have no relocations), the instructions that the words
-   decode to, and the proofs that the decoder of the Sail model decodes them so, and the bytes of
-   the stack each function uses (its frame); and
-   [`../scripts/rv_api.py`](../scripts/rv_api.py), which writes the specifications of the
-   instances to [`Gen/Api.lean`](Gen/Api.lean) and `../Intx/Gen/Spec.lean`, and their checks to
-   [`../Checks/IntxRVApi.lean`](../Checks/IntxRVApi.lean) and `../Checks/IntxSpec.lean`.
-3. `lake build IntxRV Checks` checks the proofs. CI regenerates the files and fails if they
-   differ from the committed ones, so a new compiler or a change of the C++ code or of its
-   documentation shows up as a diff.
+   `Gen/Code.lean`: the machine code of each function (the words of its section of the object
+   file, which must have no relocations), the instructions that the words decode to, and the
+   proofs that the decoder of the Sail model decodes them so, and the bytes of the stack each
+   function uses (its frame); and [`../scripts/rv_api.py`](../scripts/rv_api.py), which writes
+   the specifications of the instances to `Gen/Api.lean` and `../Intx/Gen/Spec.lean`, and their
+   checks to `../Checks/Gen/IntxRVApi.lean` and `../Checks/Gen/IntxSpec.lean`.
+3. `lake build IntxRV Checks` checks the proofs.
+
+The generated files are not in git: run `scripts/rv_build.sh` before `lake build`, and again after
+a change of `intx.hpp` or `Api.cpp`. CI generates them in every build, so the proofs must hold for
+the code and the documentation of the commit. Another compiler emits other code: `rv_build.sh`
+requires clang 21.
+
+## The proof of a function
+
+The proof of the instance `p` of `Api.cpp` is in `Api/p.lean`, and the file holds only it. The
+file quotes the documentation and the declaration of the function from `intx.hpp`, so it reads
+without the generated files: `Api.p.spec` states the quoted `@pre` and `@post` for the machine code
+of `p` (see [the specifications](#the-specifications)), and `Api.p.proof` proves it. `rv_api.py`
+fails if a quote differs from `intx.hpp`, if the file is missing, or if this table does not link
+it. The lemmas and the tactics that the proofs share are in the other files of `IntxRV/`.
+
+| function | proof |
+|---|---|
+| `umul()` of two words | [`umul`](Api/umul.lean) |
+| `addc()` | [`addc`](Api/addc.lean) |
+| `udivrem_2by1()` | [`udivrem_2by1`](Api/udivrem_2by1.lean) |
+| `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
+| `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
+| `operator-` of `uint256` | [`sub_256`](Api/sub_256.lean) |
+| `operator==` of `uint256` | [`eq_256`](Api/eq_256.lean) |
+| `operator!=` of `uint256` | [`ne_256`](Api/ne_256.lean) |
+| `operator<` of `uint256` | [`lt_256`](Api/lt_256.lean) |
+| `operator>` of `uint256` | [`gt_256`](Api/gt_256.lean) |
+| `operator>=` of `uint256` | [`ge_256`](Api/ge_256.lean) |
+| `operator<=` of `uint256` | [`le_256`](Api/le_256.lean) |
+| `slt()` of `uint256` | [`slt_256`](Api/slt_256.lean) |
+| `operator\|` of `uint256` | [`or_256`](Api/or_256.lean) |
+| `operator&` of `uint256` | [`and_256`](Api/and_256.lean) |
+| `operator^` of `uint256` | [`xor_256`](Api/xor_256.lean) |
+| `operator~` of `uint256` | [`not_256`](Api/not_256.lean) |
+| `shl<9, 8>()` | [`shl_9_8`](Api/shl_9_8.lean) |
+| `bit_test()` of `uint256` | [`bit_test_256`](Api/bit_test_256.lean) |
+| `count_significant_words()` of `uint256` | [`count_significant_words_256`](Api/count_significant_words_256.lean) |
+| `clz()` of `uint256` | [`clz_256`](Api/clz_256.lean) |
+| `bit_width()` of `uint256` | [`bit_width_256`](Api/bit_width_256.lean) |
 
 ## The theorems
 
@@ -78,11 +114,11 @@ the result does not overlap the arguments; the memory outside the result is unch
 with a stack frame gets the frame below sp as one more buffer that overlaps no other, and the memory
 outside the result and the frame is unchanged.
 
-The proofs are in [`Api/`](Api/): the generated `Checks/IntxRVApi.lean` requires a proof
+The proofs are in [`Api/`](Api/): the generated `Checks/Gen/IntxRVApi.lean` requires a proof
 `Api.p.proof : Api.p.spec` for every instance, with the allowed axioms only, and that the
 assumptions of the specification hold: with `NonVacuous` ([`EnvM.lean`](EnvM.lean)) in an
 environment for the functions with memory, by a proof `Api.p.nonvacuous` otherwise. `umul()`,
-`addc()` and `udivrem_2by1()` are proved through their models ([`Api/Word.lean`](Api/Word.lean)),
+`addc()` and `udivrem_2by1()` are proved through their models,
 the bitwise operators through `List.zipWith` (and `~` through `List.map`) of the word operation; the
 comparisons and `slt()` directly. `operator+` and `operator-` are proved through the models `add4`
 and `sub4` (the chains of `addc()` and `subc()` of `Intx.Model`, [`ApiModel.lean`](ApiModel.lean));
@@ -96,11 +132,11 @@ name with its definition (`Defn`) in the context, so a step does not grow with t
 run. The specification then follows from the definitions by `rv_arith`
 ([`Arith.lean`](Arith.lean)): the carries and the words of the products as exact linear facts,
 the sums that cannot overflow by `omega` from the facts they depend on, and the result by
-`linarith`. `shl<9, 8>()` ([`Api/Shl.lean`](Api/Shl.lean)), the shift of a 512-bit number, is
-proved this way, through the model `Intx.Model.shl` and its proof. `umul()` of `uint256`, the
-512-bit product, is in `intx::wip`: since it adds the products with `mac()`, clang orders the
-additions of the carries across the columns, and `rv_arith` does not prove that the carry into the
-top word and the top word do not overflow, which needs bounds of the product over several columns.
+`linarith`. `shl<9, 8>()`, the shift of a 512-bit number, is proved this way, through the model
+`Intx.Model.shl` and its proof. `umul()` of `uint256`, the 512-bit product, is in `intx::wip`:
+since it adds the products with `mac()`, clang orders the additions of the carries across the
+columns, and `rv_arith` does not prove that the carry into the top word and the top word do not
+overflow, which needs bounds of the product over several columns.
 
 ### Calls and constant data
 
@@ -115,10 +151,10 @@ is lifted into the image by `Reach.lift`. The instances of `intx::wip` in
 `Api.cpp` get their specifications without the checks of their proofs, until they are proved
 (`umul()` of `uint256` at present).
 
-`bit_test()` and `count_significant_words()` ([`Api/Bits.lean`](Api/Bits.lean)) are proved
-directly, with lemmas on the bits of `words` and on `log2`.
+`bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
+`words` and on `log2` ([`Bits.lean`](Bits.lean)).
 
-`reciprocal_2by1()` ([`Api/Reciprocal.lean`](Api/Reciprocal.lean)) reads the table of the image
+`reciprocal_2by1()` reads the table of the image ([`Reciprocal.lean`](Reciprocal.lean))
 and is proved through its model `Intx.Model.reciprocal`. `NonVacuousI`
 ([`EnvImage.lean`](EnvImage.lean)) checks that the assumptions of `RunsI` hold: the data stored in
 the RAM of the environment.
@@ -167,7 +203,7 @@ linker script; its output is checked as the machine code is.
 ## Build
 
 ```sh
-sudo apt install clang lld g++-riscv64-linux-gnu
-scripts/rv_build.sh
+sudo apt install clang-21 lld g++-riscv64-linux-gnu
+CXX=clang++-21 scripts/rv_build.sh
 lake build IntxRV Checks
 ```

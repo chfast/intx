@@ -2,12 +2,26 @@ import IntxRV.Gen.Api
 import IntxRV.Arith
 import IntxRV.ApiModel
 /-!
-# The proof of `shl()` of 8 words into 9
+# `shl()` of 8 words into 9
 
-`shl<9, 8>` shifts a 512-bit number left by less than 64 bits into 9 words. The function stores the
-funnel shifts of the words (`sll`, `srl`) on one path and copies the words for the shift 0 on the
-other; `val_shl_words` gives the value from the words, through the model `Intx.Model.shl` and its
-proof `shl_spec`.
+The specification, from `include/intx/intx.hpp`:
+
+```cpp
+/// Left-shifts a little-endian word array x by shift bits and stores the result in r.
+/// The r must have the same size as x, or one word more to also receive the bits shifted out.
+/// The r may alias x. The shift must be less than 64.
+/// @pre shift < 64
+/// @post r = x * 2 ^ shift % 2 ^ N
+template <size_t RN, size_t XN>
+constexpr void shl(
+    std::span<uint64_t, RN> r, std::span<const uint64_t, XN> x, unsigned shift) noexcept
+```
+
+`shl_9_8.spec` states it for the RV64 machine code of `shl_9_8` in `IntxRV/Api.cpp` (generated in
+`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function stores the funnel shifts of the words
+(`sll`, `srl`) on one path and copies the words for the shift 0 on the other. `rv_exec` runs the
+paths, and `val_shl_words` gives the value from the words, through the model `Intx.Model.shl` and
+its proof `shl_spec`.
 -/
 
 set_option maxHeartbeats 40000000

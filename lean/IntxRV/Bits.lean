@@ -4,16 +4,11 @@ import IntxRV.Image
 import IntxRV.Clz
 import Mathlib.Tactic.Ring
 /-!
-# The proofs of `bit_test()`, `count_significant_words()`, `clz()` and `bit_width()` of `uint256`
+# The bits of the words of a number
 
-`count_significant_words()` tests the words from the top: `rv_runm` proves the index of the top
-nonzero word, and `count_significant_words4` its relation to `log2`. `bit_test()` loads the word
-of the bit at an address computed from the bit index (`shr3_and`); `testBit_words` gives the bit
-of the number.
-
-`clz()` and `bit_width()` count the leading zeros of the top nonzero word with the SWAR code of
-`swarClz`; `clz_ite` gives its value and `clz_words4` and `bit_width_words4` its relation to
-`log2`.
+The lemmas of the proofs of `bit_test()`, `count_significant_words()`, `clz()` and `bit_width()` of
+`uint256`: the bits of the words of a number, `log2` by the top nonzero word, and the paths of the
+SWAR count of the leading zeros (`rv_clz_paths`).
 -/
 
 set_option maxRecDepth 100000
@@ -195,74 +190,6 @@ end IntxRV
 namespace IntxRV.Api
 open IntxRV IntxRV.Gen
 
-set_option maxHeartbeats 4000000 in
-theorem count_significant_words_256.model : RunsM count_significant_words_256_code
-    count_significant_words_256.bufs count_significant_words_256.pre fun x m x' m' =>
-    x'.get 10#5 = (if memWord m (x 10#5 + 24#64).toNat ≠ 0 then 4#64
-      else if memWord m (x 10#5 + 16#64).toNat ≠ 0 then 3#64
-      else if memWord m (x 10#5 + 8#64).toNat ≠ 0 then 2#64
-      else if memWord m (x 10#5).toNat ≠ 0 then 1#64 else 0#64) ∧
-    m' = m ∧ ∀ i ∈ calleeSaved, x' i = x i := by
-  rv_runm count_significant_words_256_decodes with count_significant_words_256_code
-    count_significant_words_256_prog using [count_significant_words_256.bufs,
-    count_significant_words_256.pre, Buf]
-
-theorem count_significant_words_256.proof : count_significant_words_256.spec :=
-  count_significant_words_256.model.mono (fun _ _ h => h) fun x m x' m' _ ⟨h, hm, hc⟩ => by
-    simp only [count_significant_words_256.post, words, BitVec.add_assoc, BitVec.ofNat_eq_ofNat,
-      BitVec.reduceAdd, Nat.mul_zero, Nat.add_zero]
-    have h0 := (memWord m (x 10#5).toNat).isLt
-    have h1 := (memWord m (x 10#5 + 8#64).toNat).isLt
-    have h2 := (memWord m (x 10#5 + 16#64).toNat).isLt
-    have h3 := (memWord m (x 10#5 + 24#64).toNat).isLt
-    refine ⟨?_, ?_, hm, hc⟩ <;> rw [h]
-    all_goals generalize memWord m (x 10#5).toNat = w0 at *
-    all_goals generalize memWord m (x 10#5 + 8#64).toNat = w1 at *
-    all_goals generalize memWord m (x 10#5 + 16#64).toNat = w2 at *
-    all_goals generalize memWord m (x 10#5 + 24#64).toNat = w3 at *
-    · rw [count_significant_words4]
-      split_ifs <;> rfl
-    · split_ifs <;> decide
-
-set_option maxHeartbeats 4000000 in
-theorem bit_test_256.reach (base : BitVec 64) (x : Regs) (m : Mem) (hra : x.get 1#5 &&& 3 = 0)
-    (hpre : bit_test_256.pre x m) :
-    Reach (bit_test_256.bufs x) bit_test_256_prog base (pcAt base 0) x m (x.get 1#5)
-      (bit_test_256.post x m) := by
-  simp only [bit_test_256.pre, bit_test_256.bufs, Buf] at hpre ⊢
-  simp (disch := decide) only [Regs.eq_get x] at hpre ⊢
-  rv_exec
-  refine Reach.step (by decide) rfl ?_
-  simp only [StepGoal, Nat.reduceAdd]
-  rv_val
-  simp only [Defn] at *
-  subst_vars
-  have hi : (x.get 11#5).toNat / 64 < 4 := by omega
-  rw [shr3_and]
-  refine ⟨mem_bufWords hi, fun w hw => ?_⟩
-  rv_exec
-  rv_val
-  simp only [update_aligned hra]
-  refine Reach.refl ?_
-  simp only [bit_test_256.post, calleeSaved, List.mem_cons, List.not_mem_nil, or_false,
-    forall_eq_or_imp, forall_eq, and_true, true_and]
-  simp (disch := decide) only [Regs.eq_get x]
-  simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
-  simp only [Defn] at *
-  subst_vars
-  rw [testBit_words m 4 _ _ (by omega)]
-  refine ⟨by simp [shr_and_one_eq_one], and_one_cases _, ?_⟩
-  simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat,
-    and_self, and_true, true_and]
-  simp (disch := decide) only [Regs.eq_get x, and_self]
-
-
-theorem bit_test_256.proof : bit_test_256.spec :=
-  runsM_of_reach bit_test_256_decodes fun base ret _ hr _ x m hx1 hpre => by
-    have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
-    have h := bit_test_256.reach base x m (hx ▸ hr) hpre
-    rwa [pcAt_zero, hx] at h
-
 set_option hygiene false in
 /-- The paths of `clz()` and `bit_width()` of `uint256` to the return: the word tests, the value of
 `swarClz` and the result for the top nonzero word. -/
@@ -308,35 +235,5 @@ macro "rv_clz_paths" post:ident : tactic => `(tactic| (
     | (simp only [BitVec.toNat_add, BitVec.toNat_sub, BitVec.toNat_ofNat]; omega)
     | (apply signExtend_setWidth_of_lt
        simp only [BitVec.toNat_add, BitVec.toNat_sub, BitVec.toNat_ofNat]; omega)))
-
-set_option maxHeartbeats 4000000 in
-theorem clz_256.reach (base : BitVec 64) (x : Regs) (m : Mem) (hra : x.get 1#5 &&& 3 = 0)
-    (hpre : clz_256.pre x m) :
-    Reach (clz_256.bufs x) clz_256_prog base (pcAt base 0) x m (x.get 1#5)
-      (clz_256.post x m) := by
-  simp only [clz_256.pre, clz_256.bufs, Buf] at hpre ⊢
-  simp (disch := decide) only [Regs.eq_get x] at hpre ⊢
-  rv_clz_paths clz_256.post
-
-theorem clz_256.proof : clz_256.spec :=
-  runsM_of_reach clz_256_decodes fun base ret _ hr _ x m hx1 hpre => by
-    have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
-    have h := clz_256.reach base x m (hx ▸ hr) hpre
-    rwa [pcAt_zero, hx] at h
-
-set_option maxHeartbeats 4000000 in
-theorem bit_width_256.reach (base : BitVec 64) (x : Regs) (m : Mem) (hra : x.get 1#5 &&& 3 = 0)
-    (hpre : bit_width_256.pre x m) :
-    Reach (bit_width_256.bufs x) bit_width_256_prog base (pcAt base 0) x m (x.get 1#5)
-      (bit_width_256.post x m) := by
-  simp only [bit_width_256.pre, bit_width_256.bufs, Buf] at hpre ⊢
-  simp (disch := decide) only [Regs.eq_get x] at hpre ⊢
-  rv_clz_paths bit_width_256.post
-
-theorem bit_width_256.proof : bit_width_256.spec :=
-  runsM_of_reach bit_width_256_decodes fun base ret _ hr _ x m hx1 hpre => by
-    have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
-    have h := bit_width_256.reach base x m (hx ▸ hr) hpre
-    rwa [pcAt_zero, hx] at h
 
 end IntxRV.Api

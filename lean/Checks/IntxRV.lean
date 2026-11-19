@@ -5,7 +5,7 @@ set_option warningAsError true
 # Checks: the RV64 machine code
 
 The environments of IntxRV exist, and its theorems (`#check_rv_axioms`, also used for the
-specifications in Checks/IntxRVApi.lean) use only the axioms of Lean and the opaque functions
+specifications in the generated Checks/Gen/IntxRVApi.lean) use only the axioms of Lean and the opaque functions
 that the Sail model declares as axioms (`SAIL_AXIOMS`): no `sorry` (`sorryAx`), no
 `native_decide` and no `bv_decide` (whose proofs add axioms `*._native.bv_decide.*`, checked by
 compiled code).
