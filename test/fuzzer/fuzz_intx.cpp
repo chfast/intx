@@ -73,7 +73,7 @@ enum Op : uint8_t
     bit_xor,
     bit_not,
     neg,
-    exp,  // The exponent is truncated to 64 bits: higher bits only repeat the loop.
+    exp,  // The exponent is truncated to 128 bits: wider exponents run long.
     lt,
     slt,
     eq,
@@ -1186,12 +1186,17 @@ bool Machine::exec(const Instr& in) noexcept
         mpz_xor(r.z, r.z, b.z);
         break;
     case exp:
-        r.set(intx::exp(x, T{y[0]}));
+    {
+        T e;
+        e[0] = y[0];
+        e[1] = y[1];
+        r.set(intx::exp(x, e));
         mpz_set_ui(t1_, 0);
         mpz_setbit(t1_, N);
-        set_u64(t2_, y[0]);
+        mpz_fdiv_r_2exp(t2_, b.z, 128);
         mpz_powm(r.z, r.z, t2_, t1_);
         break;
+    }
     case lt:
         r.set(T{uint64_t{x < y}});
         mpz_set_ui(r.z, mpz_cmp(r.z, b.z) < 0);
