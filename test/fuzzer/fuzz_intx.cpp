@@ -36,6 +36,13 @@ constexpr bool is_width(unsigned words) noexcept
     return std::ranges::find(WIDTHS, words) != std::end(WIDTHS);
 }
 
+/// The previous width in bits, 0 for the first one.
+constexpr unsigned narrower(unsigned num_bits) noexcept
+{
+    const auto it = std::ranges::find(WIDTHS, num_bits / 64);
+    return it == std::begin(WIDTHS) ? 0 : *(it - 1) * 64;
+}
+
 constexpr size_t MAX_DEPTH = 16;
 constexpr size_t MAX_PROGRAM_SIZE = 64;
 
@@ -885,10 +892,37 @@ bool Machine::exec(const Instr& in) noexcept
             expected.resize(expected.find('\0'));
             if (s != expected)
                 fail("to_string", &a);
-            if (base == 10 && intx::from_string<T>(s) != x)
-                fail("from_string (dec)", &a);
-            if (base == 16 && intx::from_string<T>("0x" + s) != x)
-                fail("from_string (hex)", &a);
+            // Large values overflow the narrower width.
+            const auto parse_back = [&](const std::string& str) {
+                if (intx::from_string<T>(str) != x)
+                    fail("from_string", &a);
+                if constexpr (constexpr auto M = narrower(N); M != 0)
+                {
+                    bool overflow = false;
+                    intx::uint<M> v;
+                    try
+                    {
+                        v = intx::from_string<intx::uint<M>>(str);
+                    }
+                    catch (const std::out_of_range&)
+                    {
+                        overflow = true;
+                    }
+                    if (overflow != (bit_width_of(a.z) > M) ||
+                        (!overflow && v != static_cast<intx::uint<M>>(x)))
+                        fail("from_string (narrower)", &a);
+                }
+            };
+            if (base == 10)
+                parse_back(s);
+            else if (base == 16)
+            {
+                parse_back("0x" + s);
+                auto upper = s;
+                std::ranges::transform(upper, upper.begin(),
+                    [](char c) { return c >= 'a' ? static_cast<char>(c - 'a' + 'A') : c; });
+                parse_back("0X" + upper);
+            }
             break;
         }
         case bytes_io:
