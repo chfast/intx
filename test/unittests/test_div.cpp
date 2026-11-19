@@ -168,6 +168,19 @@ const div_test_case<uint512> div_test_cases[] = {
         1,
         1,
     },
+    // A 128-bit numerator and the divisors 2^128 - 1 and 2^128.
+    {
+        0xffffffffffffffffffffffffffffffff_u128,
+        0xffffffffffffffffffffffffffffffff_u128,
+        1,
+        0,
+    },
+    {
+        0xffffffffffffffffffffffffffffffff_u128,
+        0x100000000000000000000000000000000_u512,
+        0,
+        0xffffffffffffffffffffffffffffffff_u128,
+    },
     {
         0x80000000000000010000000000000000_u128,
         0x80000000000000000000000000000000_u128,
