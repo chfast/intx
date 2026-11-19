@@ -584,7 +584,7 @@ void Machine::check(const Item& item) noexcept
 }
 
 /// Executes one instruction for the width N. Returns false to stop the program
-/// (a division by zero).
+/// (a from_string() failure).
 template <unsigned N>
 bool Machine::exec(const Instr& in) noexcept
 {
