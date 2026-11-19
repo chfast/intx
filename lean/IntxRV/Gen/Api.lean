@@ -671,6 +671,39 @@ def spec : Prop := Runs umul_code pre post
 end umul
 
 
+/-! ## `xor_256`: `operator^` (intx.hpp:1541)
+
+@post result = x ^^^ y
+-/
+
+namespace xor_256
+
+/-- The addresses of the words of the arguments and the result. -/
+def bufs (x : Regs) : List (BitVec 64) :=
+  bufWords (x 11#5) 4 ++
+    bufWords (x 12#5) 4 ++
+    bufWords (x 10#5) 4
+
+def pre (x : Regs) (_m : Mem) : Prop :=
+  Buf (x 10#5) 32 ∧
+    Buf (x 11#5) 32 ∧
+    Buf (x 12#5) 32 ∧
+    Disjoint (x 10#5) 32 (x 11#5) 32 ∧
+    Disjoint (x 10#5) 32 (x 12#5) 32
+
+def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
+  (fun (N : Nat) (result : Nat) (x : Nat) (y : Nat) =>
+      result = x ^^^ y)
+      256 (words m' (x 10#5) 4) (words m (x 11#5) 4) (words m (x 12#5) 4) ∧
+    UnchangedExcept m m' (x 10#5) 32 ∧
+    ∀ i ∈ calleeSaved, x' i = x i
+
+/-- The specification of the machine code of `xor_256`. -/
+def spec : Prop := RunsM xor_256_code bufs pre post
+
+end xor_256
+
+
 /-! ## `umul_256`: `umul` (intx.hpp:1775)
 
 The full product.
@@ -709,39 +742,6 @@ def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
 def spec : Prop := RunsM umul_256_code bufs pre post
 
 end umul_256
-
-
-/-! ## `xor_256`: `operator^` (intx.hpp:1541)
-
-@post result = x ^^^ y
--/
-
-namespace xor_256
-
-/-- The addresses of the words of the arguments and the result. -/
-def bufs (x : Regs) : List (BitVec 64) :=
-  bufWords (x 11#5) 4 ++
-    bufWords (x 12#5) 4 ++
-    bufWords (x 10#5) 4
-
-def pre (x : Regs) (_m : Mem) : Prop :=
-  Buf (x 10#5) 32 ∧
-    Buf (x 11#5) 32 ∧
-    Buf (x 12#5) 32 ∧
-    Disjoint (x 10#5) 32 (x 11#5) 32 ∧
-    Disjoint (x 10#5) 32 (x 12#5) 32
-
-def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
-  (fun (N : Nat) (result : Nat) (x : Nat) (y : Nat) =>
-      result = x ^^^ y)
-      256 (words m' (x 10#5) 4) (words m (x 11#5) 4) (words m (x 12#5) 4) ∧
-    UnchangedExcept m m' (x 10#5) 32 ∧
-    ∀ i ∈ calleeSaved, x' i = x i
-
-/-- The specification of the machine code of `xor_256`. -/
-def spec : Prop := RunsM xor_256_code bufs pre post
-
-end xor_256
 
 
 end IntxRV.Api
