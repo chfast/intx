@@ -21,6 +21,7 @@ option(INTX_INSTALL "Enable intx install target" ${is_main_project})
 option(INTX_TESTING "Enable intx testing" ${is_main_project})
 cmake_dependent_option(INTX_BENCHMARKING "Build intx with benchmark tools" ON "INTX_TESTING" OFF)
 cmake_dependent_option(INTX_FUZZING "Build intx fuzzers" OFF "INTX_TESTING" OFF)
+option(INTX_ASSERTIONS "Force enable the assertions in the code ignoring the CMAKE_BUILD_TYPE default" OFF)
 
 if(INTX_TESTING)
     include(Hunter/init)
@@ -30,6 +31,15 @@ project(intx LANGUAGES CXX)
 set(PROJECT_VERSION 0.15.0)
 
 cable_configure_compiler(NO_STACK_PROTECTION)
+
+if(INTX_ASSERTIONS)
+    if(CMAKE_CONFIGURATION_TYPES)
+        message(FATAL_ERROR "INTX_ASSERTIONS option is not supported with multi-configuration generators")
+    endif()
+    # Remove -DNDEBUG from the build type flags.
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" build_type)
+    string(REGEX REPLACE " *-DNDEBUG" "" CMAKE_CXX_FLAGS_${build_type} "${CMAKE_CXX_FLAGS_${build_type}}")
+endif()
 
 if(INTX_FUZZING)
     set(fuzzing_flags -fsanitize=fuzzer-no-link,undefined,address)
