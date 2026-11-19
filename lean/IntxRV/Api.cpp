@@ -9,10 +9,10 @@
 // so they have no qualified name to point to) or the address of a function template instance, the
 // out-of-line function that other functions call. scripts/rv_api.py finds the function in the AST
 // of this file and states its specification for the instance:
-// - intx::api: a [[gnu::used]] pointer whose RV64 machine code is proved (IntxRV/Gen/Api.lean,
-//   the proofs in IntxRV/Api/),
-// - intx::model: a function whose model in Lean is proved (Intx/Gen/Spec.lean, the model
-//   Intx.Model.<name>, the proofs in Intx/Proofs/); none at present.
+// - intx::api: a [[gnu::used]] pointer `p` whose RV64 machine code is proved (the specification
+//   `Api.p.spec` in the generated IntxRV/Gen/Api.lean, the proof in IntxRV/Api/p.lean),
+// - intx::model: a function whose model in Lean is proved (the generated Intx/Gen/Spec.lean, the
+//   model Intx.Model.<name>, the proofs in Intx/Proofs/); none at present.
 
 #include <intx/intx.hpp>
 

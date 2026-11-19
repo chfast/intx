@@ -1,6 +1,6 @@
-import Checks.IntxSpec
 import Checks.IntxRV
-import Checks.IntxRVApi
+import Checks.Gen.IntxSpec
+import Checks.Gen.IntxRVApi
 set_option warningAsError true
 /-!
 # Checks

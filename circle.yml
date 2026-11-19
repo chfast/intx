@@ -562,11 +562,9 @@ jobs:
           working_directory: lean
           command: lake exe cache get
       - run:
-          name: "Regenerate the RV64 machine code and the specifications"
+          name: "Generate the RV64 machine code and the specifications"
           working_directory: lean
-          command: |
-            CXX=clang++ scripts/rv_build.sh
-            git diff --exit-code -- IntxRV/Gen Intx/Gen Checks/IntxRVApi.lean Checks/IntxSpec.lean
+          command: CXX=clang++ scripts/rv_build.sh
       - run:
           name: "Check the proofs and their axioms"
           working_directory: lean

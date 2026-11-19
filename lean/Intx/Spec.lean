@@ -4,7 +4,7 @@ set_option warningAsError true
 
 The vocabulary of the specifications: the words of a number and their value. It uses only the Lean
 core. The specifications are the @post commands of the documentation of intx.hpp, which
-scripts/rv_api.py states in Intx/Gen/Spec.lean for the models (`Intx.Spec.<name>.spec`). A model
+scripts/rv_api.py states in the generated Intx/Gen/Spec.lean for the models (`Intx.Spec.<name>.spec`). A model
 returns `none` for undefined behavior of the C++ code (see `Intx.Model`), so a specification
 `∃ res, model … = some res ∧ …` excludes it.
 -/

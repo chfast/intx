@@ -2,11 +2,24 @@ import IntxRV.Gen.Api
 import IntxRV.Tactic
 import Intx.Proofs.Div
 /-!
-# The proofs of the word functions
+# `udivrem_2by1()`
 
-`umul()`, `addc()` and `udivrem_2by1()` take and return their values in registers. `rv_run`
-proves that the machine code computes the model of `Intx.Model`, and the specification follows
-from the proofs of the model: `umul_spec`, `addc_spec` and `udivrem_2by1_v_spec`.
+The specification, from `include/intx/intx.hpp`:
+
+```cpp
+/// Divides u by the normalized d with its reciprocal v (Moller and Granlund, Algorithm 4).
+/// @pre 2 ^ 63 <= d
+/// @pre u < d * 2 ^ 64
+/// @pre v = (2 ^ 128 - 1) / d - 2 ^ 64
+/// @post result.quot = u / d
+/// @post result.rem = u % d
+constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept
+```
+
+`udivrem_2by1.spec` states it for the RV64 machine code of `udivrem_2by1` in `IntxRV/Api.cpp`
+(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). `rv_run` proves that the machine code
+computes the model `udivrem_2by1_v`, and the specification follows from its proof
+`udivrem_2by1_v_spec` with the bounds that the reciprocal `v` gives.
 -/
 
 -- rv_run evaluates the runs with simp, and passes it lemmas some paths do not use.
@@ -16,40 +29,6 @@ set_option linter.unusedSimpArgs false
 
 namespace IntxRV.Api
 open IntxRV IntxRV.Gen Intx Intx.Model
-
-theorem umul.model : Runs umul_code umul.pre fun x x' =>
-    x'.get 10#5 = (Model.umul (.ofBitVec (x 10#5)) (.ofBitVec (x 11#5))).lo.toBitVec ∧
-    x'.get 11#5 = (Model.umul (.ofBitVec (x 10#5)) (.ofBitVec (x 11#5))).hi.toBitVec ∧
-    ∀ i ∈ calleeSaved, x' i = x i := by
-  rv_run umul_decodes with umul_code umul_prog using []
-
-theorem umul.proof : umul.spec :=
-  umul.model.mono (fun _ h => h) fun x _ _ ⟨h0, h1, hc⟩ =>
-    ⟨by simpa [h0, h1] using umul_spec (.ofBitVec (x 10#5)) (.ofBitVec (x 11#5)), hc⟩
-
-/-- With the `bool` argument `c` in a2, the `bool` result is 0 or 1 in a1. -/
-theorem addc.model (c : Bool) : Runs addc_code (fun x => x 12#5 = if c then 1 else 0)
-    fun x x' =>
-      x'.get 10#5 = (Model.addc (.ofBitVec (x 10#5)) (.ofBitVec (x 11#5)) c).1.toBitVec ∧
-      x'.get 11#5 = (if (Model.addc (.ofBitVec (x 10#5)) (.ofBitVec (x 11#5)) c).2 then 1 else 0) ∧
-      ∀ i ∈ calleeSaved, x' i = x i := by
-  rv_run addc_decodes with addc_code addc_prog using [Model.addc]
-
-theorem addc.proof : addc.spec := by
-  intro S val e base ret hb hr hl s npc x hs hx hp
-  have hc : x 12#5 = if decide (x 12#5 = 1) then 1 else 0 := by
-    rcases hp with h | h <;> rw [h] <;> rfl
-  obtain ⟨n, s', npc', x', hrun, hs', h0, h1, hcs⟩ :=
-    addc.model (decide (x 12#5 = 1)) S val e base ret hb hr hl s npc x hs hx hc
-  refine ⟨n, s', npc', x', hrun, hs', ?_, ?_, hcs⟩
-  · have := addc_spec (.ofBitVec (x 10#5)) (.ofBitVec (x 11#5)) (decide (x 12#5 = 1))
-    rw [h0, h1]
-    clear hc hp hcs h0 h1
-    split <;> simp_all
-  · rw [h1]
-    split <;> simp
-
-theorem addc.nonvacuous : ∃ x, addc.pre x := ⟨fun _ => 0, Or.inl rfl⟩
 
 /-- The `uint128` argument `u` is in a1:a0, the divisor `d` in a2 and the reciprocal `v` in a3;
 the quotient is returned in a0 and the remainder in a1. -/

@@ -15,8 +15,11 @@ comment; the @pre and @post commands of the comment are its specification, a Lea
 parameter name stands for the value of the parameter as a natural number, `result` for the value
 of the result (a natural number, or a proposition for `bool`) and `N` for the width of the
 template. IntxRV/Gen/Api.lean gets `Api.p.spec`: the specification of the machine code of `p`
-(`Gen.p_code`) for the RISC-V calling convention. Checks/IntxRVApi.lean checks that every
-specification has the proof `Api.p.proof`, with the allowed axioms only.
+(`Gen.p_code`) for the RISC-V calling convention. Checks/Gen/IntxRVApi.lean checks that every
+specification has the proof `Api.p.proof`, with the allowed axioms only. The proof is in
+IntxRV/Api/p.lean, which quotes the documentation and the declaration of the function from
+intx.hpp (checked here, so that the proof reads without the generated files), and IntxRV/README.md
+links it.
 """
 
 import json
@@ -72,8 +75,8 @@ def documented_functions(decls):
                              if c.get("kind") == "ParagraphComment").strip()
             params = [p["name"] for p in n.get("inner", []) if p.get("kind") == "ParmVarDecl"]
             specs[(n["name"], n["loc"]["offset"])] = dict(
-                name=n["name"], line=n["loc"].get("line"), brief=brief, pre=pre, post=post,
-                params=params, type=n["type"]["qualType"])
+                name=n["name"], offset=n["loc"]["offset"], begin=n["range"]["begin"]["offset"],
+                brief=brief, pre=pre, post=post, params=params, type=n["type"]["qualType"])
     return specs
 
 
@@ -180,11 +183,31 @@ def apply(term, width, result, values, targs=()):
     return f"(fun {binders} =>\n      {term})\n      " + " ".join(args)
 
 
-def header(var, spec):
+def line_of(hpp, offset):
+    """The line of the offset in intx.hpp (the JSON AST omits the lines equal to the previous)."""
+    return hpp.count("\n", 0, offset) + 1
+
+
+def cpp_doc(hpp, spec):
+    """The documentation comment and the declaration of the function in intx.hpp, up to its body,
+    unindented: the text that the proof file of an instance quotes."""
+    lines = hpp.split("\n")
+    first = last = line_of(hpp, spec["begin"]) - 1
+    while first > 0 and lines[first - 1].strip().startswith(("///", "template")):
+        first -= 1
+    while lines[last].strip() != "{" and "{" not in lines[last] and not lines[last].endswith(";"):
+        last += 1
+    block = lines[first:last + (lines[last].strip() != "{")]
+    indent = min(len(t) - len(t.lstrip()) for t in block if t.strip())
+    return "\n".join(t[indent:] for t in block)
+
+
+def header(var, spec, hpp):
     doc = spec["brief"] + "\n\n" if spec["brief"] else ""
     doc += "\n".join(f"@pre {p}" for p in spec["pre"])
     doc += ("\n" if spec["pre"] else "") + "\n".join(f"@post {p}" for p in spec["post"])
-    return [f"/-! ## `{var}`: `{spec['name']}` (intx.hpp:{spec['line']})", "", doc, "-/", "",
+    line = line_of(hpp, spec["offset"])
+    return [f"/-! ## `{var}`: `{spec['name']}` (intx.hpp:{line})", "", doc, "-/", "",
             f"namespace {var}", ""]
 
 
@@ -204,7 +227,7 @@ REG_RESULTS = {
 }
 
 
-def spec_rv(var, inst, spec, stack, image=False):
+def spec_rv(var, inst, spec, stack, hpp, image=False):
     """The Lean definitions of the specification of the machine code of the instance `var` that
     uses `stack` bytes below sp, in the image of the functions with calls or data if `image`."""
     ret, args, params = signature(var, inst, spec)
@@ -290,7 +313,7 @@ def spec_rv(var, inst, spec, stack, image=False):
     pre += [apply(p, width, None, values, targs) for p in spec["pre"]]
     post = [apply(p, width, result, post_values, targs) for p in spec["post"]] + frame + [
         "∀ i ∈ calleeSaved, x' i = x i"]
-    lines = header(var, spec)
+    lines = header(var, spec, hpp)
     if inst.get("negate"):
         lines[0] = lines[0].replace(f"`{spec['name']}`", f"`{spec['name']}`, negated (`!=`)", 1)
     if bufs or image:  # The functions of the image read the data in the memory.
@@ -314,7 +337,7 @@ def spec_rv(var, inst, spec, stack, image=False):
     return lines + ["", f"end {var}", "", ""], regs, bool(pre)
 
 
-def spec_model(var, inst, spec):
+def spec_model(var, inst, spec, hpp):
     """The Lean definitions of the specification of the model `Intx.Model.var` of the instance."""
     ret, args, params = signature(var, inst, spec)
     ret_width = uint_width(ret)
@@ -332,7 +355,7 @@ def spec_model(var, inst, spec):
     names = " ".join(n for n, _, _ in values)
     post = " ∧\n      ".join(apply(p, ret_width, ("Nat", "(val res.toList)"), values)
                               for p in spec["post"])
-    lines = header(var, spec) + [
+    lines = header(var, spec, hpp) + [
         f"/-- The specification of the model of `{var}`, for every code path (`Platform`). -/",
         f"def spec : Prop :=\n  ∀ (P : Model.Platform) {' '.join(vectors)},\n    "
         f"∃ res, Model.{var} P {names} = some res ∧\n      {post}",
@@ -340,11 +363,27 @@ def spec_model(var, inst, spec):
     return lines
 
 
+def check_proof_file(out, var, quote):
+    """The proof of the instance `var` is in IntxRV/Api/<var>.lean, which quotes the documentation
+    and the declaration of the function from intx.hpp, and is listed in IntxRV/README.md."""
+    path = out / "IntxRV" / "Api" / f"{var}.lean"
+    if not path.exists():
+        sys.exit(f"{var}: the proof must be in IntxRV/Api/{var}.lean")
+    block = f"```cpp\n{quote}\n```"
+    if block not in path.read_text():
+        sys.exit(f"IntxRV/Api/{var}.lean: the documentation must quote the specification "
+                 f"from intx.hpp:\n{block}")
+    if f"(Api/{var}.lean)" not in (out / "IntxRV" / "README.md").read_text():
+        sys.exit(f"{var}: IntxRV/README.md must link Api/{var}.lean")
+
+
 def main():
     ast, stack_json, out = map(Path, sys.argv[1:])
+    out = out.resolve()
     info = json.loads(stack_json.read_text())
     stacks = {var: i["stack"] for var, i in info.items()}
     images = {var for var, i in info.items() if i.get("image")}
+    hpp = (out.parent / "include" / "intx" / "intx.hpp").read_text()
     decls = read_ast(ast)
     specs = documented_functions(decls)
 
@@ -365,16 +404,17 @@ def main():
              "set_option linter.unusedVariables false", "",
              "namespace IntxRV.Api", "open IntxRV.Gen", ""]
     checks = ["-- Generated by scripts/rv_api.py from IntxRV/Api.cpp. Do not edit.",
-              "import Checks.IntxRV", "import IntxRV.Api", "import IntxRV.EnvM",
-              "import IntxRV.EnvImage",
+              "import Checks.IntxRV", "import IntxRV.EnvM", "import IntxRV.EnvImage"] + [
+              f"import IntxRV.Api.{var}" for var in sorted(api)] + [
               "set_option warningAsError true",
               "-- rv_nonvacuous evaluates the addresses of all the words of the buffers.",
               "set_option maxRecDepth 100000", "",
               "/-! The specification of every instance of IntxRV/Api.cpp has a proof, and its",
               "assumptions hold in an environment (they are not vacuous). -/", ""]
     for var in sorted(api):
-        spec_lines, mem, has_pre = spec_rv(var, api[var], spec_of(var, api[var]),
-                                                stacks[var], var in images)
+        spec = spec_of(var, api[var])
+        check_proof_file(out, var, cpp_doc(hpp, spec))
+        spec_lines, mem, has_pre = spec_rv(var, api[var], spec, stacks[var], hpp, var in images)
         lines += spec_lines
         a = f"IntxRV.Api.{var}"
         checks += [f"example : {a}.spec := {a}.proof", f"#check_rv_axioms {a}.proof"]
@@ -392,10 +432,13 @@ def main():
         else:
             checks += [""]
     for var in sorted(wip):
-        lines += spec_rv(var, wip[var], spec_of(var, wip[var]), stacks[var], var in images)[0]
+        lines += spec_rv(var, wip[var], spec_of(var, wip[var]), stacks[var], hpp,
+                         var in images)[0]
     lines += ["end IntxRV.Api", ""]
+    (out / "IntxRV" / "Gen").mkdir(exist_ok=True)
+    (out / "Checks" / "Gen").mkdir(exist_ok=True)
     (out / "IntxRV" / "Gen" / "Api.lean").write_text("\n".join(lines))
-    (out / "Checks" / "IntxRVApi.lean").write_text("\n".join(checks))
+    (out / "Checks" / "Gen" / "IntxRVApi.lean").write_text("\n".join(checks))
 
     model = instances(decls, "model")
     lines = ["-- Generated by scripts/rv_api.py from IntxRV/Api.cpp and the documentation of",
@@ -404,19 +447,20 @@ def main():
              "-- A specification need not use all of N, result and the parameters.",
              "set_option linter.unusedVariables false", "", "namespace Intx.Spec", ""]
     checks = ["-- Generated by scripts/rv_api.py from IntxRV/Api.cpp. Do not edit.",
-              "import Intx", "set_option warningAsError true", "",
+              "import Intx", "import Intx.Gen.Spec", "set_option warningAsError true", "",
               "/-! The specification of every model instance of IntxRV/Api.cpp has a proof that",
               "uses only the axioms of Lean and Mathlib: no `sorry` (`sorryAx`), no `native_decide`",
               "(`Lean.ofReduceBool`) and no axioms of this project. -/", ""]
     for var in sorted(model):
-        lines += spec_model(var, model[var], spec_of(var, model[var]))
+        lines += spec_model(var, model[var], spec_of(var, model[var]), hpp)
         a = f"Intx.Spec.{var}"
         checks += [f"example : {a}.spec := {a}.proof", "",
                    f"/-- info: '{a}.proof' depends on axioms: [propext, Classical.choice, "
                    "Quot.sound] -/", "#guard_msgs in", f"#print axioms {a}.proof", ""]
     lines += ["end Intx.Spec", ""]
+    (out / "Intx" / "Gen").mkdir(exist_ok=True)
     (out / "Intx" / "Gen" / "Spec.lean").write_text("\n".join(lines))
-    (out / "Checks" / "IntxSpec.lean").write_text("\n".join(checks))
+    (out / "Checks" / "Gen" / "IntxSpec.lean").write_text("\n".join(checks))
 
 
 if __name__ == "__main__":

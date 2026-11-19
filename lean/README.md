@@ -12,11 +12,11 @@ Machine-checked proofs that functions of intx compute the specifications in thei
 
 | file | review |
 |---|---|
-| `include/intx/intx.hpp` | The specifications: the `@pre` and `@post` commands. `scripts/rv_api.py` states them in `IntxRV/Gen/Api.lean` and `Intx/Gen/Spec.lean` (generated); [`Intx/Spec.lean`](Intx/Spec.lean) and [`IntxRV/Words.lean`](IntxRV/Words.lean) are their vocabulary. |
+| `include/intx/intx.hpp` | The specifications: the `@pre` and `@post` commands. `scripts/rv_api.py` states them in `IntxRV/Gen/Api.lean` and `Intx/Gen/Spec.lean` (generated); [`Intx/Spec.lean`](Intx/Spec.lean) and [`IntxRV/Words.lean`](IntxRV/Words.lean) are their vocabulary. The proof file of each function quotes its specification. |
 | [`Intx/Model/`](Intx/Model/) | The C++ code rendered in Lean. Compare it with `include/intx/intx.hpp`: each definition shows its C++ code. |
 | [`Intx/ProofSupport/`](Intx/ProofSupport/), [`Intx/Proofs/`](Intx/Proofs/) | The proofs of the models, checked by Lean. |
-| [`IntxRV/`](IntxRV/) | The proofs of the machine code, see [`IntxRV/README.md`](IntxRV/README.md). |
-| [`Checks/`](Checks/) | The checks that every specification has a proof with the allowed axioms only (generated). |
+| [`IntxRV/`](IntxRV/) | The proofs of the machine code, see [`IntxRV/README.md`](IntxRV/README.md): the proof of each function in [`IntxRV/Api/`](IntxRV/Api/), one file per function. |
+| [`Checks/`](Checks/) | The checks that every specification has a proof with the allowed axioms only (`Checks/Gen/`, generated). |
 | [`SOURCE.json`](SOURCE.json) | The hashes of the modeled C++ definitions. |
 
 ## What the models trust
@@ -44,10 +44,15 @@ Machine-checked proofs that functions of intx compute the specifications in thei
 
 ```sh
 lake exe cache get
-CXX=clang++ scripts/rv_build.sh
+CXX=clang++-21 scripts/rv_build.sh
 lake build Intx IntxRV Checks
 scripts/check-source.py
 ```
+
+`scripts/rv_build.sh` generates the Lean files of the machine code and of the specifications (the
+`Gen/` directories, not in git) with clang 21, lld and the riscv64 libstdc++ headers (see
+[`IntxRV/README.md`](IntxRV/README.md#build)). Run it again after a change of `intx.hpp`. The
+models and their proofs (`lake build Intx`) do not need it.
 
 ## Updates
 

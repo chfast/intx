@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Compiles IntxRV/Api.cpp for RV64 and regenerates the Lean sources from it: the machine code
-# IntxRV/Gen/Code.lean (rv_gen.py), the specifications from the documentation of intx.hpp
-# IntxRV/Gen/Api.lean and Intx/Gen/Spec.lean, and their checks Checks/IntxRVApi.lean and
-# Checks/IntxSpec.lean (rv_api.py).
-#   CXX: clang++ with the RISC-V target (default: clang++; CI uses clang 21 of Ubuntu 26.04)
+# Compiles IntxRV/Api.cpp for RV64 and generates the Lean sources from it, which are not in git:
+# the machine code IntxRV/Gen/Code.lean (rv_gen.py), the specifications from the documentation of
+# intx.hpp IntxRV/Gen/Api.lean and Intx/Gen/Spec.lean, and their checks Checks/Gen/IntxRVApi.lean
+# and Checks/Gen/IntxSpec.lean (rv_api.py). Run it before lake build and after a change of intx.hpp
+# or IntxRV/Api.cpp.
+#   CXX: clang++ 21 with the RISC-V target (default: clang++; CI uses clang 21 of Ubuntu 26.04)
 #   LD: the LLVM linker (default: ld.lld)
 #   RV64_SYSROOT: the riscv64-linux-gnu sysroot with the libstdc++ headers
 #                 (default: /usr/riscv64-linux-gnu of the g++-riscv64-linux-gnu package)
@@ -16,6 +17,13 @@ sysroot=${RV64_SYSROOT:-/usr/riscv64-linux-gnu}
 gcc_ver=$(ls "$sysroot/include/c++" | sort -V | tail -1)
 out=$lean_dir/.lake/build/rv
 mkdir -p "$out"
+
+# The proofs are of the machine code of clang 21: another version emits other code.
+cxx_major=$("$cxx" -dumpversion | cut -d. -f1)
+if [ "$cxx_major" != 21 ]; then
+    echo "$cxx is clang $cxx_major: set CXX to clang++ 21" >&2
+    exit 1
+fi
 
 # rv64imafd with the lp64d ABI of the Linux distributions; integer code has no F/D instructions.
 # -mno-relax: the assembler resolves the branches, so the function sections have no relocations.
