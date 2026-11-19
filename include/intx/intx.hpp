@@ -1646,6 +1646,8 @@ public:
         return !(x < y);
     }
 
+    /// The shift left modulo 2^N.
+    /// @post result = x * 2 ^ shift % 2 ^ N
     friend constexpr uint operator<<(const uint& x, uint64_t shift) noexcept
     {
         if (shift >= num_bits) [[unlikely]]
@@ -1712,6 +1714,8 @@ public:
         return x << shift[0];
     }
 
+    /// The shift right.
+    /// @post result = x / 2 ^ shift
     friend constexpr uint operator>>(const uint& x, uint64_t shift) noexcept
     {
         if (shift >= num_bits) [[unlikely]]
