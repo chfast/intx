@@ -294,7 +294,7 @@ jobs:
     environment:
       BUILD_TYPE: RelWithDebInfo
       # Strict C++20 (no GNU extensions): with libstdc++ before 16 __int128 is not an integral type.
-      CMAKE_OPTIONS: -DSANITIZE=address,undefined,implicit-conversion,nullability -DCMAKE_CXX_CLANG_TIDY=clang-tidy -DCMAKE_CXX_EXTENSIONS=OFF
+      CMAKE_OPTIONS: -DINTX_ASSERTIONS=ON -DSANITIZE=address,undefined,implicit-conversion,nullability -DCMAKE_CXX_CLANG_TIDY=clang-tidy -DCMAKE_CXX_EXTENSIONS=OFF
       # Uninitialized locals get a garbage pattern, so reading one changes the result.
       CXXFLAGS: -ftrivial-auto-var-init=pattern
       UBSAN_OPTIONS: halt_on_error=1
@@ -308,7 +308,7 @@ jobs:
   linux-gcc-sanitizers:
     environment:
       BUILD_TYPE: RelWithDebInfo
-      CMAKE_OPTIONS: -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined
+      CMAKE_OPTIONS: -DINTX_ASSERTIONS=ON -DSANITIZE=address,pointer-compare,pointer-subtract,leak,undefined
       # _GLIBCXX_ASSERTIONS checks the bounds of std::span and std::array, also inside an object.
       # Uninitialized locals get a garbage pattern, so reading one changes the result.
       CXXFLAGS: -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=pattern
@@ -373,7 +373,7 @@ jobs:
   fuzzing:
     environment:
       - BUILD_TYPE: Release
-      - CMAKE_OPTIONS: -DINTX_FUZZING=ON
+      - CMAKE_OPTIONS: -DINTX_FUZZING=ON -DINTX_ASSERTIONS=ON
     executor: linux-clang-latest
     steps:
       - install_deps
@@ -385,7 +385,7 @@ jobs:
   fuzzing-arm64:
     environment:
       BUILD_TYPE: Release
-      CMAKE_OPTIONS: -DINTX_FUZZING=ON -DINTX_BENCHMARKING=OFF
+      CMAKE_OPTIONS: -DINTX_FUZZING=ON -DINTX_ASSERTIONS=ON -DINTX_BENCHMARKING=OFF
       CC: clang-22
       CXX: clang++-22
     machine:
@@ -404,7 +404,7 @@ jobs:
   fuzzing-32bit:
     environment:
       BUILD_TYPE: Release
-      CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_FUZZING=ON -DINTX_BENCHMARKING=OFF
+      CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=~/project/cmake/toolchains/32bit.cmake -DINTX_FUZZING=ON -DINTX_ASSERTIONS=ON -DINTX_BENCHMARKING=OFF
       CC: clang-22
       CXX: clang++-22
     machine:
