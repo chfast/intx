@@ -60,6 +60,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `operator~` of `uint256` | [`not_256`](Api/not_256.lean) |
 | `shl<9, 8>()` | [`shl_9_8`](Api/shl_9_8.lean) |
 | `operator<<` of `uint256` by `uint64_t` | [`shl_256`](Api/shl_256.lean) |
+| `operator>>` of `uint256` by `uint64_t` | [`shr_256`](Api/shr_256.lean) |
 | `bit_test()` of `uint256` | [`bit_test_256`](Api/bit_test_256.lean) |
 | `count_significant_words()` of `uint256` | [`count_significant_words_256`](Api/count_significant_words_256.lean) |
 | `clz()` of `uint256` | [`clz_256`](Api/clz_256.lean) |
@@ -136,7 +137,7 @@ run. The specification then follows from the definitions by `rv_arith`
 ([`Arith.lean`](Arith.lean)): the carries and the words of the products as exact linear facts,
 the sums that cannot overflow by `omega` from the facts they depend on, and the result by
 `linarith`. `shl<9, 8>()`, the shift of a 512-bit number, is proved this way, through the model
-`Intx.Model.shl` and its proof; `operator<<` of `uint256` with the lemmas of
+`Intx.Model.shl` and its proof; `operator<<` and `operator>>` of `uint256` with the lemmas of
 [`Shift.lean`](Shift.lean) on the funnel shifts of the words. `umul()` of `uint256`, the 512-bit
 product, is in `intx::wip`: since it adds the products with `mac()`, clang orders the additions of
 the carries across the columns, and `rv_arith` does not prove that the carry into the top word and
@@ -153,7 +154,7 @@ with the data in the memory. A call is `auipc ra` and `jalr ra`; `Reach.call`
 ([`Call.lean`](Call.lean)) runs the callee by its proof: `f.reach` of a function `f` on its own code
 is lifted into the image by `Reach.lift`. The instances of `intx::wip` in
 `Api.cpp` get their specifications without the checks of their proofs, until they are proved
-(`umul()` of `uint256` and `operator>>` at present).
+(`umul()` of `uint256` at present).
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
 `words` and on `log2` ([`Bits.lean`](Bits.lean)).

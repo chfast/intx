@@ -5,8 +5,9 @@ import Mathlib.Tactic.Positivity
 # Shifts of words
 
 The lemmas of the proofs of the shifts of `uint256`: the words that clang computes for a shift by
-`s = 64 * k + t`, `t < 64`, as funnel shifts `(a <<< t) ||| (b >>> (64 - t))`, their numbers, and
-the value of the words.
+`s = 64 * k + t`, `t < 64`, as funnel shifts, `(a <<< t) ||| (b >>> (64 - t))` for the shift left
+and `(a >>> t) ||| (b <<< (64 - t))` for the shift right, their numbers, and the value of the
+words.
 -/
 
 open Sail LeanRV64D LeanRV64D.Functions LeanRV64D.Defs
@@ -20,6 +21,8 @@ namespace IntxRV
 /-- The unsigned comparison of `bgeu`. -/
 theorem zopz0zKzJ_u_eq (a b : BitVec 64) : zopz0zKzJ_u a b = decide (b ≤ a) := by
   simp [zopz0zKzJ_u, Sail.BitVec.toNatInt, BitVec.le_def]
+
+/-! ## The shift left -/
 
 /-- The funnel shift of `a:b` left by `t < 64` as a number, also for `t = 0`. -/
 theorem toNat_shl_or_shr (a b : BitVec 64) (t : Nat) (h : t < 64) :
@@ -178,5 +181,149 @@ theorem shl_val_3 (a0 a1 a2 a3 s t : Nat) (_h0 : a0 < 2 ^ 64) (_h1 : a1 < 2 ^ 64
 /-- The shift by 256 or more. -/
 theorem shl_val_ge (x s : Nat) (hs : 256 ≤ s) : 0 = x * 2 ^ s % 2 ^ 256 :=
   (Nat.mod_eq_zero_of_dvd (Dvd.dvd.mul_left (Nat.pow_dvd_pow 2 hs) x)).symm
+
+
+/-! ## The shift right -/
+
+theorem toNat_ushiftRight' (a : BitVec 64) (t : Nat) : (a >>> t).toNat = a.toNat / 2 ^ t := by
+  rw [BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow]
+
+/-- `(b <<< 1) <<< (63 - t)` is `b <<< (64 - t)`. -/
+theorem shiftLeft_one_shiftLeft (b : BitVec 64) (t : Nat) (h : t < 64) :
+    (b <<< 1) <<< (63 - t) = b <<< (64 - t) := by
+  rw [← BitVec.shiftLeft_add]; congr 1; omega
+
+/-- `(b <<< (63 - t)) <<< 1` is `b <<< (64 - t)`. -/
+theorem shiftLeft_shiftLeft_one (b : BitVec 64) (t : Nat) (h : t < 64) :
+    (b <<< (63 - t)) <<< 1 = b <<< (64 - t) := by
+  rw [← BitVec.shiftLeft_add]; congr 1; omega
+
+/-- The funnel shift that clang computes from `(a >>> 1) >>> t`, with the bottom bit put back. -/
+theorem shr_funnel_bot (a b : BitVec 64) (t : Nat) (h : t < 64) :
+    ((((a >>> 1) >>> t) ||| (b <<< (63 - t))) <<< 1) ||| ((a <<< (63 - t)) >>> 63) =
+      (a >>> t) ||| (b <<< (64 - t)) := by
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  simp only [BitVec.getLsbD_or, BitVec.getLsbD_shiftLeft, BitVec.getLsbD_ushiftRight]
+  by_cases h0 : i = 0
+  · subst h0
+    simp [show 63 - t ≤ 63 by omega, show 63 - (63 - t) = t by omega, show 0 < 64 - t by omega]
+  · have ht : (a <<< (63 - t)).getLsbD (63 + i) = false := BitVec.getLsbD_of_ge _ _ (by omega)
+    simp only [BitVec.getLsbD_shiftLeft] at ht
+    rw [ht]
+    simp only [show i < 64 by omega, decide_true, Bool.true_and, Bool.or_false,
+      show ¬ i < 1 by omega, decide_false, Bool.not_false, show i - 1 < 64 by omega,
+      show (i - 1 < 63 - t) = (i < 64 - t) from propext (by omega),
+      show i - 1 - (63 - t) = i - (64 - t) by omega]
+    rw [show 1 + (t + (i - 1)) = t + i by omega]
+
+/-- The funnel shift of `b:a` right by `t < 64` as a number, also for `t = 0`. -/
+theorem toNat_shr_funnel (a b : BitVec 64) (t : Nat) (h : t < 64) :
+    ((a >>> t) ||| (b <<< (64 - t))).toNat = a.toNat / 2 ^ t + b.toNat * 2 ^ (64 - t) % 2 ^ 64 := by
+  have e64 : (2 : Nat) ^ 64 = 2 ^ (64 - t) * 2 ^ t := by rw [← pow_add]; congr 1; omega
+  have ha : a.toNat / 2 ^ t < 2 ^ (64 - t) := by
+    rw [Nat.div_lt_iff_lt_mul (by positivity), ← e64]; exact a.isLt
+  rw [BitVec.toNat_or, BitVec.toNat_shiftLeft, BitVec.toNat_ushiftRight, Nat.shiftLeft_eq,
+    Nat.shiftRight_eq_div_pow, e64, Nat.mul_comm b.toNat, Nat.mul_mod_mul_left, Nat.or_comm,
+    ← Nat.two_pow_add_eq_or_of_lt ha]
+  ring
+
+theorem toNat_shl_or_shr' (a b : BitVec 64) (t : Nat) (h : t < 64) :
+    ((b <<< (64 - t)) ||| (a >>> t)).toNat = b.toNat * 2 ^ (64 - t) % 2 ^ 64 + a.toNat / 2 ^ t := by
+  rw [BitVec.or_comm, toNat_shr_funnel a b t h, Nat.add_comm]
+
+/-- The words of `x / 2 ^ t`, `t < 64`, as funnel shifts: their value. -/
+theorem shr_val4 (a0 a1 a2 a3 t : Nat) (ht : t < 64) :
+    (a0 / 2 ^ t + a1 * 2 ^ (64 - t) % 2 ^ 64) +
+      2 ^ 64 * ((a1 / 2 ^ t + a2 * 2 ^ (64 - t) % 2 ^ 64) +
+        2 ^ 64 * ((a2 / 2 ^ t + a3 * 2 ^ (64 - t) % 2 ^ 64) + 2 ^ 64 * (a3 / 2 ^ t))) =
+    (a0 + 2 ^ 64 * (a1 + 2 ^ 64 * (a2 + 2 ^ 64 * a3))) / 2 ^ t := by
+  have hPP : 2 ^ t * 2 ^ (64 - t) = (2 : Nat) ^ 64 := by rw [← pow_add]; congr 1; omega
+  have hu : ∀ a, a * 2 ^ (64 - t) % 2 ^ 64 = a % 2 ^ t * 2 ^ (64 - t) := fun a => by
+    rw [← hPP, Nat.mul_mod_mul_right]
+  have hP : 0 < 2 ^ t := Nat.two_pow_pos t
+  rw [hu, hu, hu]
+  have d0 := Nat.div_add_mod a0 (2 ^ t)
+  have d1 := Nat.div_add_mod a1 (2 ^ t)
+  have d2 := Nat.div_add_mod a2 (2 ^ t)
+  have d3 := Nat.div_add_mod a3 (2 ^ t)
+  generalize a0 / 2 ^ t = q0 at *
+  generalize a1 / 2 ^ t = q1 at *
+  generalize a2 / 2 ^ t = q2 at *
+  generalize a3 / 2 ^ t = q3 at *
+  have m0 := Nat.mod_lt a0 hP
+  generalize a0 % 2 ^ t = r0 at *
+  generalize a1 % 2 ^ t = r1 at *
+  generalize a2 % 2 ^ t = r2 at *
+  generalize a3 % 2 ^ t = r3 at *
+  generalize (2 : Nat) ^ (64 - t) = P' at *
+  generalize (2 : Nat) ^ t = P at *
+  subst d0 d1 d2 d3
+  have key :
+      P * q0 + r0 + 2 ^ 64 * (P * q1 + r1 + 2 ^ 64 * (P * q2 + r2 + 2 ^ 64 * (P * q3 + r3))) =
+        P * (q0 + r1 * P' + 2 ^ 64 * (q1 + r2 * P' + 2 ^ 64 * (q2 + r3 * P' + 2 ^ 64 * q3))) +
+          r0 := by
+    rw [← hPP]; ring
+  rw [key, Nat.mul_add_div hP, Nat.div_eq_of_lt m0, Nat.add_zero]
+
+theorem shr_val3 (a1 a2 a3 t : Nat) (ht : t < 64) :
+    (a1 / 2 ^ t + a2 * 2 ^ (64 - t) % 2 ^ 64) +
+      2 ^ 64 * ((a2 / 2 ^ t + a3 * 2 ^ (64 - t) % 2 ^ 64) + 2 ^ 64 * (a3 / 2 ^ t)) =
+    (a1 + 2 ^ 64 * (a2 + 2 ^ 64 * a3)) / 2 ^ t := by
+  have h := shr_val4 a1 a2 a3 0 t ht
+  simpa using h
+
+theorem shr_val2 (a2 a3 t : Nat) (ht : t < 64) :
+    (a2 / 2 ^ t + a3 * 2 ^ (64 - t) % 2 ^ 64) + 2 ^ 64 * (a3 / 2 ^ t) =
+    (a2 + 2 ^ 64 * a3) / 2 ^ t := by
+  have h := shr_val4 a2 a3 0 0 t ht
+  simpa using h
+
+/-- The words above the low one of a number. -/
+theorem div_two_pow_64 (a Y : Nat) (h : a < 2 ^ 64) : (a + 2 ^ 64 * Y) / 2 ^ 64 = Y := by
+  rw [Nat.add_mul_div_left _ _ (Nat.two_pow_pos 64), Nat.div_eq_of_lt h, Nat.zero_add]
+
+/-! The value of the words of `x / 2 ^ s` for `s = 64 * k + t`: the funnel shifts of the words from
+`k`, the top word shifted right by `t`, and zero words. -/
+
+theorem shr_val_0 (a0 a1 a2 a3 s t : Nat) (_h0 : a0 < 2 ^ 64) (_h1 : a1 < 2 ^ 64)
+    (_h2 : a2 < 2 ^ 64) (_h3 : a3 < 2 ^ 64) (ht : t < 64) (hs : s = t) :
+    (a0 / 2 ^ t + a1 * 2 ^ (64 - t) % 2 ^ 64) +
+      2 ^ 64 * ((a1 / 2 ^ t + a2 * 2 ^ (64 - t) % 2 ^ 64) +
+        2 ^ 64 * ((a2 / 2 ^ t + a3 * 2 ^ (64 - t) % 2 ^ 64) + 2 ^ 64 * (a3 / 2 ^ t))) =
+    (a0 + 2 ^ 64 * (a1 + 2 ^ 64 * (a2 + 2 ^ 64 * a3))) / 2 ^ s := by
+  rw [hs]; exact shr_val4 a0 a1 a2 a3 t ht
+
+theorem shr_val_1 (a0 a1 a2 a3 s t : Nat) (h0 : a0 < 2 ^ 64) (_h1 : a1 < 2 ^ 64)
+    (_h2 : a2 < 2 ^ 64) (_h3 : a3 < 2 ^ 64) (ht : t < 64) (hs : s = 64 + t) :
+    (a1 / 2 ^ t + a2 * 2 ^ (64 - t) % 2 ^ 64) +
+      2 ^ 64 * ((a2 / 2 ^ t + a3 * 2 ^ (64 - t) % 2 ^ 64) + 2 ^ 64 * (a3 / 2 ^ t)) =
+    (a0 + 2 ^ 64 * (a1 + 2 ^ 64 * (a2 + 2 ^ 64 * a3))) / 2 ^ s := by
+  rw [hs, pow_add, ← Nat.div_div_eq_div_mul, div_two_pow_64 _ _ h0]
+  exact shr_val3 a1 a2 a3 t ht
+
+theorem shr_val_2 (a0 a1 a2 a3 s t : Nat) (h0 : a0 < 2 ^ 64) (h1 : a1 < 2 ^ 64)
+    (_h2 : a2 < 2 ^ 64) (_h3 : a3 < 2 ^ 64) (ht : t < 64) (hs : s = 128 + t) :
+    (a2 / 2 ^ t + a3 * 2 ^ (64 - t) % 2 ^ 64) + 2 ^ 64 * (a3 / 2 ^ t) =
+    (a0 + 2 ^ 64 * (a1 + 2 ^ 64 * (a2 + 2 ^ 64 * a3))) / 2 ^ s := by
+  rw [hs, show 128 + t = 64 + (64 + t) by omega, pow_add, ← Nat.div_div_eq_div_mul,
+    div_two_pow_64 _ _ h0, pow_add, ← Nat.div_div_eq_div_mul, div_two_pow_64 _ _ h1]
+  exact shr_val2 a2 a3 t ht
+
+theorem shr_val_3 (a0 a1 a2 a3 s t : Nat) (h0 : a0 < 2 ^ 64) (h1 : a1 < 2 ^ 64)
+    (h2 : a2 < 2 ^ 64) (_h3 : a3 < 2 ^ 64) (_ht : t < 64) (hs : s = 192 + t) :
+    a3 / 2 ^ t = (a0 + 2 ^ 64 * (a1 + 2 ^ 64 * (a2 + 2 ^ 64 * a3))) / 2 ^ s := by
+  rw [hs, show 192 + t = 64 + (64 + (64 + t)) by omega, pow_add, ← Nat.div_div_eq_div_mul,
+    div_two_pow_64 _ _ h0, pow_add, ← Nat.div_div_eq_div_mul, div_two_pow_64 _ _ h1, pow_add,
+    ← Nat.div_div_eq_div_mul, div_two_pow_64 _ _ h2]
+
+/-- The shift right by 256 or more. -/
+theorem shr_val_ge (a0 a1 a2 a3 s : Nat) (h0 : a0 < 2 ^ 64) (h1 : a1 < 2 ^ 64)
+    (h2 : a2 < 2 ^ 64) (h3 : a3 < 2 ^ 64) (hs : 256 ≤ s) :
+    0 = (a0 + 2 ^ 64 * (a1 + 2 ^ 64 * (a2 + 2 ^ 64 * a3))) / 2 ^ s := by
+  symm
+  apply Nat.div_eq_of_lt
+  calc _ < 2 ^ 256 := by omega
+    _ ≤ 2 ^ s := Nat.pow_le_pow_right (by decide) hs
 
 end IntxRV

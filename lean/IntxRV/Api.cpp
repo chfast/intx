@@ -81,6 +81,8 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
     +[](const uint256& x) noexcept { return bit_width(x); };
 [[gnu::used]] constexpr auto* shl_256 =
     +[] [[gnu::flatten]] (const uint256& x, uint64_t shift) noexcept { return x << shift; };
+[[gnu::used]] constexpr auto* shr_256 =
+    +[] [[gnu::flatten]] (const uint256& x, uint64_t shift) noexcept { return x >> shift; };
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
@@ -89,6 +91,4 @@ namespace intx::wip
 {
 // umul() adds with mac(): rv_arith does not bound the sums of the top words (IntxRV/README.md).
 [[gnu::used]] constexpr auto* umul_256 = &intx::umul<256>;
-[[gnu::used]] constexpr auto* shr_256 =
-    +[] [[gnu::flatten]] (const uint256& x, uint64_t shift) noexcept { return x >> shift; };
 }  // namespace intx::wip
