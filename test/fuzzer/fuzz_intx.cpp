@@ -104,6 +104,8 @@ enum Op : uint8_t
     sint_cast,   // [w]: change the width of the top item with the sign extension.
     sint_cmp,    // Pushes the bits of all comparisons of x and y, <=> and bool(x).
     smul,        // Pushes smul() of the low words of x and y. The widths may differ.
+
+    cmp_int,  // [1 byte]: pushes the bits of the comparisons of x with y[0] as a built-in integer.
     num_ops
 };
 
@@ -176,6 +178,7 @@ constexpr OpInfo op_info[] = {
     {sint_cast, "sint_cast", 1, 1, true, 0},
     {sint_cmp, "sint_cmp", 2, 1, false, 0},
     {smul, "smul", 2, 1, false, 0},
+    {cmp_int, "cmp_int", 2, 1, false, 1},
 };
 static_assert(std::size(op_info) == num_ops);
 static_assert([] {
@@ -1353,6 +1356,48 @@ bool Machine::exec(const Instr& in) noexcept
         const auto nz = mpz_sgn(t1_.z) != 0;
         mpz_set_ui(
             r.z, pack_bits({e < 0, e <= 0, e > 0, e >= 0, e == 0, e != 0, e < 0, e > 0, nz}));
+        break;
+    }
+    case cmp_int:
+    {
+        // The type of y[0] is chosen by the immediate. The comparisons take its uint conversion.
+        const auto compare = [&](auto v) {
+            set_u64(t1_, static_cast<uint64_t>(v));
+            return pack_bits(
+                {(x < v), (x <= v), (x > v), (x >= v), (v < x), (v <= x), (v > x), (v >= x)});
+        };
+        const auto w = y[0];
+        uint64_t bits = 0;
+        switch (in.imm % 8)
+        {
+        case 0:
+            bits = compare(w);
+            break;
+        case 1:
+            bits = compare(static_cast<int64_t>(w));
+            break;
+        case 2:
+            bits = compare(static_cast<uint32_t>(w));
+            break;
+        case 3:
+            bits = compare(static_cast<int32_t>(w));
+            break;
+        case 4:
+            bits = compare(static_cast<uint8_t>(w));
+            break;
+        case 5:
+            bits = compare(static_cast<int8_t>(w));
+            break;
+        case 6:
+            bits = compare(static_cast<char>(w));
+            break;
+        default:
+            bits = compare((w & 1) != 0);
+            break;
+        }
+        r.set(T{bits});
+        const auto e = mpz_cmp(r.z, t1_);
+        mpz_set_ui(r.z, pack_bits({e < 0, e <= 0, e > 0, e >= 0, e > 0, e >= 0, e < 0, e <= 0}));
         break;
     }
     default:  // eq

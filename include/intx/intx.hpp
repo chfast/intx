@@ -1551,6 +1551,75 @@ public:
         return (x < y) ? std::strong_ordering::less : std::strong_ordering::greater;
     }
 
+    /// Compares with a builtin integer of up to 64 bits as with its uint conversion, which goes
+    /// through uint64_t, so -1 compares as 2^64 - 1.
+    template <std::same_as<uint> U, std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    friend constexpr bool operator<(const U& x, T y) noexcept
+    {
+        // Comparing the low word first makes Clang branch on it before loading the high words.
+        const bool low_less = x[0] < static_cast<uint64_t>(y);
+        uint64_t high_words_fold = 0;
+        for (size_t i = 1; i < num_words; ++i)
+            high_words_fold |= x[i];
+        // Comparing the two bools, unlike combining them with & or &&, keeps GCC from branching
+        // on each of them.
+        return low_less > (high_words_fold != 0);
+    }
+
+    template <std::same_as<uint> U, std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    friend constexpr bool operator<(T x, const U& y) noexcept
+    {
+        const bool low_less = static_cast<uint64_t>(x) < y[0];
+        uint64_t high_words_fold = 0;
+        for (size_t i = 1; i < num_words; ++i)
+            high_words_fold |= y[i];
+        return low_less >= (high_words_fold == 0);
+    }
+
+    template <std::same_as<uint> U, std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    friend constexpr bool operator>(const U& x, T y) noexcept
+    {
+        return y < x;
+    }
+
+    template <std::same_as<uint> U, std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    friend constexpr bool operator>(T x, const U& y) noexcept
+    {
+        return y < x;
+    }
+
+    template <std::same_as<uint> U, std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    friend constexpr bool operator<=(const U& x, T y) noexcept
+    {
+        return !(y < x);
+    }
+
+    template <std::same_as<uint> U, std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    friend constexpr bool operator<=(T x, const U& y) noexcept
+    {
+        return !(y < x);
+    }
+
+    template <std::same_as<uint> U, std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    friend constexpr bool operator>=(const U& x, T y) noexcept
+    {
+        return !(x < y);
+    }
+
+    template <std::same_as<uint> U, std::integral T>
+        requires(sizeof(T) <= sizeof(uint64_t))
+    friend constexpr bool operator>=(T x, const U& y) noexcept
+    {
+        return !(x < y);
+    }
+
     friend constexpr uint operator<<(const uint& x, uint64_t shift) noexcept
     {
         if (shift >= num_bits) [[unlikely]]

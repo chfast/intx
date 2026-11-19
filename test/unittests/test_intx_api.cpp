@@ -306,6 +306,87 @@ TYPED_TEST(uint_api, comparison)
     EXPECT_TRUE(d >= x);
 }
 
+TYPED_TEST(uint_api, comparison_with_builtin)
+{
+    // Comparing with a builtin integer gives the result of comparing with its uint conversion,
+    // also for values with high words set and for negative integers.
+    using limits64 = std::numeric_limits<uint64_t>;
+    std::vector<TypeParam> xs{0, 1, uint64_t{1} << 63, limits64::max(), (TypeParam{1} << 64) + 1,
+        TypeParam{1} << (TypeParam::num_bits - 1), ~TypeParam{0},
+        (TypeParam{1} << 127) | (TypeParam{1} << (TypeParam::num_bits - 1))};
+    for (size_t i = 1; i < TypeParam::num_words; ++i)
+        xs.push_back(TypeParam{1} << (64 * i));
+
+    const auto check = [&xs](auto y) {
+        const TypeParam u{y};
+        for (const auto& x : xs)
+        {
+            SCOPED_TRACE(testing::Message() << "x = 0x" << hex(x) << ", y = " << +y);
+            EXPECT_EQ(x < y, x < u);
+            EXPECT_EQ(y < x, u < x);
+            EXPECT_EQ(x <= y, x <= u);
+            EXPECT_EQ(y <= x, u <= x);
+            EXPECT_EQ(x > y, x > u);
+            EXPECT_EQ(y > x, u > x);
+            EXPECT_EQ(x >= y, x >= u);
+            EXPECT_EQ(y >= x, u >= x);
+        }
+    };
+    const auto check_limits = [&check]<typename T>(T) {
+        using limits = std::numeric_limits<T>;
+        check(limits::min());
+        check(T(-1));
+        check(T{0});
+        check(T{1});
+        check(limits::max());
+    };
+    check_limits(bool{});
+    check_limits(int8_t{});
+    check_limits(int{});
+    check_limits(unsigned{});
+    check_limits(int64_t{});
+    check_limits(uint64_t{});
+
+    EXPECT_TRUE(TypeParam{limits64::max()} == -1);
+
+    static_assert(TypeParam{5} < 6);
+    static_assert(6 > TypeParam{5});
+    static_assert(TypeParam{5} <= 5);
+    static_assert(5 <= TypeParam{5});
+    static_assert(TypeParam{5} >= 5);
+    static_assert(5 >= TypeParam{5});
+    static_assert((TypeParam{1} << 64) > limits64::max());
+    static_assert(limits64::max() < (TypeParam{1} << 64));
+
+#if INTX_HAS_BUILTIN_INT128
+    // 128-bit builtin integers are not truncated to 64 bits.
+    static_assert(TypeParam{1} < (builtin_uint128{1} << 64));
+    static_assert((builtin_uint128{1} << 64) > TypeParam{1});
+    static_assert(!(TypeParam{~uint64_t{0}, ~uint64_t{0}} > builtin_int128{-1}));
+    static_assert(!(builtin_int128{-1} < TypeParam{~uint64_t{0}, ~uint64_t{0}}));
+#endif
+}
+
+// A class derived from uint with its own comparison operators keeps comparing with builtin
+// integers through them: the operators for builtin integers do not take derived classes.
+template <typename U>
+struct ReverseOrdered : U
+{
+    using U::U;
+    std::strong_ordering operator<=>(const ReverseOrdered& y) const noexcept
+    {
+        return static_cast<const U&>(y) <=> static_cast<const U&>(*this);
+    }
+};
+
+TYPED_TEST(uint_api, comparison_with_builtin_in_derived_class)
+{
+    const ReverseOrdered<TypeParam> x{2};
+    EXPECT_EQ(
+        (std::array{(x < 1), (1 > x), (x <= 1), (1 >= x), (x > 1), (1 < x), (x >= 1), (1 <= x)}),
+        (std::array{true, true, true, true, false, false, false, false}));
+}
+
 template <typename T>
 struct Wrapper
 {
