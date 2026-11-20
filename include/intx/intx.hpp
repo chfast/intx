@@ -1435,6 +1435,7 @@ public:
     ///
     /// The words of y form the outer loop. In chained products pass the previous product as y:
     /// each row then needs only one of its words, so consecutive products overlap.
+    /// @post result = x * y % 2 ^ N
     friend constexpr uint operator*(const uint& x, const uint& y) noexcept
     {
 #if INTX_HAS_ADDC_X86

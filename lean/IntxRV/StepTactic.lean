@@ -8,7 +8,9 @@ import IntxRV.TacticM
 one (`Reach.step`) until the address `tgt`, splitting the paths at the branches, and leaves `Q`
 of the registers and the memory at `tgt`. A value that an instruction computes is the new name
 `w` with its definition `Defn w v` in the context, with `v` in terms of the earlier names: the
-work of a step does not grow with the length of the run.
+work of a step does not grow with the length of the run. `rv_exec_loop` also decides the branches
+on numbers and on addresses with the same base: it unrolls a loop whose counter or pointer runs to
+a constant bound.
 -/
 
 open Sail LeanRV64D LeanRV64D.Functions LeanRV64D.Defs
@@ -59,19 +61,30 @@ theorem Reach.start {A : List (BitVec 64)} {prog : List instruction} {base tgt :
 
 open Lean Meta Elab Tactic in
 /-- Substitutes the name of the definition `h` if its value is a numeral or a numeral added to a
-value (an address): the addresses of the loads and stores must show their base. -/
-elab "rv_const " h:ident : tactic => withMainContext do
+value (an address), and with `regs` also a register of the start: the addresses of the loads and
+stores must show their base. -/
+def rvConst (h : Ident) (regs : Bool) : TacticM Unit := withMainContext do
   let d ← getLocalDeclFromUserName h.getId
   let t ← instantiateMVars d.type
   let isNum := fun (e : Expr) => e.isAppOfArity ``BitVec.ofNat 2 && (e.getArg! 1).nat?.isSome
   if let some (_, v) := t.app2? ``Defn then
     let addNum := v.isAppOfArity ``HAdd.hAdd 6 && (isNum (v.getArg! 4) || isNum (v.getArg! 5))
-    if isNum v || addNum then
+    if isNum v || addNum || (regs && v.isAppOfArity ``Regs.get 2) then
       if addNum && isNum (v.getArg! 4) then  -- The numeral to the right, as in the addresses.
         evalTactic (← `(tactic| rw [Defn, BitVec.add_comm] at $h:ident))
       else
         evalTactic (← `(tactic| unfold Defn at $h:ident))
       evalTactic (← `(tactic| subst $h:ident))
+
+open Lean Elab Tactic in
+/-- Substitutes the name of the definition `h` if its value is a numeral or a numeral added to a
+value (an address): the addresses of the loads and stores must show their base. -/
+elab "rv_const " h:ident : tactic => rvConst h false
+
+open Lean Elab Tactic in
+/-- `rv_const` that also substitutes the names of the registers of the start, for `rv_exec_loop`:
+the pointers of a loop show their base. -/
+elab "rv_const_loop " h:ident : tactic => rvConst h true
 
 /-- The membership of an address in the list of the words of the buffers. -/
 macro "rv_mem" : tactic => `(tactic| (
@@ -101,5 +114,36 @@ macro "rv_step" : tactic => `(tactic| (
 /-- Runs the instructions until the address `tgt`. -/
 macro "rv_exec" : tactic => `(tactic| (
   repeat' (first | refine Reach.refl_at ?_ | rv_step)))
+
+/-- `rv_val` with the numerals of `li` and of the loads of 0 reduced, and the comparisons of the
+addresses with the same base decided: the branches of a loop whose counter or pointer runs to a
+constant bound. -/
+macro "rv_val_loop" loc:(Lean.Parser.Tactic.location)? : tactic => `(tactic| (
+  rv_val $(loc)?
+  try simp (config := { decide := true }) only [BitVec.ofNat_eq_ofNat, BitVec.reduceSub,
+    BitVec.reduceAdd, BitVec.reduceHShiftLeft, BitVec.reduceShiftLeft, BitVec.sub_zero,
+    BitVec.add_zero, BitVec.zero_add, BitVec.not_lt_zero, ↓reduceIte, BitVec.add_right_inj,
+    beq_eq_false_iff_ne, bne_eq_false_iff_eq, ne_eq, not_true_eq_false, not_false_eq_true]
+    $(loc)?))
+
+/-- `rv_step` with `rv_val_loop` and `rv_const_loop`. -/
+macro "rv_step_loop" : tactic => `(tactic| (
+  refine Reach.step ?hk rfl ?_
+  case hk => decide
+  simp only [StepGoal, Nat.reduceAdd, true_and, jumpIdx, BitVec.reduceToInt, Nat.reduceMul,
+    Int.reduceAdd, Int.reduceToNat, Nat.reduceDiv, Nat.cast_ofNat]
+  first
+  | (apply And.intro; (focus decide); apply And.intro <;> intro hb <;> rv_val_loop at hb)
+  | (apply And.intro <;> intro hb <;> rv_val_loop at hb)
+  | (apply And.intro; (focus rv_mem); intro w hw; rv_val_loop at hw; rv_const_loop hw)
+  | (apply And.intro; (focus rv_mem); show Reach _ _ _ _ _ _ _ _)
+  | (apply And.intro; (focus decide); show Reach _ _ _ _ _ _ _ _)
+  | (intro w hw; rv_val_loop at hw; rv_const_loop hw)
+  | (show Reach _ _ _ _ _ _ _ _; rv_val_loop)))
+
+/-- `rv_exec` that unrolls the loops whose counters and pointers run to constant bounds: the values
+decide their branches, so each branch takes its one path. -/
+macro "rv_exec_loop" : tactic => `(tactic| (
+  repeat' (first | refine Reach.refl_at ?_ | rv_step_loop)))
 
 end IntxRV

@@ -11,8 +11,9 @@ proves an equation of the numbers of the names from exact linear facts of the de
 - a sum without a carry that cannot overflow: `w = a + b`, by `omega` from the facts that the
   operands depend on (as a high word of a product plus carries).
 Each `omega` sees only the facts it needs. `linarith` proves the equation from all the exact
-facts. `rv_copies` substitutes the names that are copies of other values, and `rv_loads` writes
-the loads of the start memory in the goal with their names. `rv_fold h` writes the values of `h`
+facts. `rv_copies` substitutes the names that are copies of other values, `rv_cse` the names
+with the values of earlier names, and `rv_loads` writes the loads of the start memory in the goal
+with their names. `rv_fold h` writes the values of `h`
 with the names of the run, and `rv_conds` adds the comparisons that the branches on the results of
 `sltu` decide.
 -/
@@ -162,6 +163,29 @@ def foldLoads : TacticM Unit := withMainContext do
 
 /-- Writes the words that the run loads from the start memory with their names in the goal. -/
 elab "rv_loads" : tactic => foldLoads
+
+/-- Substitutes the names whose values are the values of earlier names: the words that a run
+loads again from an address of the start memory. -/
+elab "rv_cse" : tactic => do
+  let mut again := true
+  while again do
+    again := false
+    let g ← getMainGoal
+    let dup ← g.withContext do
+      let mut seen : Std.HashMap Expr (Expr × Expr) := {}
+      for (h, w, v) in ← defns do
+        if let some (h0, w0) := seen.get? v then
+          return some (h, w, h0, w0)
+        seen := seen.insert v (h, w)
+      return none
+    if let some (h, w, h0, w0) := dup then
+      g.withContext do
+        let eq ← mkEqTrans (← mkAppM ``Defn.eq #[h]) (← mkEqSymm (← mkAppM ``Defn.eq #[h0]))
+        let (fv, g) ← (← g.assert `hcse (← mkEq w w0) eq).intro1P
+        let g ← g.clear h.fvarId!
+        let g ← subst g fv
+        replaceMainGoal [g]
+      again := true
 
 /-- Proves the goal, an equation of numbers of names, from the definitions of the names: the
 sums with a carry, the products by their words, the sums that cannot overflow (by `omega` from the

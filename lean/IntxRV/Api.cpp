@@ -48,6 +48,9 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr Binop sub_256 = [](const uint256& x, const uint256& y) noexcept {
     return x - y;
 };
+[[gnu::used]] constexpr Binop mul_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x * y;
+};
 [[gnu::used]] constexpr Cmp eq_256 = [](const uint256& x, const uint256& y) noexcept {
     return x == y;
 };
