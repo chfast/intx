@@ -54,7 +54,7 @@ theorem add_lt_iff_not_lt (a d : BitVec 64) :
     rw [show (18446744073709551615#64) = BitVec.allOnes 64 from rfl, BitVec.xor_allOnes]]
   bv_omega
 
-theorem image_data_get : ∀ i < 256, image_data.getD i 0 =
+theorem image_data_get : ∀ i < 256, reciprocal_2by1_image_data.getD i 0 =
     BitVec.ofNat 64 (523520 / (i + 256) * (523520 / (i + 256)) +
       2 ^ 32 * (2 ^ 11 * (523520 / (i + 256)) - 1)) := by
   decide

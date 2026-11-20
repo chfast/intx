@@ -4,7 +4,7 @@ import IntxRV.Image
 
 A function in the image calls another one by `auipc ra` and `jalr ra`. The proof of the callee
 on its own code (`Reach` from its start to its return address in `ra`) is a proof in the image:
-`Reach.lift` moves it to the offset of the callee in the image (`Gen.<f>_in_image`), and
+`Reach.lift` moves it to the offset of the callee in the image (`Gen.<p>_image_<f>_in`), and
 `Reach.mono_bufs` to the larger list of the words that the caller may access. `Reach.call` runs the
 call in the caller: the callee from its entry to the return address, then the rest of the caller
 from the registers and the memory that the callee leaves.

@@ -35,12 +35,12 @@ namespace IntxRV.Api
 open IntxRV IntxRV.Gen
 
 theorem reciprocal_2by1.proof : reciprocal_2by1.spec := by
-  apply runsI_of_reach image_decodes
+  apply runsI_of_reach reciprocal_2by1_image_decodes
   intro base ret hb hr hc hl hw x m hx1 hbufs hhold hpre
   simp only [reciprocal_2by1.pre, reciprocal_2by1.bufs, List.nil_append] at hpre ⊢
   simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
-  simp only [reciprocal_2by1_entry, show image_data.length = 256 from rfl,
-    show image_dataOff = 160 from rfl] at *
+  simp only [reciprocal_2by1_entry, show reciprocal_2by1_image_data.length = 256 from rfl,
+    show reciprocal_2by1_image_dataOff = 160 from rfl] at *
   rv_exec
   refine Reach.step (by decide) rfl ?_
   simp only [StepGoal, Nat.reduceAdd, true_and]
@@ -50,7 +50,8 @@ theorem reciprocal_2by1.proof : reciprocal_2by1.spec := by
   have hi : (x.get 10#5).toNat / 2 ^ 55 - 256 < 256 := by have := (x.get 10#5).isLt; omega
   rw [table_addr _ _ hpre]
   refine ⟨Or.inl (mem_bufWords hi), fun w hw => ?_⟩
-  rw [memHalf_lo, holdsData_get hhold (by rw [show image_data.length = 256 from rfl]; exact hi),
+  rw [memHalf_lo,
+    holdsData_get hhold (by rw [show reciprocal_2by1_image_data.length = 256 from rfl]; exact hi),
     ← List.getD_eq_getElem _ 0, image_data_get _ hi] at hw
   rv_exec
   refine Reach.step (by decide) rfl ?_
@@ -64,7 +65,7 @@ theorem reciprocal_2by1.proof : reciprocal_2by1.spec := by
     rw [show ∀ a : BitVec 64, a + 4 - 4#64 = a from fun a => by bv_omega]; exact mem_bufWords hi),
     fun w hw => ?_⟩
   rw [hnw, memHalf_hi,
-    holdsData_get hhold (by rw [show image_data.length = 256 from rfl]; exact hi),
+    holdsData_get hhold (by rw [show reciprocal_2by1_image_data.length = 256 from rfl]; exact hi),
     ← List.getD_eq_getElem _ 0, image_data_get _ hi] at hw
   rv_exec
   rv_val
@@ -144,7 +145,8 @@ theorem reciprocal_2by1.proof : reciprocal_2by1.spec := by
   ring
 
 theorem reciprocal_2by1.nonvacuous :
-    NonVacuousI image_code image_data image_dataOff reciprocal_2by1.bufs reciprocal_2by1.pre :=
+    NonVacuousI reciprocal_2by1_image_code reciprocal_2by1_image_data
+      reciprocal_2by1_image_dataOff reciprocal_2by1.bufs reciprocal_2by1.pre :=
   nonVacuousI_of (fun i => if i = 10#5 then 0x8000000000000000#64 else 0) (by decide) (by decide)
     (by decide) (by decide) (by simp [reciprocal_2by1.bufs])
     (fun _ => by simp (config := { decide := true }) [reciprocal_2by1.pre])
