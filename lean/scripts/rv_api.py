@@ -326,8 +326,9 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
                   "", "def post (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=\n  " +
                   " ∧\n    ".join(post), "",
                   f"/-- The specification of the machine code of `{var}`. -/",
-                  f"def spec : Prop := RunsI image_code {var}_entry image_data image_dataOff bufs "
-                  "pre post" if image else f"def spec : Prop := RunsM {var}_code bufs pre post"]
+                  (f"def spec : Prop := RunsI {var}_image_code {var}_entry {var}_image_data "
+                   f"{var}_image_dataOff bufs pre post") if image else
+                  f"def spec : Prop := RunsM {var}_code bufs pre post"]
     else:
         lines += ["def pre (x : Regs) : Prop :=\n  " + (" ∧\n    ".join(pre) or "True"), "",
                   "def post (x x' : Regs) : Prop :=\n  " + " ∧\n    ".join(post), "",
@@ -420,8 +421,9 @@ def main():
         checks += [f"example : {a}.spec := {a}.proof", f"#check_rv_axioms {a}.proof"]
         if var in images:
             checks += ["example :",
-                       f"    IntxRV.NonVacuousI IntxRV.Gen.image_code IntxRV.Gen.image_data "
-                       f"IntxRV.Gen.image_dataOff {a}.bufs", f"      {a}.pre := {a}.nonvacuous", ""]
+                       f"    IntxRV.NonVacuousI IntxRV.Gen.{var}_image_code "
+                       f"IntxRV.Gen.{var}_image_data IntxRV.Gen.{var}_image_dataOff {a}.bufs",
+                       f"      {a}.pre := {a}.nonvacuous", ""]
         elif mem is not None:
             checks += ["example :", f"    IntxRV.NonVacuous IntxRV.Gen.{var}_code {a}.bufs "
                        f"{a}.pre := by",

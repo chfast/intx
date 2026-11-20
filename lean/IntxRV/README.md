@@ -146,15 +146,15 @@ the top word do not overflow, which needs bounds of the product over several col
 ### Calls and constant data
 
 A function that calls other functions or reads constant data (the table of the reciprocal) has
-relocations. `rv_gen.py` links these functions with what they reach into one image at 0
-([`../scripts/rv_image.ld`](../scripts/rv_image.ld)): the code `Gen.image_code` and the read-only
-data `Gen.image_data` after it, and the stack that each function uses with its callees. `RunsI`
-([`Image.lean`](Image.lean)) is `RunsM` for the function at the instruction `entry` of the image,
-with the data in the memory. A call is `auipc ra` and `jalr ra`; `Reach.call`
-([`Call.lean`](Call.lean)) runs the callee by its proof: `f.reach` of a function `f` on its own code
-is lifted into the image by `Reach.lift`. The instances of `intx::wip` in
-`Api.cpp` get their specifications without the checks of their proofs, until they are proved
-(`umul()` of `uint256` at present).
+relocations. `rv_gen.py` links each of these functions `p` with what it reaches into its own image
+at 0 ([`../scripts/rv_image.ld`](../scripts/rv_image.ld)), so that other functions do not move its
+code and data: the code `Gen.p_image_code` and the read-only data `Gen.p_image_data` after it,
+and the stack that the function uses with its callees. `RunsI` ([`Image.lean`](Image.lean)) is
+`RunsM` for the function at the instruction `entry` of the image, with the data in the memory. A
+call is `auipc ra` and `jalr ra`; `Reach.call` ([`Call.lean`](Call.lean)) runs the callee by its
+proof: `f.reach` of a function `f` on its own code is lifted into the image by `Reach.lift`. The
+instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
+until they are proved (`umul()` of `uint256` at present).
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
 `words` and on `log2` ([`Bits.lean`](Bits.lean)).

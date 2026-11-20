@@ -4,9 +4,9 @@ import Mathlib.Tactic.SplitIfs
 /-!
 # Functions in an image
 
-The functions that call other functions or read constant data are proved in the image of all the
-functions linked together (`Gen.image_code`, see `scripts/rv_gen.py`): the code at `base` and the
-read-only data `data` (64-bit words) at `base + off`. `RunsI code entry data off bufs pre post` is
+A function that calls other functions or reads constant data is proved in its image, the function
+linked with what it reaches (`Gen.<p>_image_code`, see `scripts/rv_gen.py`): the code at `base`
+and the read-only data `data` (64-bit words) at `base + off`. `RunsI code entry data off bufs pre post` is
 `RunsM` for the function that starts at the instruction `entry` of the image: the data is in the
 memory, ordinary memory (`WordOk`), and the buffers are outside the image.
 -/
