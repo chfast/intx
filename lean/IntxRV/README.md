@@ -63,6 +63,8 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `shl<9, 8>()` | [`shl_9_8`](Api/shl_9_8.lean) |
 | `operator<<` of `uint256` by `uint64_t` | [`shl_256`](Api/shl_256.lean) |
 | `operator>>` of `uint256` by `uint64_t` | [`shr_256`](Api/shr_256.lean) |
+| `operator<<` of `uint256` by `uint256` | [`shl_256_by_256`](Api/shl_256_by_256.lean) |
+| `operator>>` of `uint256` by `uint256` | [`shr_256_by_256`](Api/shr_256_by_256.lean) |
 | `bit_test()` of `uint256` | [`bit_test_256`](Api/bit_test_256.lean) |
 | `count_significant_words()` of `uint256` | [`count_significant_words_256`](Api/count_significant_words_256.lean) |
 | `clz()` of `uint256` | [`clz_256`](Api/clz_256.lean) |
@@ -155,8 +157,10 @@ code and data: the code `Gen.p_image_code` and the read-only data `Gen.p_image_d
 and the stack that the function uses with its callees. `RunsI` ([`Image.lean`](Image.lean)) is
 `RunsM` for the function at the instruction `entry` of the image, with the data in the memory. A
 call is `auipc ra` and `jalr ra`; `Reach.call` ([`Call.lean`](Call.lean)) runs the callee by its
-proof: `f.reach` of a function `f` on its own code is lifted into the image by `Reach.lift`. The
-instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
+proof: `f.reach` of a function `f` on its own code is lifted into the image by `Reach.lift`.
+`Gen.p_image_f_in` states that the image holds the code of `f`: the function `f` itself, or another
+function with the same code, as the operators by `uint64_t` that the shifts by `uint256` call
+(`Reach.call_sub`). The instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
 until they are proved (`umul()` of `uint256` at present).
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of

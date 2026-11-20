@@ -84,6 +84,10 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
     +[] [[gnu::flatten]] (const uint256& x, uint64_t shift) noexcept { return x << shift; };
 [[gnu::used]] constexpr auto* shr_256 =
     +[] [[gnu::flatten]] (const uint256& x, uint64_t shift) noexcept { return x >> shift; };
+[[gnu::used]] constexpr Binop shl_256_by_256 =
+    [] [[gnu::flatten]] (const uint256& x, const uint256& shift) noexcept { return x << shift; };
+[[gnu::used]] constexpr Binop shr_256_by_256 =
+    [] [[gnu::flatten]] (const uint256& x, const uint256& shift) noexcept { return x >> shift; };
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated

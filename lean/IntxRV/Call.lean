@@ -148,4 +148,32 @@ theorem Reach.call {A : List (BitVec 64)} {prog : List instruction} {base tgt : 
     Reach A prog base (pcAt base e) x m tgt Q :=
   Reach.trans hcallee hcont
 
+/-- A call of the function `sub` that is at the offset `o` of the image, with its proof on its own
+code: it runs from its entry to the return address `pcAt base r` in ra, then the caller
+continues. -/
+theorem Reach.call_sub {A A' : List (BitVec 64)} {prog sub : List instruction} {o r : Nat}
+    (hs : (prog.drop o).take sub.length = sub) (hp : 4 * prog.length < 2 ^ 64)
+    {base tgt : BitVec 64} {x : Regs} {m : Mem} {R Q : Regs → Mem → Prop}
+    (hcallee : Reach A sub (pcAt base o) (pcAt (pcAt base o) 0) x m (x.get 1#5) R)
+    (hra : x.get 1#5 = pcAt base r) (hA : ∀ a ∈ A, a ∈ A')
+    (hcont : ∀ x' m', R x' m' → Reach A' prog base (pcAt base r) x' m' tgt Q) :
+    Reach A' prog base (pcAt base o) x m tgt Q := by
+  rw [pcAt_zero, hra] at hcallee
+  exact Reach.call ((Reach.lift hs hp hcallee).mono_bufs hA) hcont
+
+/-- The word at `b` outside the bytes that may change. -/
+theorem memWord_of_unchangedExcept {m m' : Mem} {a : BitVec 64} {len : Nat}
+    (h : UnchangedExcept m m' a len) (b : Nat) (hb : b + 8 ≤ a.toNat ∨ a.toNat + len ≤ b) :
+    memWord m' b = memWord m b := by
+  simp only [memWord, Std.ExtHashMap.getD_eq_getD_getElem?]
+  rw [h b (by omega), h (b + 1) (by omega), h (b + 2) (by omega), h (b + 3) (by omega),
+    h (b + 4) (by omega), h (b + 5) (by omega), h (b + 6) (by omega), h (b + 7) (by omega)]
+
+/-- The memory after a call that changes only the bytes at `a`, by a caller that has changed only
+them and the bytes at `b`. -/
+theorem UnchangedExcept2.trans {m m1 m2 : Mem} {a b : BitVec 64} {la lb : Nat}
+    (h1 : UnchangedExcept2 m m1 a la b lb) (h2 : UnchangedExcept m1 m2 a la) :
+    UnchangedExcept2 m m2 a la b lb :=
+  fun k ha hb => (h2 k ha).trans (h1 k ha hb)
+
 end IntxRV

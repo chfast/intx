@@ -14,9 +14,9 @@ function with relocations (calls, constant data) is linked with what it reaches 
 IMAGE with `-p` before the suffix (scripts/rv_image.ld, the linker LD, default ld.lld):
 `Gen.p_image_code`, `Gen.p_image_prog`, `Gen.p_image_decodes`, the data `Gen.p_image_data` at
 `Gen.p_image_dataOff`, `Gen.p_entry` the index of the first instruction of `f`, and
-`Gen.p_image_q_in` for the functions `q` without relocations in the image. STACK_JSON gets the
-bytes of the stack that each function uses below sp, with those of
-the functions it calls, for scripts/rv_api.py.
+`Gen.p_image_q_in` for the functions in the image with the code of an instance `q` without
+relocations. STACK_JSON gets the bytes of the stack that each function uses below sp, with those
+of the functions it calls, for scripts/rv_api.py.
 """
 
 import json
@@ -198,14 +198,14 @@ def write_if_changed(path, text):
 
 
 def stack_size(var, code):
-    """The bytes of the stack below sp that the function uses: the frame that the first
-    instruction `addi sp, sp, -F` allocates, or 0."""
-    w = code[0]
-    if w & 0xfffff == 0x10113:  # addi sp, sp, imm
-        imm = sext(w >> 20, 12)
-        if imm >= 0 or -imm % 16:
-            sys.exit(f"{var}: unexpected stack frame {imm}")
-        return -imm
+    """The bytes of the stack below sp that the function uses: the frame that `addi sp, sp, -F`
+    allocates, or 0. The allocation may be after the first branch (shrink wrapping)."""
+    frames = {-sext(w >> 20, 12) for w in code
+              if w & 0xfffff == 0x10113 and sext(w >> 20, 12) < 0}  # addi sp, sp, imm < 0
+    if len(frames) > 1 or any(f % 16 for f in frames):
+        sys.exit(f"{var}: unexpected stack frames {sorted(frames)}")
+    if frames:
+        return frames.pop()
     if any(w & 0xf8000 == 0x10000 and w & 0x7f in (0x03, 0x23) for w in code):  # base sp
         sys.exit(f"{var}: uses the stack without a frame")
     return 0
@@ -354,8 +354,11 @@ def main():
         lines += [f"/-- The instruction where `{var}` starts in its image. -/",
                   f"def {var}_entry : Nat := {fn['value'] // 4}", ""]
         info[var] = dict(stack=image_stack(im, fn["name"]), image=True)
+        # The functions of the image with the code of an instance q: the same function, or a
+        # function that the instance inlines (the operators by uint64_t of the shifts by uint256).
         for q, code in funcs.items():
-            fq = addr.get(targets[q]["name"])
+            fq = next((f for f in sorted(addr.values(), key=lambda f: f["value"])
+                       if img[f["value"] // 4:(f["value"] + f["size"]) // 4] == code), None)
             if fq is not None:
                 lines += [f"/-- The instruction where the code of `{q}` is in the image of "
                           f"`{var}`. -/",
