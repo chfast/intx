@@ -83,6 +83,13 @@
     #define INTX_HAS_ADDC_X86 0
 #endif
 
+// Detect the x86-64 GNU inline assembly for internal::sub_if_ge_x86()
+#if defined(__x86_64__) && defined(__GNUC__)
+    #define INTX_HAS_SUB_IF_GE_X86 1
+#else
+    #define INTX_HAS_SUB_IF_GE_X86 0
+#endif
+
 namespace intx
 {
 /// Mark a possible code path as unreachable (invokes undefined behavior).
@@ -689,6 +696,30 @@ namespace internal
 }  // namespace internal
 #endif
 
+#if INTX_HAS_SUB_IF_GE_X86
+namespace internal
+{
+/// Subtracts d from r and increments q if r >= d, without a branch: the borrow of r - d selects the
+/// difference with cmov and is added inverted to q.
+[[gnu::always_inline]] inline void sub_if_ge_x86(uint128& r, uint128 d, uint64_t& q) noexcept
+{
+    auto r0 = r[0];
+    auto r1 = r[1];
+    auto t0 = r0;
+    auto t1 = r1;
+    asm("sub {%[d0], %[t0]|%[t0], %[d0]}\n\t"  // NOLINT(hicpp-no-assembler)
+        "sbb {%[d1], %[t1]|%[t1], %[d1]}\n\t"
+        "cmovae {%[t0], %[r0]|%[r0], %[t0]}\n\t"
+        "cmovae {%[t1], %[r1]|%[r1], %[t1]}\n\t"
+        "sbb {$-1, %[q]|%[q], -1}"
+        : [r0] "+r"(r0), [r1] "+r"(r1), [t0] "+r"(t0), [t1] "+r"(t1), [q] "+r"(q)
+        : [d0] "r"(d[0]), [d1] "r"(d[1])
+        : "cc");
+    r = {r0, r1};
+}
+}  // namespace internal
+#endif
+
 /// Left-shifts a little-endian word array x by shift bits and stores the result in r.
 /// The r must have the same size as x, or one word more to also receive the bits shifted out.
 /// The r may alias x. The shift must be less than 64.
@@ -981,12 +1012,20 @@ constexpr div_result<uint64_t, uint128> udivrem_3by2(
 
     // The first correction, taken about half the time, selects q1 and r + d if r[1] >= q[0].
     // The masks select without a branch: a ternary on uint128 is a branch with GCC.
-    // The second correction is rare.
     const auto c = r[1] >= q[0];
     const auto mask = uint64_t{0} - uint64_t{c};
     r = {(rd[0] & mask) | (r[0] & ~mask), (rd[1] & mask) | (r[1] & ~mask)};
     q[1] += uint64_t{!c};
 
+    // The second correction is rare for random operands, but chosen operands take it in up to half
+    // of the steps. On x86-64 it is selected, not branched to.
+#if INTX_HAS_SUB_IF_GE_X86
+    if (!std::is_constant_evaluated())
+    {
+        internal::sub_if_ge_x86(r, d, q[1]);
+        return {q[1], r};
+    }
+#endif
     if (r >= d) [[unlikely]]
     {
         ++q[1];
