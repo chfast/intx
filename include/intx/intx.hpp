@@ -1701,6 +1701,8 @@ public:
         return x << internal::shift_amount(shift);
     }
 
+    /// The shift left modulo 2^N.
+    /// @post result = x * 2 ^ shift % 2 ^ N
     friend constexpr uint operator<<(const uint& x, const uint& shift) noexcept
     {
         // TODO: This optimisation should be handled by operator<.
@@ -1769,6 +1771,8 @@ public:
         return x >> internal::shift_amount(shift);
     }
 
+    /// The shift right.
+    /// @post result = x / 2 ^ shift
     friend constexpr uint operator>>(const uint& x, const uint& shift) noexcept
     {
         uint64_t high_words_fold = 0;
