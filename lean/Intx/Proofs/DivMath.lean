@@ -13,6 +13,9 @@ The number theory of `internal::reciprocal()` and `udivrem_2by1(u, d, v)`, apart
   reciprocal `v = floor((2^128 - 1) / d) - 2^64`, that is `0 < 2^128 - (2^64 + v) * d ≤ d`;
 * Theorem 2: with the reciprocal, Algorithm 4 computes the quotient and the remainder of a two-word
   number `u < 2^64 * d` by `d`;
+* the reciprocal of a normalized two-word `D`: the third Newton step against the whole divisor
+  (`recip3_e3`) and the exact correction (`recip3_e4`) of `internal::reciprocal()` for `uint128`
+  give `floor((2^192 - 1) / D) - 2^64` (`recip3_nat`);
 * Theorem 3: with the reciprocal `v = floor((2^192 - 1) / D) - 2^64` of a normalized two-word `D`
   (`2^127 ≤ D < 2^128`), the candidate remainder of Algorithm 5 for a three-word number `u2:u1:u0`
   with `u2:u1 < D` is in `[c - 2^128, c)` with `c = max(2^128 - D, 2^64 * q0)`, so its two
@@ -97,13 +100,15 @@ theorem recip_e1 (v0 d40 : ℕ) (hlo : 2 ^ 50 < v0 * d40 + 5 * 2 ^ 39)
     exact_mod_cast this
 
 /-- The second Newton step `v2 = 2^13 * v1 + floor(v1 * e1 / 2^47)`: its error `e2 = 2^97 - v2 * d`
-is in `(0, 873 * 2^53 + d + 2^24)`, as
+is in `(v2, 873 * 2^53 + d + 2^24)`, as
 `2^47 * e2 = 2^24 * (e1^2 + d40 * f2) + 2^47 * v2 * (2^24 * d40 - d)` with the truncated
-`f2 < 2^47` (Theorem 1, (8)). -/
+`f2 < 2^47` and `2^24 * d40 - d ≥ 1` (Theorem 1, (8)). -/
 theorem recip_e2 (v1 d40 D : ℕ) (h1 : v1 * d40 < 2 ^ 60) (h2 : 2 ^ 60 < v1 * d40 + 29 * 2 ^ 38)
     (hD : D / 2 ^ 24 + 1 = d40) (hD1 : 2 ^ 63 ≤ D) (hD2 : D < 2 ^ 64) :
     (2 ^ 13 * v1 + v1 * (2 ^ 60 - v1 * d40) / 2 ^ 47) * D < 2 ^ 97 ∧
-      2 ^ 97 < (2 ^ 13 * v1 + v1 * (2 ^ 60 - v1 * d40) / 2 ^ 47) * D + 873 * 2 ^ 53 + D + 2 ^ 24 := by
+      2 ^ 97 < (2 ^ 13 * v1 + v1 * (2 ^ 60 - v1 * d40) / 2 ^ 47) * D + 873 * 2 ^ 53 + D + 2 ^ 24 ∧
+      (2 ^ 13 * v1 + v1 * (2 ^ 60 - v1 * d40) / 2 ^ 47) * D +
+        (2 ^ 13 * v1 + v1 * (2 ^ 60 - v1 * d40) / 2 ^ 47) < 2 ^ 97 := by
   -- e1 = 2^60 - v1 * d40 and d = 2^24 * d40 - dd.
   obtain ⟨e1, he1⟩ : ∃ e1, e1 + v1 * d40 = 2 ^ 60 := ⟨2 ^ 60 - v1 * d40, by omega⟩
   have he1' : 2 ^ 60 - v1 * d40 = e1 := by omega
@@ -141,7 +146,19 @@ theorem recip_e2 (v1 d40 D : ℕ) (h1 : v1 * d40 < 2 ^ 60) (h2 : 2 ^ 60 < v1 * d
   have hlt : (2 ^ 13 * v1 + F2) * D < 2 ^ 97 := by
     have : ((2 ^ 13 * v1 + F2) * D : ℤ) < 2 ^ 97 := by linarith
     exact_mod_cast this
-  refine ⟨hlt, ?_⟩
+  -- e2 > v2: 2^47 * e2 ≥ 2^24 * e1^2 + 2^47 * v2 with e1 ≥ 1.
+  have hlt2 : (2 ^ 13 * v1 + F2) * D + (2 ^ 13 * v1 + F2) < 2 ^ 97 := by
+    have hvd : (2 ^ 47 * (2 ^ 13 * v1 + F2) : ℤ) ≤ 2 ^ 47 * (2 ^ 13 * v1 + F2) * dd := by
+      have : (1 : ℤ) ≤ dd := by exact_mod_cast hdd1
+      have : (0 : ℤ) ≤ 2 ^ 47 * (2 ^ 13 * v1 + F2) := by positivity
+      nlinarith
+    have he : (1 : ℤ) ≤ e1 ^ 2 := by
+      have : (1 : ℤ) ≤ e1 := by exact_mod_cast he1p
+      nlinarith
+    have : (0 : ℤ) ≤ 2 ^ 24 * d40 * f2 := by positivity
+    have : ((2 ^ 13 * v1 + F2) * D + (2 ^ 13 * v1 + F2) : ℤ) < 2 ^ 97 := by linarith
+    exact_mod_cast this
+  refine ⟨hlt, ?_, hlt2⟩
   -- v2 < 2^34, so v2 * dd <= 2^58.
   have hv2 : 2 ^ 13 * v1 + F2 < 2 ^ 34 := by
     by_contra h
@@ -270,6 +287,176 @@ theorem recip_e4 (v3 D : ℕ) (hv3 : v3 < 2 ^ 64) (h1 : (2 ^ 64 + v3) * D < 2 ^ 
     have e2 : (2 ^ 64 + (v3 + 1) + 1) * D = 2 ^ 64 * D + v3 * D + 2 * D := by ring
     rw [e1, e2]
     omega
+
+set_option maxHeartbeats 1000000 in
+/-- The Newton step against the whole divisor `D = 2^64 * d1 + d0` (`internal::reciprocal()` for
+`uint128`): with `e2 = 2^97 - v2 * d1`, the error is estimated as
+`e = floor(e2 / 2) - 1 - floor(floor(v2 * d0 / 2^64) / 2)`, which does not wrap as `e2 > v2`, and
+`V3 = 2^31 * v2 + floor(v2 * e / 2^65)` has the error `E3 = 2^192 - V3 * D` in `(0, 2 * D)`, as
+`2^65 * E3 = 2^96 * δ + e * ε + f * D` with `ε = 2^161 - v2 * D`, `δ = ε - 2^65 * e` in
+`[1, 3 * 2^64]` and the truncated `f < 2^65`. -/
+theorem recip3_e3 (v2 d1 d0 : ℕ) (h1 : v2 * d1 + v2 < 2 ^ 97)
+    (h2 : 2 ^ 97 < v2 * d1 + 873 * 2 ^ 53 + d1 + 2 ^ 24) (hd1 : 2 ^ 63 ≤ d1) (hd1' : d1 < 2 ^ 64)
+    (hd0 : d0 < 2 ^ 64) :
+    1 + v2 * d0 / 2 ^ 64 / 2 ≤ (2 ^ 97 - v2 * d1) / 2 ∧
+      (2 ^ 31 * v2 + v2 * ((2 ^ 97 - v2 * d1) / 2 - 1 - v2 * d0 / 2 ^ 64 / 2) / 2 ^ 65) *
+          (2 ^ 64 * d1 + d0) < 2 ^ 192 ∧
+      2 ^ 192 < (2 ^ 31 * v2 + v2 * ((2 ^ 97 - v2 * d1) / 2 - 1 - v2 * d0 / 2 ^ 64 / 2) / 2 ^ 65) *
+          (2 ^ 64 * d1 + d0) + 2 * (2 ^ 64 * d1 + d0) := by
+  have hv2 : 1 ≤ v2 := by
+    rcases Nat.eq_zero_or_pos v2 with h | h
+    · subst h; omega
+    · exact h
+  obtain ⟨e2, he2⟩ : ∃ e2, e2 + v2 * d1 = 2 ^ 97 := ⟨2 ^ 97 - v2 * d1, by omega⟩
+  rw [show 2 ^ 97 - v2 * d1 = e2 by omega]
+  have he2l : v2 + 1 ≤ e2 := by omega
+  have he2h : e2 < 873 * 2 ^ 53 + d1 + 2 ^ 24 := by omega
+  -- H = floor(v2 * d0 / 2^64) ≤ v2 - 1.
+  have hH := Nat.div_add_mod (v2 * d0) (2 ^ 64)
+  have hl := Nat.mod_lt (v2 * d0) (show 0 < 2 ^ 64 by positivity)
+  have hvd : v2 * d0 ≤ v2 * (2 ^ 64 - 1) := Nat.mul_le_mul_left _ (by omega)
+  generalize v2 * d0 / 2 ^ 64 = H at hH ⊢
+  generalize hl' : v2 * d0 % 2 ^ 64 = l at hH hl
+  have hHv : H + 1 ≤ v2 := by omega
+  refine ⟨by omega, ?_⟩
+  -- e and its error δ: 1 ≤ 2^64 * e2 - v2 * d0 - 2^65 * e ≤ 3 * 2^64.
+  have hδ1 : 2 ^ 65 * (e2 / 2 - 1 - H / 2) + v2 * d0 + 1 ≤ 2 ^ 64 * e2 := by omega
+  have hδ2 : 2 ^ 64 * e2 ≤ 2 ^ 65 * (e2 / 2 - 1 - H / 2) + v2 * d0 + 3 * 2 ^ 64 := by omega
+  generalize e2 / 2 - 1 - H / 2 = e at hδ1 hδ2 ⊢
+  have hG := Nat.div_add_mod (v2 * e) (2 ^ 65)
+  have hf := Nat.mod_lt (v2 * e) (show 0 < 2 ^ 65 by positivity)
+  generalize v2 * e / 2 ^ 65 = g at hG ⊢
+  generalize v2 * e % 2 ^ 65 = f at hG hf
+  -- In integers, with ε = 2^64 * e2 - v2 * d0.
+  have key : (2 ^ 65 : ℤ) * (2 ^ 192 - (2 ^ 31 * v2 + g) * (2 ^ 64 * d1 + d0)) =
+      2 ^ 96 * (2 ^ 64 * e2 - v2 * d0 - 2 ^ 65 * e) + e * (2 ^ 64 * e2 - v2 * d0) +
+        f * (2 ^ 64 * d1 + d0) := by
+    have hGz : (2 ^ 65 * g + f : ℤ) = v2 * e := by exact_mod_cast hG
+    have he2z : (e2 + v2 * d1 : ℤ) = 2 ^ 97 := by exact_mod_cast he2
+    linear_combination (-(2 : ℤ) ^ 64 * d1 - d0) * hGz + (-(2 : ℤ) ^ 160 - 2 ^ 64 * e) * he2z
+  have hδ1z : (2 ^ 65 * e + v2 * d0 + 1 : ℤ) ≤ 2 ^ 64 * e2 := by exact_mod_cast hδ1
+  have hδ2z : (2 ^ 64 * e2 : ℤ) ≤ 2 ^ 65 * e + v2 * d0 + 3 * 2 ^ 64 := by exact_mod_cast hδ2
+  have hez : (0 : ℤ) ≤ e := by positivity
+  have hfz : (0 : ℤ) ≤ f := by positivity
+  have hfz' : (f : ℤ) ≤ 2 ^ 65 - 1 := by
+    have : (f : ℤ) < 2 ^ 65 := by exact_mod_cast hf
+    linarith
+  have hd0z : (0 : ℤ) ≤ d0 := by positivity
+  have hd0z' : (d0 : ℤ) ≤ 2 ^ 64 - 1 := by
+    have : (d0 : ℤ) < 2 ^ 64 := by exact_mod_cast hd0
+    linarith
+  have hd1z : (2 : ℤ) ^ 63 ≤ d1 := by exact_mod_cast hd1
+  have hd1z' : (d1 : ℤ) ≤ 2 ^ 64 - 1 := by
+    have : (d1 : ℤ) < 2 ^ 64 := by exact_mod_cast hd1'
+    linarith
+  have he2hz : (e2 : ℤ) + 1 ≤ 873 * 2 ^ 53 + d1 + 2 ^ 24 := by
+    have : (e2 : ℤ) < 873 * 2 ^ 53 + d1 + 2 ^ 24 := by exact_mod_cast he2h
+    linarith
+  have hvd0 : (0 : ℤ) ≤ v2 * d0 := by positivity
+  generalize hD : (2 ^ 64 * d1 + d0 : ℤ) = D at key
+  generalize hε : (2 ^ 64 * e2 - v2 * d0 : ℤ) = ε at key
+  have hεe : (2 ^ 65 * e : ℤ) ≤ ε := by linarith
+  have hεD : ε ≤ D + 2 ^ 64 * (873 * 2 ^ 53 + 2 ^ 24) := by nlinarith
+  have hDl : (2 : ℤ) ^ 127 ≤ D := by nlinarith
+  have hDh : D ≤ (2 : ℤ) ^ 128 - 1 := by nlinarith
+  -- 2^65 * e * ε ≤ ε^2 and ε^2 ≤ (D + K)^2.
+  have hp1 : (0 : ℤ) ≤ (ε - 2 ^ 65 * e) * ε := mul_nonneg (by linarith) (by linarith)
+  have hp2 : ε * ε ≤ (D + 2 ^ 64 * (873 * 2 ^ 53 + 2 ^ 24)) * (D + 2 ^ 64 * (873 * 2 ^ 53 + 2 ^ 24)) :=
+    mul_le_mul hεD hεD (by linarith) (by linarith)
+  have hp3 : (0 : ℤ) ≤ (2 ^ 128 - 1 - D) * D := mul_nonneg (by linarith) (by linarith)
+  have hp4 : (0 : ℤ) ≤ e * ε := mul_nonneg hez (by linarith)
+  have hp5 : (0 : ℤ) ≤ f * D := mul_nonneg hfz (by linarith)
+  have hp6 : f * D ≤ (2 ^ 65 - 1) * D := mul_le_mul_of_nonneg_right hfz' (by linarith)
+  constructor
+  · have : ((2 ^ 31 * v2 + g) * D : ℤ) < 2 ^ 192 := by nlinarith
+    rw [← hD] at this
+    exact_mod_cast this
+  · have : (2 : ℤ) ^ 192 < (2 ^ 31 * v2 + g) * D + 2 * D := by nlinarith
+    rw [← hD] at this
+    exact_mod_cast this
+
+set_option maxHeartbeats 1000000 in
+/-- The exact correction of `internal::reciprocal()` for `uint128`: `v3 = V3 mod 2^64` with
+`2^192 - 2 * D < V3 * D < 2^192`, minus `F = floor((2^64 + v3 + 1) * D / 2^128)`, is the reciprocal
+`floor((2^192 - 1) / D) - 2^64`. If `V3 = 2^64 - 1` (`v3` wraps), then `F = 2^65 - 1`: this needs
+`D ≥ 2^128 - 2^63`. -/
+theorem recip3_e4 (V3 D : ℕ) (hD1 : 2 ^ 127 ≤ D) (hD2 : D < 2 ^ 128) (h1 : V3 * D < 2 ^ 192)
+    (h2 : 2 ^ 192 < V3 * D + 2 * D) (hV : 2 ^ 64 ≤ V3 ∨ 2 ^ 128 - 2 ^ 63 ≤ D) :
+    (2 ^ 64 + (V3 % 2 ^ 64 + 2 ^ 65 - (2 ^ 64 + V3 % 2 ^ 64 + 1) * D / 2 ^ 128) % 2 ^ 64) * D <
+        2 ^ 192 ∧
+      2 ^ 192 ≤ (2 ^ 64 + (V3 % 2 ^ 64 + 2 ^ 65 - (2 ^ 64 + V3 % 2 ^ 64 + 1) * D / 2 ^ 128) %
+        2 ^ 64 + 1) * D := by
+  have hV3 : V3 < 2 ^ 65 := by
+    by_contra h
+    have : 2 ^ 65 * D ≤ V3 * D := Nat.mul_le_mul_right _ (by omega)
+    omega
+  have hV3' : 2 ^ 64 - 1 ≤ V3 := by
+    by_contra h
+    have : (V3 + 2) * D ≤ 2 ^ 64 * D := Nat.mul_le_mul_right _ (by omega)
+    have : (V3 + 2) * D = V3 * D + 2 * D := by ring
+    omega
+  rcases Nat.lt_or_ge V3 (2 ^ 64) with hlt | hge
+  · -- V3 = 2^64 - 1 and D ≥ 2^128 - 2^63: v3 = 2^64 - 1, F = 2^65 - 1, the result is 0.
+    have hV3e : V3 = 2 ^ 64 - 1 := by omega
+    have hD3 : 2 ^ 128 - 2 ^ 63 ≤ D := by omega
+    subst hV3e
+    rw [show (2 ^ 64 - 1) % 2 ^ 64 = 2 ^ 64 - 1 by norm_num,
+      show (2 ^ 64 + (2 ^ 64 - 1) + 1) * D / 2 ^ 128 = D / 2 ^ 63 by omega]
+    rw [show (2 ^ 64 - 1 + 2 ^ 65 - D / 2 ^ 63) % 2 ^ 64 = 0 by omega]
+    omega
+  · -- v3 = V3 - 2^64 and F = 2^64 - 1 or 2^64.
+    have hv3 : V3 % 2 ^ 64 = V3 - 2 ^ 64 := by omega
+    rw [hv3, show (2 ^ 64 + (V3 - 2 ^ 64) + 1) * D = V3 * D + D by
+      rw [show 2 ^ 64 + (V3 - 2 ^ 64) + 1 = V3 + 1 by omega]; ring]
+    have e1 : (2 ^ 64 + (V3 - 2 ^ 64 + 1)) * D = V3 * D + D := by
+      rw [show 2 ^ 64 + (V3 - 2 ^ 64 + 1) = V3 + 1 by omega]; ring
+    have e2 : (2 ^ 64 + (V3 - 2 ^ 64 + 1) + 1) * D = V3 * D + 2 * D := by
+      rw [show 2 ^ 64 + (V3 - 2 ^ 64 + 1) + 1 = V3 + 2 by omega]; ring
+    have e3 : (2 ^ 64 + (V3 - 2 ^ 64)) * D = V3 * D := by
+      rw [show 2 ^ 64 + (V3 - 2 ^ 64) = V3 by omega]
+    have e4 : (2 ^ 64 + (V3 - 2 ^ 64) + 1) * D = V3 * D + D := by
+      rw [show 2 ^ 64 + (V3 - 2 ^ 64) + 1 = V3 + 1 by omega]; ring
+    rcases Nat.lt_or_ge (V3 * D + D) (2 ^ 192) with h | h
+    · have hV1 : V3 + 1 < 2 ^ 65 := by
+        by_contra hc
+        have : 2 ^ 65 * D ≤ (V3 + 1) * D := Nat.mul_le_mul_right _ (by omega)
+        have : (V3 + 1) * D = V3 * D + D := by ring
+        omega
+      rw [show (V3 - 2 ^ 64 + 2 ^ 65 - (V3 * D + D) / 2 ^ 128) % 2 ^ 64 = V3 - 2 ^ 64 + 1 by omega,
+        e1, e2]
+      omega
+    · rw [show (V3 - 2 ^ 64 + 2 ^ 65 - (V3 * D + D) / 2 ^ 128) % 2 ^ 64 = V3 - 2 ^ 64 by omega,
+        e3, e4]
+      omega
+
+/-- The reciprocal that `internal::reciprocal()` computes for `uint128`, on the numbers of the
+words: `v3` of the Newton step against the whole divisor, modulo 2^64, minus
+`F = floor((2^64 + v3 + 1) * D / 2^128)`. `v3` wraps only for `d1 = 2^64 - 1`, where
+`v2 = 2^33 - 1`, and then `d0 ≥ 2^63`, as the correction needs. -/
+theorem recip3_nat (d1 d0 v2 e v3 r : ℕ) (hd1 : 2 ^ 63 ≤ d1) (hd1' : d1 < 2 ^ 64)
+    (hd0 : d0 < 2 ^ 64) (h2b : 2 ^ 97 < v2 * d1 + 873 * 2 ^ 53 + d1 + 2 ^ 24)
+    (h2c : v2 * d1 + v2 < 2 ^ 97) (hmax : d1 = 2 ^ 64 - 1 → v2 = 2 ^ 33 - 1)
+    (he : e = (2 ^ 97 - v2 * d1) / 2 - 1 - v2 * d0 / 2 ^ 64 / 2)
+    (hv3 : v3 = (2 ^ 31 * v2 + v2 * e / 2 ^ 65) % 2 ^ 64)
+    (hr : r = (v3 + 2 ^ 65 - (2 ^ 64 + v3 + 1) * (2 ^ 64 * d1 + d0) / 2 ^ 128) % 2 ^ 64) :
+    (2 ^ 64 + r) * (2 ^ 64 * d1 + d0) < 2 ^ 192 ∧
+      2 ^ 192 ≤ (2 ^ 64 + r + 1) * (2 ^ 64 * d1 + d0) := by
+  obtain ⟨-, h3a, h3b⟩ := recip3_e3 v2 d1 d0 h2c h2b hd1 hd1' hd0
+  rw [← he] at h3a h3b
+  subst hr hv3
+  refine recip3_e4 _ _ (by omega) (by omega) h3a h3b ?_
+  rcases Nat.lt_or_ge (2 ^ 31 * v2 + v2 * e / 2 ^ 65) (2 ^ 64) with hV | hV
+  · right
+    have hm := Nat.mul_le_mul_right (2 ^ 64 * d1 + d0)
+      (show 2 ^ 31 * v2 + v2 * e / 2 ^ 65 ≤ 2 ^ 64 - 1 by omega)
+    have hdh : d1 = 2 ^ 64 - 1 := by
+      clear * - hm h3b hd0 hd1'
+      omega
+    have hv := hmax hdh
+    subst hv hdh
+    clear * - he hV hd0
+    omega
+  · exact Or.inl hV
 
 /-- `udivrem_2by1(u, d, v)` (Algorithm 4) on the numbers of the words: the quotient and the
 remainder. -/

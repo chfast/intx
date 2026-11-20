@@ -31,6 +31,8 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
     +[](uint64_t x, uint64_t y, bool carry) noexcept { return intx::addc(x, y, carry); };
 [[gnu::used]] constexpr auto* reciprocal_2by1 =
     +[](uint64_t d) noexcept { return intx::reciprocal_2by1(d); };
+[[gnu::used]] constexpr auto* reciprocal_3by2 =
+    +[](uint128 d) noexcept { return intx::reciprocal_3by2(d); };
 [[gnu::used]] constexpr auto* udivrem_2by1 =
     +[](uint128 u, uint64_t d, uint64_t v) noexcept { return intx::udivrem_2by1(u, d, v); };
 [[gnu::used]] constexpr auto* udivrem_3by2 =
