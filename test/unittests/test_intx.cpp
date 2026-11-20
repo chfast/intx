@@ -501,6 +501,12 @@ TYPED_TEST(uint_test, to_string_base)
     EXPECT_EQ(hex(max), std::string(num_bits / 4, 'f'));
     EXPECT_EQ(hex(TypeParam{1} << (num_bits - 1)), "8" + std::string(num_bits / 4 - 1, '0'));
     EXPECT_EQ(to_string(max, 2), std::string(num_bits, '1'));
+    EXPECT_EQ(to_string(TypeParam{1} << (num_bits - 1), 2), "1" + std::string(num_bits - 1, '0'));
+
+    // The largest one-word number, alone and shifted by 63 bits.
+    constexpr auto word_max = std::numeric_limits<uint64_t>::max();
+    EXPECT_EQ(to_string(TypeParam{word_max}, 2), std::string(64, '1'));
+    EXPECT_EQ(to_string(TypeParam{word_max} << 63, 2), std::string(64, '1') + std::string(63, '0'));
 }
 
 TYPED_TEST(uint_test, as_bytes)
