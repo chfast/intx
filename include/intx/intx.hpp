@@ -1928,6 +1928,9 @@ constexpr unsigned clz(const uint<N>& x) noexcept
     return clz(x[s - 1]) + (num_words - s) * 64;
 }
 
+/// Counts the trailing zero bits of x.
+/// @post x % 2 ^ result = 0
+/// @post result = N \/ x.testBit result
 template <unsigned N>
 constexpr unsigned ctz(const uint<N>& x) noexcept
 {
