@@ -40,6 +40,7 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
         return intx::udivrem_3by2(u2, u1, u0, d, v);
     };
 
+[[gnu::used]] constexpr auto* umul_256 = &intx::umul<256>;
 [[gnu::used]] constexpr auto* shl_9_8 = &intx::shl<9, 8>;
 [[gnu::used]] constexpr Binop add_256 = [](const uint256& x, const uint256& y) noexcept {
     return x + y;
@@ -97,9 +98,7 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
-// and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
+// and their code is in the image (IntxRV/Gen/Code.lean), without the checks. None at present.
 namespace intx::wip
 {
-// umul() adds with mac(): rv_arith does not bound the sums of the top words (IntxRV/README.md).
-[[gnu::used]] constexpr auto* umul_256 = &intx::umul<256>;
 }  // namespace intx::wip

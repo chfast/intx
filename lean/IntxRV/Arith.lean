@@ -11,9 +11,10 @@ proves an equation of the numbers of the names from exact linear facts of the de
 - a sum without a carry that cannot overflow: `w = a + b`, by `omega` from the facts that the
   operands depend on (as a high word of a product plus carries).
 Each `omega` sees only the facts it needs. `linarith` proves the equation from all the exact
-facts. `rv_copies` substitutes the names that are copies of other values. `rv_fold h` writes the
-values of `h` with the names of the run, and `rv_conds` adds the comparisons that the branches on
-the results of `sltu` decide.
+facts. `rv_copies` substitutes the names that are copies of other values, and `rv_loads` writes
+the loads of the start memory in the goal with their names. `rv_fold h` writes the values of `h`
+with the names of the run, and `rv_conds` adds the comparisons that the branches on the results of
+`sltu` decide.
 -/
 
 open Lean Meta Elab Tactic
@@ -147,6 +148,21 @@ def proveWith (tac : TSyntax `tactic) (facts : Array Expr) (target : Expr) : Tac
 def omegaWith (facts : Array Expr) (target : Expr) : TacticM Expr := do
   proveWith (← `(tactic| omega)) facts target
 
+/-- Rewrites each word that the run loads from the start memory to its name in the goal. -/
+def foldLoads : TacticM Unit := withMainContext do
+  for (h, _, v) in ← defns do
+    if v.isAppOfArity ``memWord 2 then
+      let eq ← mkAppM ``Eq.symm #[← mkAppM ``Defn.eq #[h]]
+      let g ← getMainGoal
+      try
+        let r ← g.rewrite (← g.getType) eq
+        let g' ← g.replaceTargetEq r.eNew r.eqProof
+        replaceMainGoal (g' :: r.mvarIds)
+      catch _ => pure ()
+
+/-- Writes the words that the run loads from the start memory with their names in the goal. -/
+elab "rv_loads" : tactic => foldLoads
+
 /-- Proves the goal, an equation of numbers of names, from the definitions of the names: the
 sums with a carry, the products by their words, the sums that cannot overflow (by `omega` from the
 facts that the operands depend on), the others modulo 2^64. -/
@@ -253,16 +269,7 @@ elab "rv_arith" : tactic => withMainContext do
     if let some f := (get info w).fact then
       if ((← inferType f).find? (·.isAppOfArity ``HMod.hMod 6)).isNone then
         facts := facts.push f
-  -- The loads of the start memory by their names in the goal.
-  for (h, _, v) in ds do
-    if v.isAppOfArity ``memWord 2 then
-      let eq ← mkAppM ``Eq.symm #[← mkAppM ``Defn.eq #[h]]
-      let g ← getMainGoal
-      try
-        let r ← g.rewrite (← g.getType) eq
-        let g' ← g.replaceTargetEq r.eNew r.eqProof
-        replaceMainGoal (g' :: r.mvarIds)
-      catch _ => pure ()
+  foldLoads
   let g ← getMainGoal
   g.withContext do
     let p ← proveWith (← `(tactic| linarith)) facts (← g.getType)

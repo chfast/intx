@@ -47,6 +47,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `addc()` | [`addc`](Api/addc.lean) |
 | `udivrem_2by1()` | [`udivrem_2by1`](Api/udivrem_2by1.lean) |
 | `udivrem_3by2()` | [`udivrem_3by2`](Api/udivrem_3by2.lean) |
+| `umul()` of `uint256` | [`umul_256`](Api/umul_256.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
@@ -154,9 +155,11 @@ results of `sltu`, which select its words. `reciprocal_3by2()` is proved the sam
 `recip3BV` ([`Recip3.lean`](Recip3.lean)): its `v2` is the one of the model
 `Intx.Model.reciprocal_approx`, and `Intx.recip3_nat` gives the reciprocal from the Newton step
 against the whole divisor and the exact correction. `umul()` of `uint256`, the 512-bit
-product, is in `intx::wip`: since it adds the products with `mac()`, clang orders the additions of
-the carries across the columns, and `rv_arith` does not prove that the carry into the top word and
-the top word do not overflow, which needs bounds of the product over several columns.
+product, is proved through `umul256_words` ([`Umul256.lean`](Umul256.lean)), the product from the
+definitions of the values of its run: the high word of each `mac()` does not overflow by the bound
+of its sum, and the last `mac()` of a row, which clang adds to the next row a summand at a time,
+needs the bound of the one of the row before. `rv_loads` writes the loaded words with their names,
+and `apply` with `assumption` finds the definitions by the names of the stored words.
 
 ### Calls and constant data
 
@@ -171,7 +174,7 @@ proof: `f.reach` of a function `f` on its own code is lifted into the image by `
 `Gen.p_image_f_in` states that the image holds the code of `f`: the function `f` itself, or another
 function with the same code, as the operators by `uint64_t` that the shifts by `uint256` call
 (`Reach.call_sub`). The instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
-until they are proved (`umul()` of `uint256` at present).
+until they are proved (none at present).
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
 `words` and on `log2` ([`Bits.lean`](Bits.lean)).
