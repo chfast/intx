@@ -569,7 +569,8 @@ jobs:
           name: "Check the proofs and their axioms"
           working_directory: lean
           no_output_timeout: 60m
-          command: lake build Intx IntxRV Checks
+          # Docker reports the CPUs of the host: 3 Lean processes fit in the 8 GB of the job.
+          command: LEAN_NUM_THREADS=3 lake build Intx IntxRV Checks
       - run:
           name: "Check the hashes of the modeled C++ code"
           working_directory: lean

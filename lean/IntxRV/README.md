@@ -19,10 +19,12 @@ models (`Intx.Proofs`) then give the specification of the machine code.
    `-O2 -march=rv64imafd`) and runs [`../scripts/rv_gen.py`](../scripts/rv_gen.py), which writes
    `Gen/Code.lean`: the machine code of each function (the words of its section of the object
    file, which must have no relocations), the instructions that the words decode to, and the
-   proofs that the decoder of the Sail model decodes them so, and the bytes of the stack each
-   function uses (its frame); and [`../scripts/rv_api.py`](../scripts/rv_api.py), which writes
-   the specifications of the instances to `Gen/Api.lean` and `../Intx/Gen/Spec.lean`, and their
-   checks to `../Checks/Gen/IntxRVApi.lean` and `../Checks/Gen/IntxSpec.lean`.
+   bytes of the stack each function uses (its frame); `Gen/Decode/`: the proofs that the decoder
+   of the Sail model decodes the words so, in 64 files by the hash of the word, which build in
+   parallel and of which new code rebuilds only those with its new words; and
+   [`../scripts/rv_api.py`](../scripts/rv_api.py), which writes the specifications of the
+   instances to `Gen/Api.lean` and `../Intx/Gen/Spec.lean`, and their checks to
+   `../Checks/Gen/IntxRVApi.lean` and `../Checks/Gen/IntxSpec.lean`.
 3. `lake build IntxRV Checks` checks the proofs.
 
 The generated files are not in git: run `scripts/rv_build.sh` before `lake build`, and again after
