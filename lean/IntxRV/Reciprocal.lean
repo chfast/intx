@@ -47,6 +47,25 @@ theorem table_addr_hi (d base : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
   have := d.isLt
   bv_omega
 
+/-- The address of the table entry of the top word `d` in the image of `reciprocal_3by2()`. -/
+theorem table_addr3 (d base : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
+    (d >>> 52 &&& 0xfffffffffffffff8#64) + (pcAt base 1 + 18446744073709549796#64) =
+      base + BitVec.ofNat 64 232 + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) := by
+  rw [shr52_and, pcAt]
+  have := d.isLt
+  bv_omega
+
+/-- The address of the high half of the table entry of `d` in the image of `reciprocal_3by2()`. -/
+theorem table_addr3_hi (d base : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
+    (d >>> 52 &&& 0xfffffffffffffff8#64) + (pcAt base 1 + 18446744073709549800#64) =
+      base + BitVec.ofNat 64 232 + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) + 4 := by
+  rw [shr52_and, pcAt]
+  have := d.isLt
+  bv_omega
+
+theorem reciprocal_3by2_image_data_eq : reciprocal_3by2_image_data = reciprocal_2by1_image_data :=
+  rfl
+
 /-- The carry of `a + d`: the test of the compiler. -/
 theorem add_lt_iff_not_lt (a d : BitVec 64) :
     a + d < d ↔ d ^^^ 18446744073709551615#64 < a := by

@@ -79,7 +79,8 @@ theorem and_top_ne_zero (d : Word) (hd : 2 ^ 63 ≤ d.toNat) : d &&& 0x800000000
 
 theorem reciprocal_approx_spec (d : Word) (hd : 2 ^ 63 ≤ d.toNat) :
     ∃ v2, reciprocal_approx d = some v2 ∧ v2.toNat * d.toNat < 2 ^ 97 ∧
-      2 ^ 97 < v2.toNat * d.toNat + 873 * 2 ^ 53 + d.toNat + 2 ^ 24 := by
+      2 ^ 97 < v2.toNat * d.toNat + 873 * 2 ^ 53 + d.toNat + 2 ^ 24 ∧
+      v2.toNat * d.toNat + v2.toNat < 2 ^ 97 := by
   have hdl := d.toNat_lt
   have h9 : (d >>> 55).toNat = d.toNat / 2 ^ 55 := by
     rw [UInt64.toNat_shiftRight, Nat.shiftRight_eq_div_pow]; rfl
@@ -127,7 +128,7 @@ theorem reciprocal_approx_spec (d : Word) (hd : 2 ^ 63 ≤ d.toNat) :
       (by rw [hsh, UInt32.toNat_toUInt64, he2]; omega)), hsh, UInt32.toNat_toUInt64, he2]
   generalize v0s.toUInt64 - (v0v0.toUInt64 * d40) >>> 40 = v1 at hv1 ⊢
   generalize 2 ^ 11 * v0 - 1 - v0 ^ 2 * d40.toNat / 2 ^ 40 = V1 at hv1 h1b h1c
-  obtain ⟨h2a, h2b⟩ := recip_e2 V1 d40.toNat d.toNat h1b h1c (by omega) hd hdl
+  obtain ⟨h2a, h2b, h2c⟩ := recip_e2 V1 d40.toNat d.toNat h1b h1c (by omega) hd hdl
   -- v2.
   have hV1 : V1 < 2 ^ 21 := by
     by_contra h
@@ -153,13 +154,13 @@ theorem reciprocal_approx_spec (d : Word) (hd : 2 ^ 63 ≤ d.toNat) :
     show (V1 * 2 ^ 13 % 2 ^ 64 + V1 * (2 ^ 60 - V1 * d40.toNat) / 2 ^ 47) % 2 ^ 64 = _
     omega
   rw [hv2]
-  exact ⟨h2a, h2b⟩
+  exact ⟨h2a, h2b, h2c⟩
 
 theorem reciprocal_spec (d : Word) (hd : 2 ^ 63 ≤ d.toNat) :
     ∃ v, reciprocal d = some v ∧ (2 ^ 64 + v.toNat) * d.toNat < 2 ^ 128 ∧
       2 ^ 128 ≤ (2 ^ 64 + v.toNat + 1) * d.toNat := by
   have hdl := d.toNat_lt
-  obtain ⟨v2, hv2, h2a, h2b⟩ := reciprocal_approx_spec d hd
+  obtain ⟨v2, hv2, h2a, h2b, -⟩ := reciprocal_approx_spec d hd
   unfold reciprocal
   simp (config := { zeta := false }) only [Option.bind_eq_bind]
   lift_lets
@@ -253,6 +254,16 @@ theorem reciprocal_spec (d : Word) (hd : 2 ^ 63 ≤ d.toNat) :
   have h4 := recip_e4 v3.toNat d.toNat v3.toNat_lt h3c' h3d' hd hdl
   rw [← hr] at h4
   exact h4
+
+/-- `v2` of the largest top word, for the corner where the Newton step of the `uint128` reciprocal
+wraps (`recip3_nat`). -/
+theorem reciprocal_approx_max : reciprocal_approx 0xffffffffffffffff = some 0x1ffffffff := by
+  simp only [reciprocal_approx, require]
+  rw [dif_pos (by decide)]
+  simp only [Option.bind_eq_bind, Option.bind_some]
+  rw [show ((0xffffffffffffffff : Word) >>> 55 - 256).toNat = 255 from rfl]
+  rw [Vector.getElem?_eq_getElem (by decide), RECIPROCAL_TABLE_getElem 255 (by decide)]
+  rfl
 
 theorem reciprocal_2by1_spec (P : Platform) (d : Word) (hd : 2 ^ 63 ≤ d.toNat) :
     ∃ v, reciprocal_2by1 P d = some v ∧ (2 ^ 64 + v.toNat) * d.toNat < 2 ^ 128 ∧

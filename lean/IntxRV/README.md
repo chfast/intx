@@ -48,6 +48,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `udivrem_2by1()` | [`udivrem_2by1`](Api/udivrem_2by1.lean) |
 | `udivrem_3by2()` | [`udivrem_3by2`](Api/udivrem_3by2.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
+| `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
 | `operator-` of `uint256` | [`sub_256`](Api/sub_256.lean) |
 | `operator==` of `uint256` | [`eq_256`](Api/eq_256.lean) |
@@ -149,7 +150,10 @@ the sums that cannot overflow by `omega` from the facts they depend on, and the 
 quotient and remainder follow from Möller and Granlund, Theorem 3 (`Intx.div3by2_bounds` in
 [`../Intx/Proofs/DivMath.lean`](../Intx/Proofs/DivMath.lean)): on each path `rv_fold` writes this
 specification with the names of the run, and `rv_conds` adds the conditions of the branches on the
-results of `sltu`, which select its words. `umul()` of `uint256`, the 512-bit
+results of `sltu`, which select its words. `reciprocal_3by2()` is proved the same way through
+`recip3BV` ([`Recip3.lean`](Recip3.lean)): its `v2` is the one of the model
+`Intx.Model.reciprocal_approx`, and `Intx.recip3_nat` gives the reciprocal from the Newton step
+against the whole divisor and the exact correction. `umul()` of `uint256`, the 512-bit
 product, is in `intx::wip`: since it adds the products with `mac()`, clang orders the additions of
 the carries across the columns, and `rv_arith` does not prove that the carry into the top word and
 the top word do not overflow, which needs bounds of the product over several columns.

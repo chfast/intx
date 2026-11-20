@@ -902,6 +902,8 @@ constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 }
 
 /// Computes the reciprocal (2^192 - 1) / d - 2^64 for normalized d.
+/// @pre 2 ^ 127 <= d
+/// @post result = (2 ^ 192 - 1) / d - 2 ^ 64
 constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 {
     INTX_REQUIRE(d[1] & 0x8000000000000000);  // Must be normalized.
