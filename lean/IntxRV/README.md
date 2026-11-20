@@ -67,6 +67,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `count_significant_words()` of `uint256` | [`count_significant_words_256`](Api/count_significant_words_256.lean) |
 | `clz()` of `uint256` | [`clz_256`](Api/clz_256.lean) |
 | `bit_width()` of `uint256` | [`bit_width_256`](Api/bit_width_256.lean) |
+| `ctz()` of `uint256` | [`ctz_256`](Api/ctz_256.lean) |
 
 ## The theorems
 

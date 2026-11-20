@@ -79,6 +79,7 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr auto* clz_256 = +[](const uint256& x) noexcept { return clz(x); };
 [[gnu::used]] constexpr auto* bit_width_256 =
     +[](const uint256& x) noexcept { return bit_width(x); };
+[[gnu::used]] constexpr auto* ctz_256 = +[](const uint256& x) noexcept { return ctz(x); };
 [[gnu::used]] constexpr auto* shl_256 =
     +[] [[gnu::flatten]] (const uint256& x, uint64_t shift) noexcept { return x << shift; };
 [[gnu::used]] constexpr auto* shr_256 =
