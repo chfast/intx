@@ -52,6 +52,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
 | `operator-` of `uint256` | [`sub_256`](Api/sub_256.lean) |
+| `operator*` of `uint256` | [`mul_256`](Api/mul_256.lean) |
 | `operator==` of `uint256` | [`eq_256`](Api/eq_256.lean) |
 | `operator!=` of `uint256` | [`ne_256`](Api/ne_256.lean) |
 | `operator<` of `uint256` | [`lt_256`](Api/lt_256.lean) |
@@ -159,7 +160,11 @@ product, is proved through `umul256_words` ([`Umul256.lean`](Umul256.lean)), the
 definitions of the values of its run: the high word of each `mac()` does not overflow by the bound
 of its sum, and the last `mac()` of a row, which clang adds to the next row a summand at a time,
 needs the bound of the one of the row before. `rv_loads` writes the loaded words with their names,
-and `apply` with `assumption` finds the definitions by the names of the stored words.
+and `apply` with `assumption` finds the definitions by the names of the stored words. `operator*`
+of `uint256` runs two loops, the rows of the product and the words of a row: their counters and
+pointers run to constant bounds, so `rv_exec_loop` decides the branches and unrolls them. It is
+proved the same way through `mul256_words` ([`Mul256.lean`](Mul256.lean)), the product modulo
+`2^256`, after `rv_cse` gives the words that each row loads again one name.
 
 ### Calls and constant data
 
