@@ -1,4 +1,5 @@
 import IntxRV.Mem4
+import IntxRV.Mem1
 /-!
 # Running a function with memory
 
@@ -26,6 +27,21 @@ theorem present_memStore {m : Mem} {a : BitVec 64} (h : Present m a) (b : Nat) (
   intro k hk
   simp [memStore, Std.ExtHashMap.mem_insert, h k hk]
 
+/-- The byte at `a` is in the word at `a &&& ~~~7`: ordinary readable memory and present if the
+word is. -/
+theorem byte_of_word {val : (r : Register) → RegisterType r} {m : Mem} {a : BitVec 64}
+    (hw : WordOk val (a &&& ~~~7#64)) (hp : Present m (a &&& ~~~7#64)) :
+    ByteOk val a ∧ a.toNat ∈ m := by
+  have hn : (a &&& ~~~7#64).toNat + a.toNat % 8 = a.toNat := by
+    rw [toNat_and_not7]; have := Nat.mod_le a.toNat 8; omega
+  have he : (a &&& ~~~7#64) + BitVec.ofNat 64 (a.toNat % 8) = a := by
+    apply BitVec.eq_of_toNat_eq
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega : a.toNat % 8 < 2 ^ 64),
+      hn, Nat.mod_eq_of_lt a.isLt]
+  refine ⟨he ▸ hw.byte _ (Nat.mod_lt _ (by decide)), ?_⟩
+  have := hp (a.toNat % 8) (Nat.mod_lt _ (by decide))
+  rwa [hn] at this
+
 /-- The next program counter, the registers and the memory after the instruction `i` at `pc`:
 `exec`, and the loads and stores of the words at the addresses `A`. -/
 def execM (A : List (BitVec 64)) (i : instruction) (pc : BitVec 64) (x : Regs) (m : Mem) :
@@ -38,6 +54,9 @@ def execM (A : List (BitVec 64)) (i : instruction) (pc : BitVec 64) (x : Regs) (
         x.get rs1 + sign_extend (m := 64) imm - 4#64 ∈ A) then
       some (pc + 4,
         x.set rd ((memHalf m (x.get rs1 + sign_extend (m := 64) imm).toNat).setWidth 64), m)
+    else if u = true ∧ w = 1 ∧ (x.get rs1 + sign_extend (m := 64) imm) &&& ~~~7#64 ∈ A then
+      some (pc + 4,
+        x.set rd ((memByte m (x.get rs1 + sign_extend (m := 64) imm).toNat).setWidth 64), m)
     else none
   | .STORE (imm, .Regidx rs2, .Regidx rs1, w) =>
     if w = 8 ∧ x.get rs1 + sign_extend (m := 64) imm ∈ A then
@@ -54,7 +73,9 @@ theorem execM_present {A : List (BitVec 64)} {i : instruction} {pc pc' : BitVec 
     · cases hi; exact hA
     · split at hi
       · cases hi; exact hA
-      · contradiction
+      · split at hi
+        · cases hi; exact hA
+        · contradiction
   · split at hi
     · cases hi; exact fun a ha => present_memStore (hA a ha) _ _
     · contradiction
@@ -97,7 +118,15 @@ theorem exec_simM {S s : SailState} {val : (r : Register) → RegisterType r} {p
         obtain ⟨s', hs, hi'⟩ := exec_lwu e h imm rs1 rd ho (h.mem ▸ hp)
         rw [h.mem] at hi'
         exact ⟨s', hs, hi'⟩
-      · contradiction
+      · split at hi
+        · rename_i _ _ hc
+          obtain ⟨rfl, rfl, hm⟩ := hc
+          obtain ⟨rfl, rfl, rfl⟩ := hi
+          obtain ⟨ho, hp⟩ := byte_of_word (hA _ hm).1 (hA _ hm).2
+          obtain ⟨s', hs, hi'⟩ := exec_lbu e h imm rs1 rd ho (h.mem ▸ hp)
+          rw [h.mem] at hi'
+          exact ⟨s', hs, hi'⟩
+        · contradiction
   · rename_i imm rs2 rs1 w
     split at hi
     · rename_i hc
