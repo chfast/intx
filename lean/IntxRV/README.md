@@ -121,8 +121,11 @@ the RISC-V calling convention: a `uint64_t` or `bool` is in one register, a `uin
 next argument register, a `uint<N>` result wider than 128 bits is written to the buffer at the
 address in a0 (`sret`), as is a `div_result<uint64_t, uint128>` (24 bytes), a `bool` is 0 or 1. A `std::span<uint64_t, n>` parameter of a `void`
 function is the buffer it writes: its name stands for its value at the return, and `N` for its
-width. With registers only the specification is a `Runs`; with memory a `RunsM` (in
-[`RunM.lean`](RunM.lean)), the `Runs` with memory: the buffers are aligned, do not wrap around and
+width. A span of dynamic extent (`std::span<uint64_t>`) is its address and its number of words in
+two registers, a buffer of that many words; `p.size()` of a span `p` in a `@pre` or `@post` is its
+number of words, and a span of non-const words is the buffer written, as in
+`internal::udivrem_by1()`. With registers only the specification is a `Runs`; with memory a
+`RunsM` (in [`RunM.lean`](RunM.lean)), the `Runs` with memory: the buffers are aligned, do not wrap around and
 the result does not overlap the arguments; the memory outside the result is unchanged. A function
 with a stack frame gets the frame below sp as one more buffer that overlaps no other, and the memory
 outside the result and the frame is unchanged.
@@ -179,7 +182,8 @@ proof: `f.reach` of a function `f` on its own code is lifted into the image by `
 `Gen.p_image_f_in` states that the image holds the code of `f`: the function `f` itself, or another
 function with the same code, as the operators by `uint64_t` that the shifts by `uint256` call
 (`Reach.call_sub`). The instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
-until they are proved (none at present).
+until they are proved: `internal::udivrem_by1()` at present, whose loop runs a number of times that
+its arguments set.
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
 `words` and on `log2` ([`Bits.lean`](Bits.lean)).

@@ -125,7 +125,8 @@ def instances(decls, namespace):
                         if c.get("kind") == "TemplateArgument" and "value" in c]
                 if len(names) != len(vals):
                     sys.exit(f"{n['name']}: unsupported template arguments")
-                targs = list(zip(names, vals))
+                # The unsigned values: std::dynamic_extent, a size_t, is -1 in the AST.
+                targs = [(nm, int(v) % 2 ** 64) for nm, v in zip(names, vals)]
             result[n["name"]] = dict(name=callee["name"], offset=decl["loc"]["offset"],
                                      type=callee["type"]["qualType"], targs=targs, negate=negate,
                                      member=callee["kind"] == "CXXMethodDecl")
@@ -134,6 +135,8 @@ def instances(decls, namespace):
 
 def norm_type(t):
     t = re.sub(r"\bintx::", "", t.strip())
+    # The parameters that are not deduced (`std::type_identity_t<T>` is T).
+    t = re.sub(r"^std::type_identity_t<(.*)>$", r"\1", t)
     t = re.sub(r"<(\d+) \* (\d+)U>", lambda m: f"<{int(m[1]) * int(m[2])}>", t)
     t = re.sub(r"<(\d+)U>", r"<\1>", t)
     return {"uint<128>": "uint128", "unsigned long": "uint64_t", "size_t": "uint64_t",
@@ -168,6 +171,20 @@ def signature(var, inst, spec):
     if len(args) != len(params):
         sys.exit(f"{var}: the parameters do not match the declaration")
     return ret, args, params
+
+
+# The extent of a std::span of a size known at run time (std::dynamic_extent).
+DYNAMIC_EXTENT = 2 ** 64 - 1
+
+
+def nbytes(n):
+    """The bytes of `n` words, a number or a Lean term."""
+    return str(8 * int(n)) if n.isdigit() else f"(8 * {n})"
+
+
+def size_calls(term):
+    """The term with `p.size()` of a span `p` as the name `p_size`."""
+    return re.sub(r"\b(\w+)\.size\(\)", r"\1_size", term)
 
 
 def apply(term, width, result, values, targs=()):
@@ -241,21 +258,37 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
     reg = 10  # The arguments are in a0 (x10), a1 (x11), ...
     bufs, pre, values, post_values = [], [], [], []
     ret_width = uint_width(ret)
-    outs, ins = [], []  # The buffers (register, width) written and read.
+    # The buffers written and read: (register, the number of words, a Lean term).
+    outs, ins = [], []
+    sizes = []  # The sizes of the spans of dynamic extent: (name, Lean term).
     if ret_width is not None and ret_width > 128:
         if ret_width % 64:
             sys.exit(f"{var}: unsupported result type {ret}")
-        outs.append((reg, ret_width))  # The result is returned in memory at a0 (sret).
+        outs.append((reg, str(ret_width // 64)))  # The result is returned in memory at a0 (sret).
         reg += 1
     elif ret in MEM_RESULTS:
-        outs.append((reg, MEM_RESULTS[ret][2]))
+        outs.append((reg, str(MEM_RESULTS[ret][2] // 64)))
         reg += 1
     elif ret != "void" and ret not in REG_RESULTS:
         sys.exit(f"{var}: unsupported result type {ret}")
     for name, t in zip(params, args):
         w = uint_width(t)
         span = re.fullmatch(r"std::span<(const )?uint64_t, (\d+)UL>", t)
-        if t == "uint64_t":
+        if span and int(span[2]) == DYNAMIC_EXTENT:
+            # A span of dynamic extent: the pointer and the number of words in two registers.
+            n = f"(x {reg + 1}#5).toNat"
+            sizes.append((f"{name}_size", n))
+            if span[1]:
+                ins.append((reg, n))
+                v = (name, "Nat", f"words m (x {reg}#5) {n}")
+            else:
+                outs.append((reg, n))
+                values.append((name, "Nat", f"words m (x {reg}#5) {n}"))
+                post_values.append((name, "Nat", f"words m' (x {reg}#5) {n}"))
+                reg += 2
+                continue
+            reg += 2
+        elif t == "uint64_t":
             v = (name, "Nat", f"(x {reg}#5).toNat")
             reg += 1
         elif t == "unsigned int":
@@ -271,33 +304,35 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
             v = (name, "Nat", f"(x {reg}#5).toNat + 2 ^ 64 * (x {reg + 1}#5).toNat")
             reg += 2
         elif (w is not None and t.endswith("&") and w % 64 == 0) or (span and span[1]):
-            w = w or 64 * int(span[2])
-            ins.append((reg, w))
-            v = (name, "Nat", f"words m (x {reg}#5) {w // 64}")
+            n = str((w or 64 * int(span[2])) // 64)
+            ins.append((reg, n))
+            v = (name, "Nat", f"words m (x {reg}#5) {n}")
             reg += 1
         elif span:
             # The words a function writes: the name stands for their value at the return.
-            w = 64 * int(span[2])
-            outs.append((reg, w))
-            values.append((name, "Nat", f"words m (x {reg}#5) {w // 64}"))
-            post_values.append((name, "Nat", f"words m' (x {reg}#5) {w // 64}"))
+            n = str(int(span[2]))
+            outs.append((reg, n))
+            values.append((name, "Nat", f"words m (x {reg}#5) {n}"))
+            post_values.append((name, "Nat", f"words m' (x {reg}#5) {n}"))
             reg += 1
             continue
         else:
             sys.exit(f"{var}: unsupported parameter type {t}")
         values.append(v)
         post_values.append(v)
+    values += [(n, "Nat", v) for n, v in sizes]
+    post_values += [(n, "Nat", v) for n, v in sizes]
     if len(outs) > 1:
         sys.exit(f"{var}: more than one result buffer")
-    bufs += [f"bufWords (x {r}#5) {w // 64}" for r, w in ins + outs]
-    pre[:0] = [f"Buf (x {r}#5) {w // 8}" for r, w in outs + ins]
-    for r, w in outs:
-        for r2, w2 in ins:
-            pre.append(f"Disjoint (x {r}#5) {w // 8} (x {r2}#5) {w2 // 8}")
+    bufs += [f"bufWords (x {r}#5) {n}" for r, n in ins + outs]
+    pre[:0] = [f"Buf (x {r}#5) {nbytes(n)}" for r, n in outs + ins]
+    for r, n in outs:
+        for r2, n2 in ins:
+            pre.append(f"Disjoint (x {r}#5) {nbytes(n)} (x {r2}#5) {nbytes(n2)}")
     sp = f"(x 2#5 - {stack}#64)"  # The stack frame, below sp.
     if outs:
-        r, w = outs[0]
-        out = f"(x {r}#5) {w // 8}"
+        r, n = outs[0]
+        out = f"(x {r}#5) {nbytes(n)}"
         frame = [f"UnchangedExcept2 m m' {out} {sp} {stack}" if stack else
                  f"UnchangedExcept m m' {out}"]
     else:
@@ -318,12 +353,13 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
     if stack:
         bufs.append(f"bufWords {sp} {stack // 8}")
         pre.append(f"Buf {sp} {stack}")
-        for r, w in ins + outs:
-            pre.append(f"Disjoint {sp} {stack} (x {r}#5) {w // 8}")
-    width = ret_width or (outs[0][1] if outs else None) or uint_width(args[0]) or 64
+        for r, n in ins + outs:
+            pre.append(f"Disjoint {sp} {stack} (x {r}#5) {nbytes(n)}")
+    width = (ret_width or (64 * int(outs[0][1]) if outs and outs[0][1].isdigit() else None) or
+             uint_width(args[0]) or 64)
     targs = inst["targs"]
-    pre += [apply(p, width, None, values, targs) for p in spec["pre"]]
-    post = [apply(p, width, result, post_values, targs) for p in spec["post"]] + frame + [
+    pre += [apply(size_calls(p), width, None, values, targs) for p in spec["pre"]]
+    post = [apply(size_calls(p), width, result, post_values, targs) for p in spec["post"]] + frame + [
         "∀ i ∈ calleeSaved, x' i = x i"]
     lines = header(var, spec, hpp)
     if inst.get("negate"):
