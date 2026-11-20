@@ -46,6 +46,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `umul()` of two words | [`umul`](Api/umul.lean) |
 | `addc()` | [`addc`](Api/addc.lean) |
 | `udivrem_2by1()` | [`udivrem_2by1`](Api/udivrem_2by1.lean) |
+| `udivrem_3by2()` | [`udivrem_3by2`](Api/udivrem_3by2.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
 | `operator-` of `uint256` | [`sub_256`](Api/sub_256.lean) |
@@ -115,7 +116,7 @@ the RISC-V calling convention: a `uint64_t` or `bool` is in one register, a `uin
 `unsigned` is its 32 bits sign-extended to the register (the code may test the whole register), a
 `const uint<N>&` argument or a `std::span<const uint64_t, n>` is the address of its words in the
 next argument register, a `uint<N>` result wider than 128 bits is written to the buffer at the
-address in a0 (`sret`), a `bool` is 0 or 1. A `std::span<uint64_t, n>` parameter of a `void`
+address in a0 (`sret`), as is a `div_result<uint64_t, uint128>` (24 bytes), a `bool` is 0 or 1. A `std::span<uint64_t, n>` parameter of a `void`
 function is the buffer it writes: its name stands for its value at the return, and `N` for its
 width. With registers only the specification is a `Runs`; with memory a `RunsM` (in
 [`RunM.lean`](RunM.lean)), the `Runs` with memory: the buffers are aligned, do not wrap around and
@@ -143,7 +144,12 @@ run. The specification then follows from the definitions by `rv_arith`
 the sums that cannot overflow by `omega` from the facts they depend on, and the result by
 `linarith`. `shl<9, 8>()`, the shift of a 512-bit number, is proved this way, through the model
 `Intx.Model.shl` and its proof; `operator<<` and `operator>>` of `uint256` with the lemmas of
-[`Shift.lean`](Shift.lean) on the funnel shifts of the words. `umul()` of `uint256`, the 512-bit
+[`Shift.lean`](Shift.lean) on the funnel shifts of the words. `udivrem_3by2()` is proved through
+`div3by2BV` ([`Div3by2.lean`](Div3by2.lean)), the operations of its code on the words, whose
+quotient and remainder follow from Möller and Granlund, Theorem 3 (`Intx.div3by2_bounds` in
+[`../Intx/Proofs/DivMath.lean`](../Intx/Proofs/DivMath.lean)): on each path `rv_fold` writes this
+specification with the names of the run, and `rv_conds` adds the conditions of the branches on the
+results of `sltu`, which select its words. `umul()` of `uint256`, the 512-bit
 product, is in `intx::wip`: since it adds the products with `mac()`, clang orders the additions of
 the carries across the columns, and `rv_arith` does not prove that the carry into the top word and
 the top word do not overflow, which needs bounds of the product over several columns.
