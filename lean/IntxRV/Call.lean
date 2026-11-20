@@ -24,7 +24,11 @@ theorem execM_mono {A A' : List (BitVec 64)} (hA : ∀ a ∈ A, a ∈ A') {i : i
     · split at h
       · rename_i _ hc
         rw [if_neg (by simp [hc.1]), if_pos ⟨hc.1, hc.2.1, hc.2.2.imp (hA _) (hA _)⟩]; exact h
-      · contradiction
+      · split at h
+        · rename_i _ _ hc
+          rw [if_neg (by simp [hc.1]), if_neg (by simp [hc.2.1]),
+            if_pos ⟨hc.1, hc.2.1, hA _ hc.2.2⟩]; exact h
+        · contradiction
   · split at h
     · rename_i hc; rw [if_pos ⟨hc.1, hA _ hc.2⟩]; exact h
     · contradiction

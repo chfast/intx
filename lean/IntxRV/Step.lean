@@ -90,6 +90,10 @@ def StepGoal (A : List (BitVec 64)) (prog : List instruction) (base : BitVec 64)
     (x.get rs1 + imm.signExtend 64 ∈ A ∨ x.get rs1 + imm.signExtend 64 - 4#64 ∈ A) ∧
       ∀ w, Defn w ((memHalf m (x.get rs1 + imm.signExtend 64).toNat).setWidth 64) →
         Reach A prog base (pcAt base (k + 1)) (x.set rd w) m tgt Q
+  | .LOAD (imm, .Regidx rs1, .Regidx rd, true, 1) =>
+    (x.get rs1 + imm.signExtend 64) &&& ~~~7#64 ∈ A ∧
+      ∀ w, Defn w ((memByte m (x.get rs1 + imm.signExtend 64).toNat).setWidth 64) →
+        Reach A prog base (pcAt base (k + 1)) (x.set rd w) m tgt Q
   | .STORE (imm, .Regidx rs2, .Regidx rs1, width) =>
     width = 8 ∧ x.get rs1 + imm.signExtend 64 ∈ A ∧
       Reach A prog base (pcAt base (k + 1)) x
@@ -140,6 +144,8 @@ theorem Reach.step {A : List (BitVec 64)} {prog : List instruction} {base tgt : 
     exact Reach.step_execM hf (by simp [execM, sign_extend_eq, hA, pcAt_succ]) (h _ rfl)
   · obtain ⟨hA, h⟩ := h
     exact Reach.step_execM hf (by simp [execM, sign_extend_eq, hA, pcAt_succ]) (h _ rfl)
+  · obtain ⟨hA, h⟩ := h
+    exact Reach.step_execM hf (by simp [execM, sign_extend_eq, pcAt_succ]; simpa using hA) (h _ rfl)
   · obtain ⟨rfl, hA, h⟩ := h
     exact Reach.step_execM hf (by simp [execM, sign_extend_eq, hA, pcAt_succ]) h
   · rename_i imm rs2 rs1 op

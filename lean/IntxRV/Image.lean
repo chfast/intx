@@ -1,6 +1,7 @@
 import IntxRV.Reach
 import IntxRV.Step
 import Mathlib.Tactic.SplitIfs
+import Mathlib.Tactic.IntervalCases
 /-!
 # Functions in an image
 
@@ -93,6 +94,57 @@ theorem memHalf_hi (m : Mem) (b : Nat) :
     BitVec.getLsbD_append, Nat.add_assoc]
   simp (config := { decide := true }) [hi]
   split_ifs <;> first | omega | rfl | (congr 1 <;> omega)
+
+/-- The byte `j` of a word. -/
+theorem memByte_word (m : Mem) (b j : Nat) (hj : j < 8) :
+    memByte m (b + j) = (memWord m b >>> (8 * j)).setWidth 8 := by
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  simp only [memByte, memWord, BitVec.getLsbD_setWidth, BitVec.getLsbD_ushiftRight,
+    BitVec.getLsbD_append, hi, decide_true, Bool.true_and]
+  interval_cases j <;>
+  · simp (config := { decide := true }) [hi]
+    try (split_ifs <;> first | omega | (rw [BitVec.getLsbD_eq_getElem (by omega)]; congr 1; omega))
+
+/-- The byte `i` of the data: the byte `i % 8` of the word `i / 8`. -/
+theorem memByte_data {m : Mem} {a : BitVec 64} {data : List (BitVec 64)} (hh : HoldsData m a data)
+    (hno : a.toNat + 8 * data.length ≤ 2 ^ 64) {i : Nat} (hi : i < 8 * data.length) :
+    memByte m (a + BitVec.ofNat 64 i).toNat =
+      (data[i / 8]'(by omega) >>> (8 * (i % 8))).setWidth 8 := by
+  have e : (a + BitVec.ofNat 64 i).toNat = (a + BitVec.ofNat 64 (8 * (i / 8))).toNat + i % 8 := by
+    rw [BitVec.toNat_add, BitVec.toNat_add, BitVec.toNat_ofNat, BitVec.toNat_ofNat,
+      Nat.mod_eq_of_lt (by omega : i < 2 ^ 64), Nat.mod_eq_of_lt (by omega : 8 * (i / 8) < 2 ^ 64),
+      Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)]
+    omega
+  rw [e, memByte_word _ _ _ (Nat.mod_lt _ (by decide)), holdsData_get hh (by omega)]
+
+theorem and_not7_add (a : BitVec 64) (ha : a.toNat % 8 = 0) (i : Nat) (hno : a.toNat + i < 2 ^ 64) :
+    (a + BitVec.ofNat 64 i) &&& ~~~7#64 = a + BitVec.ofNat 64 (8 * (i / 8)) := by
+  have e1 : (a + BitVec.ofNat 64 i).toNat = a.toNat + i := by
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega : i < 2 ^ 64),
+      Nat.mod_eq_of_lt hno]
+  have e2 : (a + BitVec.ofNat 64 (8 * (i / 8))).toNat = a.toNat + 8 * (i / 8) := by
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega : 8 * (i / 8) < 2 ^ 64),
+      Nat.mod_eq_of_lt (by omega)]
+  apply BitVec.eq_of_toNat_eq
+  rw [toNat_and_not7, e1, e2]
+  omega
+
+/-- The word of the byte `i` of the data is a word of the data: `lbu` of the data may read it. -/
+theorem byte_mem_dataWords {base : BitVec 64} {off n i : Nat} (hb : base &&& 7 = 0)
+    (ho : off % 8 = 0) (hno : base.toNat + off + 8 * n ≤ 2 ^ 64) (hi : i < 8 * n) :
+    (base + BitVec.ofNat 64 off + BitVec.ofNat 64 i) &&& 0xfffffffffffffff8#64 ∈
+      dataWords base off n := by
+  have hb8 : base.toNat % 8 = 0 := by
+    have := congrArg BitVec.toNat hb
+    rwa [BitVec.toNat_and, show (7 : BitVec 64).toNat = 2 ^ 3 - 1 from rfl,
+      Nat.and_two_pow_sub_one_eq_mod, show (0 : BitVec 64).toNat = 0 from rfl] at this
+  have hbo : (base + BitVec.ofNat 64 off).toNat = base.toNat + off := by
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega : off < 2 ^ 64),
+      Nat.mod_eq_of_lt (by omega)]
+  rw [show (0xfffffffffffffff8#64 : BitVec 64) = ~~~7#64 by decide, and_not7_add _ (by omega) i
+    (by omega)]
+  exact mem_bufWords (by omega : i / 8 < n)
 
 /-- `RunsI` from the `Reach` of the return address from the entry. -/
 theorem runsI_of_reach {code : Code} {prog : List instruction} {entry : Nat}

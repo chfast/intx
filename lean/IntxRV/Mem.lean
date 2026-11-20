@@ -131,9 +131,25 @@ structure HalfOk (val : (r : Register) → RegisterType r) (a : BitVec 64) : Pro
   htif : ∀ b, val .htif_tohost_base = some b →
     (zopz0zI_u a (BitVec.addInt b htif_tohost_size) && zopz0zK_u (BitVec.addInt a 4) b) = false
 
+/-- The byte at `a` in `m`. -/
+def memByte (m : Std.ExtHashMap Nat (BitVec 8)) (a : Nat) : BitVec 8 :=
+  m.getD a 0
+
+/-- The byte at `a` is ordinary readable memory: in a readable PMA region and not in a
+memory-mapped device. -/
+structure ByteOk (val : (r : Register) → RegisterType r) (a : BitVec 64) : Prop where
+  pma : ∃ r, matching_pma_region (val .pma_regions) (.Physaddr a) 1 = some r ∧
+    r.attributes.readable = true
+  clint : ¬ (plat_clint_base.toNat ≤ a.toNat ∧ a.toNat + 1 ≤ plat_clint_base.toNat +
+      plat_clint_size.toNat)
+  sig : ¬ (plat_sig_base.toNat ≤ a.toNat ∧ a.toNat + 1 ≤ plat_sig_base.toNat + plat_sig_size.toNat)
+  htif : ∀ b, val .htif_tohost_base = some b →
+    (zopz0zI_u a (BitVec.addInt b htif_tohost_size) && zopz0zK_u (BitVec.addInt a 1) b) = false
+
 /-- The aligned 8-byte word at `a` is ordinary memory: in a PMA region that is readable and
-writable, and not in a memory-mapped device. Its two 4-byte halves are ordinary readable memory
-too (the PMA region of a 4-byte access is the first one that covers it, which may differ). -/
+writable, and not in a memory-mapped device. Its two 4-byte halves and its bytes are ordinary
+readable memory too (the PMA region of a smaller access is the first one that covers it, which may
+differ). -/
 structure WordOk (val : (r : Register) → RegisterType r) (a : BitVec 64) : Prop where
   aligned : a.toNat % 8 = 0
   pma : ∃ r, matching_pma_region (val .pma_regions) (.Physaddr a) 8 = some r ∧
@@ -145,6 +161,7 @@ structure WordOk (val : (r : Register) → RegisterType r) (a : BitVec 64) : Pro
     (zopz0zI_u a (BitVec.addInt b htif_tohost_size) && zopz0zK_u (BitVec.addInt a 8) b) = false
   half_lo : HalfOk val a
   half_hi : HalfOk val (a + 4#64)
+  byte : ∀ j < 8, ByteOk val (a + BitVec.ofNat 64 j)
 
 theorem addInt_zero (a : BitVec 64) : BitVec.addInt a 0 = a := by
   simp [Sail.BitVec.addInt]
