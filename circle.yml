@@ -565,12 +565,24 @@ jobs:
           name: "Generate the RV64 machine code and the specifications"
           working_directory: lean
           command: CXX=clang++ scripts/rv_build.sh
+      # The proofs of the decoding of the words of the machine code take most of the build: a new
+      # word rebuilds only its file of Gen/Decode/, and Lake compares the hashes of the sources.
+      - restore_cache:
+          keys:
+            - lean-decode-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-
       - run:
           name: "Check the proofs and their axioms"
           working_directory: lean
           no_output_timeout: 60m
-          # Docker reports the CPUs of the host: 3 Lean processes fit in the 8 GB of the job.
-          command: LEAN_NUM_THREADS=3 lake build Intx IntxRV Checks
+          # Docker reports the CPUs of the host: 3 Lean processes fit in the 8 GB of the job. The
+          # timeout leaves the time to save the decode files built, within the hour of the job.
+          command: LEAN_NUM_THREADS=3 timeout 45m lake build Intx IntxRV Checks
+      - save_cache:
+          key: lean-decode-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-{{ epoch }}
+          paths:
+            - lean/.lake/build/lib/lean/IntxRV/Gen/Decode
+            - lean/.lake/build/ir/IntxRV/Gen/Decode
+          when: always
       - run:
           name: "Check the hashes of the modeled C++ code"
           working_directory: lean
