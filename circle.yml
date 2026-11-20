@@ -525,7 +525,7 @@ jobs:
               -Dsonar.host.url=https://sonarcloud.io \
               -Dsonar.organization=chfast \
               -Dsonar.projectKey=chfast_intx \
-              '-Dsonar.exclusions=test/integration/**' \
+              '-Dsonar.exclusions=test/integration/**,lean/**' \
               -Dsonar.cfamily.compile-commands=$HOME/build/compile_commands.json \
               -Dsonar.coverageReportPaths=$HOME/sonar/coverage.xml \
               '-Dsonar.coverage.exclusions=test/**,examples/**,conanfile.py' \
