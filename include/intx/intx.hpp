@@ -975,6 +975,12 @@ constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d) noexcept
     return udivrem_2by1(u, d, reciprocal_2by1(d));
 }
 
+/// Divides u2:u1:u0 by the normalized d with its reciprocal v (Moller and Granlund, Algorithm 5).
+/// @pre 2 ^ 127 <= d
+/// @pre u2 * 2 ^ 64 + u1 < d
+/// @pre v = (2 ^ 192 - 1) / d - 2 ^ 64
+/// @post result.quot = (u2 * 2 ^ 128 + u1 * 2 ^ 64 + u0) / d
+/// @post result.rem = (u2 * 2 ^ 128 + u1 * 2 ^ 64 + u0) % d
 constexpr div_result<uint64_t, uint128> udivrem_3by2(
     uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept
 {

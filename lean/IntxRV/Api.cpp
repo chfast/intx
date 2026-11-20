@@ -33,6 +33,10 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
     +[](uint64_t d) noexcept { return intx::reciprocal_2by1(d); };
 [[gnu::used]] constexpr auto* udivrem_2by1 =
     +[](uint128 u, uint64_t d, uint64_t v) noexcept { return intx::udivrem_2by1(u, d, v); };
+[[gnu::used]] constexpr auto* udivrem_3by2 =
+    +[](uint64_t u2, uint64_t u1, uint64_t u0, uint128 d, uint64_t v) noexcept {
+        return intx::udivrem_3by2(u2, u1, u0, d, v);
+    };
 
 [[gnu::used]] constexpr auto* shl_9_8 = &intx::shl<9, 8>;
 [[gnu::used]] constexpr Binop add_256 = [](const uint256& x, const uint256& y) noexcept {

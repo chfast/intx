@@ -11,7 +11,9 @@ proves an equation of the numbers of the names from exact linear facts of the de
 - a sum without a carry that cannot overflow: `w = a + b`, by `omega` from the facts that the
   operands depend on (as a high word of a product plus carries).
 Each `omega` sees only the facts it needs. `linarith` proves the equation from all the exact
-facts. `rv_copies` substitutes the names that are copies of other values.
+facts. `rv_copies` substitutes the names that are copies of other values. `rv_fold h` writes the
+values of `h` with the names of the run, and `rv_conds` adds the comparisons that the branches on
+the results of `sltu` decide.
 -/
 
 open Lean Meta Elab Tactic
@@ -266,5 +268,55 @@ elab "rv_arith" : tactic => withMainContext do
     let p ← proveWith (← `(tactic| linarith)) facts (← g.getType)
     g.assign p
     replaceMainGoal []
+
+/-- Writes the values of the hypothesis `h` with the names of the run: rewrites each value `v` of a
+definition `Defn w v` to `w`, in the order of the run, so that a value is written with the names of
+its operands before it is folded itself. -/
+elab "rv_fold " h:ident : tactic => withMainContext do
+  let defs := (← getLCtx).foldl (init := #[]) fun acc d =>
+    if !d.isImplementationDetail && d.type.isAppOfArity ``Defn 2 then acc.push d.fvarId else acc
+  for fv in defs do
+    let g ← getMainGoal
+    g.withContext do
+      let hd ← getLocalDeclFromUserName h.getId
+      let eq ← mkAppM ``Eq.symm #[← mkAppM ``Defn.eq #[mkFVar fv]]
+      try
+        let r ← g.rewrite hd.type eq
+        let g' ← g.replaceLocalDecl hd.fvarId r.eNew r.eqProof
+        replaceMainGoal (g'.mvarId :: r.mvarIds)
+      catch _ => pure ()
+
+theorem defn_ite_eq_zero {c : Prop} [Decidable c] {w : BitVec 64}
+    (h : Defn w (if c then 1#64 else 0#64)) (hw : w = 0#64) : ¬c := by
+  intro hc; rw [h.eq, if_pos hc] at hw; exact absurd hw (by decide)
+
+theorem defn_ite_ne_zero {c : Prop} [Decidable c] {w : BitVec 64}
+    (h : Defn w (if c then 1#64 else 0#64)) (hw : ¬w = 0#64) : c := by
+  by_contra hc; rw [h.eq, if_neg hc] at hw; exact hw rfl
+
+/-- For a branch on a name `w` of the result of `sltu` (`Defn w (if c then 1 else 0)`), adds the
+condition `c` that the branch decides: `¬c` for `w = 0`, `c` for `¬w = 0`. -/
+elab "rv_conds" : tactic => withMainContext do
+  let lctx ← getLCtx
+  let mut ites : Array (Expr × Expr) := #[]  -- (w, the proof of Defn w (if c then 1 else 0))
+  for d in lctx do
+    if d.isImplementationDetail then continue
+    let t ← instantiateMVars d.type
+    if t.isAppOfArity ``Defn 2 && (t.getArg! 1).isAppOfArity ``ite 5 then
+      ites := ites.push (t.getArg! 0, mkFVar d.fvarId)
+  for d in lctx do
+    if d.isImplementationDetail then continue
+    let t ← instantiateMVars d.type
+    let (neg, eq) := if t.isAppOfArity ``Not 1 then (true, t.getArg! 0) else (false, t)
+    if eq.isAppOfArity ``Eq 3 then
+      for (w, hw) in ites do
+        if eq.getArg! 1 == w then
+          let lem := if neg then ``defn_ite_ne_zero else ``defn_ite_eq_zero
+          try
+            let pf ← mkAppM lem #[hw, mkFVar d.fvarId]
+            let g ← getMainGoal
+            let (_, g') ← (← g.assert `hc (← inferType pf) pf).intro1P
+            replaceMainGoal [g']
+          catch _ => pure ()
 
 end IntxRV

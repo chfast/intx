@@ -12,7 +12,11 @@ The number theory of `internal::reciprocal()` and `udivrem_2by1(u, d, v)`, apart
   `e3 = 2^128 - (2^64 + v3) * d` with `d40 = floor(d / 2^24) + 1`, and the final adjustment gives the
   reciprocal `v = floor((2^128 - 1) / d) - 2^64`, that is `0 < 2^128 - (2^64 + v) * d ≤ d`;
 * Theorem 2: with the reciprocal, Algorithm 4 computes the quotient and the remainder of a two-word
-  number `u < 2^64 * d` by `d`.
+  number `u < 2^64 * d` by `d`;
+* Theorem 3: with the reciprocal `v = floor((2^192 - 1) / D) - 2^64` of a normalized two-word `D`
+  (`2^127 ≤ D < 2^128`), the candidate remainder of Algorithm 5 for a three-word number `u2:u1:u0`
+  with `u2:u1 < D` is in `[c - 2^128, c)` with `c = max(2^128 - D, 2^64 * q0)`, so its two
+  adjustments give the quotient and the remainder (`IntxRV.div3by2BV_spec`).
 -/
 
 namespace Intx
@@ -383,5 +387,125 @@ theorem div2by1N_spec (u0 u1 D V : ℕ) (hu0 : u0 < 2 ^ 64) (hu1 : u1 < D) (hD1 
     | exact pair_div_mod (q := q1) hDp 0 (by omega) (by rw [hDq]; omega) (by omega)
     | exact pair_div_mod (q := q1) hDp 1 (by omega) (by rw [hDq]; omega) (by omega)
     | exact pair_div_mod (q := q1) hDp 2 (by omega) (by rw [hDq]; omega) (by omega)
+
+/-- Möller and Granlund, Theorem 3: with the candidate quotient `q1 + 1` of the three-word
+`U = 2^128 * u2 + 2^64 * u1 + u0` by the normalized two-word `D`, where
+`2^64 * q1 + q0 = (2^64 + v) * u2 + u1`, the candidate remainder `U - (q1 + 1) * D` is in
+`[c - 2^128, c)` for `c = max(2^128 - D, 2^64 * q0)`. -/
+theorem div3by2_bounds (u0 u1 u2 D V q1 q0 : ℕ) (hu0 : u0 < 2 ^ 64) (hu1 : u1 < 2 ^ 64)
+    (hX : 2 ^ 64 * u2 + u1 < D) (hD1 : 2 ^ 127 ≤ D) (hD2 : D < 2 ^ 128)
+    (hv1 : (2 ^ 64 + V) * D < 2 ^ 192) (hv2 : 2 ^ 192 ≤ (2 ^ 64 + V + 1) * D)
+    (hQ : 2 ^ 64 * q1 + q0 = V * u2 + (2 ^ 64 * u2 + u1)) (hq0 : q0 < 2 ^ 64) :
+    q1 * D + D ≤ 2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 + D ∧
+      2 ^ 64 * q0 + 1 + (q1 * D + D) ≤ 2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 + 2 ^ 128 ∧
+      (2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 + D < q1 * D + D + 2 ^ 128 ∨
+        2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 < q1 * D + D + 2 ^ 64 * q0) := by
+  -- K = 2^192 - (2^64 + v) * D is in [1, D].
+  have hk1 : (1 : ℤ) ≤ 2 ^ 192 - (2 ^ 64 + V) * D := by
+    have : ((2 ^ 64 + V) * D : ℤ) < 2 ^ 192 := by exact_mod_cast hv1
+    linarith
+  have hk2 : (2 : ℤ) ^ 192 - (2 ^ 64 + V) * D ≤ D := by
+    have : (2 : ℤ) ^ 192 ≤ (2 ^ 64 + V + 1) * D := by exact_mod_cast hv2
+    linarith
+  -- 2^64 * r = K * u2 + (2^128 - D) * u1 + 2^64 * u0 + q0 * D - 2^64 * D.
+  have key : (2 ^ 64 : ℤ) * (2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 - (q1 + 1) * D) =
+      (2 ^ 192 - (2 ^ 64 + V) * D) * u2 + (2 ^ 128 - D) * u1 + 2 ^ 64 * u0 + q0 * D -
+        2 ^ 64 * D := by
+    have hQz : ((2 ^ 64 * q1 + q0 : ℕ) : ℤ) = (V * u2 + (2 ^ 64 * u2 + u1) : ℕ) := by
+      exact_mod_cast hQ
+    push_cast at hQz
+    linear_combination (-(D : ℤ)) * hQz
+  have hu0z : (0 : ℤ) ≤ u0 := by positivity
+  have hu0z' : (u0 : ℤ) ≤ 2 ^ 64 - 1 := by
+    have : (u0 : ℤ) < 2 ^ 64 := (by exact_mod_cast hu0); linarith
+  have hu1z : (0 : ℤ) ≤ u1 := by positivity
+  have hu1z' : (u1 : ℤ) ≤ 2 ^ 64 - 1 := by
+    have : (u1 : ℤ) < 2 ^ 64 := (by exact_mod_cast hu1); linarith
+  have hu2z : (0 : ℤ) ≤ u2 := by positivity
+  have hq0z : (0 : ℤ) ≤ q0 := by positivity
+  have hq0z' : (q0 : ℤ) ≤ 2 ^ 64 - 1 := by
+    have : (q0 : ℤ) < 2 ^ 64 := (by exact_mod_cast hq0); linarith
+  have hDz : (D : ℤ) ≤ 2 ^ 128 - 1 := by
+    have : (D : ℤ) < 2 ^ 128 := (by exact_mod_cast hD2); linarith
+  have hDz' : (2 : ℤ) ^ 127 ≤ D := by exact_mod_cast hD1
+  have hXz : (2 ^ 64 * u2 + u1 : ℤ) ≤ D - 1 := by
+    have : (2 ^ 64 * u2 + u1 : ℤ) < D := (by exact_mod_cast hX); linarith
+  have hku : (0 : ℤ) ≤ (2 ^ 192 - (2 ^ 64 + V) * D) * u2 := mul_nonneg (by linarith) hu2z
+  have hdu : (0 : ℤ) ≤ (2 ^ 128 - D) * u1 := mul_nonneg (by linarith) hu1z
+  have hqd : (0 : ℤ) ≤ q0 * D := by positivity
+  -- The lower bounds, as in Theorem 2.
+  have hlo1 : -(D : ℤ) ≤ 2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 - (q1 + 1) * D := by
+    have : (2 ^ 64 : ℤ) * (2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 - (q1 + 1) * D) ≥
+        2 ^ 64 * (-(D : ℤ)) := by linarith
+    exact le_of_mul_le_mul_left this (by positivity)
+  have hlo2 : 2 ^ 64 * (q0 : ℤ) + 1 - 2 ^ 128 ≤ 2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 - (q1 + 1) * D := by
+    have h1 : (0 : ℤ) < (2 ^ 64 - q0) * (2 ^ 128 - D) := mul_pos (by linarith) (by linarith)
+    have : (2 ^ 64 : ℤ) * (2 ^ 64 * q0 - 2 ^ 128) <
+        2 ^ 64 * (2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 - (q1 + 1) * D) := by linarith
+    have := lt_of_mul_lt_mul_left this (by positivity)
+    linarith
+  -- The upper bound: by the cases of u2 against the top word d1 of D.
+  have hD := Nat.div_add_mod D (2 ^ 64)
+  have hd0 := Nat.mod_lt D (show 0 < 2 ^ 64 by positivity)
+  generalize D / 2 ^ 64 = d1 at hD
+  generalize D % 2 ^ 64 = d0 at hD hd0
+  have hu2d : u2 ≤ d1 := by omega
+  have hDz2 : (D : ℤ) = 2 ^ 64 * d1 + d0 := by exact_mod_cast hD.symm
+  have hd0z : (0 : ℤ) ≤ d0 := by positivity
+  have hd0z' : (d0 : ℤ) ≤ 2 ^ 64 - 1 := by
+    have : (d0 : ℤ) < 2 ^ 64 := (by exact_mod_cast hd0); linarith
+  have e1 : (2 ^ 64 : ℤ) * (D * d1) = D * D - D * d0 := by rw [hDz2]; ring
+  have hDd0 : (0 : ℤ) ≤ D * d0 := by positivity
+  have hlo2n : 2 ^ 64 * q0 + 1 + (q1 * D + D) ≤ 2 ^ 128 * u2 + 2 ^ 64 * u1 + u0 + 2 ^ 128 := by
+    zify; linarith
+  refine ⟨by zify; linarith, hlo2n, ?_⟩
+  rcases Nat.lt_or_ge u2 d1 with hlt | hge
+  · -- u2 ≤ d1 - 1.
+    have hlt' : (u2 : ℤ) + 1 ≤ d1 := by exact_mod_cast hlt
+    have h1 : (0 : ℤ) ≤ (D - (2 ^ 192 - (2 ^ 64 + V) * D)) * u2 := mul_nonneg (by linarith) hu2z
+    have h2 : (0 : ℤ) ≤ D * (d1 - 1 - u2) := mul_nonneg (by linarith) (by linarith)
+    have h3 : (0 : ℤ) ≤ (2 ^ 128 - D) * (2 ^ 64 - 1 - u1) := mul_nonneg (by linarith) (by linarith)
+    by_cases hc : 2 ^ 64 * (q0 : ℤ) ≤ 2 ^ 128 - D
+    · left
+      have h4 : (0 : ℤ) ≤ D * (2 ^ 128 - D - 2 ^ 64 * q0) := mul_nonneg (by linarith) (by linarith)
+      zify; linarith
+    · right
+      have h4 : (0 : ℤ) ≤ (2 ^ 128 - D) * (2 ^ 64 * q0 - (2 ^ 128 - D)) :=
+        mul_nonneg (by linarith) (by linarith)
+      zify; linarith
+  have heq : u2 = d1 := by omega
+  subst heq
+  have hu1d : u1 + 1 ≤ d0 := by omega
+  rcases Nat.lt_or_ge D (2 ^ 128 - 2 ^ 64 + 1) with hDs | hDb
+  · -- u2 = d1 and D ≤ 2^64 * (2^64 - 1).
+    have hu1d' : (u1 : ℤ) + 1 ≤ d0 := by exact_mod_cast hu1d
+    have hDs' : (D : ℤ) ≤ 2 ^ 128 - 2 ^ 64 := by
+      have h : D + 2 ^ 64 ≤ 2 ^ 128 := by omega
+      have : (D : ℤ) + 2 ^ 64 ≤ 2 ^ 128 := by exact_mod_cast h
+      linarith
+    have h1 : (0 : ℤ) ≤ (D - (2 ^ 192 - (2 ^ 64 + V) * D)) * u2 := mul_nonneg (by linarith) hu2z
+    have h3 : (0 : ℤ) ≤ (2 ^ 128 - D) * (d0 - 1 - u1) := mul_nonneg (by linarith) (by linarith)
+    have h5 : (0 : ℤ) ≤ (2 ^ 64 - d0) * (2 ^ 192 - (2 ^ 64 + 1) * D) :=
+      mul_nonneg (by linarith) (by linarith)
+    by_cases hc : 2 ^ 64 * (q0 : ℤ) ≤ 2 ^ 128 - D
+    · left
+      have h4 : (0 : ℤ) ≤ D * (2 ^ 128 - D - 2 ^ 64 * q0) := mul_nonneg (by linarith) (by linarith)
+      zify; linarith
+    · right
+      have h4 : (0 : ℤ) ≤ (2 ^ 128 - D) * (2 ^ 64 * q0 - (2 ^ 128 - D)) :=
+        mul_nonneg (by linarith) (by linarith)
+      zify; linarith
+  · -- u2 = d1 = 2^64 - 1 and D > 2^64 * (2^64 - 1): v = 0, q1 = u2, q0 = u1, and the candidate
+    -- remainder is negative.
+    have hd1 : u2 = 2 ^ 64 - 1 := by omega
+    have hV : V = 0 := by
+      by_contra hV
+      have : (2 ^ 64 + 1) * D ≤ (2 ^ 64 + V) * D := Nat.mul_le_mul_right _ (by omega)
+      omega
+    subst hV hd1
+    have hq : q1 = 2 ^ 64 - 1 ∧ q0 = u1 := by omega
+    obtain ⟨rfl, rfl⟩ := hq
+    right
+    omega
 
 end Intx

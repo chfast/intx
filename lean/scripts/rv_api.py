@@ -226,6 +226,13 @@ REG_RESULTS = {
     "div_result<uint64_t>": ("DivResult", "⟨(x'.get 10#5).toNat, (x'.get 11#5).toNat⟩", []),
 }
 
+# The results in memory at a0 (sret), which are larger than two registers: the Lean type, the value
+# and the bits of the result.
+MEM_RESULTS = {
+    "div_result<uint64_t, uint128>": (
+        "DivResult", "⟨words m' (x 10#5) 1, words m' (x 10#5 + 8#64) 2⟩", 192),
+}
+
 
 def spec_rv(var, inst, spec, stack, hpp, image=False):
     """The Lean definitions of the specification of the machine code of the instance `var` that
@@ -239,6 +246,9 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
         if ret_width % 64:
             sys.exit(f"{var}: unsupported result type {ret}")
         outs.append((reg, ret_width))  # The result is returned in memory at a0 (sret).
+        reg += 1
+    elif ret in MEM_RESULTS:
+        outs.append((reg, MEM_RESULTS[ret][2]))
         reg += 1
     elif ret != "void" and ret not in REG_RESULTS:
         sys.exit(f"{var}: unsupported result type {ret}")
@@ -295,6 +305,8 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
                  ["m' = m"] if bufs or image else [])
     if ret_width is not None and ret_width > 128:
         result = ("Nat", f"(words m' (x {outs[0][0]}#5) {ret_width // 64})")
+    elif ret in MEM_RESULTS:
+        result = MEM_RESULTS[ret][:2]
     elif ret == "void":
         result = None
     else:
@@ -425,10 +437,13 @@ def main():
                        f"IntxRV.Gen.{var}_image_data IntxRV.Gen.{var}_image_dataOff {a}.bufs",
                        f"      {a}.pre := {a}.nonvacuous", ""]
         elif mem is not None:
+            # A proof file gives the registers itself (`nonvacuous`) if the arguments 0 do not
+            # satisfy the preconditions.
+            proof = (out / "IntxRV" / "Api" / f"{var}.lean").read_text()
+            by = (f" {a}.nonvacuous" if f"theorem {var}.nonvacuous" in proof else
+                  f" by\n  rv_nonvacuous {mem} using [{a}.bufs, {a}.pre, IntxRV.Gen.{var}_code]")
             checks += ["example :", f"    IntxRV.NonVacuous IntxRV.Gen.{var}_code {a}.bufs "
-                       f"{a}.pre := by",
-                       f"  rv_nonvacuous {mem} using [{a}.bufs, {a}.pre, IntxRV.Gen.{var}_code]",
-                       ""]
+                       f"{a}.pre :={by}", ""]
         elif has_pre:
             checks += [f"example : ∃ x, {a}.pre x := {a}.nonvacuous", ""]
         else:
