@@ -8,5 +8,6 @@ SECTIONS
   . = ALIGN(8);
   .rodata : { *(.rodata .rodata.*) }
   /* ROOTS */
-  /DISCARD/ : { *(.comment) *(.note*) *(.riscv.attributes) }
+  /* The unwind tables of functions that clang does not mark nounwind: the code does not unwind. */
+  /DISCARD/ : { *(.comment) *(.note*) *(.riscv.attributes) *(.eh_frame) }
 }

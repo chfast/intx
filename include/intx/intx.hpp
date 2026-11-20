@@ -1998,6 +1998,11 @@ constexpr unsigned clz_nonzero(uint64_t x) noexcept
 /// @param u  The numerator words.
 /// @param d  The divisor.
 /// @return   The remainder.
+/// @pre 2 <= u.size()
+/// @pre q.size() = u.size()
+/// @pre 0 < d
+/// @post q = u / d
+/// @post result = u % d
 template <size_t W>
 constexpr uint64_t udivrem_by1(std::span<uint64_t, W> q,
     std::type_identity_t<std::span<const uint64_t, W>> u, uint64_t d) noexcept
