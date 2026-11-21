@@ -48,6 +48,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `udivrem_2by1()` | [`udivrem_2by1`](Api/udivrem_2by1.lean) |
 | `udivrem_3by2()` | [`udivrem_3by2`](Api/udivrem_3by2.lean) |
 | `umul()` of `uint256` | [`umul_256`](Api/umul_256.lean) |
+| `internal::udivrem_by1()` of a span | [`udivrem_by1`](Api/udivrem_by1.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
@@ -169,6 +170,23 @@ pointers run to constant bounds, so `rv_exec_loop` decides the branches and unro
 proved the same way through `mul256_words` ([`Mul256.lean`](Mul256.lean)), the product modulo
 `2^256`, after `rv_cse` gives the words that each row loads again one name.
 
+### Loops
+
+`internal::udivrem_by1()` of a span divides it a word at a time in a loop that runs `u.size() - 2`
+times. `Reach.loop` ([`Loop.lean`](Loop.lean)) proves the run from the head of a loop by induction
+on the iterations left, from an invariant at the head; `rv_exec_cut` runs the code to the cut
+points, the head and the exit, and stops at the loads and stores of the words at the addresses that
+depend on the counter, which the proof steps with `mem_bufWords`. The invariant of
+`udivrem_by1()` (`by1Head` in [`DivBy1.lean`](DivBy1.lean)) holds the registers at the head, the
+quotient words stored above the word `i` and the remainder of the digits above it, of the numerator
+shifted left to normalize the divisor; each iteration divides the digit `i`, the funnel shift of
+the words `i` and `i - 1` (`norm_digit` in [`DivWords.lean`](DivWords.lean)), by the inlined
+`udivrem_2by1()` (`div2by1BV` in [`Div2by1.lean`](Div2by1.lean)). The inlined `reciprocal_2by1()`
+is `recip2BV`. `rv_has`, `rv_lacks` and `rv_get` select the paths of a run by the conditions of their
+branches without unfolding the hypotheses, and an anonymous assumption such as
+`‹Defn _ ((_ : BitVec 64) >>> s)›` passes a name of the run, which the proof cannot write, to a
+lemma.
+
 ### Calls and constant data
 
 A function that calls other functions or reads constant data (the table of the reciprocal) has
@@ -182,8 +200,7 @@ proof: `f.reach` of a function `f` on its own code is lifted into the image by `
 `Gen.p_image_f_in` states that the image holds the code of `f`: the function `f` itself, or another
 function with the same code, as the operators by `uint64_t` that the shifts by `uint256` call
 (`Reach.call_sub`). The instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
-until they are proved: `internal::udivrem_by1()` at present, whose loop runs a number of times that
-its arguments set.
+until they are proved (none at present).
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
 `words` and on `log2` ([`Bits.lean`](Bits.lean)).

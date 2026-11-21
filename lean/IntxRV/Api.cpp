@@ -41,6 +41,7 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
     };
 
 [[gnu::used]] constexpr auto* umul_256 = &intx::umul<256>;
+[[gnu::used]] constexpr auto* udivrem_by1 = &intx::internal::udivrem_by1<std::dynamic_extent>;
 [[gnu::used]] constexpr auto* shl_9_8 = &intx::shl<9, 8>;
 [[gnu::used]] constexpr Binop add_256 = [](const uint256& x, const uint256& y) noexcept {
     return x + y;
@@ -101,9 +102,7 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
-// and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
+// and their code is in the image (IntxRV/Gen/Code.lean), without the checks. None at present.
 namespace intx::wip
 {
-// The division of a span by a word: a loop over the words (IntxRV/README.md).
-[[gnu::used]] constexpr auto* udivrem_by1 = &intx::internal::udivrem_by1<std::dynamic_extent>;
 }  // namespace intx::wip
