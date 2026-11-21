@@ -42,6 +42,7 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 
 [[gnu::used]] constexpr auto* umul_256 = &intx::umul<256>;
 [[gnu::used]] constexpr auto* udivrem_by1 = &intx::internal::udivrem_by1<std::dynamic_extent>;
+[[gnu::used]] constexpr auto* udivrem_by2 = &intx::internal::udivrem_by2<std::dynamic_extent>;
 [[gnu::used]] constexpr auto* shl_9_8 = &intx::shl<9, 8>;
 [[gnu::used]] constexpr Binop add_256 = [](const uint256& x, const uint256& y) noexcept {
     return x + y;

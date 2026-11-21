@@ -137,6 +137,9 @@ def norm_type(t):
     t = re.sub(r"\bintx::", "", t.strip())
     # The parameters that are not deduced (`std::type_identity_t<T>` is T).
     t = re.sub(r"^std::type_identity_t<(.*)>$", r"\1", t)
+    # The extent of u of udivrem_by2(): Q == std::dynamic_extent ? Q : Q + 1.
+    t = re.sub(r"(\d+)UL == std::dynamic_extent \? \1UL : \1UL \+ 1",
+               lambda m: f"{int(m[1]) if int(m[1]) == DYNAMIC_EXTENT else int(m[1]) + 1}UL", t)
     t = re.sub(r"<(\d+) \* (\d+)U>", lambda m: f"<{int(m[1]) * int(m[2])}>", t)
     t = re.sub(r"<(\d+)U>", r"<\1>", t)
     return {"uint<128>": "uint128", "unsigned long": "uint64_t", "size_t": "uint64_t",

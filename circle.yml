@@ -586,7 +586,7 @@ jobs:
             timeout 45m sh -ec '
               LEAN_NUM_THREADS=3 lake build IntxRV.Gen.Code
               LEAN_NUM_THREADS=1 lake build IntxRV.Api.mul_256 IntxRV.Api.umul_256 \
-                IntxRV.Api.udivrem_by1
+                IntxRV.Api.udivrem_by1 IntxRV.Api.udivrem_by2
               LEAN_NUM_THREADS=3 lake build Intx IntxRV Checks'
       - save_cache:
           key: lean-decode-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-{{ epoch }}

@@ -49,6 +49,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `udivrem_3by2()` | [`udivrem_3by2`](Api/udivrem_3by2.lean) |
 | `umul()` of `uint256` | [`umul_256`](Api/umul_256.lean) |
 | `internal::udivrem_by1()` of a span | [`udivrem_by1`](Api/udivrem_by1.lean) |
+| `internal::udivrem_by2()` of a span | [`udivrem_by2`](Api/udivrem_by2.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
@@ -186,6 +187,13 @@ is `recip2BV`. `rv_has`, `rv_lacks` and `rv_get` select the paths of a run by th
 branches without unfolding the hypotheses, and an anonymous assumption such as
 `‹Defn _ ((_ : BitVec 64) >>> s)›` passes a name of the run, which the proof cannot write, to a
 lemma.
+
+`internal::udivrem_by2()` divides by two words in the same way, with the inlined
+`reciprocal_3by2()` and three inlined copies of `udivrem_3by2()`, each with branches. The block
+lemmas of [`DivBy2.lean`](DivBy2.lean) (`by2_div_top`, `by2_div_loop`, `by2_div_last` and
+`by2_sub_top`) run the paths of a copy to its end, and the proof takes a copy as one step
+(`Reach.trans`), continuing from the registers after it with the registers that it changes set
+(`regs_eq_sets`). The paths of the top digits meet at `by2Top`, the state before the loop.
 
 ### Calls and constant data
 
