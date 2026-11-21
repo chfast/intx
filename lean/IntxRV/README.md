@@ -52,6 +52,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `internal::udivrem_by2()` of a span | [`udivrem_by2`](Api/udivrem_by2.lean) |
 | `internal::udivrem_top1()` of `uint256` by the top word 2 | [`udivrem_top1_2`](Api/udivrem_top1_2.lean) |
 | `internal::udivrem_top1()` of `uint256` by the top word 3 | [`udivrem_top1_3`](Api/udivrem_top1_3.lean) |
+| `internal::udivrem_top2()` of `uint256` by the top word 3 | [`udivrem_top2_3`](Api/udivrem_top2_3.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
@@ -208,6 +209,14 @@ definitions from the names in the goal, and run the code from the test of the bo
 stores of the result. `udivrem_top1<2>()` is the same with 3 words of v and the word u[3] above
 them, and the paths of its test of u < v meet in `top1_2_main`. `nonVacuousI_of_args` stores the
 words of the arguments in the RAM, for a precondition on their values.
+
+`internal::udivrem_top2<3>()` divides the top digits of the normalized u by the top 128 bits of
+the normalized v with two inlined copies of `udivrem_3by2()`, which
+[`DivTop2.lean`](DivTop2.lean) runs as block lemmas (`top2_div_top`, `top2_div_low`, the second
+with the restore of the frame), and corrects the quotient with `u - q * v`, which the code computes
+from the remainder of the top digits and the low words (`top2_nat`). In a large context, the
+inlined copies fold their results badly and `apply` with `assumption` can recurse: the end of the
+code substitutes the definitions (`subst_vars`) and takes the lemmas of the sums with `rfl`.
 
 ### Calls and constant data
 
