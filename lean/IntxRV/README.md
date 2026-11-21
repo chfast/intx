@@ -53,6 +53,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `internal::udivrem_top1()` of `uint256` by the top word 2 | [`udivrem_top1_2`](Api/udivrem_top1_2.lean) |
 | `internal::udivrem_top1()` of `uint256` by the top word 3 | [`udivrem_top1_3`](Api/udivrem_top1_3.lean) |
 | `internal::udivrem_top2()` of `uint256` by the top word 3 | [`udivrem_top2_3`](Api/udivrem_top2_3.lean) |
+| `udivrem()` of `uint256` by `uint256` | [`udivrem_256`](Api/udivrem_256.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
@@ -218,6 +219,15 @@ from the remainder of the top digits and the low words (`top2_nat`). In a large 
 inlined copies fold their results badly and `apply` with `assumption` can recurse: the end of the
 code substitutes the definitions (`subst_vars`) and takes the lemmas of the sums with `rfl`.
 
+`udivrem<256, 256>()` dispatches to the five functions above by the significant words of u and v.
+A lemma of [`Div256.lean`](Div256.lean) runs each path from its first instruction to the return,
+with the call by `Reach.call_sub` and the proof of the callee for the immediates of the table in
+this image, and the proof routes the paths of the run to them. A call lemma over the registers
+that the paths set, as hypotheses, serves several paths (`u256_by1_call`): with the calls inlined
+in each path, a module took 8.6 GB. The table is a list of 256 words: the proof generalizes it to
+a variable `D`, so that the checks of the loads and the stores do not expand it, and keeps the fact
+`∀ a ∈ bufWords T 256, a ∈ D`, which `subst_vars` cannot undo.
+
 ### Calls and constant data
 
 A function that calls other functions or reads constant data (the table of the reciprocal) has
@@ -236,7 +246,7 @@ instructions with these immediates as parameters are `Gen.f_progAt`, and `Gen.p_
 them with the immediates of the image. The proof of `f` over any immediates, with the address of
 the data that they give as an assumption, is a proof in every image, as `udivrem_by1.reach`. The
 instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
-until they are proved.
+until they are proved (none at present).
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
 `words` and on `log2` ([`Bits.lean`](Bits.lean)).
