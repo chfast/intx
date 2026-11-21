@@ -479,11 +479,16 @@ def main():
               "set_option maxRecDepth 100000", "",
               "/-! The specification of every instance of IntxRV/Api.cpp has a proof, and its",
               "assumptions hold in an environment (they are not vacuous). -/", ""]
-    for var in sorted(api):
-        spec = spec_of(var, api[var])
-        check_proof_file(out, var, cpp_doc(hpp, spec))
-        spec_lines, mem, has_pre = spec_rv(var, api[var], spec, stacks[var], hpp, var in images)
+    # The specifications of intx::api and intx::wip in one order: moving an instance to intx::api
+    # when it is proved does not change Gen/Api.lean, which all the proofs import.
+    for var in sorted(api | wip):
+        inst = api[var] if var in api else wip[var]
+        spec = spec_of(var, inst)
+        spec_lines, mem, has_pre = spec_rv(var, inst, spec, stacks[var], hpp, var in images)
         lines += spec_lines
+        if var not in api:
+            continue
+        check_proof_file(out, var, cpp_doc(hpp, spec))
         a = f"IntxRV.Api.{var}"
         checks += [f"example : {a}.spec := {a}.proof", f"#check_rv_axioms {a}.proof"]
         if var in images:
@@ -503,9 +508,6 @@ def main():
             checks += [f"example : ∃ x, {a}.pre x := {a}.nonvacuous", ""]
         else:
             checks += [""]
-    for var in sorted(wip):
-        lines += spec_rv(var, wip[var], spec_of(var, wip[var]), stacks[var], hpp,
-                         var in images)[0]
     lines += ["end IntxRV.Api", ""]
     (out / "IntxRV" / "Gen").mkdir(exist_ok=True)
     (out / "Checks" / "Gen").mkdir(exist_ok=True)
