@@ -2051,6 +2051,11 @@ constexpr div_result<uint<M>, uint<N>> udivrem_by1(
 /// @param u  The numerator words.
 /// @param d  The divisor.
 /// @return   The remainder.
+/// @pre 3 <= u.size()
+/// @pre q.size() + 1 = u.size()
+/// @pre 2 ^ 64 <= d
+/// @post q = u / d
+/// @post result = u % d
 template <size_t Q>
 constexpr uint128 udivrem_by2(std::span<uint64_t, Q> q,
     std::type_identity_t<std::span<const uint64_t, Q == std::dynamic_extent ? Q : Q + 1>> u,
