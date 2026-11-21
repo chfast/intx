@@ -50,6 +50,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `umul()` of `uint256` | [`umul_256`](Api/umul_256.lean) |
 | `internal::udivrem_by1()` of a span | [`udivrem_by1`](Api/udivrem_by1.lean) |
 | `internal::udivrem_by2()` of a span | [`udivrem_by2`](Api/udivrem_by2.lean) |
+| `internal::udivrem_top1()` of `uint256` by the top word 3 | [`udivrem_top1_3`](Api/udivrem_top1_3.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
@@ -195,6 +196,17 @@ lemmas of [`DivBy2.lean`](DivBy2.lean) (`by2_div_top`, `by2_div_loop`, `by2_div_
 (`Reach.trans`), continuing from the registers after it with the registers that it changes set
 (`regs_eq_sets`). The paths of the top digits meet at `by2Top`, the state before the loop.
 
+`internal::udivrem_top1<3>()` estimates the quotient word from the normalized top words with an
+inlined `udivrem_2by1()` (`div2by1BVc`, with the products in the other order). The estimate is not
+less than the quotient (`top1_est`, Knuth's Theorem B), and the correction loop adds v back to the
+remainder of the operands while the borrow is not 0. The lemmas of [`DivTop1.lean`](DivTop1.lean)
+state the 4-word `submul()` and the addition of the loop by the definitions of their values
+(`submul4_words`, `top1_body_sm`), in an order in which `apply` and `assumption` find the
+definitions from the names in the goal, and run the code from the test of the borrow to the return
+(`top1_3_tail`): the loop by `Reach.loop` with the excess of the quotient as the measure, and the
+stores of the result. `nonVacuousI_of_args` stores the words of the arguments in the RAM, for a
+precondition on their values.
+
 ### Calls and constant data
 
 A function that calls other functions or reads constant data (the table of the reciprocal) has
@@ -213,7 +225,7 @@ instructions with these immediates as parameters are `Gen.f_progAt`, and `Gen.p_
 them with the immediates of the image. The proof of `f` over any immediates, with the address of
 the data that they give as an assumption, is a proof in every image, as `udivrem_by1.reach`. The
 instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
-until they are proved (none at present).
+until they are proved.
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
 `words` and on `log2` ([`Bits.lean`](Bits.lean)).
