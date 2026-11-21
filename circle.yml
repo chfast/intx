@@ -565,10 +565,12 @@ jobs:
           name: "Generate the RV64 machine code and the specifications"
           working_directory: lean
           command: CXX=clang++ scripts/rv_build.sh
-      # The proofs of the decoding of the words of the machine code take most of the build: a new
-      # word rebuilds only its file of Gen/Decode/, and Lake compares the hashes of the sources.
+      # The build of the proofs is cached: Lake compares the hashes of the sources and of their
+      # imports, so a run rebuilds only the proofs of the changed code and specifications, and a
+      # new word rebuilds only its file of Gen/Decode/.
       - restore_cache:
           keys:
+            - lean-build-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-
             - lean-decode-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-
       - run:
           name: "Check the proofs and their axioms"
@@ -577,7 +579,7 @@ jobs:
           # Docker reports the CPUs of the host: 3 Lean processes fit in the 8 GB of the job, but
           # not with the proofs that take 3-5 GB each, which build one at a time. The build of the
           # decode files of an earlier layout is deleted, so that the cache does not keep it. The
-          # timeout leaves the time to save the decode files built, within the hour of the job.
+          # timeout leaves the time to save the build, within the hour of the job.
           command: |
             for f in .lake/build/lib/lean/IntxRV/Gen/Decode/* .lake/build/ir/IntxRV/Gen/Decode/*; do
               b=$(basename "$f")
@@ -590,10 +592,10 @@ jobs:
                 IntxRV.Api.udivrem_top1_3
               LEAN_NUM_THREADS=3 lake build Intx IntxRV Checks'
       - save_cache:
-          key: lean-decode-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-{{ epoch }}
+          key: lean-build-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-{{ epoch }}
           paths:
-            - lean/.lake/build/lib/lean/IntxRV/Gen/Decode
-            - lean/.lake/build/ir/IntxRV/Gen/Decode
+            - lean/.lake/build/lib/lean
+            - lean/.lake/build/ir
           when: always
       - run:
           name: "Check the hashes of the modeled C++ code"
