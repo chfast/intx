@@ -21,7 +21,6 @@ stores the quotient word and reaches the head with `i - 1` or the exit. `by1Exit
 the exit, and `by1_exit` the division of the last digit and the result (`by1_final`).
 -/
 
-
 namespace IntxRV.Api
 open IntxRV IntxRV.Gen
 
@@ -31,18 +30,18 @@ set_option maxRecDepth 100000
 set_option linter.unusedTactic false
 set_option linter.unreachableTactic false
 
-/-- The address of the table entry of `d` in the image of `udivrem_by1()`. -/
-theorem table_addr_by1 (d base : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
-    (d >>> 52 &&& 18446744073709551608#64) + (pcAt base 5 + 756#64) + 18446744073709549568#64 =
-      base + BitVec.ofNat 64 776 + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) := by
-  rw [show (18446744073709551608#64) = 0xfffffffffffffff8#64 from rfl, shr52_and, pcAt]
+/-- The address of the table entry of `d` in the table at `T`. -/
+theorem table_addr_by1 (d T : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
+    (d >>> 52 &&& 18446744073709551608#64) + T + 18446744073709549568#64 =
+      T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) := by
+  rw [show (18446744073709551608#64) = 0xfffffffffffffff8#64 from rfl, shr52_and]
   have := d.isLt
   bv_omega
 
-theorem table_addr_by1_hi (d base : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
-    (d >>> 52 &&& 18446744073709551608#64) + (pcAt base 5 + 756#64) + 18446744073709549572#64 =
-      base + BitVec.ofNat 64 776 + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) + 4 := by
-  rw [show (18446744073709551608#64) = 0xfffffffffffffff8#64 from rfl, shr52_and, pcAt]
+theorem table_addr_by1_hi (d T : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
+    (d >>> 52 &&& 18446744073709551608#64) + T + 18446744073709549572#64 =
+      T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) + 4 := by
+  rw [show (18446744073709551608#64) = 0xfffffffffffffff8#64 from rfl, shr52_and]
   have := d.isLt
   bv_omega
 
@@ -61,10 +60,10 @@ theorem index_lt_256 {d : BitVec 64} (h : 2 ^ 63 ≤ d.toNat) : d.toNat / 2 ^ 55
   have := d.isLt; omega
 
 /-- The address of the high half of the table entry, 4 bytes above the entry. -/
-theorem table_entry_add4 (base : BitVec 64) {d : BitVec 64} (h : 2 ^ 63 ≤ d.toNat)
-    (hw : base.toNat + 776 + 8 * 256 ≤ 2 ^ 64) :
-    (base + 776#64 + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) + 4).toNat =
-      (base + 776#64 + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256))).toNat + 4 := by
+theorem table_entry_add4 (T : BitVec 64) {d : BitVec 64} (h : 2 ^ 63 ≤ d.toNat)
+    (hw : T.toNat + 8 * 256 ≤ 2 ^ 64) :
+    (T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) + 4).toNat =
+      (T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256))).toNat + 4 := by
   have := index_lt_256 h
   bv_omega
 
@@ -327,10 +326,11 @@ def by1Exit (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
   UnchangedExcept m m' (x.get 10#5) (8 * n) ∧
   x'.get 1#5 = x.get 1#5 ∧ x'.get 2#5 = x.get 2#5 ∧ (∀ r ∈ calleeSaved, x'.get r = x.get r)
 
-theorem by1_exit (base : BitVec 64) (x : Regs) (m : Mem) (hpre : udivrem_by1.pre x m)
+theorem by1_exit {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base : BitVec 64)
+    (x : Regs) (m : Mem) (hpre : udivrem_by1.pre x m)
     (hr : x.get 1#5 &&& 3 = 0) (x' : Regs) (m' : Mem) (h : by1Exit x m x' m') :
     Reach (bufWords (x.get 12#5) (x.get 13#5).toNat ++ bufWords (x.get 10#5) (x.get 11#5).toNat ++
-        dataWords base 776 256) udivrem_by1_image_prog base (pcAt base 167) x' m' (x.get 1#5)
+        D) (udivrem_by1_progAt hi lo) base (pcAt base 167) x' m' (x.get 1#5)
       (udivrem_by1.post x m) := by
   obtain ⟨h10, h11, h12, h15, h5, h6, hq, hu, h1, h2, hcs⟩ := h
   have hd0 : (x.get 14#5).toNat ≠ 0 := by
@@ -411,11 +411,12 @@ def by1Head (x : Regs) (m : Mem) (i : Nat) (x' : Regs) (m' : Mem) : Prop :=
   UnchangedExcept m m' (x.get 10#5) (8 * n) ∧
   x'.get 1#5 = x.get 1#5 ∧ x'.get 2#5 = x.get 2#5 ∧ (∀ r ∈ calleeSaved, x'.get r = x.get r)
 
-theorem by1_loop (base : BitVec 64) (x : Regs) (m : Mem) (hpre : udivrem_by1.pre x m)
+theorem by1_loop {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base : BitVec 64)
+    (x : Regs) (m : Mem) (hpre : udivrem_by1.pre x m)
     (hr : x.get 1#5 &&& 3 = 0) :
     ∀ i x' m', by1Head x m i x' m' →
     Reach (bufWords (x.get 12#5) (x.get 13#5).toNat ++ bufWords (x.get 10#5) (x.get 11#5).toNat ++
-        dataWords base 776 256) udivrem_by1_image_prog base (pcAt base 148) x' m' (x.get 1#5)
+        D) (udivrem_by1_progAt hi lo) base (pcAt base 148) x' m' (x.get 1#5)
       (udivrem_by1.post x m) := by
   apply Reach.loop (by1Head x m)
   intro i x' m' h ih

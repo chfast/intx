@@ -199,7 +199,12 @@ call is `auipc ra` and `jalr ra`; `Reach.call` ([`Call.lean`](Call.lean)) runs t
 proof: `f.reach` of a function `f` on its own code is lifted into the image by `Reach.lift`.
 `Gen.p_image_f_in` states that the image holds the code of `f`: the function `f` itself, or another
 function with the same code, as the operators by `uint64_t` that the shifts by `uint256` call
-(`Reach.call_sub`). The instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
+(`Reach.call_sub`). The code of a function that reads its data differs in each image in the
+immediates of the address of the data, `auipc` and the `addi` or the load after it. Its
+instructions with these immediates as parameters are `Gen.f_progAt`, and `Gen.p_image_f_in` states
+them with the immediates of the image. The proof of `f` over any immediates, with the address of
+the data that they give as an assumption, is a proof in every image, as `udivrem_by1.reach`. The
+instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
 until they are proved (none at present).
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of

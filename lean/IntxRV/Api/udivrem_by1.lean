@@ -26,7 +26,9 @@ for `q` and `u` that do not overlap. The function normalizes `d` with the count 
 zeros (`clz_ite`), computes the reciprocal with the table of the image (`recip2BV_spec`), divides
 the top digits of the shifted numerator into the top quotient word, runs the loop over the words
 below it and divides the last digit (`IntxRV/DivBy1.lean`). `rv_exec_cut` runs the code up to the
-head of the loop and its exit, where `by1_loop` and `by1_exit` take over.
+head of the loop and its exit, where `by1_loop` and `by1_exit` take over. `udivrem_by1.reach` is
+the run for any immediates of the address of the table (`udivrem_by1_progAt`), so that the
+functions that call `udivrem_by1` can run it in their images.
 -/
 
 namespace IntxRV.Api
@@ -38,16 +40,17 @@ set_option maxRecDepth 100000
 set_option linter.unusedTactic false
 set_option linter.unreachableTactic false
 
-theorem udivrem_by1.proof : udivrem_by1.spec := by
-
-
-  apply runsI_of_reach udivrem_by1_image_decodes
-  intro base ret hb hr hc hl hw x m hx1 hbufs hhold hpre
+/-- The run of `udivrem_by1` from its start to the return address in ra, for the immediates `hi`
+and `lo` of the address `T` of the table of the reciprocal, which differ in each image. -/
+theorem udivrem_by1.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64) (x : Regs)
+    (m : Mem) (hT : pcAt base 5 + ((hi ++ 0x000#12).signExtend 64 + lo.signExtend 64) = T)
+    (hw : T.toNat + 8 * 256 ≤ 2 ^ 64) (hr : x.get 1#5 &&& 3 = 0)
+    (hhold : HoldsData m T reciprocal_2by1_image_data) (hpre : udivrem_by1.pre x m) :
+    Reach (udivrem_by1.bufs x ++ bufWords T 256) (udivrem_by1_progAt hi lo) base (pcAt base 0) x m
+      (x.get 1#5) (udivrem_by1.post x m) := by
   have hpre0 := hpre
   simp only [udivrem_by1.pre, udivrem_by1.bufs, Buf, Disjoint] at hpre ⊢
-  simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
-  simp only [udivrem_by1_entry, show udivrem_by1_image_data.length = 256 from rfl,
-    show udivrem_by1_image_dataOff = 776 from rfl] at *
+  simp (disch := decide) only [Regs.eq_get x] at hpre ⊢
   have hd0 : x.get 14#5 ≠ 0 := by
     intro h; rw [h] at hpre; simp at hpre
   have hd0' : (x.get 14#5).toNat ≠ 0 := by omega
@@ -60,34 +63,34 @@ theorem udivrem_by1.proof : udivrem_by1.spec := by
   rw [← hs] at hdn
   rv_fold hdn
   rw [← hdn] at hdn63
+  -- The address of the table in the run.
+  simp only [hT] at *
   -- The table entry of dn: the low half.
   refine Reach.step (by decide) rfl ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
-  have ha := table_addr_by1 _ base hdn63
+  have ha := table_addr_by1 _ T hdn63
   rv_fold ha
-  have hi := index_lt_256 hdn63
+  have hix := index_lt_256 hdn63
   rw [ha]
-  refine ⟨Or.inl (List.mem_append_right _ (mem_bufWords hi)), fun wL hwL => ?_⟩
+  refine ⟨Or.inl (List.mem_append_right _ (mem_bufWords hix)), fun wL hwL => ?_⟩
   rw [memHalf_lo,
-    holdsData_get hhold (by rw [show udivrem_by1_image_data.length = 256 from rfl]; exact hi),
-    ← List.getD_eq_getElem _ 0, show udivrem_by1_image_data = reciprocal_2by1_image_data from rfl,
-    image_data_get _ hi] at hwL
+    holdsData_get hhold (by rw [show reciprocal_2by1_image_data.length = 256 from rfl]; exact hix),
+    ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
   rv_exec_cut 148 167
   -- The high half.
   refine Reach.step (by decide) rfl ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
-  have hah := table_addr_by1_hi _ base hdn63
+  have hah := table_addr_by1_hi _ T hdn63
   rv_fold hah
   rw [hah]
   refine ⟨Or.inr (by
     rw [show ∀ a : BitVec 64, a + 4 - 4#64 = a from fun a => by bv_omega]
-    exact List.mem_append_right _ (mem_bufWords hi)), fun wH hwH => ?_⟩
-  rw [table_entry_add4 base hdn63 hw, memHalf_hi,
-    holdsData_get hhold (by rw [show udivrem_by1_image_data.length = 256 from rfl]; exact hi),
-    ← List.getD_eq_getElem _ 0, show udivrem_by1_image_data = reciprocal_2by1_image_data from rfl,
-    image_data_get _ hi] at hwH
+    exact List.mem_append_right _ (mem_bufWords hix)), fun wH hwH => ?_⟩
+  rw [table_entry_add4 T hdn63 hw, memHalf_hi,
+    holdsData_get hhold (by rw [show reciprocal_2by1_image_data.length = 256 from rfl]; exact hix),
+    ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwH
   rv_exec_cut 148 167
   -- The words u[top - 1] and u[top] of the numerator.
   refine Reach.step (by decide) rfl ?_
@@ -229,8 +232,7 @@ theorem udivrem_by1.proof : udivrem_by1.spec := by
          rw [htop, hU0, hS0]; simp; exact hlt)
   -- The cut points: the head of the loop before the word n - 2, the exit for n = 2.
   all_goals
-    have hr' : x.get 1#5 &&& 3 = 0 := hx1 ▸ hr
-    rw [← hx1]
+    have hr' : x.get 1#5 &&& 3 = 0 := hr
     have hqn : (x.get 10#5 + BitVec.ofNat 64 (8 * ((x.get 11#5).toNat - 1))).toNat =
         (x.get 10#5).toNat + 8 * ((x.get 11#5).toNat - 1) := by
       rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
@@ -278,6 +280,21 @@ theorem udivrem_by1.proof : udivrem_by1.spec := by
        rcases hr with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
          rfl | rfl <;>
        simp (config := { decide := true }) only [↓reduceIte])
+
+theorem udivrem_by1.proof : udivrem_by1.spec := by
+  apply runsI_of_reach udivrem_by1_image_decodes
+  intro base ret _ hr _ _ hw x m hx1 _ hhold hpre
+  rw [show udivrem_by1_image_dataOff = 776 from rfl] at hw hhold ⊢
+  rw [show udivrem_by1_image_data.length = 256 from rfl] at hw ⊢
+  have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
+  rw [show udivrem_by1_entry = udivrem_by1_image_udivrem_by1_offset from rfl, dataWords, ← hx]
+  refine Reach.lift udivrem_by1_image_udivrem_by1_in (by decide) ?_
+  have h := udivrem_by1.reach 0x0#20 0x2f4#12 (pcAt base udivrem_by1_image_udivrem_by1_offset) _
+    x m
+    (by simp only [udivrem_by1_image_udivrem_by1_offset, pcAt, BitVec.reduceAppend,
+      BitVec.reduceSignExtend]; bv_omega)
+    (by rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega) (hx ▸ hr) hhold hpre
+  rwa [pcAt_zero] at h
 
 theorem udivrem_by1.nonvacuous :
     NonVacuousI udivrem_by1_image_code udivrem_by1_image_data udivrem_by1_image_dataOff
