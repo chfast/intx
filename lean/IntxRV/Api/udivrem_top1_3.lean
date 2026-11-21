@@ -245,18 +245,6 @@ theorem udivrem_top1_3.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 
       all_goals assumption
     · exact hest
 
-/-- The frame of 16 bytes below sp is outside the code and the data of the image: its words are
-outside them. -/
-theorem frame16_outside (sp base : BitVec 64) (o1 o2 : Nat)
-    (h0 : (sp - 16#64).toNat + 8 ≤ base.toNat ∨ base.toNat + o1 + o2 ≤ (sp - 16#64).toNat)
-    (h1 : (sp - 16#64 + BitVec.ofNat 64 (8 * 1)).toNat + 8 ≤ base.toNat ∨
-      base.toNat + o1 + o2 ≤ (sp - 16#64 + BitVec.ofNat 64 (8 * 1)).toNat)
-    (hs : (sp - 16#64).toNat + 16 ≤ 2 ^ 64) (hoff : 16 ≤ o1 + o2) :
-    (sp - 16#64).toNat + 16 ≤ base.toNat ∨ base.toNat + o1 + o2 ≤ (sp - 16#64).toNat := by
-  have : (sp - 16#64 + BitVec.ofNat 64 (8 * 1)).toNat = (sp - 16#64).toNat + 8 := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-  omega
-
 theorem udivrem_top1_3.proof : udivrem_top1_3.spec := by
   apply runsI_of_reach udivrem_top1_3_image_decodes
   intro base ret _ hr _ _ hw x m hx1 hbufs hhold hpre

@@ -50,6 +50,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `umul()` of `uint256` | [`umul_256`](Api/umul_256.lean) |
 | `internal::udivrem_by1()` of a span | [`udivrem_by1`](Api/udivrem_by1.lean) |
 | `internal::udivrem_by2()` of a span | [`udivrem_by2`](Api/udivrem_by2.lean) |
+| `internal::udivrem_top1()` of `uint256` by the top word 2 | [`udivrem_top1_2`](Api/udivrem_top1_2.lean) |
 | `internal::udivrem_top1()` of `uint256` by the top word 3 | [`udivrem_top1_3`](Api/udivrem_top1_3.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
@@ -204,8 +205,9 @@ state the 4-word `submul()` and the addition of the loop by the definitions of t
 (`submul4_words`, `top1_body_sm`), in an order in which `apply` and `assumption` find the
 definitions from the names in the goal, and run the code from the test of the borrow to the return
 (`top1_3_tail`): the loop by `Reach.loop` with the excess of the quotient as the measure, and the
-stores of the result. `nonVacuousI_of_args` stores the words of the arguments in the RAM, for a
-precondition on their values.
+stores of the result. `udivrem_top1<2>()` is the same with 3 words of v and the word u[3] above
+them, and the paths of its test of u < v meet in `top1_2_main`. `nonVacuousI_of_args` stores the
+words of the arguments in the RAM, for a precondition on their values.
 
 ### Calls and constant data
 
