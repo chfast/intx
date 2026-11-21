@@ -45,6 +45,7 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr auto* udivrem_by2 = &intx::internal::udivrem_by2<std::dynamic_extent>;
 [[gnu::used]] constexpr auto* udivrem_top1_2 = &intx::internal::udivrem_top1<2, 256, 256>;
 [[gnu::used]] constexpr auto* udivrem_top1_3 = &intx::internal::udivrem_top1<3, 256, 256>;
+[[gnu::used]] constexpr auto* udivrem_top2_3 = &intx::internal::udivrem_top2<3, false, 256, 256>;
 [[gnu::used]] constexpr auto* shl_9_8 = &intx::shl<9, 8>;
 [[gnu::used]] constexpr Binop add_256 = [](const uint256& x, const uint256& y) noexcept {
     return x + y;
@@ -110,6 +111,4 @@ namespace intx::wip
 {
 // The division: calls to the divisions by 1 and 2 words and of the top words.
 [[gnu::used]] constexpr auto* udivrem_256 = &intx::udivrem<256, 256>;
-// The division of the top words that udivrem<256, 256>() calls for a 2-word quotient.
-[[gnu::used]] constexpr auto* udivrem_top2_3 = &intx::internal::udivrem_top2<3, false, 256, 256>;
 }  // namespace intx::wip
