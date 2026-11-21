@@ -525,11 +525,87 @@ jobs:
               -Dsonar.host.url=https://sonarcloud.io \
               -Dsonar.organization=chfast \
               -Dsonar.projectKey=chfast_intx \
-              '-Dsonar.exclusions=test/integration/**' \
+              '-Dsonar.exclusions=test/integration/**,lean/**' \
               -Dsonar.cfamily.compile-commands=$HOME/build/compile_commands.json \
               -Dsonar.coverageReportPaths=$HOME/sonar/coverage.xml \
               '-Dsonar.coverage.exclusions=test/**,examples/**,conanfile.py' \
               -Dsonar.python.version=3
+
+  lean:
+    docker:
+      - image: ubuntu:26.04
+    resource_class: large
+    environment:
+      ELAN_VERSION: v4.2.4
+      ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+    steps:
+      - run:
+          name: "Install tools"
+          command: |
+            apt-get update -q
+            DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
+              ca-certificates curl git clang lld g++-riscv64-linux-gnu python3
+      - checkout
+      - run:
+          name: "Install Lean"
+          command: |
+            curl -sSfL -o /tmp/elan.tar.gz https://github.com/leanprover/elan/releases/download/$ELAN_VERSION/elan-x86_64-unknown-linux-gnu.tar.gz
+            echo "$ELAN_SHA256  /tmp/elan.tar.gz" | sha256sum -c
+            tar xzf /tmp/elan.tar.gz -C /tmp
+            /tmp/elan-init -y --default-toolchain none
+            echo 'export PATH=$HOME/.elan/bin:$PATH' >> $BASH_ENV
+      - restore_cache:
+          keys:
+            - lean-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}
+      - run:
+          name: "Get the Mathlib build"
+          working_directory: lean
+          command: lake exe cache get
+      - run:
+          name: "Generate the RV64 machine code and the specifications"
+          working_directory: lean
+          command: CXX=clang++ scripts/rv_build.sh
+      # The build of the proofs is cached: Lake compares the hashes of the sources and of their
+      # imports, so a run rebuilds only the proofs of the changed code and specifications, and a
+      # new word rebuilds only its file of Gen/Decode/.
+      - restore_cache:
+          keys:
+            - lean-build-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-
+            - lean-decode-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-
+      - run:
+          name: "Check the proofs and their axioms"
+          working_directory: lean
+          no_output_timeout: 60m
+          # Docker reports the CPUs of the host: 3 Lean processes fit in the 8 GB of the job, but
+          # not with the proofs that take 3-5 GB each, which build one at a time. The build of the
+          # decode files of an earlier layout is deleted, so that the cache does not keep it. The
+          # timeout leaves the time to save the build, within the hour of the job.
+          command: |
+            for f in .lake/build/lib/lean/IntxRV/Gen/Decode/* .lake/build/ir/IntxRV/Gen/Decode/*; do
+              b=$(basename "$f")
+              [ -e "IntxRV/Gen/Decode/${b%%.*}.lean" ] || rm -f "$f"
+            done
+            timeout 45m sh -ec '
+              LEAN_NUM_THREADS=3 lake build IntxRV.Gen.Code
+              LEAN_NUM_THREADS=1 lake build IntxRV.Api.mul_256 IntxRV.Api.umul_256 \
+                IntxRV.Api.udivrem_by1 IntxRV.Api.udivrem_by2 IntxRV.Api.udivrem_top1_2 \
+                IntxRV.Api.udivrem_top1_3 IntxRV.Api.udivrem_top2_3
+              LEAN_NUM_THREADS=3 lake build Intx IntxRV Checks'
+      - save_cache:
+          key: lean-build-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-{{ epoch }}
+          paths:
+            - lean/.lake/build/lib/lean
+            - lean/.lake/build/ir
+          when: always
+      - run:
+          name: "Check the hashes of the modeled C++ code"
+          working_directory: lean
+          command: scripts/check-source.py
+      - save_cache:
+          key: lean-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}
+          paths:
+            - lean/.lake/packages
+          when: always
 
 workflows:
   version: 2
@@ -550,6 +626,7 @@ workflows:
       - macos
       - macos-coverage
       - cmake-min
+      - lean
       - arm64
       - powerpc64
       - windows-32bit
