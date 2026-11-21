@@ -251,6 +251,20 @@ MEM_RESULTS = {
 }
 
 
+def mem_result(ret):
+    """The result in memory at a0 (sret) of the type `ret` as in MEM_RESULTS, or None:
+    `div_result<uint<M>, uint<N>>` is the words of the quotient and then of the remainder."""
+    if ret in MEM_RESULTS:
+        return MEM_RESULTS[ret]
+    m = re.fullmatch(r"div_result<uint<(\d+)>, uint<(\d+)>>",
+                     ret.replace("uint256", "uint<256>").replace("uint128", "uint<128>"))
+    if not m or int(m[1]) % 64 or int(m[2]) % 64 or int(m[1]) + int(m[2]) <= 128:
+        return None
+    q, r = int(m[1]) // 64, int(m[2]) // 64
+    return ("DivResult", f"⟨words m' (x 10#5) {q}, words m' (x 10#5 + {8 * q}#64) {r}⟩",
+            64 * (q + r))
+
+
 def spec_rv(var, inst, spec, stack, hpp, image=False):
     """The Lean definitions of the specification of the machine code of the instance `var` that
     uses `stack` bytes below sp, in the image of the functions with calls or data if `image`."""
@@ -266,8 +280,8 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
             sys.exit(f"{var}: unsupported result type {ret}")
         outs.append((reg, str(ret_width // 64)))  # The result is returned in memory at a0 (sret).
         reg += 1
-    elif ret in MEM_RESULTS:
-        outs.append((reg, str(MEM_RESULTS[ret][2] // 64)))
+    elif mem_result(ret):
+        outs.append((reg, str(mem_result(ret)[2] // 64)))
         reg += 1
     elif ret != "void" and ret not in REG_RESULTS:
         sys.exit(f"{var}: unsupported result type {ret}")
@@ -340,8 +354,8 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
                  ["m' = m"] if bufs or image else [])
     if ret_width is not None and ret_width > 128:
         result = ("Nat", f"(words m' (x {outs[0][0]}#5) {ret_width // 64})")
-    elif ret in MEM_RESULTS:
-        result = MEM_RESULTS[ret][:2]
+    elif mem_result(ret):
+        result = mem_result(ret)[:2]
     elif ret == "void":
         result = None
     else:

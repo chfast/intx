@@ -2462,6 +2462,8 @@ constexpr div_result<uint128> udivrem(uint128 x, uint128 y) noexcept
 }
 
 /// Divides u by v. A division by 0 gives 0 as the quotient and the remainder.
+/// @post result.quot = u / v
+/// @post result.rem = if v = 0 then 0 else u % v
 template <unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem(const uint<M>& u, const uint<N>& v) noexcept
 {

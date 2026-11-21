@@ -102,7 +102,9 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
-// and their code is in the image (IntxRV/Gen/Code.lean), without the checks. None at present.
+// and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
+// The division: calls to the divisions by 1 and 2 words and of the top words.
+[[gnu::used]] constexpr auto* udivrem_256 = &intx::udivrem<256, 256>;
 }  // namespace intx::wip
