@@ -574,9 +574,20 @@ jobs:
           name: "Check the proofs and their axioms"
           working_directory: lean
           no_output_timeout: 60m
-          # Docker reports the CPUs of the host: 3 Lean processes fit in the 8 GB of the job. The
+          # Docker reports the CPUs of the host: 3 Lean processes fit in the 8 GB of the job, but
+          # not with the proofs that take 3-5 GB each, which build one at a time. The build of the
+          # decode files of an earlier layout is deleted, so that the cache does not keep it. The
           # timeout leaves the time to save the decode files built, within the hour of the job.
-          command: LEAN_NUM_THREADS=3 timeout 45m lake build Intx IntxRV Checks
+          command: |
+            for f in .lake/build/lib/lean/IntxRV/Gen/Decode/* .lake/build/ir/IntxRV/Gen/Decode/*; do
+              b=$(basename "$f")
+              [ -e "IntxRV/Gen/Decode/${b%%.*}.lean" ] || rm -f "$f"
+            done
+            timeout 45m sh -ec '
+              LEAN_NUM_THREADS=3 lake build IntxRV.Gen.Code
+              LEAN_NUM_THREADS=1 lake build IntxRV.Api.mul_256 IntxRV.Api.umul_256 \
+                IntxRV.Api.udivrem_by1
+              LEAN_NUM_THREADS=3 lake build Intx IntxRV Checks'
       - save_cache:
           key: lean-decode-{{ checksum "lean/lean-toolchain" }}-{{ checksum "lean/lake-manifest.json" }}-{{ epoch }}
           paths:
