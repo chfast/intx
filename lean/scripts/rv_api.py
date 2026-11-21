@@ -125,8 +125,10 @@ def instances(decls, namespace):
                         if c.get("kind") == "TemplateArgument" and "value" in c]
                 if len(names) != len(vals):
                     sys.exit(f"{n['name']}: unsupported template arguments")
-                # The unsigned values: std::dynamic_extent, a size_t, is -1 in the AST.
-                targs = [(nm, int(v) % 2 ** 64) for nm, v in zip(names, vals)]
+                # The unsigned values: std::dynamic_extent, a size_t, is -1 in the AST. A bool is
+                # 0 or 1.
+                targs = [(nm, {"false": 0, "true": 1}[v] if v in ("false", "true") else
+                          int(v) % 2 ** 64) for nm, v in zip(names, vals)]
             result[n["name"]] = dict(name=callee["name"], offset=decl["loc"]["offset"],
                                      type=callee["type"]["qualType"], targs=targs, negate=negate,
                                      member=callee["kind"] == "CXXMethodDecl")

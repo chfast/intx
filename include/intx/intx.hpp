@@ -2261,6 +2261,11 @@ constexpr div_result<uint<M>, uint<N>> udivrem_knuth(
 /// The quotient is estimated from the top word of the normalized divisor with 2/1 division
 /// and corrected with the remainder computed on the original (not normalized) operands.
 /// The word v[TOP] must not be zero.
+/// @pre 2 ^ (64 * TOP) <= v
+/// @pre v < 2 ^ (64 * (TOP + 1))
+/// @pre u / 2 ^ (64 * (TOP + 1)) < v / 2 ^ (64 * TOP)
+/// @post result.quot = u / v
+/// @post result.rem = u % v
 template <size_t TOP, unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint<N>& v) noexcept
 {
@@ -2330,6 +2335,11 @@ constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint
 /// divisions and corrected with the remainder, computed from the remainder of the 3/2 divisions
 /// and the low words of the original (not normalized) operands.
 /// The word v[TOP - 1] must not be zero.
+/// @pre 2 ^ (64 * (TOP - 1)) <= v
+/// @pre v < 2 ^ (64 * TOP)
+/// @pre u / 2 ^ (64 * (TOP + 1)) < v / 2 ^ (64 * (TOP - 1)) + EQUAL
+/// @post result.quot = u / v
+/// @post result.rem = u % v
 template <size_t TOP, bool EQUAL = false, unsigned M, unsigned N>
 constexpr div_result<uint<M>, uint<N>> udivrem_top2(const uint<M>& u, const uint<N>& v) noexcept
 {
