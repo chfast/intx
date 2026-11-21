@@ -15,7 +15,10 @@ IMAGE with `-p` before the suffix (scripts/rv_image.ld, the linker LD, default l
 `Gen.p_image_code`, `Gen.p_image_prog`, `Gen.p_image_decodes`, the data `Gen.p_image_data` at
 `Gen.p_image_dataOff`, `Gen.p_entry` the index of the first instruction of `f`, and
 `Gen.p_image_q_in` for the functions in the image with the code of an instance `q` without
-relocations. STACK_JSON gets the bytes of the stack that each function uses below sp, with those
+relocations. An instance `q` whose relocations are only the PC-relative addresses of its data
+(`auipc` and `addi` or a load) gets `Gen.q_progAt`: its instructions with the immediates of the
+addresses as parameters, which differ in each image, and `Gen.p_image_q_in` states it with the
+immediates of the image `p` that holds its code. STACK_JSON gets the bytes of the stack that each function uses below sp, with those
 of the functions it calls, for scripts/rv_api.py.
 """
 
@@ -35,6 +38,8 @@ SHT_RELA = 4
 STT_FUNC = 2
 STT_OBJECT = 1
 EM_RISCV = 243
+R_RISCV_PCREL_HI20 = 23
+R_RISCV_PCREL_LO12_I = 24
 
 
 def read_elf(data: bytes):
@@ -91,6 +96,28 @@ def function_code(data, sections, symbols, relocs, fn):
     if len(code) % 4 != 0:
         sys.exit(f"{fn['name']}: the code size is not a multiple of 4 (compressed instructions?)")
     return [struct.unpack_from("<I", code, i)[0] for i in range(0, len(code), 4)]
+
+
+def data_rel_code(data, sections, relocs, fn):
+    """The code of a function whose relocations are only the PC-relative addresses of its data,
+    `auipc` and an I-type instruction (`addi` or a load): the words, with 0 immediates at the
+    relocations, and the pairs of the indices of the two instructions. None for other functions."""
+    shndx = fn["shndx"]
+    sec = sections[shndx]
+    rs = relocs.get(shndx, [])
+    if fn["value"] != 0 or fn["size"] != sec["size"] or not rs:
+        return None
+    his = [r["offset"] for r in rs if r["type"] == R_RISCV_PCREL_HI20]
+    los = [r["offset"] for r in rs if r["type"] == R_RISCV_PCREL_LO12_I]
+    if len(his) + len(los) != len(rs) or len(his) != len(los):
+        return None
+    code = data[sec["off"]:sec["off"] + sec["size"]]
+    words = [struct.unpack_from("<I", code, i)[0] for i in range(0, len(code), 4)]
+    # A LO12 relocation names the label of its auipc; clang emits each pair in order.
+    pairs = list(zip(sorted(o // 4 for o in his), sorted(o // 4 for o in los)))
+    if any(words[h] & 0x7f != 0x17 or words[h] >> 12 or words[lo] >> 20 for h, lo in pairs):
+        sys.exit(f"{fn['name']}: unexpected PC-relative relocations")
+    return words, pairs
 
 
 def pointer_targets(sections, symbols, relocs, ptrs=None):
@@ -227,6 +254,23 @@ def code_lines(name, desc, code, var):
             cases, f"  | _ + {len(code)}, hk, _ => absurd hk (by simp [{name}_code])", "", ""]
 
 
+def prog_at_lines(var, code, pairs):
+    """The Lean definition of the instructions of `var`, whose code has the PC-relative address of
+    its data at the instruction pairs `pairs`, with the immediates of the pairs as parameters."""
+    names = ([("hi", "lo")] if len(pairs) == 1 else
+             [(f"hi{k}", f"lo{k}") for k in range(len(pairs))])
+    texts = [decode(w) for w in code]
+    for (h, lo), (hn, ln) in zip(pairs, names):
+        texts[h] = texts[h].replace(lean_bv(0, 20), hn, 1)
+        texts[lo] = texts[lo].replace(lean_bv(0, 12), ln, 1)
+    params = " ".join(f"({hn} : BitVec 20) ({ln} : BitVec 12)" for hn, ln in names)
+    prog_text = ",\n  ".join(texts)
+    return [f"/-! ## `{var}` in an image -/", "",
+            f"/-- The instructions of `{var}`, with the immediates of the `auipc` and of the "
+            f"instruction after it that address its data, which differ in each image. -/",
+            f"def {var}_progAt {params} : List instruction := [\n  {prog_text}]", ""]
+
+
 def call_targets(code, base):
     """The functions that the code at the address `base` calls: `auipc ra` and `jalr ra, ra`."""
     targets = []
@@ -250,6 +294,10 @@ def main():
              for var, fn in targets.items() if not relocs.get(fn["shndx"])}
     funcs = dict(sorted(funcs.items()))
     in_image = sorted(var for var in targets if var not in funcs)
+    # The functions whose relocations are only the addresses of their data: their instructions
+    # with the immediates of the addresses as parameters, for their proofs in any image.
+    rel_funcs = {var: rc for var in in_image
+                 if (rc := data_rel_code(data, sections, relocs, targets[var])) is not None}
 
     # The images: each function with relocations linked at 0 with what it reaches, so that its
     # code and data do not move when other functions are added.
@@ -318,6 +366,8 @@ def main():
     for var, code in funcs.items():
         name = targets[var]["name"]
         lines += code_lines(var, f"`{name}`", code, f"`{var}`")
+    for var, (code, pairs) in rel_funcs.items():
+        lines += prog_at_lines(var, code, pairs)
     info = {var: dict(stack=stack_size(var, code)) for var, code in funcs.items()}
     for var, im in images.items():
         img, data_words, addr = im["img"], im["data_words"], im["addr"]
@@ -366,6 +416,33 @@ def main():
                           f"theorem {n}_{q}_in :",
                           f"    ({n}_prog.drop {n}_{q}_offset).take {q}_prog.length = "
                           f"{q}_prog := by rfl", ""]
+        # The functions of the image with the code of an instance q with the addresses of its
+        # data: the same words but the immediates of the addresses.
+        for q, (code, pairs) in rel_funcs.items():
+            rel = {k for p in pairs for k in p}
+
+            def same(f):
+                o = f["value"] // 4
+                return f["size"] == 4 * len(code) and all(
+                    img[o + k] == w if k not in rel else
+                    img[o + k] & (0xfff if any(k == h for h, _ in pairs) else 0xfffff) ==
+                    w & (0xfff if any(k == h for h, _ in pairs) else 0xfffff)
+                    for k, w in enumerate(code))
+            fq = next((f for f in sorted(addr.values(), key=lambda f: f["value"]) if same(f)),
+                      None)
+            if fq is not None:
+                o = fq["value"] // 4
+                at = f"{q}_progAt " + " ".join(
+                    f"{lean_bv(img[o + h] >> 12, 20)} {lean_bv(img[o + lo] >> 20, 12)}"
+                    for h, lo in pairs)
+                # The comparison of the instructions recurses over the list.
+                lines += [f"/-- The instruction where the code of `{q}` is in the image of "
+                          f"`{var}`. -/",
+                          f"def {n}_{q}_offset : Nat := {o}", "",
+                          "set_option maxRecDepth 100000 in",
+                          f"theorem {n}_{q}_in :",
+                          f"    ({n}_prog.drop {n}_{q}_offset).take ({at}).length = "
+                          f"{at} := by rfl", ""]
     lines += ["end IntxRV.Gen", ""]
     stack_json.write_text(json.dumps(dict(sorted(info.items())), indent=1) + "\n")
     write_if_changed(gen / "Code.lean", "\n".join(lines))
