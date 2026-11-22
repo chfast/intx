@@ -54,45 +54,6 @@ theorem top4_ne_zero (m : Mem) (a : BitVec 64) (h : 2 ^ (64 * 3) ≤ words m a 4
   simp at h
   omega
 
-/-- `u - p` and its borrow `u < u - p`. -/
-theorem defn_sub_borrow0 {r b u p : BitVec 64} (hr : Defn r (u - p))
-    (hb : Defn b (if u < r then 1#64 else 0#64)) :
-    r.toNat + p.toNat = u.toNat + 2 ^ 64 * b.toNat := by
-  rw [hb.eq, hr.eq]
-  have hu := u.isLt; have hp := p.isLt
-  rw [BitVec.toNat_sub]
-  split <;> rename_i h <;> simp only [BitVec.lt_def, BitVec.toNat_sub] at h <;> simp <;> omega
-
-/-- `u - s - bin` and its borrow `u < u - s` or `u - s < u - s - bin`, for a borrow in of 0 or 1. -/
-theorem defn_sub_borrow {d e r f b u s bin : BitVec 64} (hd : Defn d (u - s))
-    (he : Defn e (if u < d then 1#64 else 0#64)) (hr : Defn r (d - bin))
-    (hf : Defn f (if d < r then 1#64 else 0#64)) (hb : Defn b (e ||| f)) (hbin : bin.toNat ≤ 1) :
-    r.toNat + s.toNat + bin.toNat = u.toNat + 2 ^ 64 * b.toNat ∧ b.toNat ≤ 1 := by
-  rw [hb.eq, he.eq, hf.eq, hr.eq, hd.eq]
-  have hu := u.isLt; have hs := s.isLt
-  have h1 : (u - s).toNat = (u.toNat + (2 ^ 64 - s.toNat)) % 2 ^ 64 := by
-    rw [BitVec.toNat_sub]; omega
-  have h2 : (u - s - bin).toNat = ((u - s).toNat + (2 ^ 64 - bin.toNat)) % 2 ^ 64 := by
-    rw [BitVec.toNat_sub]; omega
-  by_cases c1 : u < u - s <;> by_cases c2 : u - s < u - s - bin <;>
-    simp only [c1, c2, ↓reduceIte] <;> simp only [BitVec.lt_def] at c1 c2 <;> simp <;> omega
-
-/-- `a + b + c` and its carry `a + b < a` or `a + b + c < a + b`, for a carry in of 0 or 1. -/
-theorem defn_add_carry {s e n f co a b c : BitVec 64} (hs : Defn s (a + b))
-    (he : Defn e (if s < a then 1#64 else 0#64)) (hn : Defn n (s + c))
-    (hf : Defn f (if n < s then 1#64 else 0#64)) (hco : Defn co (e ||| f)) (hc : c.toNat ≤ 1) :
-    n.toNat + 2 ^ 64 * co.toNat = a.toNat + b.toNat + c.toNat ∧ co.toNat ≤ 1 := by
-  rw [hco.eq, he.eq, hf.eq, hn.eq, hs.eq]
-  have ha := a.isLt; have hb := b.isLt
-  have h1 : (a + b).toNat = (a.toNat + b.toNat) % 2 ^ 64 := BitVec.toNat_add _ _
-  have h2 : (a + b + c).toNat = ((a + b).toNat + c.toNat) % 2 ^ 64 := BitVec.toNat_add _ _
-  by_cases c1 : a + b < a <;> by_cases c2 : a + b + c < a + b <;>
-    simp only [c1, c2, ↓reduceIte] <;> simp only [BitVec.lt_def] at c1 c2 <;> simp <;> omega
-
-theorem defn_bit_le {c s t : BitVec 64} (hc : Defn c (if s < t then 1#64 else 0#64)) :
-    c.toNat ≤ 1 := by
-  rw [hc.eq]; split <;> simp
-
 /-- The sum of the words of `submul()` of 4 words, by the sums of the products, their carries and
 the borrows of the subtractions. -/
 theorem submul4_nat {u0 u1 u2 u3 X0 X1 X2 X3 p0 h0 p1 h1 p2 h2 p3 h3 s1 c1 s2 c2 s3 c3 g3 r0 b0 r1 b1

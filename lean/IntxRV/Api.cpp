@@ -129,14 +129,15 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 [[gnu::used]] constexpr Binop mod_256 = [](const uint256& x, const uint256& y) noexcept {
     return x % y;
 };
+// The overload of submul() in place, which the Knuth division calls.
+using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noexcept;
+[[gnu::used]] constexpr Submul submul = &intx::internal::submul;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
-using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noexcept;
-[[gnu::used]] constexpr Submul submul = &intx::internal::submul;
 [[gnu::used]] constexpr auto* udivrem_knuth_normalized_3 =
     &intx::internal::udivrem_knuth_normalized<3>;
 [[gnu::used]] constexpr auto* udivrem_knuth_normalized_4 =
