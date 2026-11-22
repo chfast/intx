@@ -16,16 +16,25 @@ set_option maxRecDepth 100000
 set_option linter.unusedTactic false
 set_option linter.unreachableTactic false
 
+variable {hi0 hi1 hi2 hi3 hi4 : BitVec 20} {lo0 lo1 lo2 lo3 lo4 : BitVec 12} {T : BitVec 64}
+
+-- The instructions of `udivrem<256, 256>()` and its callees with the immediates of the address
+-- `T` of the table in each callee.
+set_option hygiene false in
+local notation "P256" => udivrem_256_progAt hi0 lo0 hi1 lo1 hi2 lo2 hi3 lo3 hi4 lo4
+
 /-- The call of `udivrem_by1()` in `udivrem<256, 256>()` at 0x1b0 with U words of u, from the
 registers that the path sets. -/
 theorem u256_by1_call {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Mem)
     (hb3 : base &&& 3 = 0) (hr : x.get 1#5 &&& 3 = 0) (hpre : udivrem_256.pre x m)
-    (hw : base.toNat + 5272 + 8 * 256 ≤ 2 ^ 64)
-    (hTr : (x.get 10#5).toNat + 64 ≤ base.toNat ∨ base.toNat + 5272 + 8 * 256 ≤ (x.get 10#5).toNat)
-    (hTs : (x.get 2#5 - 48#64).toNat + 48 ≤ base.toNat ∨
-      base.toNat + 5272 + 8 * 256 ≤ (x.get 2#5 - 48#64).toNat)
-    (hhold : HoldsData m (base + BitVec.ofNat 64 5272) reciprocal_2by1_image_data)
-    (hD : ∀ a ∈ bufWords (base + BitVec.ofNat 64 5272) 256, a ∈ D)
+    (hw : T.toNat + 8 * 256 ≤ 2 ^ 64)
+    (hTr : (x.get 10#5).toNat + 64 ≤ T.toNat ∨ T.toNat + 8 * 256 ≤ (x.get 10#5).toNat)
+    (hTs : (x.get 2#5 - 48#64).toNat + 48 ≤ T.toNat ∨
+      T.toNat + 8 * 256 ≤ (x.get 2#5 - 48#64).toNat)
+    (hhold : HoldsData m T reciprocal_2by1_image_data)
+    (hD : ∀ a ∈ bufWords T 256, a ∈ D)
+    (hT0 : pcAt (pcAt base 108) 5 + ((hi0 ++ 0x000#12).signExtend 64 +
+      lo0.signExtend 64) = T)
     (U : Nat) (hU2 : 2 ≤ U) (hU4 : U ≤ 4) (hu : words m (x.get 11#5) U = words m (x.get 11#5) 4)
     (x'' : Regs) (h1 : x''.get 1#5 = pcAt base 97)
     (h2 : x''.get 2#5 = x.get 2#5 + 18446744073709551600#64) (h8 : x''.get 8#5 = x.get 10#5)
@@ -37,7 +46,7 @@ theorem u256_by1_call {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : 
     (hv2 : memWord m (x.get 12#5 + 16#64).toNat = 0#64)
     (hv3 : memWord m (x.get 12#5 + 24#64).toNat = 0#64) :
     Reach (bufWords (x.get 11#5) 4 ++ bufWords (x.get 12#5) 4 ++ bufWords (x.get 10#5) 8 ++
-        bufWords (x.get 2#5 - 48#64) 6 ++ D) udivrem_256_image_prog base (pcAt base 108) x''
+        bufWords (x.get 2#5 - 48#64) 6 ++ D) P256 base (pcAt base 108) x''
       (memStore (memStore (memStore (memStore (memStore (memStore (memStore (memStore
         (memStore (memStore m (x.get 2#5 + 18446744073709551608#64).toNat (x.get 1#5))
           (x.get 2#5 + 18446744073709551600#64).toNat (x.get 8#5))
@@ -50,11 +59,11 @@ theorem u256_by1_call {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : 
         (x.get 10#5 + 16#64).toNat 0#64)
         (x.get 10#5 + 24#64).toNat 0#64)
       (x.get 1#5) (udivrem_256.post x m) := by
+  -- `omega` and `subst_vars` do not see the address of the table.
+  replace hT0 := PLift.up hT0
   simp only [udivrem_256.pre, Buf, Disjoint] at hpre
   simp (disch := decide) only [Regs.eq_get x] at hpre
   obtain ⟨⟨hra, hrn⟩, ⟨hua, hun⟩, ⟨hva, hvn⟩, hdru, hdrv, ⟨hsa, hsn⟩, hdsu, hdsv, hdsr⟩ := hpre
-  have hT' : (base + 5272#64).toNat = base.toNat + 5272 := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
   have hUn : (BitVec.ofNat 64 U).toNat = U := by
     rw [BitVec.toNat_ofNat]; exact Nat.mod_eq_of_lt (by omega)
   have ev : words m (x.get 12#5) 4 = (memWord m (x.get 12#5).toNat).toNat := by
@@ -64,13 +73,13 @@ theorem u256_by1_call {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : 
     rcases Nat.eq_zero_or_pos (memWord m (x.get 12#5).toNat).toNat with h | h
     · exact absurd (BitVec.eq_of_toNat_eq (by simpa using h)) hv0
     · exact h
-  refine Reach.call_sub (r := 97) udivrem_256_image_udivrem_by1_in (by decide)
-    (udivrem_by1.reach 0x1#20 0x2d4#12 (pcAt base 108) (base + 5272#64) _ _ ?_ ?_ ?_ ?_ ?_)
+  refine Reach.call_sub (r := 97) udivrem_256_progAt_udivrem_by1_in
+    (by rw [udivrem_256_progAt_length]; decide)
+    (udivrem_by1.reach hi0 lo0 (pcAt base 108) T _ _ hT0.down ?_ ?_ ?_ ?_)
     ?_ ?_ ?_
-  · simp only [pcAt, BitVec.reduceAppend, BitVec.reduceSignExtend]; bv_omega
-  · rw [hT']; omega
+  · omega
   · rw [h1]; simp only [pcAt]; exact aligned_add hb3 (by decide)
-  · simp (disch := first | (rw [hT']; bv_omega) | fail) only [holdsData_table_memStore]
+  · simp (disch := first | bv_omega | fail) only [holdsData_table_memStore]
     exact hhold
   · simp only [udivrem_by1.pre, Buf, Disjoint]
     simp (disch := decide) only [Regs.eq_get x'']
@@ -107,12 +116,14 @@ theorem u256_by1_call {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : 
 `udivrem_by1()` with max(m, 2) words of u, and the store of the remainder. -/
 theorem u256_by1 {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Mem)
     (hb3 : base &&& 3 = 0) (hr : x.get 1#5 &&& 3 = 0) (hpre : udivrem_256.pre x m)
-    (hw : base.toNat + 5272 + 8 * 256 ≤ 2 ^ 64)
-    (hTr : (x.get 10#5).toNat + 64 ≤ base.toNat ∨ base.toNat + 5272 + 8 * 256 ≤ (x.get 10#5).toNat)
-    (hhold : HoldsData m (base + BitVec.ofNat 64 5272) reciprocal_2by1_image_data)
-    (hTs : (x.get 2#5 - 48#64).toNat + 48 ≤ base.toNat ∨
-      base.toNat + 5272 + 8 * 256 ≤ (x.get 2#5 - 48#64).toNat)
-    (hD : ∀ a ∈ bufWords (base + BitVec.ofNat 64 5272) 256, a ∈ D)
+    (hw : T.toNat + 8 * 256 ≤ 2 ^ 64)
+    (hTr : (x.get 10#5).toNat + 64 ≤ T.toNat ∨ T.toNat + 8 * 256 ≤ (x.get 10#5).toNat)
+    (hhold : HoldsData m T reciprocal_2by1_image_data)
+    (hTs : (x.get 2#5 - 48#64).toNat + 48 ≤ T.toNat ∨
+      T.toNat + 8 * 256 ≤ (x.get 2#5 - 48#64).toNat)
+    (hD : ∀ a ∈ bufWords T 256, a ∈ D)
+    (hT0 : pcAt (pcAt base 108) 5 + ((hi0 ++ 0x000#12).signExtend 64 +
+      lo0.signExtend 64) = T)
     (x' : Regs) (h10 : x'.get 10#5 = x.get 10#5) (h11 : x'.get 11#5 = x.get 11#5)
     (h2 : x'.get 2#5 = x.get 2#5 + 18446744073709551600#64)
     (hcs : ∀ i ∈ calleeSaved, i ≠ 2#5 → i ≠ 8#5 → x' i = x i)
@@ -124,17 +135,17 @@ theorem u256_by1 {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Mem)
     (hv2 : memWord m (x.get 12#5 + 16#64).toNat = 0#64)
     (hv3 : memWord m (x.get 12#5 + 24#64).toNat = 0#64) :
     Reach (bufWords (x.get 11#5) 4 ++ bufWords (x.get 12#5) 4 ++ bufWords (x.get 10#5) 8 ++
-        bufWords (x.get 2#5 - 48#64) 6 ++ D) udivrem_256_image_prog base (pcAt base 81) x'
+        bufWords (x.get 2#5 - 48#64) 6 ++ D) P256 base (pcAt base 81) x'
       (memStore (memStore m (x.get 2#5 + 18446744073709551608#64).toNat (x.get 1#5))
         (x.get 2#5 + 18446744073709551600#64).toNat (x.get 8#5))
       (x.get 1#5) (udivrem_256.post x m) := by
+  -- `omega` and `subst_vars` do not see the address of the table.
+  replace hT0 := PLift.up hT0
   have hpre0 := hpre
   simp only [udivrem_256.pre, Buf, Disjoint] at hpre
   simp (disch := decide) only [Regs.eq_get x] at hpre
   obtain ⟨⟨hra, hrn⟩, ⟨hua, hun⟩, ⟨hva, hvn⟩, hdru, hdrv, ⟨hsa, hsn⟩, hdsu, hdsv, hdsr⟩ := hpre
   have hz : x'.get 0#5 = 0#64 := by rw [show (0#5 : BitVec 5) = 0 from rfl, Regs.get_zero]; rfl
-  have hT' : (base + 5272#64).toNat = base.toNat + 5272 := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
   rw [← h10, ← h11]
   rv_exec_cut 108
   all_goals
@@ -148,20 +159,20 @@ theorem u256_by1 {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Mem)
   -- The paths for u_size = 3 or 4, and 2.
   · rcases (show x'.get 13#5 = 3#64 ∨ x'.get 13#5 = 4#64 by bv_omega) with h4 | h4
     · have hu3' := hu3 (by rw [h4]; decide)
-      refine u256_by1_call base x m hb3 hr hpre0 hw hTr hTs hhold hD 3 (by norm_num) (by norm_num)
-        (by simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, hu3',
+      refine u256_by1_call base x m hb3 hr hpre0 hw hTr hTs hhold hD hT0.down 3 (by norm_num)
+        (by norm_num) (by simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, hu3',
           BitVec.toNat_zero, Nat.mul_zero, Nat.add_zero]) _ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
         (h14 ▸ hv0) hv1 hv2 hv3
       u256_regs
-    · refine u256_by1_call base x m hb3 hr hpre0 hw hTr hTs hhold hD 4 (by norm_num) (by norm_num)
-        (rfl) _ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    · refine u256_by1_call base x m hb3 hr hpre0 hw hTr hTs hhold hD hT0.down 4 (by norm_num)
+        (by norm_num) (rfl) _ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
         (h14 ▸ hv0) hv1 hv2 hv3
       u256_regs
   · have h4 : (x'.get 13#5).toNat ≤ 2 := by bv_omega
     have hu3' := hu3 (by omega)
     have hu2' := hu2 h4
-    refine u256_by1_call base x m hb3 hr hpre0 hw hTr hTs hhold hD 2 (by norm_num) (by norm_num)
-      (by simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, hu2', hu3',
+    refine u256_by1_call base x m hb3 hr hpre0 hw hTr hTs hhold hD hT0.down 2 (by norm_num)
+      (by norm_num) (by simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, hu2', hu3',
         BitVec.toNat_zero, Nat.mul_zero, Nat.add_zero]) _ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
         (h14 ▸ hv0) hv1 hv2 hv3
     u256_regs

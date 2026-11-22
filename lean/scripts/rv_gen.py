@@ -18,7 +18,9 @@ IMAGE with `-p` before the suffix (scripts/rv_image.ld, the linker LD, default l
 relocations. An instance `q` whose relocations are only the PC-relative addresses of its data
 (`auipc` and `addi` or a load) gets `Gen.q_progAt`: its instructions with the immediates of the
 addresses as parameters, which differ in each image, and `Gen.p_image_q_in` states it with the
-immediates of the image `p` that holds its code. STACK_JSON gets the bytes of the stack that each function uses below sp, with those
+immediates of the image `p` that holds its code. An instance `q` with calls whose code other images
+hold with the code of its callees after it gets `Gen.q_progAt` too: these instructions, with the
+immediates of the addresses of the data of the callees as parameters. STACK_JSON gets the bytes of the stack that each function uses below sp, with those
 of the functions it calls, for scripts/rv_api.py.
 """
 
@@ -121,6 +123,17 @@ def data_rel_code(data, sections, relocs, fn):
         sys.exit(f"{fn['name']}: unexpected PC-relative relocations")
     return words, pairs
 
+
+
+def rel_same(img, o, code, pairs):
+    """The words of `code` are at the instruction `o` of `img`, but the immediates of the pairs of
+    the instructions that address the data."""
+    his = {h for h, _ in pairs}
+    los = {lo for _, lo in pairs}
+    return o + len(code) <= len(img) and all(
+        img[o + k] & 0xfff == w & 0xfff if k in his else
+        img[o + k] & 0xfffff == w & 0xfffff if k in los else img[o + k] == w
+        for k, w in enumerate(code))
 
 def pointer_targets(sections, symbols, relocs, ptrs=None):
     """The [[gnu::used]] pointer variables: name -> the function symbol they point to (and their
@@ -273,6 +286,37 @@ def prog_at_lines(var, code, pairs):
             f"def {var}_progAt {params} : List instruction := [\n  {prog_text}]", ""]
 
 
+
+def linked_lines(var, own, segs, rel_funcs, length):
+    """The Lean definitions of the instructions of `var` with the instructions of the instances
+    `segs` that it calls after it, with the immediates of the addresses of their data as
+    parameters, their number `length` and the lemmas of where each callee is."""
+    names, terms = [], []
+    for _, q, pairs in segs:
+        ps = [(f"hi{len(names) + j}", f"lo{len(names) + j}") for j in range(len(pairs))]
+        names += ps
+        terms.append(f"{q}_progAt " + " ".join(f"{h} {lo}" for h, lo in ps) if q in rel_funcs
+                     else f"{q}_prog")
+    params = " ".join(f"{{{h} : BitVec 20}} {{{lo} : BitVec 12}}" for h, lo in names)
+    eparams = " ".join(f"({h} : BitVec 20) ({lo} : BitVec 12)" for h, lo in names)
+    args = " ".join(f"{h} {lo}" for h, lo in names)
+    prog_text = ",\n  ".join(decode(w) for w in own)
+    lines = [f"/-! ## `{var}` in an image -/", "",
+             f"/-- The instructions of `{var}` without the functions that it calls. -/",
+             f"def {var}_progOwn : List instruction := [\n  {prog_text}]", "",
+             f"/-- The instructions of `{var}` and of the functions that it calls after it, as in "
+             f"its image, with the immediates of the `auipc` and of the instruction after it that "
+             f"address their data, which differ in each image. -/",
+             f"def {var}_progAt {eparams} : List instruction :=\n  {var}_progOwn ++\n    " +
+             " ++\n    ".join(terms), "", "set_option maxRecDepth 100000 in",
+             f"theorem {var}_progAt_length {params} :",
+             f"    ({var}_progAt {args}).length = {length} := by rfl", ""]
+    for (o, q, _), t in zip(segs, terms):
+        lines += ["set_option maxRecDepth 100000 in",
+                  f"theorem {var}_progAt_{q}_in {params} :",
+                  f"    (({var}_progAt {args}).drop {o}).take ({t}).length = {t} := by rfl", ""]
+    return lines
+
 def call_targets(code, base):
     """The functions that the code at the address `base` calls: `auipc ra` and `jalr ra, ra`."""
     targets = []
@@ -340,6 +384,43 @@ def main():
         frame = stack_size(name, code)
         return frame + max([image_stack(im, c, seen + (name,)) for c in callees], default=0)
 
+    # The instances with calls that other instances call: their image is their code and then the
+    # code of the instances that they call, which other images hold in the same order. Their
+    # instructions get the immediates of the addresses of the data of the callees as parameters
+    # (`Gen.q_progAt`), so that their proofs hold in the images of the functions that call them.
+    def segments(im, var):
+        img, addr = im["img"], im["addr"]
+        fn = addr[targets[var]["name"]]
+        by_off = {s["value"] // 4: s for s in addr.values()}
+        if fn["value"] != 0:
+            return None
+        k, segs = fn["size"] // 4, []
+        while k < len(img):
+            size = by_off[k]["size"] // 4 if k in by_off else None
+            seg = next(((q, []) for q, code in funcs.items()
+                        if len(code) == size and img[k:k + size] == code), None) or next(
+                ((q, pairs) for q, (code, pairs) in rel_funcs.items()
+                 if len(code) == size and rel_same(img, k, code, pairs)), None)
+            if seg is None:
+                return None
+            segs.append((k,) + seg)
+            k += size
+        return img[:fn["size"] // 4], segs
+
+    def linked_pairs(segs):
+        return [(k + h, k + lo) for k, _, pairs in segs for h, lo in pairs]
+
+    linked = {}
+    for var in in_image:
+        if var in rel_funcs or (sg := segments(images[var], var)) is None:
+            continue
+        own, segs = sg
+        code, pairs = images[var]["img"], linked_pairs(segs)
+        if any(p != var and any(rel_same(im["img"], f["value"] // 4, code, pairs)
+                                for f in im["addr"].values())
+               for p, im in images.items()):
+            linked[var] = (own, segs)
+
     words = sorted({w for code in funcs.values() for w in code} |
                    {w for im in images.values() for w in im["img"]})
     # The proofs that the decoder decodes the words, in DECODE_FILES files: each file is a
@@ -374,6 +455,8 @@ def main():
         lines += code_lines(var, f"`{name}`", code, f"`{var}`")
     for var, (code, pairs) in rel_funcs.items():
         lines += prog_at_lines(var, code, pairs)
+    for var, (own, segs) in linked.items():
+        lines += linked_lines(var, own, segs, rel_funcs, len(images[var]["img"]))
     info = {var: dict(stack=stack_size(var, code)) for var, code in funcs.items()}
     for var, im in images.items():
         img, data_words, addr = im["img"], im["data_words"], im["addr"]
@@ -444,6 +527,24 @@ def main():
                 # The comparison of the instructions recurses over the list.
                 lines += [f"/-- The instruction where the code of `{q}` is in the image of "
                           f"`{var}`. -/",
+                          f"def {n}_{q}_offset : Nat := {o}", "",
+                          "set_option maxRecDepth 100000 in",
+                          f"theorem {n}_{q}_in :",
+                          f"    ({n}_prog.drop {n}_{q}_offset).take ({at}).length = "
+                          f"{at} := by rfl", ""]
+        # The functions of the image with the code of an instance q with calls and the code of
+        # the instances that it calls after it, with the immediates of the addresses of their data.
+        for q, (own, segs) in linked.items():
+            code, pairs = images[q]["img"], linked_pairs(segs)
+            fq = next((f for f in sorted(addr.values(), key=lambda f: f["value"])
+                       if rel_same(img, f["value"] // 4, code, pairs)), None)
+            if fq is not None:
+                o = fq["value"] // 4
+                at = f"{q}_progAt " + " ".join(
+                    f"{lean_bv(img[o + h] >> 12, 20)} {lean_bv(img[o + lo] >> 20, 12)}"
+                    for h, lo in pairs)
+                lines += [f"/-- The instruction where the code of `{q}` and of the functions "
+                          f"that it calls is in the image of `{var}`. -/",
                           f"def {n}_{q}_offset : Nat := {o}", "",
                           "set_option maxRecDepth 100000 in",
                           f"theorem {n}_{q}_in :",

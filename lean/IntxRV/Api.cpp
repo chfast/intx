@@ -105,6 +105,13 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
     [] [[gnu::flatten]] (const uint256& x, const uint256& shift) noexcept { return x << shift; };
 [[gnu::used]] constexpr Binop shr_256_by_256 =
     [] [[gnu::flatten]] (const uint256& x, const uint256& shift) noexcept { return x >> shift; };
+// The division and the remainder: a call of udivrem<256, 256>().
+[[gnu::used]] constexpr Binop div_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x / y;
+};
+[[gnu::used]] constexpr Binop mod_256 = [](const uint256& x, const uint256& y) noexcept {
+    return x % y;
+};
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
