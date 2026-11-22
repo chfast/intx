@@ -178,17 +178,6 @@ theorem udivrem_knuth_normalized_3.reach (hi : BitVec 20) (lo : BitVec 12) (base
       show (x.get 12#5).toNat - 4 + 1 = (x.get 12#5).toNat - 3 by clear * - hn4; omega]
     exact hU
 
-/-- The frame of 80 bytes below sp is outside the image: its first and last words are. -/
-theorem k3_frame_outside (sp base : BitVec 64) (o : Nat)
-    (h0 : (sp - 80#64).toNat + 8 ≤ base.toNat ∨ base.toNat + o ≤ (sp - 80#64).toNat)
-    (h9 : (sp - 80#64 + BitVec.ofNat 64 (8 * 9)).toNat + 8 ≤ base.toNat ∨
-      base.toNat + o ≤ (sp - 80#64 + BitVec.ofNat 64 (8 * 9)).toNat)
-    (hs : (sp - 80#64).toNat + 80 ≤ 2 ^ 64) (ho : 80 ≤ o) :
-    (sp - 80#64).toNat + 80 ≤ base.toNat ∨ base.toNat + o ≤ (sp - 80#64).toNat := by
-  have : (sp - 80#64 + BitVec.ofNat 64 (8 * 9)).toNat = (sp - 80#64).toNat + 72 := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-  omega
-
 theorem udivrem_knuth_normalized_3.proof : udivrem_knuth_normalized_3.spec := by
   apply runsI_of_reach udivrem_knuth_normalized_3_image_decodes
   intro base ret hb8 hr _ _ hw x m hx1 hbufs hhold hpre

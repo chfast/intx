@@ -948,4 +948,15 @@ theorem k3_top3 (m : Mem) (u : BitVec 64) (n : Nat) (hn : 4 ≤ n) :
   rw [hs, Nat.add_mul_div_left _ _ (Nat.two_pow_pos _), Nat.div_eq_of_lt (words_lt _ _ _),
     Nat.zero_add]
 
+/-- The frame of 80 bytes below sp is outside the image: its first and last words are. -/
+theorem k3_frame_outside (sp base : BitVec 64) (o : Nat)
+    (h0 : (sp - 80#64).toNat + 8 ≤ base.toNat ∨ base.toNat + o ≤ (sp - 80#64).toNat)
+    (h9 : (sp - 80#64 + BitVec.ofNat 64 (8 * 9)).toNat + 8 ≤ base.toNat ∨
+      base.toNat + o ≤ (sp - 80#64 + BitVec.ofNat 64 (8 * 9)).toNat)
+    (hs : (sp - 80#64).toNat + 80 ≤ 2 ^ 64) (ho : 80 ≤ o) :
+    (sp - 80#64).toNat + 80 ≤ base.toNat ∨ base.toNat + o ≤ (sp - 80#64).toNat := by
+  have : (sp - 80#64 + BitVec.ofNat 64 (8 * 9)).toNat = (sp - 80#64).toNat + 72 := by
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
+  omega
+
 end IntxRV.Api

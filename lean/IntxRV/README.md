@@ -56,6 +56,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `udivrem()` of `uint256` by `uint256` | [`udivrem_256`](Api/udivrem_256.lean) |
 | `internal::submul()` in place | [`submul`](Api/submul.lean) |
 | `internal::udivrem_knuth_normalized<3>()` | [`udivrem_knuth_normalized_3`](Api/udivrem_knuth_normalized_3.lean) |
+| `internal::udivrem_knuth_normalized<4>()` | [`udivrem_knuth_normalized_4`](Api/udivrem_knuth_normalized_4.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
@@ -252,7 +253,9 @@ words of d (`k3_div`, `knuth_sub`, `knuth_est`), less 1 with d added back if the
 the estimate times d borrows (`k3_sub`, `knuth_addback`), or `2^64 - 1` by the call of
 `submul()` if the top 2 words of the remainder are the top 2 words of d (`k3_over`,
 `knuth_overflow`). The paths of a digit meet at the store of the digit (`k3_tail`), and the
-epilogue is a lemma over abstract registers (`k3_exit`). An `omega` in the context of a run makes
+epilogue is a lemma over abstract registers (`k3_exit`). The 4-word instance
+([`Knuth4.lean`](Knuth4.lean)) is the same with the 2-word `submul()` of the low words of d and the
+4-word add-back, in its image after `submul()`: its code starts at the instruction 22. An `omega` in the context of a run makes
 a proof over all its hypotheses, which the kernel checks for minutes in tens of GB: the arithmetic
 of the runs is in lemmas over a few variables, and `omega` there follows `clear * - h`.
 
