@@ -55,6 +55,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `internal::udivrem_top2()` of `uint256` by the top word 3 | [`udivrem_top2_3`](Api/udivrem_top2_3.lean) |
 | `udivrem()` of `uint256` by `uint256` | [`udivrem_256`](Api/udivrem_256.lean) |
 | `internal::submul()` in place | [`submul`](Api/submul.lean) |
+| `internal::udivrem_knuth_normalized<3>()` | [`udivrem_knuth_normalized_3`](Api/udivrem_knuth_normalized_3.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
@@ -242,6 +243,18 @@ a variable `D`, so that the checks of the loads and the stores do not expand it,
 the five callees, with the address that each gives as an assumption. The proof hides these
 assumptions from `omega` and `subst_vars` in `PLift`: `bv_omega` would expand their sign
 extensions in every call, and `subst_vars` would replace the address of the table.
+
+`internal::udivrem_knuth_normalized<3>()` divides the normalized u by 3 words of d a digit at a time
+([`Knuth.lean`](Knuth.lean), [`Knuth3.lean`](Knuth3.lean)). The invariant of its loop (`k3Head`)
+is the quotient and the remainder of the digits of u above the digit j (`knuth_digit`); a digit is
+the estimate of the inlined `udivrem_3by2()` of the top 3 words of the remainder by the top 2
+words of d (`k3_div`, `knuth_sub`, `knuth_est`), less 1 with d added back if the subtraction of
+the estimate times d borrows (`k3_sub`, `knuth_addback`), or `2^64 - 1` by the call of
+`submul()` if the top 2 words of the remainder are the top 2 words of d (`k3_over`,
+`knuth_overflow`). The paths of a digit meet at the store of the digit (`k3_tail`), and the
+epilogue is a lemma over abstract registers (`k3_exit`). An `omega` in the context of a run makes
+a proof over all its hypotheses, which the kernel checks for minutes in tens of GB: the arithmetic
+of the runs is in lemmas over a few variables, and `omega` there follows `clear * - h`.
 
 ### Calls and constant data
 
