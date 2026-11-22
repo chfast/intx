@@ -18,9 +18,13 @@ IMAGE with `-p` before the suffix (scripts/rv_image.ld, the linker LD, default l
 relocations. An instance `q` whose relocations are only the PC-relative addresses of its data
 (`auipc` and `addi` or a load) gets `Gen.q_progAt`: its instructions with the immediates of the
 addresses as parameters, which differ in each image, and `Gen.p_image_q_in` states it with the
-immediates of the image `p` that holds its code. An instance `q` with calls whose code other images
-hold with the code of its callees after it gets `Gen.q_progAt` too: these instructions, with the
-immediates of the addresses of the data of the callees as parameters. STACK_JSON gets the bytes of the stack that each function uses below sp, with those
+immediates of the image `p` that holds its code. An image that no other image holds has its function first and then the
+functions that it calls, depth first (the callees of a function in the order of their sections);
+the image of a function that another image holds has the order of that image, so that each image
+that holds a function holds its image, with the same instructions but the immediates of the
+addresses of the data. An instance `q` with calls that other images hold gets `Gen.q_progAt` too:
+the instructions of its image, with these immediates as parameters, and `Gen.q_progOwn`, its own
+instructions. STACK_JSON gets the bytes of the stack that each function uses below sp, with those
 of the functions it calls, for scripts/rv_api.py.
 """
 
@@ -42,6 +46,7 @@ SHT_RELA = 4
 STT_FUNC = 2
 STT_OBJECT = 1
 EM_RISCV = 243
+R_RISCV_CALL_PLT = 19
 R_RISCV_PCREL_HI20 = 23
 R_RISCV_PCREL_LO12_I = 24
 
@@ -123,6 +128,29 @@ def data_rel_code(data, sections, relocs, fn):
         sys.exit(f"{fn['name']}: unexpected PC-relative relocations")
     return words, pairs
 
+
+
+def data_pairs(sections, relocs, fn):
+    """The pairs of the indices of the instructions `auipc` and the I-type instruction after it
+    (`addi` or a load) of the PC-relative addresses of the data of a function, which may also have
+    calls."""
+    rs = relocs.get(fn["shndx"], [])
+    his = sorted(r["offset"] // 4 for r in rs if r["type"] == R_RISCV_PCREL_HI20)
+    los = sorted(r["offset"] // 4 for r in rs if r["type"] == R_RISCV_PCREL_LO12_I)
+    if len(his) != len(los) or any(
+            r["type"] not in (R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I, R_RISCV_CALL_PLT)
+            for r in rs):
+        sys.exit(f"{fn['name']}: unexpected relocations")
+    return list(zip(his, los))
+
+
+def zero_pairs(code, pairs):
+    """The words with the immediates of the pairs of the instructions that address the data 0."""
+    code = list(code)
+    for h, lo in pairs:
+        code[h] &= 0xfff
+        code[lo] &= 0xfffff
+    return code
 
 
 def rel_same(img, o, code, pairs):
@@ -290,34 +318,62 @@ def prog_at_lines(var, code, pairs):
 
 
 
-def linked_lines(var, own, segs, rel_funcs, length):
-    """The Lean definitions of the instructions of `var` with the instructions of the instances
-    `segs` that it calls after it, with the immediates of the addresses of their data as
-    parameters, their number `length` and the lemmas of where each callee is."""
+def own_lines(var, own, pairs):
+    """The Lean definition of the instructions of the instance `var` with calls without the
+    functions that it calls, with the immediates of the addresses of its data as parameters."""
+    names = [(f"hi{k}", f"lo{k}") for k in range(len(pairs))]
+    texts = [decode(w) for w in zero_pairs(own, pairs)]
+    for (h, lo), (hn, ln) in zip(pairs, names):
+        texts[h] = texts[h].replace(lean_bv(0, 20), hn, 1)
+        texts[lo] = texts[lo].replace(lean_bv(0, 12), ln, 1)
+    params = "".join(f" ({hn} : BitVec 20) ({ln} : BitVec 12)" for hn, ln in names)
+    prog_text = ",\n  ".join(texts)
+    return [f"/-! ## `{var}` in an image -/", "",
+            f"/-- The instructions of `{var}` without the functions that it calls" +
+            (", with the immediates of the `auipc` and of the instruction after it that address "
+             "its data, which differ in each image" if pairs else "") + ". -/",
+            f"def {var}_progOwn{params} : List instruction := [\n  {prog_text}]", ""]
+
+
+def segment_term(q, kind, ps):
+    """The instructions of a function of an image: an instance without relocations (`prog`), with
+    the addresses of its data only (`rel`), or with calls (`own`), with the immediates `ps`."""
+    args = "".join(f" {h} {lo}" for h, lo in ps)
+    return {"prog": f"{q}_prog", "rel": f"{q}_progAt{args}", "own": f"{q}_progOwn{args}"}[kind]
+
+
+def linked_lines(var, segs, length, blocks):
+    """The Lean definitions of the instructions of the image of `var`, the functions `segs`, with
+    the immediates of the addresses of their data as parameters, their number `length` and the
+    lemmas of where each function is, and of where the instructions of the instances with calls
+    `blocks` (offset, instance, the indices of their first and last segments) are."""
     names, terms = [], []
-    for _, q, pairs in segs:
+    for _, q, kind, pairs in segs:
         ps = [(f"hi{len(names) + j}", f"lo{len(names) + j}") for j in range(len(pairs))]
         names += ps
-        terms.append(f"{q}_progAt " + " ".join(f"{h} {lo}" for h, lo in ps) if q in rel_funcs
-                     else f"{q}_prog")
+        terms.append((segment_term(q, kind, ps), ps))
     params = " ".join(f"{{{h} : BitVec 20}} {{{lo} : BitVec 12}}" for h, lo in names)
     eparams = " ".join(f"({h} : BitVec 20) ({lo} : BitVec 12)" for h, lo in names)
     args = " ".join(f"{h} {lo}" for h, lo in names)
-    prog_text = ",\n  ".join(decode(w) for w in own)
-    lines = [f"/-! ## `{var}` in an image -/", "",
-             f"/-- The instructions of `{var}` without the functions that it calls. -/",
-             f"def {var}_progOwn : List instruction := [\n  {prog_text}]", "",
-             f"/-- The instructions of `{var}` and of the functions that it calls after it, as in "
-             f"its image, with the immediates of the `auipc` and of the instruction after it that "
+    lines = [f"/-- The instructions of the image of `{var}`: `{var}` and the functions that it "
+             f"calls, with the immediates of the `auipc` and of the instruction after it that "
              f"address their data, which differ in each image. -/",
-             f"def {var}_progAt {eparams} : List instruction :=\n  {var}_progOwn ++\n    " +
-             " ++\n    ".join(terms), "", "set_option maxRecDepth 100000 in",
+             f"def {var}_progAt {eparams} : List instruction :=\n  " +
+             " ++\n    ".join(tm for tm, _ in terms), "", "set_option maxRecDepth 100000 in",
              f"theorem {var}_progAt_length {params} :",
              f"    ({var}_progAt {args}).length = {length} := by rfl", ""]
-    for (o, q, _), t in zip(segs, terms):
+    for (o, q, kind, _), (tm, _) in zip(segs, terms):
+        if kind != "own":
+            lines += ["set_option maxRecDepth 100000 in",
+                      f"theorem {var}_progAt_{q}_in {params} :",
+                      f"    (({var}_progAt {args}).drop {o}).take ({tm}).length = {tm} := by rfl",
+                      ""]
+    for o, q, a, b in blocks:
+        qargs = "".join(f" {h} {lo}" for _, ps in terms[a:b + 1] for h, lo in ps)
+        tm = f"({q}_progAt{qargs})"
         lines += ["set_option maxRecDepth 100000 in",
                   f"theorem {var}_progAt_{q}_in {params} :",
-                  f"    (({var}_progAt {args}).drop {o}).take ({t}).length = {t} := by rfl", ""]
+                  f"    (({var}_progAt {args}).drop {o}).take {tm}.length = {tm} := by rfl", ""]
     return lines
 
 def call_targets(code, base):
@@ -348,13 +404,49 @@ def main():
     rel_funcs = {var: rc for var in in_image
                  if (rc := data_rel_code(data, sections, relocs, targets[var])) is not None}
 
+    # The calls between the functions of the object, the callees in the order of their sections.
+    fsyms = {s["name"]: s for s in symbols if s["type"] == STT_FUNC and s["size"]
+             and 0 < s["shndx"] < len(sections)}
+    sec_name = lambda f: sections[fsyms[f]["shndx"]]["name"]
+    callees = {f: sorted({symbols[r["sym"]]["name"] for r in relocs.get(s["shndx"], [])
+                          if r["type"] == R_RISCV_CALL_PLT}, key=sec_name)
+               for f, s in fsyms.items()}
+
+    def dfs(root):
+        order = []
+
+        def visit(f):
+            if f not in order:
+                order.append(f)
+                for c in callees[f]:
+                    visit(c)
+        visit(root)
+        return order
+
+    # The order of the functions of each image: an image that no other image holds has its
+    # function first and then the functions that it calls, depth first. The image of a function
+    # that another image holds has the order of that image, so that the image holds its code as
+    # in its own image: the code of a function and of what it calls is the same block of the
+    # images of its callers (`Gen.q_progAt`).
+    reach = {var: dfs(targets[var]["name"]) for var in in_image}
+    tops = [v for v in in_image
+            if not any(w != v and targets[v]["name"] in reach[w] for w in in_image)]
+    orders = {}
+    for var in in_image:
+        fs = set(reach[var])
+        induced = {tuple(f for f in reach[w] if f in fs) for w in tops if fs <= set(reach[w])}
+        if len(induced) > 1:
+            sys.exit(f"{var}: the images of its callers order its functions differently")
+        orders[var] = list(induced.pop()) if induced else reach[var]
+
     # The images: each function with relocations linked at 0 with what it reaches, so that its
     # code and data do not move when other functions are added.
     images = {}
     for var in in_image:
         keep = f"KEEP(*({sections[ptrs[var]['shndx']]['name']}))"
+        order = " ".join(f"*({sec_name(f)})" for f in orders[var])
         script = Path(__file__).with_name("rv_image.ld").read_text().replace(
-            "/* ROOTS */", f".data : {{ {keep} }}")
+            "/* ROOTS */", f".data : {{ {keep} }}").replace("/* ORDER */", order)
         elf = image.with_name(f"{image.stem}-{var}{image.suffix}")
         elf.with_suffix(".ld").write_text(script)
         subprocess.run([os.environ.get("LD", "ld.lld"), "--no-relax", "-T",
@@ -373,6 +465,8 @@ def main():
             sys.exit(f"{var}: unexpected layout of the image")
         data_words = [struct.unpack_from("<Q", ro, i)[0] for i in range(0, len(ro), 8)]
         addr = {s["name"]: s for s in isyms if s["type"] == STT_FUNC}
+        if [s["name"] for s in sorted(addr.values(), key=lambda s: s["value"])] != orders[var]:
+            sys.exit(f"{var}: the image does not have the functions in the order of rv_gen.py")
         images[var] = dict(img=img, data_words=data_words, data_off=data_off, addr=addr)
 
     # The stack below sp of a function of an image: its frame and the most of its callees.
@@ -387,42 +481,55 @@ def main():
         frame = stack_size(name, code)
         return frame + max([image_stack(im, c, seen + (name,)) for c in callees], default=0)
 
-    # The instances with calls that other instances call: their image is their code and then the
-    # code of the instances that they call, which other images hold in the same order. Their
-    # instructions get the immediates of the addresses of the data of the callees as parameters
-    # (`Gen.q_progAt`), so that their proofs hold in the images of the functions that call them.
-    def segments(im, var):
+    # The instances with calls that other instances call: other images hold their image, their
+    # code and the code of the functions that they call, in the same order. Its instructions get
+    # the immediates of the addresses of the data as parameters (`Gen.q_progAt`), so that their
+    # proofs hold in the images of the functions that call them. An instance with calls in it is
+    # its own instructions with the immediates of its data as parameters (`Gen.q_progOwn`).
+    by_name = {targets[v]["name"]: v for v in in_image if v not in rel_funcs}
+    own_pairs = {v: data_pairs(sections, relocs, targets[v]) for v in by_name.values()}
+
+    def segments(im):
+        """The functions of the image: (offset, instance, kind, the pairs of its data)."""
         img, addr = im["img"], im["addr"]
-        fn = addr[targets[var]["name"]]
-        by_off = {s["value"] // 4: s for s in addr.values()}
-        if fn["value"] != 0:
-            return None
-        k, segs = fn["size"] // 4, []
-        while k < len(img):
-            size = by_off[k]["size"] // 4 if k in by_off else None
-            seg = next(((q, []) for q, code in funcs.items()
+        segs = []
+        for f in sorted(addr.values(), key=lambda s: s["value"]):
+            k, size = f["value"] // 4, f["size"] // 4
+            seg = next(((q, "prog", []) for q, code in funcs.items()
                         if len(code) == size and img[k:k + size] == code), None) or next(
-                ((q, pairs) for q, (code, pairs) in rel_funcs.items()
+                ((q, "rel", pairs) for q, (code, pairs) in rel_funcs.items()
                  if len(code) == size and rel_same(img, k, code, pairs)), None)
+            if seg is None and f["name"] in by_name:
+                q = by_name[f["name"]]
+                seg = (q, "own", own_pairs[q])
             if seg is None:
                 return None
             segs.append((k,) + seg)
-            k += size
-        return img[:fn["size"] // 4], segs
+        return segs
 
     def linked_pairs(segs):
-        return [(k + h, k + lo) for k, _, pairs in segs for h, lo in pairs]
+        return [(k + h, k + lo) for k, _, _, pairs in segs for h, lo in pairs]
+
+    def holds(im, q):
+        """The offset of the image of the instance `q` in the image `im`, or None."""
+        code, pairs = images[q]["img"], linked_pairs(linked[q])
+        return next((f["value"] // 4 for f in sorted(im["addr"].values(), key=lambda s: s["value"])
+                     if rel_same(im["img"], f["value"] // 4, code, pairs)), None)
 
     linked = {}
     for var in in_image:
-        if var in rel_funcs or (sg := segments(images[var], var)) is None:
-            continue
-        own, segs = sg
-        code, pairs = images[var]["img"], linked_pairs(segs)
-        if any(p != var and any(rel_same(im["img"], f["value"] // 4, code, pairs)
-                                for f in im["addr"].values())
-               for p, im in images.items()):
-            linked[var] = (own, segs)
+        if var not in rel_funcs and any(targets[var]["name"] in reach[w] for w in in_image
+                                        if w != var):
+            linked[var] = segments(images[var])
+            if linked[var] is None:
+                sys.exit(f"{var}: its image has functions that are not instances")
+    # An instance whose own instructions are in an image is linked, and the images that hold an
+    # instance hold its image.
+    for var in in_image:
+        for f in images[var]["addr"]:
+            q = by_name.get(f)
+            if q is not None and q != var and (q not in linked or holds(images[var], q) is None):
+                sys.exit(f"{var}: its image does not hold the image of {q}")
 
     words = sorted({w for code in funcs.values() for w in code} |
                    {w for im in images.values() for w in im["img"]})
@@ -458,8 +565,20 @@ def main():
         lines += code_lines(var, f"`{name}`", code, f"`{var}`")
     for var, (code, pairs) in rel_funcs.items():
         lines += prog_at_lines(var, code, pairs)
-    for var, (own, segs) in linked.items():
-        lines += linked_lines(var, own, segs, rel_funcs, len(images[var]["img"]))
+    # The images that other images hold first, so that their lemmas can name their progAt.
+    linked = dict(sorted(linked.items(), key=lambda kv: (len(images[kv[0]]["img"]), kv[0])))
+    for var in linked:
+        e = images[var]["addr"][targets[var]["name"]]
+        lines += own_lines(var, images[var]["img"][e["value"] // 4:(e["value"] + e["size"]) // 4],
+                           own_pairs[var])
+    for var, segs in linked.items():
+        blocks = []
+        for q in linked:
+            if q != var and (o := holds(images[var], q)) is not None:
+                a = next(i for i, s in enumerate(segs) if s[0] == o)
+                blocks.append((o, q, a, a + len(linked[q]) - 1))
+        lines += [f"/-! ## The image of `{var}` with parameters -/", ""]
+        lines += linked_lines(var, segs, len(images[var]["img"]), blocks)
     info = {var: dict(stack=stack_size(var, code)) for var, code in funcs.items()}
     for var, im in images.items():
         img, data_words, addr = im["img"], im["data_words"], im["addr"]
@@ -505,6 +624,7 @@ def main():
                 lines += [f"/-- The instruction where the code of `{q}` is in the image of "
                           f"`{var}`. -/",
                           f"def {n}_{q}_offset : Nat := {fq['value'] // 4}", "",
+                          "set_option maxRecDepth 100000 in",
                           f"theorem {n}_{q}_in :",
                           f"    ({n}_prog.drop {n}_{q}_offset).take {q}_prog.length = "
                           f"{q}_prog := by rfl", ""]
@@ -537,14 +657,12 @@ def main():
                           f"{at} := by rfl", ""]
         # The functions of the image with the code of an instance q with calls and the code of
         # the instances that it calls after it, with the immediates of the addresses of their data.
-        for q, (own, segs) in linked.items():
-            code, pairs = images[q]["img"], linked_pairs(segs)
-            fq = next((f for f in sorted(addr.values(), key=lambda f: f["value"])
-                       if rel_same(img, f["value"] // 4, code, pairs)), None)
-            if fq is not None:
-                o = fq["value"] // 4
-                at = f"{q}_progAt " + " ".join(
-                    f"{lean_bv(img[o + h] >> 12, 20)} {lean_bv(img[o + lo] >> 20, 12)}"
+        for q, segs in linked.items():
+            pairs = linked_pairs(segs)
+            o = holds(im, q)
+            if o is not None:
+                at = f"{q}_progAt" + "".join(
+                    f" {lean_bv(img[o + h] >> 12, 20)} {lean_bv(img[o + lo] >> 20, 12)}"
                     for h, lo in pairs)
                 lines += [f"/-- The instruction where the code of `{q}` and of the functions "
                           f"that it calls is in the image of `{var}`. -/",

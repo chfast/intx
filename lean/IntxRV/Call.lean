@@ -164,6 +164,18 @@ theorem Reach.call_sub {A A' : List (BitVec 64)} {prog sub : List instruction} {
   rw [pcAt_zero, hra] at hcallee
   exact Reach.call ((Reach.lift hs hp hcallee).mono_bufs hA) hcont
 
+/-- A call of a function at the instruction `e` of the code `sub` at the instruction `o` of `prog`
+(the image of the function, which starts with other functions). -/
+theorem Reach.call_sub_at {A A' : List (BitVec 64)} {prog sub : List instruction} {o e r : Nat}
+    (hs : (prog.drop o).take sub.length = sub) (hp : 4 * prog.length < 2 ^ 64)
+    {base tgt : BitVec 64} {x : Regs} {m : Mem} {R Q : Regs → Mem → Prop}
+    (hcallee : Reach A sub (pcAt base o) (pcAt (pcAt base o) e) x m (x.get 1#5) R)
+    (hra : x.get 1#5 = pcAt base r) (hA : ∀ a ∈ A, a ∈ A')
+    (hcont : ∀ x' m', R x' m' → Reach A' prog base (pcAt base r) x' m' tgt Q) :
+    Reach A' prog base (pcAt base (o + e)) x m tgt Q := by
+  rw [pcAt_pcAt, hra] at hcallee
+  exact Reach.call ((Reach.lift hs hp hcallee).mono_bufs hA) hcont
+
 /-- The word at `b` outside the bytes that may change. -/
 theorem memWord_of_unchangedExcept {m m' : Mem} {a : BitVec 64} {len : Nat}
     (h : UnchangedExcept m m' a len) (b : Nat) (hb : b + 8 ≤ a.toNat ∨ a.toNat + len ≤ b) :

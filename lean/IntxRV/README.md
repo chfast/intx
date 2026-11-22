@@ -132,11 +132,18 @@ function is the buffer it writes: its name stands for its value at the return, a
 width. A span of dynamic extent (`std::span<uint64_t>`) is its address and its number of words in
 two registers, a buffer of that many words; `p.size()` of a span `p` in a `@pre` or `@post` is its
 number of words, and a span of non-const words is the buffer written, as in
-`internal::udivrem_by1()`. With registers only the specification is a `Runs`; with memory a
-`RunsM` (in [`RunM.lean`](RunM.lean)), the `Runs` with memory: the buffers are aligned, do not wrap around and
-the result does not overlap the arguments; the memory outside the result is unchanged. A function
-with a stack frame gets the frame below sp as one more buffer that overlaps no other, and the memory
-outside the result and the frame is unchanged.
+`internal::udivrem_by1()`. A raw pointer `uint64_t p[]` is the address of its words in one
+register, and the `@pre p.size() = n` gives their number (it is not a precondition then), as in
+`internal::submul()`. A function may write several buffers, and `old(p)` in a `@post` is the
+value of the written buffer `p` at the entry: `internal::udivrem_knuth_normalized()` turns the
+words of `u` into the remainder in place. With registers only the specification is a `Runs`; with
+memory a `RunsM` (in [`RunM.lean`](RunM.lean)), the `Runs` with memory: the buffers are aligned, do
+not wrap around and the written buffers overlap neither each other nor the arguments; the memory
+outside the written buffers is unchanged. (The comment of `udivrem_knuth_normalized()` allows the
+quotient to alias `u`; its specification does not, and `udivrem_knuth()` passes a quotient outside
+`u`.) A function with a stack frame gets the frame below sp as one more buffer that overlaps no
+other, and the memory outside the written buffers and the frame is unchanged (`UnchangedExcept`,
+`UnchangedExcept2` and `UnchangedExcept3` in [`Words.lean`](Words.lean)).
 
 The proofs are in [`Api/`](Api/): the generated `Checks/Gen/IntxRVApi.lean` requires a proof
 `Api.p.proof : Api.p.spec` for every instance, with the allowed axioms only, and that the
@@ -252,11 +259,15 @@ immediates of the address of the data, `auipc` and the `addi` or the load after 
 instructions with these immediates as parameters are `Gen.f_progAt`, and `Gen.p_image_f_in` states
 them with the immediates of the image. The proof of `f` over any immediates, with the address of
 the data that they give as an assumption, is a proof in every image, as `udivrem_by1.reach`. A
-function `f` with calls that other functions call gets `Gen.f_progAt` too: its code and the code of
-its callees after it as in its image, with the immediates of the data of the callees as
-parameters (`udivrem_256_progAt`). The
-instances of `intx::wip` in `Api.cpp` get their specifications without the checks of their proofs,
-until they are proved (none at present).
+function `f` with calls that other functions call gets `Gen.f_progAt` too: the code of its image,
+with the immediates of the data of all its functions as parameters (`udivrem_256_progAt`). For
+this, an image that no other image holds has its function first and then the functions that it
+calls, depth first, and the image of a function that another image holds has the order of that
+image: the image of `internal::udivrem_knuth_normalized<4>()` is `submul()` and then the function,
+as in the image of `udivrem<512, 256>()`, where `submul()` follows the 3-word instance, which calls
+it too. `Reach.call_sub_at` calls a function that does not start its image. The instances of
+`intx::wip` in `Api.cpp` get their specifications without the checks of their proofs, until they
+are proved.
 
 `bit_test()` and `count_significant_words()` are proved directly, with lemmas on the bits of
 `words` and on `log2` ([`Bits.lean`](Bits.lean)).

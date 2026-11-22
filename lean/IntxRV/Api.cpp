@@ -132,7 +132,15 @@ using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
-// and their code is in the image (IntxRV/Gen/Code.lean), without the checks. None at present.
+// and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
+using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noexcept;
+[[gnu::used]] constexpr Submul submul = &intx::internal::submul;
+[[gnu::used]] constexpr auto* udivrem_knuth_normalized_3 =
+    &intx::internal::udivrem_knuth_normalized<3>;
+[[gnu::used]] constexpr auto* udivrem_knuth_normalized_4 =
+    &intx::internal::udivrem_knuth_normalized<4>;
+[[gnu::used]] constexpr auto* udivrem_512_256 = &intx::udivrem<512, 256>;
+[[gnu::used]] constexpr auto* mulmod_256 = &intx::mulmod;
 }  // namespace intx::wip

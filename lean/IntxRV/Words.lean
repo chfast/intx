@@ -121,4 +121,24 @@ theorem unchangedExcept2_memStore {m m' : Mem} {a b : BitVec 64} {la lb : Nat} (
   · rw [← getElem?_memStore_of_ne m' c v k (by omega)]; exact h k hka hkb
   · rw [getElem?_memStore_of_ne _ _ _ _ (by omega)]; exact h k hka hkb
 
+/-- The memory `m'` is `m` except for the `la` bytes at `a`, the `lb` bytes at `b` and the `lc`
+bytes at `c`. -/
+def UnchangedExcept3 (m m' : Mem) (a : BitVec 64) (la : Nat) (b : BitVec 64) (lb : Nat)
+    (c : BitVec 64) (lc : Nat) : Prop :=
+  ∀ k, k < a.toNat ∨ a.toNat + la ≤ k → k < b.toNat ∨ b.toNat + lb ≤ k →
+    k < c.toNat ∨ c.toNat + lc ≤ k → m'[k]? = m[k]?
+
+theorem unchangedExcept3_refl (m : Mem) (a : BitVec 64) (la : Nat) (b : BitVec 64) (lb : Nat)
+    (c : BitVec 64) (lc : Nat) : UnchangedExcept3 m m a la b lb c lc :=
+  fun _ _ _ _ => rfl
+
+theorem unchangedExcept3_memStore {m m' : Mem} {a b c : BitVec 64} {la lb lc : Nat} (e : Nat)
+    (v : BitVec 64)
+    (he : a.toNat ≤ e ∧ e + 8 ≤ a.toNat + la ∨ b.toNat ≤ e ∧ e + 8 ≤ b.toNat + lb ∨
+      c.toNat ≤ e ∧ e + 8 ≤ c.toNat + lc) :
+    UnchangedExcept3 m (memStore m' e v) a la b lb c lc ↔ UnchangedExcept3 m m' a la b lb c lc := by
+  constructor <;> intro h k hka hkb hkc
+  · rw [← getElem?_memStore_of_ne m' e v k (by omega)]; exact h k hka hkb hkc
+  · rw [getElem?_memStore_of_ne _ _ _ _ (by omega)]; exact h k hka hkb hkc
+
 end IntxRV

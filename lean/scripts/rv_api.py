@@ -12,10 +12,13 @@ AST_JSON is the AST of IntxRV/Api.cpp that clang dumps for the declarations of t
 pointer variable `p` of the namespace intx::api must be initialized by a lambda whose body is a
 single call of a function of intx, or by the address of a function of intx, with a documentation
 comment; the @pre and @post commands of the comment are its specification, a Lean term in which a
-parameter name stands for the value of the parameter as a natural number, `result` for the value
-of the result (a natural number, or a proposition for `bool`) and `N` for the width of the
-template. IntxRV/Gen/Api.lean gets `Api.p.spec`: the specification of the machine code of `p`
-(`Gen.p_code`) for the RISC-V calling convention. Checks/Gen/IntxRVApi.lean checks that every
+parameter name stands for the value of the parameter as a natural number (of a buffer that the
+function writes, the value at the return in a @post), `old(p)` in a @post for the value of the
+written buffer `p` at the entry, `p.size()` for the number of words of a span or a raw pointer `p`
+(a raw pointer has the words of its @pre `p.size() = n`), `result` for the value of the result (a
+natural number, or a proposition for `bool`) and `N` for the width of the template.
+IntxRV/Gen/Api.lean gets `Api.p.spec`: the specification of the machine code of `p` (`Gen.p_code`)
+for the RISC-V calling convention. Checks/Gen/IntxRVApi.lean checks that every
 specification has the proof `Api.p.proof`, with the allowed axioms only. The proof is in
 IntxRV/Api/p.lean, which quotes the documentation and the declaration of the function from
 intx.hpp (checked here, so that the proof reads without the generated files), and IntxRV/README.md
@@ -139,6 +142,8 @@ def norm_type(t):
     t = re.sub(r"\bintx::", "", t.strip())
     # The parameters that are not deduced (`std::type_identity_t<T>` is T).
     t = re.sub(r"^std::type_identity_t<(.*)>$", r"\1", t)
+    # A span of dynamic extent without the extent.
+    t = re.sub(r"^std::span<((?:const )?uint64_t)>$", rf"std::span<\1, {DYNAMIC_EXTENT}UL>", t)
     # The extent of u of udivrem_by2(): Q == std::dynamic_extent ? Q : Q + 1.
     t = re.sub(r"(\d+)UL == std::dynamic_extent \? \1UL : \1UL \+ 1",
                lambda m: f"{int(m[1]) if int(m[1]) == DYNAMIC_EXTENT else int(m[1]) + 1}UL", t)
@@ -181,15 +186,42 @@ def signature(var, inst, spec):
 # The extent of a std::span of a size known at run time (std::dynamic_extent).
 DYNAMIC_EXTENT = 2 ** 64 - 1
 
+# The raw pointers to words: whether the words are const (read only).
+RAW_POINTERS = {"uint64_t *": False, "const uint64_t *": True}
+
+
+def span_type(t):
+    """The match of a span of words: const, the extent."""
+    return re.fullmatch(r"std::span<(const )?uint64_t, (\d+)UL>", t)
+
+
+def paren(n):
+    """The number of words `n`, a Lean term, as an argument."""
+    return n if re.fullmatch(r"\d+|\(x \d+#5\)\.toNat", n) else f"({n})"
+
 
 def nbytes(n):
     """The bytes of `n` words, a number or a Lean term."""
     return str(8 * int(n)) if n.isdigit() else f"(8 * {n})"
 
 
-def size_calls(term):
-    """The term with `p.size()` of a span `p` as the name `p_size`."""
-    return re.sub(r"\b(\w+)\.size\(\)", r"\1_size", term)
+def size_calls(term, sizes=None):
+    """The term with `p.size()` of a span `p` of dynamic extent as the name `p_size`, and of the
+    parameters in `sizes` (a fixed extent, a raw pointer) as their number of words there."""
+    sizes = sizes or {}
+    return re.sub(r"\b(\w+)\.size\(\)",
+                  lambda m: sizes[m[1]] if m[1] in sizes else f"{m[1]}_size", term)
+
+
+def old_calls(var, term, olds):
+    """The term of a @post with `old(p)` of a written buffer `p` as the name `p_old`, and the
+    values of the names (name, type, value) at the entry."""
+    names = list(dict.fromkeys(re.findall(r"\bold\((\w+)\)", term)))
+    for n in names:
+        if n not in olds:
+            sys.exit(f"{var}: old({n}) of a parameter that is not a written buffer")
+    return (re.sub(r"\bold\((\w+)\)", r"\1_old", term),
+            [(f"{n}_old", "Nat", olds[n]) for n in names])
 
 
 def apply(term, width, result, values, targs=()):
@@ -280,6 +312,7 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
     # The buffers written and read: (register, the number of words, a Lean term).
     outs, ins = [], []
     sizes = []  # The sizes of the spans of dynamic extent: (name, Lean term).
+    olds = {}  # The values of the written buffers at the entry, for old(p) in a @post.
     if ret_width is not None and ret_width > 128:
         if ret_width % 64:
             sys.exit(f"{var}: unsupported result type {ret}")
@@ -290,10 +323,56 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
         reg += 1
     elif ret != "void" and ret not in REG_RESULTS:
         sys.exit(f"{var}: unsupported result type {ret}")
+    # The number of words of the spans of a fixed extent and of the raw pointers, for p.size():
+    # a raw pointer `p` has the words of the @pre `p.size() = n`, which is no precondition then.
+    targs = inst["targs"]
+    types = dict(zip(params, args))
+    known = {n: span_type(t)[2] for n, t in types.items()
+             if span_type(t) and int(span_type(t)[2]) != DYNAMIC_EXTENT}
+    raw, pres = {}, []
+    for p in spec["pre"]:
+        m = re.fullmatch(r"(\w+)\.size\(\) = (.+)", p)
+        if m and types.get(m[1]) in RAW_POINTERS:
+            raw[m[1]] = m[2]
+        else:
+            pres.append(p)
+    for n in raw:
+        known[n] = "(" + size_calls(raw[n], known) + ")"
+    # The registers of the sizes of the spans of dynamic extent.
+    regs_of, r = {}, reg
+    for name, t in zip(params, args):
+        regs_of[name] = r
+        span = span_type(t)
+        r += 2 if t == "uint128" or (span and int(span[2]) == DYNAMIC_EXTENT) else 1
+
+    def words_of(name):
+        """The number of words of the raw pointer `name`, a Lean term of the registers."""
+        if name not in raw:
+            sys.exit(f"{var}: the raw pointer {name} needs a @pre {name}.size() = n")
+        n = known[name][1:-1]
+        n = re.sub(r"\b(\w+)_size\b", lambda m: f"(x {regs_of[m[1]] + 1}#5).toNat", n)
+        for a, v in targs:
+            n = re.sub(rf"\b{a}\b", str(v), n)
+        return paren(n)
+
     for name, t in zip(params, args):
         w = uint_width(t)
-        span = re.fullmatch(r"std::span<(const )?uint64_t, (\d+)UL>", t)
-        if span and int(span[2]) == DYNAMIC_EXTENT:
+        span = span_type(t)
+        if t in RAW_POINTERS:
+            n = words_of(name)
+            if RAW_POINTERS[t]:
+                ins.append((reg, n))
+                v = (name, "Nat", f"words m (x {reg}#5) {n}")
+            else:
+                # The words a function writes: the name stands for their value at the return.
+                outs.append((reg, n))
+                values.append((name, "Nat", f"words m (x {reg}#5) {n}"))
+                post_values.append((name, "Nat", f"words m' (x {reg}#5) {n}"))
+                olds[name] = f"words m (x {reg}#5) {n}"
+                reg += 1
+                continue
+            reg += 1
+        elif span and int(span[2]) == DYNAMIC_EXTENT:
             # A span of dynamic extent: the pointer and the number of words in two registers.
             n = f"(x {reg + 1}#5).toNat"
             sizes.append((f"{name}_size", n))
@@ -304,6 +383,7 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
                 outs.append((reg, n))
                 values.append((name, "Nat", f"words m (x {reg}#5) {n}"))
                 post_values.append((name, "Nat", f"words m' (x {reg}#5) {n}"))
+                olds[name] = f"words m (x {reg}#5) {n}"
                 reg += 2
                 continue
             reg += 2
@@ -333,6 +413,7 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
             outs.append((reg, n))
             values.append((name, "Nat", f"words m (x {reg}#5) {n}"))
             post_values.append((name, "Nat", f"words m' (x {reg}#5) {n}"))
+            olds[name] = f"words m (x {reg}#5) {n}"
             reg += 1
             continue
         else:
@@ -341,22 +422,18 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
         post_values.append(v)
     values += [(n, "Nat", v) for n, v in sizes]
     post_values += [(n, "Nat", v) for n, v in sizes]
-    if len(outs) > 1:
-        sys.exit(f"{var}: more than one result buffer")
     bufs += [f"bufWords (x {r}#5) {n}" for r, n in ins + outs]
     pre[:0] = [f"Buf (x {r}#5) {nbytes(n)}" for r, n in outs + ins]
-    for r, n in outs:
-        for r2, n2 in ins:
+    for i, (r, n) in enumerate(outs):
+        for r2, n2 in ins + outs[i + 1:]:
             pre.append(f"Disjoint (x {r}#5) {nbytes(n)} (x {r2}#5) {nbytes(n2)}")
     sp = f"(x 2#5 - {stack}#64)"  # The stack frame, below sp.
-    if outs:
-        r, n = outs[0]
-        out = f"(x {r}#5) {nbytes(n)}"
-        frame = [f"UnchangedExcept2 m m' {out} {sp} {stack}" if stack else
-                 f"UnchangedExcept m m' {out}"]
-    else:
-        frame = ([f"UnchangedExcept m m' {sp} {stack}"] if stack else
-                 ["m' = m"] if bufs or image else [])
+    # The memory outside the written buffers and the stack frame is unchanged.
+    regions = [f"(x {r}#5) {nbytes(n)}" for r, n in outs] + ([f"{sp} {stack}"] if stack else [])
+    if len(regions) > 3:
+        sys.exit(f"{var}: more than 3 written buffers with the stack frame")
+    frame = ([f"UnchangedExcept{['', '', '2', '3'][len(regions)]} m m' {' '.join(regions)}"]
+             if regions else ["m' = m"] if bufs or image else [])
     if ret_width is not None and ret_width > 128:
         result = ("Nat", f"(words m' (x {outs[0][0]}#5) {ret_width // 64})")
     elif mem_result(ret):
@@ -376,10 +453,15 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
             pre.append(f"Disjoint {sp} {stack} (x {r}#5) {nbytes(n)}")
     width = (ret_width or (64 * int(outs[0][1]) if outs and outs[0][1].isdigit() else None) or
              uint_width(args[0]) or 64)
-    targs = inst["targs"]
-    pre += [apply(size_calls(p), width, None, values, targs) for p in spec["pre"]]
-    post = [apply(size_calls(p), width, result, post_values, targs) for p in spec["post"]] + frame + [
-        "∀ i ∈ calleeSaved, x' i = x i"]
+    for p in pres:
+        if re.search(r"\bold\(", p):
+            sys.exit(f"{var}: old() in a @pre")
+    pre += [apply(size_calls(p, known), width, None, values, targs) for p in pres]
+    post = []
+    for p in spec["post"]:
+        term, old_values = old_calls(var, size_calls(p, known), olds)
+        post.append(apply(term, width, result, post_values + old_values, targs))
+    post += frame + ["∀ i ∈ calleeSaved, x' i = x i"]
     lines = header(var, spec, hpp)
     if inst.get("negate"):
         lines[0] = lines[0].replace(f"`{spec['name']}`", f"`{spec['name']}`, negated (`!=`)", 1)
