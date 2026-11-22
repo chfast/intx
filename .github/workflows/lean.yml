@@ -1,0 +1,96 @@
+# The proofs of the RV64 machine code (lean/). They run on GitHub Actions: its runner for public
+# repositories has 16 GB, twice the memory of the CircleCI one, and a job may take 6 hours, so a
+# build without the cache fits in one run.
+name: lean
+
+on:
+  push:
+    branches: [fv/main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lean-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lean:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 240
+    env:
+      ELAN_VERSION: v4.2.4
+      ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+    defaults:
+      run:
+        working-directory: lean
+    steps:
+      - name: Install tools
+        working-directory: .
+        run: |
+          sudo apt-get update -q
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
+            clang-21 lld g++-riscv64-linux-gnu zstd
+          clang++-21 --version | head -1
+          ld.lld --version
+      # The Mathlib build and the build of the proofs take 15 GB.
+      - name: Free the disk
+        working-directory: .
+        run: |
+          df -h /
+          if [ "$(df --output=avail -BG / | tail -1 | tr -dc 0-9)" -lt 30 ]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+              /opt/hostedtoolcache/CodeQL
+            df -h /
+          fi
+      - uses: actions/checkout@v4
+      - name: Install Lean
+        working-directory: .
+        run: |
+          curl -sSfL -o /tmp/elan.tar.gz https://github.com/leanprover/elan/releases/download/$ELAN_VERSION/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo "$ELAN_SHA256  /tmp/elan.tar.gz" | sha256sum -c
+          tar xzf /tmp/elan.tar.gz -C /tmp
+          /tmp/elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+      - uses: actions/cache@v4
+        with:
+          path: lean/.lake/packages
+          key: lean-packages-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}
+      - name: Get the Mathlib build
+        run: lake exe cache get
+      - name: Generate the RV64 machine code and the specifications
+        run: CXX=clang++-21 scripts/rv_build.sh
+      # The build of the proofs is cached: Lake compares the hashes of the sources and of their
+      # imports, so a run rebuilds only the proofs of the changed code and specifications, and a
+      # new word rebuilds only its file of Gen/Decode/.
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            lean/.lake/build/lib/lean
+            lean/.lake/build/ir
+          key: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-${{ github.run_id }}
+          restore-keys: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-
+      # The runner has 4 CPUs and 16 GB: 4 Lean processes, and 2 for the proofs that take 3-5 GB
+      # each. The build of the decode files of an earlier layout is deleted, so that the cache
+      # does not keep it.
+      - name: Check the proofs and their axioms
+        timeout-minutes: 200
+        run: |
+          for f in .lake/build/lib/lean/IntxRV/Gen/Decode/* .lake/build/ir/IntxRV/Gen/Decode/*; do
+            b=$(basename "$f")
+            [ -e "IntxRV/Gen/Decode/${b%%.*}.lean" ] || rm -f "$f"
+          done
+          LEAN_NUM_THREADS=4 lake build IntxRV.Gen.Code
+          LEAN_NUM_THREADS=2 lake build IntxRV.Api.mul_256 IntxRV.Api.umul_256 \
+            IntxRV.Api.udivrem_by1 IntxRV.Api.udivrem_by2 IntxRV.Api.udivrem_top1_2 \
+            IntxRV.Api.udivrem_top1_3 IntxRV.Api.udivrem_top2_3 IntxRV.Api.udivrem_256
+          LEAN_NUM_THREADS=4 lake build Intx IntxRV Checks
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            lean/.lake/build/lib/lean
+            lean/.lake/build/ir
+          key: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Check the hashes of the modeled C++ code
+        run: scripts/check-source.py
