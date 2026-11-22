@@ -125,7 +125,7 @@ theorem udivrem_by1.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
     rv_val
     rv_fold hqa
     rw [hqa]
-    refine ⟨trivial, List.mem_append_left _ (List.mem_append_right _ (mem_bufWords (by omega))), ?_⟩
+    refine ⟨List.mem_append_left _ (List.mem_append_right _ (mem_bufWords (by omega))), ?_⟩
     rv_exec_cut 148 167
   -- The reciprocal, the shift and the branches of the first quotient word.
   all_goals

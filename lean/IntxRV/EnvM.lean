@@ -113,10 +113,10 @@ theorem matching_ram1 (a : BitVec 64) (h1 : 0x80000000 ≤ a.toNat)
   simp only [ram] at this ⊢
   simp [this]
 
-/-- A byte in the RAM is ordinary readable memory. -/
+/-- A byte in the RAM is ordinary memory. -/
 theorem byteOk_ram (a : BitVec 64) (h1 : 0x80000000 ≤ a.toNat) (h2 : a.toNat + 1 ≤ 0x80001000) :
     ByteOk envValM a :=
-  ⟨⟨ram, matching_ram1 a h1 h2, rfl⟩, by simp only [clint_base_toNat, clint_size_toNat]; omega,
+  ⟨⟨ram, matching_ram1 a h1 h2, rfl, rfl⟩, by simp only [clint_base_toNat, clint_size_toNat]; omega,
     by simp only [sig_base_toNat, sig_size_toNat]; omega, by intro b hb; cases hb⟩
 
 set_option maxRecDepth 100000 in

@@ -1,10 +1,11 @@
 import IntxRV.Mem
 /-!
-# Loads of 1 byte
+# Loads and stores of 1 byte
 
 `exec_lbu` shows that `lbu` reads 1 byte, zero extended: as `exec_load` for `ld`. `ctz()` reads
-the table of its de Bruijn sequence with it. `ByteOk` (in `Mem.lean`) says that a byte is ordinary
-readable memory.
+the table of its de Bruijn sequence with it. `exec_sb` shows that `sb` writes the low byte of a
+register, as `exec_store` for `sd`: `memset()` writes with it. `ByteOk` (in `Mem.lean`) says that a
+byte is ordinary memory.
 -/
 
 open Sail Sail.ConcurrencyInterfaceV1 PreSail
@@ -75,7 +76,7 @@ theorem mem_read_M1 {S s : SailState} {val : (r : Register) → RegisterType r} 
     mem_read (.Load .Data) .PBMT_PMA (.Physaddr a) 1 false false false s =
       .ok (.Ok (memByte s.mem a.toNat)) s := by
   have hr := readReg_env e.toEnv h
-  obtain ⟨r, hm, hrd⟩ := ha.pma
+  obtain ⟨r, hm, hrd, -⟩ := ha.pma
   simp (config := { decide := true }) [LeanRV64D.assert, PreSail.assert, Functions.not,
     mem_read, mem_read_priv, mem_read_priv_meta, checked_mem_read,
     check_pma_with_pmp_priority, pmp_M e h, pmaCheck, hm, hrd, override_PMA, mag_pma_check,
@@ -123,5 +124,87 @@ theorem exec_lbu {S s : SailState} {val : (r : Register) → RegisterType r} {pc
     bind, EStateM.bind, pure, EStateM.pure, SailME.run, PreSailME.run, ExceptT.run, liftM,
     monadLift, MonadLift.monadLift, ExceptT.lift, ExceptT.bind, ExceptT.mk, ExceptT.bindCont,
     ExceptT.pure, Functor.map, EStateM.map]
+
+/-- The memory `m` with the byte `v` stored at `a`. -/
+def memStoreByte (m : Std.ExtHashMap Nat (BitVec 8)) (a : Nat) (v : BitVec 8) :
+    Std.ExtHashMap Nat (BitVec 8) :=
+  m.insert a v
+
+/-- An ordinary byte is not in a memory-mapped device that can be written. -/
+theorem mmio_M1w {S s : SailState} {val : (r : Register) → RegisterType r} {pc npc : BitVec 64}
+    {x : Regs} (e : EnvM S val) (h : Inv S s pc npc x) (a : BitVec 64) (ha : ByteOk val a) :
+    within_mmio_writable (.Physaddr a) 1 s = .ok false s := by
+  have hr := readReg_env e.toEnv h
+  have hc := ha.clint
+  have hs := ha.sig
+  have hh := ha.htif
+  simp (config := { decide := true }) [within_mmio_writable, within_clint,
+    within_sig, within_htif_writable, get_config_rvfi, hr, isRunReg,
+    BitVec.toNatInt, bind, EStateM.bind, pure, EStateM.pure]
+  simp only [clint_base_toNat, clint_size_toNat, sig_base_toNat, sig_size_toNat,
+    clint_base_toNat', clint_size_toNat', sig_base_toNat', sig_size_toNat'] at hc hs ⊢
+  cases hv : val .htif_tohost_base with
+  | none => simp [pure, EStateM.pure]; omega
+  | some b => simp [hh _ hv, pure, EStateM.pure]; omega
+
+theorem write_ram_ok1 (s : SailState) (a : BitVec 64) (v : BitVec 8) (me : Unit) :
+    Functions.write_ram .Write_plain (.Physaddr a) 1 v me s =
+      .ok true { s with mem := memStoreByte s.mem a.toNat v } := by
+  simp [Functions.write_ram, sail_mem_write, writeBytes, writeByte, memStoreByte, List.ofFn,
+    Fin.foldr, Fin.foldr.loop, List.forM, modify, modifyGet, MonadStateOf.modifyGet,
+    EStateM.modifyGet, bind, EStateM.bind, pure, EStateM.pure]
+
+/-- The address of a store of a byte: no pointer masking. -/
+theorem data_addr_store1 {S s : SailState} {val : (r : Register) → RegisterType r}
+    {pc npc : BitVec 64} {x : Regs} (e : EnvM S val) (h : Inv S s pc npc x) (rs : BitVec 5)
+    (off : BitVec 64) :
+    get_transformed_data_addr (.Regidx rs) off (.Store .Data) 1 s =
+      .ok (.Ext_DataAddr_OK (.Virtaddr (x.get rs + off))) s := by
+  simp (config := { decide := true }) [get_transformed_data_addr, ext_data_get_addr,
+    rX_bits_inv h, transform_effective_address, effectivePrivilege, readReg_env e.toEnv h,
+    isRunReg, LeanRV64D.readReg, e.mprv, e.priv_M, get_pmlen, is_pmm_applicable, get_pmm, e.pmm,
+    translationMode, pm_transform_PA, pmm_mode_backwards, bind, EStateM.bind, pure, EStateM.pure]
+  simp [Functions.xlen, Sail.BitVec.extractLsb, zero_extend, Sail.BitVec.zeroExtend]
+  apply BitVec.eq_of_toNat_eq
+  simp [BitVec.extractLsb_toNat]
+
+theorem extractLsb_7 (v : BitVec 64) : Sail.BitVec.extractLsb v 7 0 = v.setWidth 8 := by
+  apply BitVec.eq_of_toNat_eq
+  simp [Sail.BitVec.extractLsb, BitVec.extractLsb_toNat]
+
+theorem extractLsb_7_8 (v : BitVec 8) : Sail.BitVec.extractLsb v 7 0 = v := by
+  apply BitVec.eq_of_toNat_eq
+  simp [Sail.BitVec.extractLsb, BitVec.extractLsb_toNat]
+  exact v.isLt
+
+/-- `sb rs2, imm(rs1)` of an ordinary byte writes the low byte of `rs2` to the memory and changes
+nothing else. -/
+theorem exec_sb {S s : SailState} {val : (r : Register) → RegisterType r} {pc npc : BitVec 64}
+    {x : Regs} (e : EnvM S val) (h : Inv S s pc npc x) (imm : BitVec 12) (rs2 rs1 : BitVec 5)
+    (ha : ByteOk val (x.get rs1 + sign_extend (m := 64) imm)) :
+    ∃ s', execute (.STORE (imm, .Regidx rs2, .Regidx rs1, 1)) s = .ok RETIRE_SUCCESS s' ∧
+      s' = { s with mem := (memStoreByte s.mem (x.get rs1 + (sign_extend imm : BitVec 64)).toNat
+        ((x.get rs2).setWidth 8)) } := by
+  refine ⟨_, ?_, rfl⟩
+  have hr := readReg_env e.toEnv h
+  obtain ⟨r, hm, hrd, hwr⟩ := ha.pma
+  show execute_STORE _ _ _ _ s = _
+  have hal : is_aligned_vaddr (.Virtaddr (x.get rs1 + sign_extend (m := 64) imm)) 1 = true := by
+    simp [is_aligned_vaddr]
+  simp (config := { decide := true }) [execute_STORE, vmem_write, data_addr_store1 e h,
+    vmem_write_addr, rX_bits_inv h,
+    LeanRV64D.assert, PreSail.assert, Functions.not, hal, bits_of_virtaddr, bits_of_physaddr,
+    split_page1 s _, effectivePrivilege, hr, isRunReg, LeanRV64D.readReg, e.mprv,
+    e.priv_M, translationMode, translate_M e h _ _ (.inr rfl), is_store_conditional,
+    mem_write_ea, mem_write_value, mem_write_value_meta, mem_write_value_priv_meta,
+    checked_mem_write, check_pma_with_pmp_priority, pmp_M e h, pmaCheck, hm, hwr, override_PMA,
+    mag_pma_check, is_aligned_paddr, is_mag_applicable_access, split_misaligned,
+    misaligned_order, untilFuelM, untilFuelM.go, mmio_M1w e h _ ha, addInt_zero,
+    write_kind_of_flags, write_ram_ok1, extractLsb_7, extractLsb_7_8, updateSubrange_all8,
+    sign_extend_64,
+    bind, EStateM.bind, pure, EStateM.pure, SailME.run, PreSailME.run, ExceptT.run, liftM,
+    monadLift, MonadLift.monadLift, ExceptT.lift, ExceptT.bind, ExceptT.mk, ExceptT.bindCont,
+    ExceptT.pure, Functor.map, EStateM.map, -BitVec.toNat_add,
+    show max (1 : Int) 0 = 1 from rfl, show max (1 : Nat) 0 = 1 from rfl]
 
 end IntxRV

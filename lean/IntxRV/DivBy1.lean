@@ -359,7 +359,7 @@ theorem by1_exit {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rw [h10]
-    refine ⟨trivial, List.mem_append_left _ (List.mem_append_right _
+    refine ⟨List.mem_append_left _ (List.mem_append_right _
       (mem_bufWords_zero (by simp only [udivrem_by1.pre, Buf] at hpre
                              simp (disch := decide) only [Regs.eq_get x] at hpre; omega))), ?_⟩
     rv_exec_cut
@@ -439,7 +439,7 @@ theorem by1_loop {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rw [h14]
-    refine ⟨trivial, List.mem_append_left _ (List.mem_append_right _ (mem_bufWords (by omega))), ?_⟩
+    refine ⟨List.mem_append_left _ (List.mem_append_right _ (mem_bufWords (by omega))), ?_⟩
     rv_exec_cut 148 167
   -- The quotient word and the remainder of the digit i.
   all_goals

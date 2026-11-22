@@ -31,7 +31,10 @@ theorem execM_mono {A A' : List (BitVec 64)} (hA : ∀ a ∈ A, a ∈ A') {i : i
         · contradiction
   · split at h
     · rename_i hc; rw [if_pos ⟨hc.1, hA _ hc.2⟩]; exact h
-    · contradiction
+    · split at h
+      · rename_i _ hc
+        rw [if_neg (by simp [hc.1]), if_pos ⟨hc.1, hA _ hc.2⟩]; exact h
+      · contradiction
   · exact h
 
 theorem stepsM_mono {A A' : List (BitVec 64)} (hA : ∀ a ∈ A, a ∈ A') {prog : List instruction}

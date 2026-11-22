@@ -228,6 +228,9 @@ def decode(w):
     if opcode == 0x23 and f3 == 3:
         imm = (w >> 25) << 5 | (w >> 7) & 0x1f
         return f".STORE ({lean_bv(imm, 12)}, {reg(rs2)}, {reg(rs1)}, 8)"
+    if opcode == 0x23 and f3 == 0:
+        imm = (w >> 25) << 5 | (w >> 7) & 0x1f
+        return f".STORE ({lean_bv(imm, 12)}, {reg(rs2)}, {reg(rs1)}, 1)"
     if opcode == 0x67 and f3 == 0:
         return f".JALR ({lean_bv(w >> 20, 12)}, {reg(rs1)}, {reg(rd)})"
     sys.exit(f"unsupported instruction 0x{w:08x}")

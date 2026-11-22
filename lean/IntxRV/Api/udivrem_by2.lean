@@ -250,7 +250,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
        rv_fold hqa
        rv_fold hqa
        rw [hqa]
-       refine ⟨trivial, List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
+       refine ⟨List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
          (mem_bufWords (by omega)))), ?_⟩
        rv_exec_cut 201)
   -- u[n - 1] ≤ d1: d subtracted from the top two words at most once.
@@ -278,7 +278,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
        rv_fold hqa
        rv_fold hqa
        rw [hqa]
-       refine ⟨trivial, List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
+       refine ⟨List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
          (mem_bufWords (by omega)))), ?_⟩
        rv_exec_cut 201)
   all_goals first

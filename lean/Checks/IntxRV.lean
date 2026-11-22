@@ -1,5 +1,6 @@
 import IntxRV
 import IntxRV.EnvM
+import IntxRV.Memset
 set_option warningAsError true
 /-!
 # Checks: the RV64 machine code
@@ -28,3 +29,5 @@ elab "#check_rv_axioms " thm:ident : command => do
 #check_rv_axioms IntxRV.env_exists
 #check_rv_axioms IntxRV.inv_mkState
 #check_rv_axioms IntxRV.envM_exists
+-- memset() has no specification in intx.hpp: its proof is checked here.
+#check_rv_axioms IntxRV.memset.reach

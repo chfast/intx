@@ -94,10 +94,14 @@ def StepGoal (A : List (BitVec 64)) (prog : List instruction) (base : BitVec 64)
     (x.get rs1 + imm.signExtend 64) &&& ~~~7#64 ∈ A ∧
       ∀ w, Defn w ((memByte m (x.get rs1 + imm.signExtend 64).toNat).setWidth 64) →
         Reach A prog base (pcAt base (k + 1)) (x.set rd w) m tgt Q
-  | .STORE (imm, .Regidx rs2, .Regidx rs1, width) =>
-    width = 8 ∧ x.get rs1 + imm.signExtend 64 ∈ A ∧
+  | .STORE (imm, .Regidx rs2, .Regidx rs1, 8) =>
+    x.get rs1 + imm.signExtend 64 ∈ A ∧
       Reach A prog base (pcAt base (k + 1)) x
         (memStore m (x.get rs1 + imm.signExtend 64).toNat (x.get rs2)) tgt Q
+  | .STORE (imm, .Regidx rs2, .Regidx rs1, 1) =>
+    (x.get rs1 + imm.signExtend 64) &&& ~~~7#64 ∈ A ∧
+      Reach A prog base (pcAt base (k + 1)) x
+        (memStoreByte m (x.get rs1 + imm.signExtend 64).toNat ((x.get rs2).setWidth 8)) tgt Q
   | .BTYPE (imm, .Regidx rs2, .Regidx rs1, op) =>
     (0 ≤ ((4 * k : Nat) : Int) + imm.toInt ∧ imm.toInt % 4 = 0) ∧
       (btypeTaken op (x.get rs1) (x.get rs2) = true →
@@ -146,8 +150,10 @@ theorem Reach.step {A : List (BitVec 64)} {prog : List instruction} {base tgt : 
     exact Reach.step_execM hf (by simp [execM, sign_extend_eq, hA, pcAt_succ]) (h _ rfl)
   · obtain ⟨hA, h⟩ := h
     exact Reach.step_execM hf (by simp [execM, sign_extend_eq, pcAt_succ]; simpa using hA) (h _ rfl)
-  · obtain ⟨rfl, hA, h⟩ := h
+  · obtain ⟨hA, h⟩ := h
     exact Reach.step_execM hf (by simp [execM, sign_extend_eq, hA, pcAt_succ]) h
+  · obtain ⟨hA, h⟩ := h
+    exact Reach.step_execM hf (by simp [execM, sign_extend_eq, pcAt_succ]; simpa using hA) h
   · rename_i imm rs2 rs1 op
     obtain ⟨hj, ht, hn⟩ := h
     by_cases hb : btypeTaken op (x.get rs1) (x.get rs2) = true

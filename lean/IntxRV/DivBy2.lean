@@ -472,7 +472,7 @@ theorem by2_exit {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h10]
-  refine ⟨trivial, List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
+  refine ⟨List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
     (mem_bufWords_zero (by omega)))), ?_⟩
   rv_exec_cut
   -- The saved s0, s1 and s2.
@@ -663,7 +663,7 @@ theorem by2_loop {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rw [h15]
-    refine ⟨trivial, List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
+    refine ⟨List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
       (mem_bufWords (by omega)))), ?_⟩
     rv_exec_cut 207 214 256
   -- The memory after the store of q[i].

@@ -276,10 +276,18 @@ the memory of the Sail state, little-endian, through the whole memory access of 
 the address translation, the PMP and PMA checks and the memory-mapped devices. The environment
 `EnvM` makes these pass through: machine mode without `MPRV` (no translation), no pointer masking
 and no PMP entries enabled. `WordOk` assumes that each word of a buffer is in a readable and
-writable PMA region and not in the CLINT, HTIF or signature region, and its 4-byte halves and its
-bytes in a readable one (`HalfOk`, `ByteOk`). [`Mem4.lean`](Mem4.lean) proves that `lwu` of a
-half reads its 4 bytes, zero-extended, and [`Mem1.lean`](Mem1.lean) that `lbu` reads a byte,
-zero-extended. `EnvM.lean` builds such an environment with 4 KiB of RAM, the stack at its end.
+writable PMA region and not in the CLINT, HTIF or signature region, its 4-byte halves in a
+readable one (`HalfOk`) and its bytes in a readable and writable one (`ByteOk`).
+[`Mem4.lean`](Mem4.lean) proves that `lwu` of a half reads its 4 bytes, zero-extended, and
+[`Mem1.lean`](Mem1.lean) that `lbu` reads a byte, zero-extended, and `sb` writes the low byte of a
+register. A byte is accessed through the word of `A` that holds it (`a &&& ~~~7`). `EnvM.lean`
+builds such an environment with 4 KiB of RAM, the stack at its end.
+
+The code of clang calls `memset()` to zero more than 64 bytes. `Api.cpp` defines it with a loop of
+`sb`, which clang does not turn into a call of itself (`no_builtin`), and points to it from
+`intx::lib`: `rv_gen.py` generates its code as of an instance, and the images of its callers hold
+it. [`Memset.lean`](Memset.lean) proves it by hand (`memset.reach`): it has no specification in
+`intx.hpp`.
 
 ## What the proofs trust
 
@@ -303,9 +311,10 @@ zero-extended. `EnvM.lean` builds such an environment with 4 KiB of RAM, the sta
   binding of an instance to its function and the calling convention.
 * The extraction of the machine code from the object file and the image by `rv_gen.py`.
 
-Not covered: other compilers, other flags; loops (so not the multiplication modulo 2^256, the
-shifts and the division of `uint256` yet). The linking of the image is by `ld.lld` with the
-linker script; its output is checked as the machine code is.
+Not covered: other compilers, other flags. The linking of the image is by `ld.lld` with the
+linker script; its output is checked as the machine code is. The images link the `memset()` of
+`Api.cpp`: a program links the one of its C library, which must set the bytes and keep the
+registers as `memset.reach` states.
 
 ## Build
 

@@ -20,6 +20,23 @@
 // The attributes of lambdas before the parameters, of C++23, are an extension of clang in C++20.
 #pragma clang diagnostic ignored "-Wc++23-lambda-attributes"
 
+// memset() for the calls that clang emits to zero more than 64 bytes, as the results of udivrem()
+// for addmod() and mulmod(): one byte at a time, so that clang does not make it a call of itself.
+// Its proof is in IntxRV/Memset.lean.
+extern "C" [[clang::no_builtin("memset")]] void* memset(void* dst, int c, size_t n) noexcept
+{
+    auto* const p = static_cast<unsigned char*>(dst);
+    for (size_t i = 0; i != n; ++i)
+        p[i] = static_cast<unsigned char>(c);
+    return dst;
+}
+
+// The functions of the C library that the code calls: their code in the images, proved by hand.
+namespace intx::lib
+{
+[[gnu::used]] constexpr auto* memset = &::memset;
+}  // namespace intx::lib
+
 namespace intx::api
 {
 using Binop = uint256 (*)(const uint256&, const uint256&) noexcept;
