@@ -85,7 +85,7 @@ jobs:
             IntxRV.Api.udivrem_by1 IntxRV.Api.udivrem_by2 IntxRV.Api.udivrem_top1_2 \
             IntxRV.Api.udivrem_top1_3 IntxRV.Api.udivrem_top2_3 IntxRV.Api.udivrem_256 \
             IntxRV.Api.udivrem_knuth_normalized_3 IntxRV.Api.udivrem_knuth_normalized_4 \
-            IntxRV.Div512K3 IntxRV.Div512K4 IntxRV.Api.mulmod_256
+            IntxRV.Div512K3 IntxRV.Div512K4 IntxRV.Api.mulmod_256 IntxRV.DivBy24
           LEAN_NUM_THREADS=4 lake build Intx IntxRV Checks
       - uses: actions/cache/save@v4
         if: always()
