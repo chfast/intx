@@ -687,7 +687,7 @@ theorem k320_tail {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Re
   simp only [udivrem_knuth_320.pre, Buf, Disjoint] at hpre'
   simp (disch := decide) only [Regs.eq_get x] at hpre'
   obtain ⟨⟨hra, hrn⟩, ⟨hua, hun⟩, ⟨hda, hdn⟩, hdru, hdrd, ⟨hsa, hsn⟩, hdsu, hdsd, hdsr, hn3, hn4,
-    hD, hmm, hU, htop⟩ := hpre'
+    hD, hmm, hU, -, htop⟩ := hpre'
   have hnm := k320_n_le_mm hD hU htop
   obtain ⟨hdnT, hunT, hun8T⟩ := k320_sp_offsets (x.get 2#5) hsn
   -- The top words of u and d.
@@ -1069,7 +1069,7 @@ theorem k320_at133 (x : Regs) (m : Mem) (hpre : udivrem_knuth_320.pre x m) (s : 
   simp only [udivrem_knuth_320.pre, Buf, Disjoint] at hpre'
   simp (disch := decide) only [Regs.eq_get x] at hpre'
   obtain ⟨⟨hra, hrn⟩, ⟨hua, hun⟩, ⟨hda, hdn⟩, hdru, hdrd, ⟨hsa, hsn⟩, hdsu, hdsd, hdsr, hn3, hn4,
-    hD, hmm, hU, htop⟩ := hpre'
+    hD, hmm, hU, -, htop⟩ := hpre'
   obtain ⟨t144, t72, t80, t88, t96, t104, t112⟩ := k320_stack_toNat (x.get 2#5) hsn
   have hfun := k320FrameMem_unchanged x m hsn
   -- The memory below the words of the shifted numerator, from the start.

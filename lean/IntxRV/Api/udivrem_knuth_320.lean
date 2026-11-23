@@ -11,6 +11,7 @@ The specification, from `include/intx/intx.hpp`:
 /// @pre 2 ^ (64 * (d.size() - 1)) <= d
 /// @pre m <= u.size()
 /// @pre u < 2 ^ (64 * m)
+/// @pre 2 ^ (64 * (m - 1)) <= u
 /// @pre d / 2 ^ (64 * (d.size() - 1)) <= u / 2 ^ (64 * (d.size() - 1))
 /// @post result.quot = u / d
 /// @post result.rem = u % d
@@ -125,7 +126,7 @@ theorem udivrem_knuth_320.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitV
   simp only [udivrem_knuth_320.pre, Buf, Disjoint] at hpre'
   simp (disch := decide) only [Regs.eq_get x] at hpre'
   obtain ⟨⟨hra, hrn⟩, ⟨hua, hun⟩, ⟨hda, hdn⟩, hdru, hdrd, ⟨hsa, hsn⟩, hdsu, hdsd, hdsr, hn3, hn4,
-    hD, hmm, hU, htop⟩ := hpre'
+    hD, hmm, hU, -, htop⟩ := hpre'
   have hbufs : udivrem_knuth_320.bufs x = bufWords (x.get 11#5) 5 ++
       bufWords (x.get 13#5) (x.get 14#5).toNat ++ bufWords (x.get 10#5) 9 ++
       bufWords (x.get 2#5 - 288#64) 36 := by
