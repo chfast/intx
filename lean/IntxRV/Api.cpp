@@ -137,12 +137,13 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
     &intx::internal::udivrem_knuth_normalized<3>;
 [[gnu::used]] constexpr auto* udivrem_knuth_normalized_4 =
     &intx::internal::udivrem_knuth_normalized<4>;
+// The division of the 512-bit product in mulmod().
+[[gnu::used]] constexpr auto* udivrem_512_256 = &intx::udivrem<512, 256>;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
-[[gnu::used]] constexpr auto* udivrem_512_256 = &intx::udivrem<512, 256>;
 [[gnu::used]] constexpr auto* mulmod_256 = &intx::mulmod;
 }  // namespace intx::wip

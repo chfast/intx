@@ -57,6 +57,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `internal::submul()` in place | [`submul`](Api/submul.lean) |
 | `internal::udivrem_knuth_normalized<3>()` | [`udivrem_knuth_normalized_3`](Api/udivrem_knuth_normalized_3.lean) |
 | `internal::udivrem_knuth_normalized<4>()` | [`udivrem_knuth_normalized_4`](Api/udivrem_knuth_normalized_4.lean) |
+| `udivrem()` of `uint512` by `uint256` | [`udivrem_512_256`](Api/udivrem_512_256.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
@@ -255,9 +256,20 @@ the estimate times d borrows (`k3_sub`, `knuth_addback`), or `2^64 - 1` by the c
 `knuth_overflow`). The paths of a digit meet at the store of the digit (`k3_tail`), and the
 epilogue is a lemma over abstract registers (`k3_exit`). The 4-word instance
 ([`Knuth4.lean`](Knuth4.lean)) is the same with the 2-word `submul()` of the low words of d and the
-4-word add-back, in its image after `submul()`: its code starts at the instruction 22. An `omega` in the context of a run makes
-a proof over all its hypotheses, which the kernel checks for minutes in tens of GB: the arithmetic
-of the runs is in lemmas over a few variables, and `omega` there follows `clear * - h`.
+4-word add-back, in its image after `submul()`: its code starts at the instruction 22. An `omega`
+in the context of a run makes a proof over all its hypotheses, which the kernel checks for minutes
+in tens of GB: the arithmetic of the runs is in lemmas over a few variables, and `omega` there
+follows `clear * - h`.
+
+`udivrem<512, 256>()` ([`Div512.lean`](Div512.lean)) has the paths of `udivrem<256, 256>()` with
+calls of `memset()` and `shl<9, 8>()` and the inlined normalization of the divisor and shift of the
+remainder for the 3- and 4-word Knuth divisions. Each path keeps the frame of 160 bytes, a
+predicate over the registers and the memory (`U512Frame`). After `memset()` the memory is
+`memFill` outside the bytes that the later calls write, which gives the zero words above the ones
+that a callee writes. `rv_subst` substitutes the names of the values of a run: `subst_vars` also
+tries the other equations of the context, which took a minute in these. The counts of the words
+of v and u meet at 54, and each of the 7 exits of the count of u tries the dispatch for each count
+(`u512_exit`).
 
 ### Calls and constant data
 
