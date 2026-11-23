@@ -4,7 +4,7 @@ from conan.tools.files import copy
 
 class IntxConan(ConanFile):
     name = "intx"
-    version = "0.15.0"
+    version = "0.16.0"
     description = "High‑performance multiprecision integer library for C++"
     url = "https://github.com/chfast/intx"
     license = "Apache-2.0"
