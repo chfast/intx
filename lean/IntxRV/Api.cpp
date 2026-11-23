@@ -143,6 +143,7 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
 // The callees of the division in addmod().
 [[gnu::used]] constexpr auto* udivrem_by1_5 = &intx::internal::udivrem_by1<5>;
 [[gnu::used]] constexpr auto* udivrem_by2_4 = &intx::internal::udivrem_by2<4>;
+[[gnu::used]] constexpr auto* udivrem_top1_2_320 = &intx::internal::udivrem_top1<2, 320, 256>;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
@@ -152,7 +153,6 @@ namespace intx::wip
 // addmod() and the division of the 320-bit sum that it calls, with its callees.
 [[gnu::used]] constexpr auto* addmod_256 = &intx::addmod;
 [[gnu::used]] constexpr auto* udivrem_320_256 = &intx::udivrem<320, 256>;
-[[gnu::used]] constexpr auto* udivrem_top1_2_320 = &intx::internal::udivrem_top1<2, 320, 256>;
 [[gnu::used]] constexpr auto* udivrem_top1_3_320 = &intx::internal::udivrem_top1<3, 320, 256>;
 [[gnu::used]] constexpr auto* udivrem_top2_3_320 =
     &intx::internal::udivrem_top2<3, false, 320, 256>;
