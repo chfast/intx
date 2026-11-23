@@ -5,6 +5,104 @@ Documentation of all notable changes to the **intx** project.
 The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
+## [0.16.0] — unreleased
+
+### Added
+
+- Add `sint<N>`, the N-bit two's complement signed integer, with the `int128` and `int256`
+  aliases. It converts to and from `uint<M>` of any width and gives access to its words.
+  [#368](https://github.com/chfast/intx/pull/368) [#483](https://github.com/chfast/intx/pull/483)
+  [#484](https://github.com/chfast/intx/pull/484)
+- Add `smul()`, the signed multiplication 64 x 64 → 128.
+  [#451](https://github.com/chfast/intx/pull/451)
+- Add `mac()`, the 64-bit multiply-accumulate `a + x * y + c`.
+  [#445](https://github.com/chfast/intx/pull/445)
+- Add the funnel shifts `fshl()` and `fshr()`, and the shifts `shl()` and `shr()` of word spans.
+  [#376](https://github.com/chfast/intx/pull/376)
+- Add `++`, `--` and unary `+` to `uint<N>` and `sint<N>`.
+  [#488](https://github.com/chfast/intx/pull/488)
+- Add `<`, `<=`, `>` and `>=` for `uint<N>` and builtin integers.
+  [#491](https://github.com/chfast/intx/pull/491)
+- Add `<<=` and `>>=` for builtin integer shift amounts.
+  [#463](https://github.com/chfast/intx/pull/463)
+- Add the `INTX_ASSERTIONS` CMake option, which keeps `assert()` and `INTX_REQUIRE()`
+  in release builds.
+  [#493](https://github.com/chfast/intx/pull/493)
+
+### Changed
+
+- A division by 0 gives 0 as the quotient and the remainder, as in the EVM: `udivrem()`,
+  `sdivrem()`, `/` and `%`, and `addmod()` and `mulmod()` with the modulus 0.
+  [#435](https://github.com/chfast/intx/pull/435)
+- A negative builtin integer shift amount fails an assertion and constant evaluation in debug
+  builds. Release builds still give 0.
+  [#463](https://github.com/chfast/intx/pull/463)
+- Optimize the division (`udivrem()`, `/`, `%`, `addmod()` and `mulmod()`):
+  - Divide without normalization when the quotient has one or two words.
+    [#377](https://github.com/chfast/intx/pull/377) [#385](https://github.com/chfast/intx/pull/385)
+    [#388](https://github.com/chfast/intx/pull/388) [#394](https://github.com/chfast/intx/pull/394)
+    [#395](https://github.com/chfast/intx/pull/395) [#396](https://github.com/chfast/intx/pull/396)
+    [#411](https://github.com/chfast/intx/pull/411) [#443](https://github.com/chfast/intx/pull/443)
+    [#446](https://github.com/chfast/intx/pull/446) [#449](https://github.com/chfast/intx/pull/449)
+  - Count the operand words and select the division path faster.
+    [#375](https://github.com/chfast/intx/pull/375) [#381](https://github.com/chfast/intx/pull/381)
+    [#382](https://github.com/chfast/intx/pull/382) [#386](https://github.com/chfast/intx/pull/386)
+    [#419](https://github.com/chfast/intx/pull/419) [#440](https://github.com/chfast/intx/pull/440)
+    [#448](https://github.com/chfast/intx/pull/448)
+  - Normalize the numerator on the fly for 1- and 2-word divisors.
+    [#412](https://github.com/chfast/intx/pull/412) [#413](https://github.com/chfast/intx/pull/413)
+    [#414](https://github.com/chfast/intx/pull/414) [#422](https://github.com/chfast/intx/pull/422)
+  - Specialize the Knuth division for 3- and 4-word divisors.
+    [#389](https://github.com/chfast/intx/pull/389) [#397](https://github.com/chfast/intx/pull/397)
+    [#420](https://github.com/chfast/intx/pull/420) [#424](https://github.com/chfast/intx/pull/424)
+    [#441](https://github.com/chfast/intx/pull/441)
+  - Compute the reciprocals faster, and use the hardware division on x86-64 for them and for the
+    quotient estimates.
+    [#401](https://github.com/chfast/intx/pull/401) [#402](https://github.com/chfast/intx/pull/402)
+    [#405](https://github.com/chfast/intx/pull/405) [#406](https://github.com/chfast/intx/pull/406)
+    [#407](https://github.com/chfast/intx/pull/407)
+  - Make the first corrections of `udivrem_2by1()` and `udivrem_3by2()` branch-free.
+    [#437](https://github.com/chfast/intx/pull/437) [#439](https://github.com/chfast/intx/pull/439)
+- Optimize `to_string()` and `hex()`.
+  [#390](https://github.com/chfast/intx/pull/390) [#391](https://github.com/chfast/intx/pull/391)
+  [#392](https://github.com/chfast/intx/pull/392)
+- Optimize the `uint256` multiplication and `submul()`.
+  [#427](https://github.com/chfast/intx/pull/427) [#460](https://github.com/chfast/intx/pull/460)
+  [#461](https://github.com/chfast/intx/pull/461)
+- Optimize the `uint256` less-than, `slt()` and the sign handling of `sdivrem()`.
+  [#434](https://github.com/chfast/intx/pull/434) [#453](https://github.com/chfast/intx/pull/453)
+  [#458](https://github.com/chfast/intx/pull/458)
+- With GCC, use the builtin 128-bit type for the `uint128` addition and subtraction, and
+  SHLD/SHRD for `fshl()` and `fshr()` on x86-64.
+  [#374](https://github.com/chfast/intx/pull/374) [#379](https://github.com/chfast/intx/pull/379)
+- Add `int128` values with the builtin 128-bit type.
+  [#487](https://github.com/chfast/intx/pull/487)
+- Optimize `be::store()` and `be::trunc()`.
+  [#452](https://github.com/chfast/intx/pull/452) [#457](https://github.com/chfast/intx/pull/457)
+- With MSVC, force-inline `unreachable()` so that `INTX_REQUIRE()` is a hint in release builds,
+  and compute the portable `addc()` and `subc()` without branches.
+  [#403](https://github.com/chfast/intx/pull/403) [#410](https://github.com/chfast/intx/pull/410)
+
+### Removed
+
+- Remove `fast_add()`. Use the `uint128` addition.
+  [#393](https://github.com/chfast/intx/pull/393)
+
+### Fixed
+
+- Fix the truncation of `__int128` and `unsigned __int128` values in the `uint` constructors,
+  assignments and conversions. The other integer types wider than 64 bits, e.g. `_BitInt(128)`,
+  no longer convert to `uint`.
+  [#462](https://github.com/chfast/intx/pull/462)
+- Fix the overflow check in `from_string()`, which missed most overflows of the decimal digits.
+  Leading zeros no longer cause `std::out_of_range`.
+  [#432](https://github.com/chfast/intx/pull/432)
+- Do not define `__has_feature` for the compilers without it.
+  [#450](https://github.com/chfast/intx/pull/450)
+- Fix configuring the tests with CMake 4.5.
+  [#454](https://github.com/chfast/intx/pull/454)
+
+
 ## [0.15.0] — 2026-01-30
 
 ## Added
@@ -322,6 +420,7 @@ and this project adheres to [Semantic Versioning].
   [#99](https://github.com/chfast/intx/pull/99)
 
 
+[0.16.0]: https://github.com/chfast/intx/compare/v0.15.0..main
 [0.15.0]: https://github.com/chfast/intx/releases/v0.15.0
 [0.14.0]: https://github.com/chfast/intx/releases/v0.14.0
 [0.13.0]: https://github.com/chfast/intx/releases/v0.13.0
