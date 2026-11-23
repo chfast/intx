@@ -63,6 +63,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `internal::udivrem_by2()` of 4 quotient words | [`udivrem_by2_4`](Api/udivrem_by2_4.lean) |
 | `internal::udivrem_top1<2>()` of `uint320` by `uint256` | [`udivrem_top1_2_320`](Api/udivrem_top1_2_320.lean) |
 | `internal::udivrem_top1<3>()` of `uint320` by `uint256` | [`udivrem_top1_3_320`](Api/udivrem_top1_3_320.lean) |
+| `internal::udivrem_top2<3>()` of `uint320` by `uint256` | [`udivrem_top2_3_320`](Api/udivrem_top2_3_320.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
