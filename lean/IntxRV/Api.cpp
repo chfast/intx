@@ -140,7 +140,8 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
 // The division of the 512-bit product in mulmod().
 [[gnu::used]] constexpr auto* udivrem_512_256 = &intx::udivrem<512, 256>;
 [[gnu::used]] constexpr auto* mulmod_256 = &intx::mulmod;
-// The callees of the division in addmod().
+// The division in addmod() and its callees.
+[[gnu::used]] constexpr auto* udivrem_320_256 = &intx::udivrem<320, 256>;
 [[gnu::used]] constexpr auto* udivrem_by1_5 = &intx::internal::udivrem_by1<5>;
 [[gnu::used]] constexpr auto* udivrem_by2_4 = &intx::internal::udivrem_by2<4>;
 [[gnu::used]] constexpr auto* udivrem_top1_2_320 = &intx::internal::udivrem_top1<2, 320, 256>;
@@ -161,7 +162,6 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
-// addmod() and the division of the 320-bit sum that it calls, with its callees.
+// addmod(), which divides the 320-bit sum with udivrem<320, 256>().
 [[gnu::used]] constexpr auto* addmod_256 = &intx::addmod;
-[[gnu::used]] constexpr auto* udivrem_320_256 = &intx::udivrem<320, 256>;
 }  // namespace intx::wip
