@@ -88,6 +88,15 @@ jobs:
             IntxRV.Div512K3 IntxRV.Div512K4 IntxRV.Api.mulmod_256 IntxRV.DivBy24 \
             IntxRV.Api.udivrem_top1_3_320
           LEAN_NUM_THREADS=4 lake build Intx IntxRV Checks
+      # A cancelled or timed out step leaves Lean processes that still write the build, and the
+      # cache below fails when a file changes while it is archived: stop them first, so that the
+      # cache keeps the modules built so far.
+      - name: Stop the build
+        if: always()
+        run: |
+          pkill -x lake || true
+          pkill -x lean || true
+          while pgrep -x lean > /dev/null; do sleep 1; done
       - uses: actions/cache/save@v4
         if: always()
         with:
