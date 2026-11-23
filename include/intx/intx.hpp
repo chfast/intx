@@ -1145,6 +1145,10 @@ constexpr Int from_string(const std::string& s)
 
 namespace internal
 {
+template <size_t W>
+constexpr uint64_t udivrem_by1(std::span<uint64_t, W> q,
+    std::type_identity_t<std::span<const uint64_t, W>> u, uint64_t d) noexcept;
+
 /// Converts x to a decimal string. It divides x by 10^19, the largest power of 10 fitting in a
 /// word, to get a chunk of 19 digits per division, until the rest fits in a word. 10^19 has the
 /// top bit set, so the division needs no normalization, and its reciprocal is a compile-time
@@ -1217,12 +1221,11 @@ inline std::string to_string(uint<N> x, int base = 10)
             power *= b;
             ++digits;
         }
-        const auto divisor = uint<N>{power};
         do
         {
-            const auto res = udivrem(x, divisor);
-            x = res.quot;
-            auto r = static_cast<uint64_t>(res.rem);
+            // Divide the significant words of x in place.
+            const auto w = as_words(x).first(count_significant_words(x));
+            auto r = internal::udivrem_by1(w, w, power);
             for (size_t i = 0; i < digits; ++i)
                 put_digit(r);
         } while (x > WORD_MAX);
