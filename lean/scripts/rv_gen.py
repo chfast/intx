@@ -359,21 +359,56 @@ def linked_lines(var, segs, length, blocks):
              f"calls, with the immediates of the `auipc` and of the instruction after it that "
              f"address their data, which differ in each image. -/",
              f"def {var}_progAt {eparams} : List instruction :=\n  " +
-             " ++\n    ".join(tm for tm, _ in terms), "", "set_option maxRecDepth 100000 in",
+             " ++\n    ".join(tm for tm, _ in terms), "",
+             # The lengths of the segments one at a time: `rfl` on the whole list of a large image
+             # runs out of heartbeats.
+             "set_option maxRecDepth 100000 in",
              f"theorem {var}_progAt_length {params} :",
-             f"    ({var}_progAt {args}).length = {length} := by rfl", ""]
-    for (o, q, kind, _), (tm, _) in zip(segs, terms):
+             f"    ({var}_progAt {args}).length = {length} := by",
+             f"  simp only [{var}_progAt, List.length_append]; rfl", ""]
+
+    def in_proof(a, b, tm, unfold):
+        """The proof that the segments `a` to `b` of the image, the term `tm`, are at their offset:
+        the image as `A ++ (tm ++ B)`, the length of `A` and `List.drop_left`/`take_left`."""
+        pre = " ++ ".join(t for t, _ in terms[:a])
+        post = " ++ ".join(t for t, _ in terms[b + 1:])
+        whole = f"{var}_progAt {args}"
+        simps = ", ".join([f"{var}_progAt"] + unfold + ["List.append_assoc"])
+        if pre and post:
+            shape, rws = f"({pre}) ++ ({tm} ++ ({post}))", "List.drop_left, List.take_left"
+        elif pre:
+            shape, rws = f"({pre}) ++ {tm}", "List.drop_left, List.take_length"
+        elif post:
+            shape, rws = f"{tm} ++ ({post})", "List.take_left"
+        else:
+            shape, rws = tm, "List.take_length"
+        out = [f"  have h : {whole} = {shape} := by simp only [{simps}]"]
+        if pre:
+            out += [f"  have ho : {terms_offset(a)} = ({pre}).length := by",
+                    "    (try simp only [List.length_append]); rfl",
+                    f"  rw [h, ho, {rws}]"]
+        else:
+            out += [f"  rw [h, List.drop_zero, {rws}]"]
+        return out
+
+    def terms_offset(a):
+        return sum(seg_len for seg_len in seg_lens[:a])
+
+    seg_lens = [segs[k + 1][0] - segs[k][0] if k + 1 < len(segs) else length - segs[k][0]
+                for k in range(len(segs))]
+    for k, ((o, q, kind, _), (tm, _)) in enumerate(zip(segs, terms)):
         if kind != "own":
             lines += ["set_option maxRecDepth 100000 in",
                       f"theorem {var}_progAt_{q}_in {params} :",
-                      f"    (({var}_progAt {args}).drop {o}).take ({tm}).length = {tm} := by rfl",
-                      ""]
+                      f"    (({var}_progAt {args}).drop {o}).take ({tm}).length = {tm} := by",
+                      *in_proof(k, k, tm, []), ""]
     for o, q, a, b in blocks:
         qargs = "".join(f" {h} {lo}" for _, ps in terms[a:b + 1] for h, lo in ps)
         tm = f"({q}_progAt{qargs})"
         lines += ["set_option maxRecDepth 100000 in",
                   f"theorem {var}_progAt_{q}_in {params} :",
-                  f"    (({var}_progAt {args}).drop {o}).take {tm}.length = {tm} := by rfl", ""]
+                  f"    (({var}_progAt {args}).drop {o}).take {tm}.length = {tm} := by",
+                  *in_proof(a, b, tm, [f"{q}_progAt"]), ""]
     return lines
 
 def call_targets(code, base):
