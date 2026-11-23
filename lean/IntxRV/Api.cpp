@@ -149,6 +149,8 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
     &intx::internal::udivrem_top2<3, false, 320, 256>;
 [[gnu::used]] constexpr auto* udivrem_knuth_normalized =
     &intx::internal::udivrem_knuth_normalized<std::dynamic_extent>;
+[[gnu::used]] constexpr auto* udivrem_knuth_320 =
+    &intx::internal::udivrem_knuth<320, 256, std::dynamic_extent>;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
@@ -162,6 +164,4 @@ namespace intx::wip
     &intx::internal::udivrem_top2<3, true, 320, 256>;
 [[gnu::used]] constexpr auto* udivrem_top2_4_320 =
     &intx::internal::udivrem_top2<4, false, 320, 256>;
-[[gnu::used]] constexpr auto* udivrem_knuth_320 =
-    &intx::internal::udivrem_knuth<320, 256, std::dynamic_extent>;
 }  // namespace intx::wip

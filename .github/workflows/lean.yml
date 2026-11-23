@@ -83,6 +83,8 @@ jobs:
           LEAN_NUM_THREADS=4 lake build IntxRV.Gen.Code
           # 11 GB: alone.
           LEAN_NUM_THREADS=2 lake build IntxRV.Api.udivrem_knuth_normalized
+          # 8 GB: alone.
+          LEAN_NUM_THREADS=2 lake build IntxRV.Api.udivrem_knuth_320
           LEAN_NUM_THREADS=2 lake build IntxRV.Api.mul_256 IntxRV.Api.umul_256 \
             IntxRV.Api.udivrem_by1 IntxRV.Api.udivrem_by2 IntxRV.Api.udivrem_top1_2 \
             IntxRV.Api.udivrem_top1_3 IntxRV.Api.udivrem_top2_3 IntxRV.Api.udivrem_256 \
