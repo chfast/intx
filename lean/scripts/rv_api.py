@@ -122,16 +122,17 @@ def instances(decls, namespace):
             targs = []
             tmpl = by_id.get(ref.get("foundReferencedDecl", {}).get("id"))
             if tmpl is not None and tmpl.get("kind") == "FunctionTemplateDecl":
-                names = [c["name"] for c in tmpl.get("inner", [])
+                parms = [(c["name"], c.get("type", {}).get("qualType"))
+                         for c in tmpl.get("inner", [])
                          if c.get("kind") == "NonTypeTemplateParmDecl"]
                 vals = [c["value"] for c in decl.get("inner", [])
                         if c.get("kind") == "TemplateArgument" and "value" in c]
-                if len(names) != len(vals):
+                if len(parms) != len(vals):
                     sys.exit(f"{n['name']}: unsupported template arguments")
                 # The unsigned values: std::dynamic_extent, a size_t, is -1 in the AST. A bool is
-                # 0 or 1.
-                targs = [(nm, {"false": 0, "true": 1}[v] if v in ("false", "true") else
-                          int(v) % 2 ** 64) for nm, v in zip(names, vals)]
+                # 0 or 1: true is -1 in the AST, a 1-bit signed value.
+                targs = [(nm, int(v not in (0, False, "false")) if ty == "bool" else
+                          int(v) % 2 ** 64) for (nm, ty), v in zip(parms, vals)]
             result[n["name"]] = dict(name=callee["name"], offset=decl["loc"]["offset"],
                                      type=callee["type"]["qualType"], targs=targs, negate=negate,
                                      member=callee["kind"] == "CXXMethodDecl")
@@ -191,7 +192,9 @@ RAW_POINTERS = {"uint64_t *": False, "const uint64_t *": True}
 
 
 def span_type(t):
-    """The match of a span of words: const, the extent."""
+    """The match of a span of words: const, the extent. An extent `uint<N>::num_words` is
+    N / 64."""
+    t = re.sub(r"uint<(\d+)>::num_words", lambda m: f"{int(m[1]) // 64}UL", t)
     return re.fullmatch(r"std::span<(const )?uint64_t, (\d+)UL>", t)
 
 
