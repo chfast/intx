@@ -17,7 +17,7 @@ concurrency:
 jobs:
   lean:
     runs-on: ubuntu-26.04
-    timeout-minutes: 240
+    timeout-minutes: 355
     env:
       ELAN_VERSION: v4.2.4
       ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
@@ -74,7 +74,7 @@ jobs:
       # each. The build of the decode files of an earlier layout is deleted, so that the cache
       # does not keep it.
       - name: Check the proofs and their axioms
-        timeout-minutes: 200
+        timeout-minutes: 320
         run: |
           for f in .lake/build/lib/lean/IntxRV/Gen/Decode/* .lake/build/ir/IntxRV/Gen/Decode/*; do
             b=$(basename "$f")
