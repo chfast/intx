@@ -6,7 +6,7 @@ class IntxConan(ConanFile):
     name = "intx"
     version = "0.15.0"
     description = "High‑performance multiprecision integer library for C++"
-    url = "https://github.com/intx/intx"
+    url = "https://github.com/chfast/intx"
     license = "Apache-2.0"
     topics = ("integer", "multiprecision", "arbitrary-precision", "extended-precision",
               "biginteger", "uint128", "uint256", "uint512")
