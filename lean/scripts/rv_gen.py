@@ -258,6 +258,10 @@ def decode(w):
         return f".LOAD ({lean_bv(w >> 20, 12)}, {reg(rs1)}, {reg(rd)}, true, 4)"
     if opcode == 0x03 and f3 == 4:
         return f".LOAD ({lean_bv(w >> 20, 12)}, {reg(rs1)}, {reg(rd)}, true, 1)"
+    if opcode == 0x03 and f3 == 2:
+        return f".LOAD ({lean_bv(w >> 20, 12)}, {reg(rs1)}, {reg(rd)}, false, 4)"
+    if opcode == 0x03 and f3 == 0:
+        return f".LOAD ({lean_bv(w >> 20, 12)}, {reg(rs1)}, {reg(rd)}, false, 1)"
     if opcode == 0x23 and f3 == 3:
         imm = (w >> 25) << 5 | (w >> 7) & 0x1f
         return f".STORE ({lean_bv(imm, 12)}, {reg(rs2)}, {reg(rs1)}, 8)"
@@ -500,7 +504,8 @@ def main():
                for i in range(0, text["size"], 4)]
         ro = idata[rodata["off"]:rodata["off"] + rodata["size"]] if rodata else b""
         ro += b"\0" * (-len(ro) % 8)
-        data_off = rodata["addr"] if rodata else 4 * len(img)
+        # Without data, its offset after the code aligned to 8 bytes.
+        data_off = rodata["addr"] if rodata else (4 * len(img) + 7) // 8 * 8
         if data_off % 8 or data_off < 4 * len(img):
             sys.exit(f"{var}: unexpected layout of the image")
         data_words = [struct.unpack_from("<Q", ro, i)[0] for i in range(0, len(ro), 8)]
@@ -602,7 +607,10 @@ def main():
              "", "open LeanRV64D.Defs", "", "namespace IntxRV.Gen", ""]
     for var, code in funcs.items():
         name = targets[var]["name"]
-        lines += code_lines(var, f"`{name}`", code, f"`{var}`")
+        # A lambda by the name of its instance: its symbol has the namespace of the instance, which
+        # changes when the instance moves from intx::wip to intx::api.
+        desc = f"the lambda of `{var}`" if "$_" in name else f"`{name}`"
+        lines += code_lines(var, desc, code, f"`{var}`")
     for var, (code, pairs) in rel_funcs.items():
         lines += prog_at_lines(var, code, pairs)
     # The images that other images hold first, so that their lemmas can name their progAt.

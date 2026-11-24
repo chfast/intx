@@ -151,4 +151,32 @@ theorem exec_lwu {S s : SailState} {val : (r : Register) → RegisterType r} {pc
     monadLift, MonadLift.monadLift, ExceptT.lift, ExceptT.bind, ExceptT.mk, ExceptT.bindCont,
     ExceptT.pure, Functor.map, EStateM.map]
 
+/-- `lw rd, imm(rs1)` of an ordinary 4-byte word present in the memory reads its 4 bytes into `rd`,
+sign-extended. -/
+theorem exec_lw {S s : SailState} {val : (r : Register) → RegisterType r} {pc npc : BitVec 64}
+    {x : Regs} (e : EnvM S val) (h : Inv S s pc npc x) (imm : BitVec 12) (rs1 rd : BitVec 5)
+    (ha : HalfOk val (x.get rs1 + sign_extend (m := 64) imm))
+    (hb : ∀ k < 4, (x.get rs1 + sign_extend (m := 64) imm).toNat + k ∈ s.mem) :
+    ∃ s', execute (.LOAD (imm, .Regidx rs1, .Regidx rd, false, 4)) s = .ok RETIRE_SUCCESS s' ∧
+      Inv S s' pc npc (x.set rd
+        ((memHalf s.mem (x.get rs1 + sign_extend (m := 64) imm).toNat).signExtend 64)) := by
+  obtain ⟨s', hs, hi⟩ := wX_bits_inv h rd
+    (sign_extend (m := 64) (memHalf s.mem (x.get rs1 + sign_extend (m := 64) imm).toNat))
+  refine ⟨s', ?_, hi⟩
+  have hr := readReg_env e.toEnv h
+  show execute_LOAD _ _ _ _ _ s = _
+  have hal : is_aligned_vaddr (.Virtaddr (x.get rs1 + sign_extend (m := 64) imm)) 4 = true := by
+    have := ha.aligned
+    simp only [is_aligned_vaddr, BitVec.toNatInt, beq_iff_eq, Int.ofNat_eq_natCast]
+    rw [Int.tmod_eq_emod_of_nonneg (by omega)]
+    omega
+  simp (config := { decide := true }) [execute_LOAD, vmem_read, data_addr4 e h, vmem_read_addr,
+    LeanRV64D.assert, PreSail.assert, Functions.not, hal, bits_of_virtaddr,
+    split_page4 s _ ha.aligned, effectivePrivilege, hr, isRunReg, LeanRV64D.readReg, e.mprv,
+    e.priv_M, translationMode, translate_and_read_value, translate_M e h _ _ (.inl rfl),
+    mem_read_M4 e h _ ha hb, updateSubrange_all32, extend_value, hs, -BitVec.toNat_add,
+    bind, EStateM.bind, pure, EStateM.pure, SailME.run, PreSailME.run, ExceptT.run, liftM,
+    monadLift, MonadLift.monadLift, ExceptT.lift, ExceptT.bind, ExceptT.mk, ExceptT.bindCont,
+    ExceptT.pure, Functor.map, EStateM.map]
+
 end IntxRV
