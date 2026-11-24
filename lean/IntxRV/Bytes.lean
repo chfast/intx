@@ -319,6 +319,13 @@ theorem unchangedExcept2_memStoreByte {m m' : Mem} {a b : BitVec 64} {la lb : Na
     rwa [memStoreByte, Std.ExtHashMap.getElem?_insert, if_neg (by simp; omega)] at this
   · rw [memStoreByte, Std.ExtHashMap.getElem?_insert, if_neg (by simp; omega)]; exact h k hka hkb
 
+/-- Memory unchanged outside two regions, then outside a buffer in the second: as a callee that
+writes a temporary in the frame. -/
+theorem UnchangedExcept2.trans_in {m m1 m2 : Mem} {a b c : BitVec 64} {la lb lc : Nat}
+    (h1 : UnchangedExcept2 m m1 a la b lb) (h2 : UnchangedExcept m1 m2 c lc)
+    (hc : b.toNat ≤ c.toNat ∧ c.toNat + lc ≤ b.toNat + lb) : UnchangedExcept2 m m2 a la b lb :=
+  fun k ha hb => (h2 k (by omega)).trans (h1 k ha hb)
+
 /-- The word of the bytes of a word in big-endian order is the word. -/
 theorem beWord_byteAt (w : BitVec 64) :
     beWord [byteAt w 7, byteAt w 6, byteAt w 5, byteAt w 4, byteAt w 3, byteAt w 2, byteAt w 1,

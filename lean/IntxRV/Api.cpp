@@ -215,6 +215,12 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
     +[](uint256& x, const uint256& y) noexcept { x |= y; };
 [[gnu::used]] constexpr auto* xor_assign_256 =
     +[](uint256& x, const uint256& y) noexcept { x ^= y; };
+[[gnu::used]] constexpr auto* mul_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x *= y; };
+[[gnu::used]] constexpr auto* shl_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x <<= y; };
+[[gnu::used]] constexpr auto* shr_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x >>= y; };
 // The comparisons with builtin integers.
 [[gnu::used]] constexpr auto* lt_256_i32 = +[](const uint256& x, int y) noexcept { return x < y; };
 [[gnu::used]] constexpr auto* lt_256_i64 =
@@ -255,13 +261,4 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
-// The uses of the interpreter of evmone.
-using namespace evm;
-// The operators in place.
-[[gnu::used]] constexpr auto* mul_assign_256 =
-    +[](uint256& x, const uint256& y) noexcept { x *= y; };
-[[gnu::used]] constexpr auto* shl_assign_256 =
-    +[](uint256& x, const uint256& y) noexcept { x <<= y; };
-[[gnu::used]] constexpr auto* shr_assign_256 =
-    +[](uint256& x, const uint256& y) noexcept { x >>= y; };
 }  // namespace intx::wip

@@ -101,4 +101,11 @@ theorem words4_mod160 (x0 x1 x2 x3 : BitVec 64) :
   have := x0.isLt; have := x1.isLt; have := x2.isLt
   omega
 
+/-- The 4 words with a high word not 0 are at least `2^64`. -/
+theorem words4_ge_of_ne (x0 x1 x2 x3 : BitVec 64) (h : x1 ≠ 0 ∨ x2 ≠ 0 ∨ x3 ≠ 0) :
+    2 ^ 64 ≤ x0.toNat + 2 ^ 64 * (x1.toNat + 2 ^ 64 * (x2.toNat + 2 ^ 64 * x3.toNat)) := by
+  have h0 : (0 : BitVec 64).toNat = 0 := rfl
+  simp only [ne_eq, ← BitVec.toNat_inj, h0] at h
+  omega
+
 end IntxRV

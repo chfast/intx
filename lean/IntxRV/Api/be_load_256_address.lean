@@ -116,8 +116,8 @@ theorem be_load_256_address.proof : be_load_256_address.spec := by
         h22, h23, h24, h25, h26, h27, and_self]
 
 theorem be_load_256_address.nonvacuous :
-    NonVacuousI be_load_256_address_image_code be_load_256_address_image_data be_load_256_address_image_dataOff
-      be_load_256_address.bufs be_load_256_address.pre :=
+    NonVacuousI be_load_256_address_image_code be_load_256_address_image_data
+      be_load_256_address_image_dataOff be_load_256_address.bufs be_load_256_address.pre :=
   nonVacuousI_of (fun i => if i = 10#5 then 0x80000800#64 else if i = 11#5 then 0x80000900#64
       else if i = 2#5 then 0x80001000#64 else 0)
     (by decide) (by decide) (by decide) (by decide)

@@ -85,6 +85,9 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `operator&=` of `uint256` | [`and_assign_256`](Api/and_assign_256.lean) |
 | `operator\|=` of `uint256` | [`or_assign_256`](Api/or_assign_256.lean) |
 | `operator^=` of `uint256` | [`xor_assign_256`](Api/xor_assign_256.lean) |
+| `operator*=` of `uint256` | [`mul_assign_256`](Api/mul_assign_256.lean) |
+| `operator<<=` of `uint256` | [`shl_assign_256`](Api/shl_assign_256.lean) |
+| `operator>>=` of `uint256` | [`shr_assign_256`](Api/shr_assign_256.lean) |
 | `operator<` of `uint256` and `int` | [`lt_256_i32`](Api/lt_256_i32.lean) |
 | `operator<` of `uint256` and `int64_t` | [`lt_256_i64`](Api/lt_256_i64.lean) |
 | `operator<` of `uint256` and `uint64_t` | [`lt_256_u64`](Api/lt_256_u64.lean) |
