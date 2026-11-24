@@ -301,16 +301,6 @@ theorem U512Frame.memWord_v {x : Regs} {m : Mem} {x' : Regs} {m' : Mem} (hF : U5
   obtain ⟨⟨hra, hrn⟩, -, ⟨hva, hvn⟩, -, hdrv, ⟨hsa, hsn⟩, -, hdsv, -⟩ := hpre
   exact memWord_of_unchangedExcept2 hF.2.2.2.2.2.2.2.2.1 _ (by bv_omega) (by bv_omega)
 
-/-- The words of a buffer at an aligned address are aligned down into it. -/
-theorem and_not7_mem_bufWords {a : BitVec 64} {n i : Nat} (ha : a.toNat % 8 = 0)
-    (hi : i < 8 * n) :
-    (a + BitVec.ofNat 64 i) &&& ~~~7#64 ∈ bufWords a n := by
-  have : (a + BitVec.ofNat 64 i) &&& ~~~7#64 = a + BitVec.ofNat 64 (8 * (i / 8)) := by
-    apply BitVec.eq_of_toNat_eq
-    rw [toNat_and_not7]
-    bv_omega
-  rw [this]; exact mem_bufWords (by omega)
-
 /-- An instruction address in aligned code. -/
 theorem pcAt_aligned {base : BitVec 64} (hb3 : base &&& 3 = 0) (r : Nat) : pcAt base r &&& 3 = 0 := by
   simp only [pcAt]

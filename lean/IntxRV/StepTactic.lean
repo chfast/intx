@@ -89,7 +89,7 @@ elab "rv_const_loop " h:ident : tactic => rvConst h true
 /-- The membership of an address in the list of the words of the buffers. -/
 macro "rv_mem" : tactic => `(tactic| (
   simp (config := { decide := true }) only [Regs.get_set, Regs.get_zero, ↓reduceIte,
-    List.mem_append, List.mem_cons, bufWords, List.not_mem_nil, BitVec.add_assoc,
+    List.mem_append, List.mem_cons, bufWords, bufBytes, List.not_mem_nil, BitVec.add_assoc,
     BitVec.sub_eq_add_neg, BitVec.reduceNeg, BitVec.reduceAdd, BitVec.add_right_inj,
     BitVec.add_zero, BitVec.reduceSignExtend, or_false, false_or, or_true, true_or,
     BitVec.add_left_inj]

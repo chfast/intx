@@ -62,8 +62,9 @@ def documented_functions(decls):
     """The specifications of the documented functions by (name, offset of the declaration)."""
     specs = {}
     for d in decls:
-        for n, _ in walk(d):
-            if n.get("kind") not in ("FunctionDecl", "CXXMethodDecl"):
+        for n, parents in walk(d):
+            if n.get("kind") not in ("FunctionDecl", "CXXMethodDecl", "CXXConversionDecl",
+                                     "CXXConstructorDecl"):
                 continue
             comment = next((c for c in n.get("inner", []) if c.get("kind") == "FullComment"), None)
             if comment is None:
@@ -77,9 +78,18 @@ def documented_functions(decls):
             brief = " ".join(comment_text(c) for c in comment["inner"]
                              if c.get("kind") == "ParagraphComment").strip()
             params = [p["name"] for p in n.get("inner", []) if p.get("kind") == "ParmVarDecl"]
+            # A parameter pack `T... v` (the last parameter): `v` is the list of its values.
+            pack = next((p["name"] for p in n.get("inner", []) if p.get("kind") == "ParmVarDecl"
+                         and p["type"]["qualType"].endswith("...")), None)
+            # The names of the type parameters of a function template, for sizeof().
+            tmpl = parents[-1] if parents and parents[-1].get("kind") == "FunctionTemplateDecl" \
+                else None
+            tparams = [c["name"] for c in (tmpl or {}).get("inner", [])
+                       if c.get("kind") == "TemplateTypeParmDecl"]
             specs[(n["name"], n["loc"]["offset"])] = dict(
                 name=n["name"], offset=n["loc"]["offset"], begin=n["range"]["begin"]["offset"],
-                brief=brief, pre=pre, post=post, params=params, type=n["type"]["qualType"])
+                brief=brief, pre=pre, post=post, params=params, type=n["type"]["qualType"],
+                tparams=tparams, pack=pack)
     return specs
 
 
@@ -98,10 +108,15 @@ def instances(decls, namespace):
             if len(lambdas) == 1:
                 body = [c for c in lambdas[0]["inner"] if c.get("kind") == "CompoundStmt"]
                 calls = [m for m, _ in walk(body[-1])
-                         if m.get("kind") in ("CallExpr", "CXXOperatorCallExpr")]
-                if len(calls) != 1:
+                         if m.get("kind") in ("CallExpr", "CXXOperatorCallExpr",
+                                              "CXXMemberCallExpr")]
+                temps = [m for m, _ in walk(body[-1]) if m.get("kind") == "CXXTemporaryObjectExpr"]
+                if not calls and len(temps) == 1:
+                    target = temps[0]  # A constructor: the declaration by the class and type.
+                elif len(calls) != 1:
                     sys.exit(f"{n['name']}: the lambda must call one function")
-                target = calls[0]
+                else:
+                    target = calls[0]
                 # `x != y` is `!(x == y)` in C++20: the specification of == with the negation.
                 negate = any(m.get("kind") == "CXXRewrittenBinaryOperator" and any(
                     u.get("kind") == "UnaryOperator" and u.get("opcode") == "!"
@@ -114,10 +129,38 @@ def instances(decls, namespace):
             ref = next((m for m, _ in walk(target) if m.get("kind") == "DeclRefExpr"
                         and m["referencedDecl"].get("kind") in ("FunctionDecl", "CXXMethodDecl")),
                        None)
+            if ref is None and target.get("kind") == "CXXTemporaryObjectExpr":
+                cls = target["type"].get("desugaredQualType", target["type"]["qualType"])
+                ctor = next((m for d2 in decls for m, ps in walk(d2)
+                             if m.get("kind") == "CXXConstructorDecl" and m.get("type", {}).get(
+                                 "qualType") == target["ctorType"]["qualType"] and len(ps) > 1
+                             and ps[-2].get("kind") == "ClassTemplateSpecializationDecl"
+                             and f"intx::{ps[-2]['name']}<" + ", ".join(
+                                 str(a.get("value")) for a in ps[-2].get("inner", [])
+                                 if a.get("kind") == "TemplateArgument") + ">" == cls), None)
+                if ctor is None:
+                    sys.exit(f"{n['name']}: no constructor found")
+                ref = dict(referencedDecl=ctor)
             if ref is None:
-                sys.exit(f"{n['name']}: no function found")
+                # A member call, as of a conversion operator: the function of its MemberExpr.
+                ref = next((m for m, _ in walk(target) if m.get("kind") == "MemberExpr"
+                            and m.get("referencedMemberDecl") in by_id), None)
+                if ref is None:
+                    sys.exit(f"{n['name']}: no function found")
+                ref = dict(ref, referencedDecl=by_id[ref["referencedMemberDecl"]])
             callee = ref["referencedDecl"]
             decl = by_id[callee["id"]]
+            # The types of the parameters and the result of the lambda: the registers follow them.
+            lam_types = None
+            if lambdas:
+                op = next((m for m, _ in walk(lambdas[0]) if m.get("kind") == "CXXMethodDecl"
+                           and m.get("name") == "operator()"), None)
+                if op is not None:
+                    lam_types = (re.match(r"(.+?) \(", op["type"]["qualType"])[1],
+                                 [c["type"]["qualType"] for c in op.get("inner", [])
+                                  if c.get("kind") == "ParmVarDecl"])
+            ttypes = [c["type"]["qualType"] for c in decl.get("inner", [])
+                      if c.get("kind") == "TemplateArgument" and "type" in c]
             # The template arguments of a function template instance, by the parameter names.
             targs = []
             tmpl = by_id.get(ref.get("foundReferencedDecl", {}).get("id"))
@@ -135,12 +178,15 @@ def instances(decls, namespace):
                           int(v) % 2 ** 64) for (nm, ty), v in zip(parms, vals)]
             result[n["name"]] = dict(name=callee["name"], offset=decl["loc"]["offset"],
                                      type=callee["type"]["qualType"], targs=targs, negate=negate,
-                                     member=callee["kind"] == "CXXMethodDecl")
+                                     member=callee["kind"] in ("CXXMethodDecl",
+                                                               "CXXConversionDecl"),
+                                     ctor=callee["kind"] == "CXXConstructorDecl",
+                                     lam_types=lam_types, ttypes=ttypes)
     return result
 
 
 def norm_type(t):
-    t = re.sub(r"\bintx::", "", t.strip())
+    t = re.sub(r"\b(?:intx|wip)::", "", t.strip())
     # The parameters that are not deduced (`std::type_identity_t<T>` is T).
     t = re.sub(r"^std::type_identity_t<(.*)>$", r"\1", t)
     # A span of dynamic extent without the extent.
@@ -151,7 +197,8 @@ def norm_type(t):
     t = re.sub(r"<(\d+) \* (\d+)U>", lambda m: f"<{int(m[1]) * int(m[2])}>", t)
     t = re.sub(r"<(\d+)U>", r"<\1>", t)
     return {"uint<128>": "uint128", "unsigned long": "uint64_t", "size_t": "uint64_t",
-            "_Bool": "bool"}.get(t, t)
+            "_Bool": "bool", "long": "int64_t", "uint32_t": "unsigned int", "int32_t": "int",
+            "unsigned char": "uint8_t", "unsigned short": "uint16_t"}.get(t, t)
 
 
 def uint_width(t):
@@ -163,6 +210,21 @@ def signature(var, inst, spec):
     """The result type, the parameter types and the parameter names of the instance `var`: the
     object of a member function is the first parameter, `self`, of the class type (the result type
     for the operators of uint<N>)."""
+    params = spec["params"]
+    if inst.get("lam_types"):
+        # The registers follow the types of the lambda, whose code it is: the object of a member
+        # function is its first parameter, `self`, and a constructor constructs its result.
+        ret = norm_type(inst["lam_types"][0])
+        args = [norm_type(a) for a in inst["lam_types"][1]]
+        if inst.get("member"):
+            params = ["self"] + params
+        if spec.get("pack"):
+            if params[-1] != spec["pack"] or len(args) < len(params) - 1:
+                sys.exit(f"{var}: unsupported parameter pack")
+            params = params[:-1] + [spec["pack"]] * (len(args) - len(params) + 1)
+        if len(args) != len(params):
+            sys.exit(f"{var}: the parameters do not match the declaration")
+        return ret, args, params
     m = re.fullmatch(r"(.+?) \((.*)\)(?: const)?(?: noexcept)?", inst["type"])
     ret = norm_type(m.group(1))
     args, depth, cur = [], 0, ""
@@ -174,7 +236,6 @@ def signature(var, inst, spec):
             cur = ""
         else:
             cur += ch
-    params = spec["params"]
     if inst.get("member"):
         if uint_width(ret) is None:
             sys.exit(f"{var}: unsupported member function")
@@ -250,7 +311,7 @@ def cpp_doc(hpp, spec):
     unindented: the text that the proof file of an instance quotes."""
     lines = hpp.split("\n")
     first = last = line_of(hpp, spec["begin"]) - 1
-    while first > 0 and lines[first - 1].strip().startswith(("///", "template")):
+    while first > 0 and lines[first - 1].strip().startswith(("///", "template", "requires")):
         first -= 1
     while lines[last].strip() != "{" and "{" not in lines[last] and not lines[last].endswith(";"):
         last += 1
@@ -273,6 +334,13 @@ def header(var, spec, hpp):
 REG_RESULTS = {
     "bool": ("Bool", "(decide (x'.get 10#5 = 1))", ["(x'.get 10#5 = 0 ∨ x'.get 10#5 = 1)"]),
     "uint64_t": ("Nat", "(x'.get 10#5).toNat", []),
+    "int64_t": ("Int", "(x'.get 10#5).toInt", []),
+    # The calling convention: the narrower integers extended to 32 bits by the sign of the type and
+    # then sign-extended to the register.
+    "int": ("Int", "(x'.get 10#5).toInt",
+            ["x'.get 10#5 = ((x'.get 10#5).setWidth 32).signExtend 64"]),
+    "uint16_t": ("Nat", "(x'.get 10#5).toNat", ["(x'.get 10#5).toNat < 2 ^ 16"]),
+    "uint8_t": ("Nat", "(x'.get 10#5).toNat", ["(x'.get 10#5).toNat < 2 ^ 8"]),
     # The calling convention: the 32 bits sign-extended to the register.
     "unsigned int": ("Nat", "((x'.get 10#5).toNat % 2 ^ 32)",
                      ["x'.get 10#5 = ((x'.get 10#5).setWidth 32).signExtend 64"]),
@@ -309,6 +377,48 @@ def mem_result(ret):
             64 * (q + r))
 
 
+# The structs of IntxRV/Api.cpp with only an array of bytes, `bytes` (the layouts of the structs of
+# evmc): the name and the number of bytes. A struct stands for its bytes in a specification: `t` and
+# `t.bytes` are the list of the bytes of `t`.
+STRUCTS = {}
+
+# The sizes of the builtin integer types, for sizeof() in a specification.
+SIZEOF = {"bool": 1, "uint8_t": 1, "uint16_t": 2, "unsigned int": 4, "int": 4, "uint64_t": 8,
+          "int64_t": 8}
+
+# The pointers to bytes: whether the bytes are const (read only). The bytes are a list of the
+# bytes (`bytes`) of the @pre `p.size() = n`.
+BYTE_POINTERS = {"uint8_t *": False, "const uint8_t *": True}
+
+
+def sizeof(var, t):
+    t = norm_type(t)
+    w = uint_width(t)
+    if t in SIZEOF or t in STRUCTS or w is not None:
+        return SIZEOF.get(t) or STRUCTS.get(t) or w // 8
+    sys.exit(f"{var}: sizeof() of the unsupported type {t}")
+
+
+def sizeof_calls(var, term, tmap):
+    """The term with `sizeof(T)` of a type parameter `T` (`tmap`: the types of the instance) or of
+    a type as the number of bytes."""
+    return re.sub(r"\bsizeof\((\w+)\)", lambda m: str(sizeof(var, tmap.get(m[1], m[1]))), term)
+
+
+def byte_array(t):
+    """The number of bytes of a const reference to an array of bytes or to a struct of STRUCTS."""
+    m = re.fullmatch(r"const uint8_t \(&\)\[(\d+)\]", t)
+    if m:
+        return int(m[1])
+    m = re.fullmatch(r"const (\w+) &", t)
+    return STRUCTS.get(m[1]) if m else None
+
+
+def blen(b):
+    """The number of bytes of the buffer `b` (register, number, kind): `w` words or `b` bytes."""
+    return nbytes(b[1]) if b[2] == "w" else b[1]
+
+
 def spec_rv(var, inst, spec, stack, hpp, image=False):
     """The Lean definitions of the specification of the machine code of the instance `var` that
     uses `stack` bytes below sp, in the image of the functions with calls or data if `image`."""
@@ -316,31 +426,42 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
     reg = 10  # The arguments are in a0 (x10), a1 (x11), ...
     bufs, pre, values, post_values = [], [], [], []
     ret_width = uint_width(ret)
-    # The buffers written and read: (register, the number of words, a Lean term).
+    # The buffers written and read: (register, the number of words or bytes, the kind: `w` for
+    # words, `b` for bytes of any alignment).
     outs, ins = [], []
     sizes = []  # The sizes of the spans of dynamic extent: (name, Lean term).
     olds = {}  # The values of the written buffers at the entry, for old(p) in a @post.
     if ret_width is not None and ret_width > 128:
         if ret_width % 64:
             sys.exit(f"{var}: unsupported result type {ret}")
-        outs.append((reg, str(ret_width // 64)))  # The result is returned in memory at a0 (sret).
+        # The result is returned in memory at a0 (sret).
+        outs.append((reg, str(ret_width // 64), "w"))
         reg += 1
     elif mem_result(ret):
-        outs.append((reg, str(mem_result(ret)[2] // 64)))
+        outs.append((reg, str(mem_result(ret)[2] // 64), "w"))
+        reg += 1
+    elif ret in STRUCTS:
+        outs.append((reg, str(STRUCTS[ret]), "b"))  # In memory at a0 (sret), of any alignment.
         reg += 1
     elif ret != "void" and ret not in REG_RESULTS:
         sys.exit(f"{var}: unsupported result type {ret}")
     # The number of words of the spans of a fixed extent and of the raw pointers, for p.size():
     # a raw pointer `p` has the words of the @pre `p.size() = n`, which is no precondition then.
     targs = inst["targs"]
+    tmap = dict(zip(spec.get("tparams", []), inst.get("ttypes", [])))
     types = dict(zip(params, args))
     known = {n: span_type(t)[2] for n, t in types.items()
              if span_type(t) and int(span_type(t)[2]) != DYNAMIC_EXTENT}
-    raw, pres = {}, []
+    raw, raw_bytes, pres = {}, {}, []
     for p in spec["pre"]:
+        p = sizeof_calls(var, p, tmap)
         m = re.fullmatch(r"(\w+)\.size\(\) = (.+)", p)
         if m and types.get(m[1]) in RAW_POINTERS:
             raw[m[1]] = m[2]
+        elif m and types.get(m[1]) in BYTE_POINTERS:
+            if not m[2].isdigit():
+                sys.exit(f"{var}: the bytes of {m[1]} must be a number")
+            raw_bytes[m[1]] = m[2]
         else:
             pres.append(p)
     for n in raw:
@@ -362,35 +483,54 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
             n = re.sub(rf"\b{a}\b", str(v), n)
         return paren(n)
 
+    def written(name, r, n, kind):
+        """A buffer that the function writes: the name stands for its value at the return."""
+        get = f"words m (x {r}#5) {n}" if kind == "w" else f"bytes m (x {r}#5) {n}"
+        typ = "Nat" if kind == "w" else "List (BitVec 8)"
+        outs.append((r, n, kind))
+        values.append((name, typ, get))
+        post_values.append((name, typ, get.replace("m ", "m' ", 1)))
+        olds[name] = get
+
+    pack_vals = []  # The values of the parameter pack, as integers.
     for name, t in zip(params, args):
         w = uint_width(t)
         span = span_type(t)
         if t in RAW_POINTERS:
             n = words_of(name)
             if RAW_POINTERS[t]:
-                ins.append((reg, n))
+                ins.append((reg, n, "w"))
                 v = (name, "Nat", f"words m (x {reg}#5) {n}")
             else:
-                # The words a function writes: the name stands for their value at the return.
-                outs.append((reg, n))
-                values.append((name, "Nat", f"words m (x {reg}#5) {n}"))
-                post_values.append((name, "Nat", f"words m' (x {reg}#5) {n}"))
-                olds[name] = f"words m (x {reg}#5) {n}"
+                written(name, reg, n, "w")
                 reg += 1
                 continue
+            reg += 1
+        elif t in BYTE_POINTERS:
+            if name not in raw_bytes:
+                sys.exit(f"{var}: the pointer {name} needs a @pre {name}.size() = n")
+            n = raw_bytes[name]
+            if not BYTE_POINTERS[t]:
+                written(name, reg, n, "b")
+                reg += 1
+                continue
+            ins.append((reg, n, "b"))
+            v = (name, "List (BitVec 8)", f"bytes m (x {reg}#5) {n}")
+            reg += 1
+        elif byte_array(t):
+            n = str(byte_array(t))
+            ins.append((reg, n, "b"))
+            v = (name, "List (BitVec 8)", f"bytes m (x {reg}#5) {n}")
             reg += 1
         elif span and int(span[2]) == DYNAMIC_EXTENT:
             # A span of dynamic extent: the pointer and the number of words in two registers.
             n = f"(x {reg + 1}#5).toNat"
             sizes.append((f"{name}_size", n))
             if span[1]:
-                ins.append((reg, n))
+                ins.append((reg, n, "w"))
                 v = (name, "Nat", f"words m (x {reg}#5) {n}")
             else:
-                outs.append((reg, n))
-                values.append((name, "Nat", f"words m (x {reg}#5) {n}"))
-                post_values.append((name, "Nat", f"words m' (x {reg}#5) {n}"))
-                olds[name] = f"words m (x {reg}#5) {n}"
+                written(name, reg, n, "w")
                 reg += 2
                 continue
             reg += 2
@@ -402,6 +542,11 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
             pre.append(f"x {reg}#5 = ((x {reg}#5).setWidth 32).signExtend 64")
             v = (name, "Nat", f"(x {reg}#5).toNat % 2 ^ 32")
             reg += 1
+        elif t in ("int", "int64_t"):
+            if t == "int":  # The calling convention: the 32 bits sign-extended to the register.
+                pre.append(f"x {reg}#5 = ((x {reg}#5).setWidth 32).signExtend 64")
+            v = (name, "Int", f"(x {reg}#5).toInt")
+            reg += 1
         elif t == "bool":
             pre.append(f"(x {reg}#5 = 0 ∨ x {reg}#5 = 1)")
             v = (name, "Bool", f"decide (x {reg}#5 = 1)")
@@ -409,37 +554,48 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
         elif t == "uint128":
             v = (name, "Nat", f"(x {reg}#5).toNat + 2 ^ 64 * (x {reg + 1}#5).toNat")
             reg += 2
+        elif w is not None and t.endswith("&") and not t.startswith("const ") and w % 64 == 0:
+            # A uint<N> that the function writes, as the object of an operator in place.
+            written(name, reg, str(w // 64), "w")
+            reg += 1
+            continue
         # A uint<N> of more than 128 bits by value is the address of a copy that the caller makes
         # (the calling convention of an aggregate over 2 XLEN): as a const reference, so the proof
         # shows too that the code leaves the copy unchanged.
         elif (w is not None and (t.endswith("&") or w > 128) and w % 64 == 0) or (span and span[1]):
             n = str((w or 64 * int(span[2])) // 64)
-            ins.append((reg, n))
+            ins.append((reg, n, "w"))
             v = (name, "Nat", f"words m (x {reg}#5) {n}")
             reg += 1
         elif span:
-            # The words a function writes: the name stands for their value at the return.
-            n = str(int(span[2]))
-            outs.append((reg, n))
-            values.append((name, "Nat", f"words m (x {reg}#5) {n}"))
-            post_values.append((name, "Nat", f"words m' (x {reg}#5) {n}"))
-            olds[name] = f"words m (x {reg}#5) {n}"
+            written(name, reg, str(int(span[2])), "w")
             reg += 1
             continue
         else:
             sys.exit(f"{var}: unsupported parameter type {t}")
+        if name == spec.get("pack"):
+            if v[1] not in ("Nat", "Int"):
+                sys.exit(f"{var}: unsupported type {t} in the parameter pack")
+            pack_vals.append(v[2] if v[1] == "Int" else f"(({v[2]} : Nat) : Int)")
+            continue
         values.append(v)
         post_values.append(v)
+    if spec.get("pack"):
+        pv = (spec["pack"], "List Int", "[" + ", ".join(pack_vals) + "]")
+        values.append(pv)
+        post_values.append(pv)
     values += [(n, "Nat", v) for n, v in sizes]
     post_values += [(n, "Nat", v) for n, v in sizes]
-    bufs += [f"bufWords (x {r}#5) {n}" for r, n in ins + outs]
-    pre[:0] = [f"Buf (x {r}#5) {nbytes(n)}" for r, n in outs + ins]
-    for i, (r, n) in enumerate(outs):
-        for r2, n2 in ins + outs[i + 1:]:
-            pre.append(f"Disjoint (x {r}#5) {nbytes(n)} (x {r2}#5) {nbytes(n2)}")
+    bufs += [f"bufWords (x {r}#5) {n}" if k == "w" else f"bufBytes (x {r}#5) {n}"
+             for r, n, k in ins + outs]
+    pre[:0] = [f"Buf (x {b[0]}#5) {blen(b)}" if b[2] == "w" else f"BufBytes (x {b[0]}#5) {blen(b)}"
+               for b in outs + ins]
+    for i, b in enumerate(outs):
+        for b2 in ins + outs[i + 1:]:
+            pre.append(f"Disjoint (x {b[0]}#5) {blen(b)} (x {b2[0]}#5) {blen(b2)}")
     sp = f"(x 2#5 - {stack}#64)"  # The stack frame, below sp.
     # The memory outside the written buffers and the stack frame is unchanged.
-    regions = [f"(x {r}#5) {nbytes(n)}" for r, n in outs] + ([f"{sp} {stack}"] if stack else [])
+    regions = [f"(x {b[0]}#5) {blen(b)}" for b in outs] + ([f"{sp} {stack}"] if stack else [])
     if len(regions) > 3:
         sys.exit(f"{var}: more than 3 written buffers with the stack frame")
     frame = ([f"UnchangedExcept{['', '', '2', '3'][len(regions)]} m m' {' '.join(regions)}"]
@@ -448,6 +604,8 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
         result = ("Nat", f"(words m' (x {outs[0][0]}#5) {ret_width // 64})")
     elif mem_result(ret):
         result = mem_result(ret)[:2]
+    elif ret in STRUCTS:
+        result = ("List (BitVec 8)", f"(bytes m' (x {outs[0][0]}#5) {STRUCTS[ret]})")
     elif ret == "void":
         result = None
     else:
@@ -456,19 +614,34 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
             v = f"(!{v})"
         result = (t, v)
         frame = rframe + frame
+    if inst.get("ctor"):
+        # A constructor: `self` is the object that it constructs, the result.
+        post_values.append(("self", result[0], result[1]))
     if stack:
         bufs.append(f"bufWords {sp} {stack // 8}")
         pre.append(f"Buf {sp} {stack}")
-        for r, n in ins + outs:
-            pre.append(f"Disjoint {sp} {stack} (x {r}#5) {nbytes(n)}")
-    width = (ret_width or (64 * int(outs[0][1]) if outs and outs[0][1].isdigit() else None) or
-             uint_width(args[0]) or 64)
+        for b in ins + outs:
+            pre.append(f"Disjoint {sp} {stack} (x {b[0]}#5) {blen(b)}")
+    width = (ret_width or (64 * int(outs[0][1]) if outs and outs[0][2] == "w"
+                           and outs[0][1].isdigit() else None) or uint_width(args[0]) or 64)
+    # A struct stands for its bytes.
+    structs = {n for n, t in types.items() if byte_array(t)} | (
+        {"result"} if ret in STRUCTS else set())
+
+    def bytes_fields(term):
+        def field(m):
+            if m[1] not in structs:
+                sys.exit(f"{var}: {m[1]}.bytes of a parameter that is not a struct")
+            return m[1]
+        return re.sub(r"\b(\w+)\.bytes\b", field, term)
+
     for p in pres:
         if re.search(r"\bold\(", p):
             sys.exit(f"{var}: old() in a @pre")
-    pre += [apply(size_calls(p, known), width, None, values, targs) for p in pres]
+    pre += [apply(bytes_fields(size_calls(p, known)), width, None, values, targs) for p in pres]
     post = []
     for p in spec["post"]:
+        p = bytes_fields(sizeof_calls(var, p, tmap))
         term, old_values = old_calls(var, size_calls(p, known), olds)
         post.append(apply(term, width, result, post_values + old_values, targs))
     post += frame + ["∀ i ∈ calleeSaved, x' i = x i"]
@@ -493,7 +666,7 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
                   "def post (x x' : Regs) : Prop :=\n  " + " ∧\n    ".join(post), "",
                   f"/-- The specification of the machine code of `{var}`. -/",
                   f"def spec : Prop := Runs {var}_code pre post"]
-    regs = sorted(r for r, _ in outs + ins) if bufs else None
+    regs = sorted(b[0] for b in outs + ins) if bufs else None
     return lines + ["", f"end {var}", "", ""], regs, bool(pre)
 
 
@@ -546,9 +719,23 @@ def main():
     hpp = (out.parent / "include" / "intx" / "intx.hpp").read_text()
     decls = read_ast(ast)
     specs = documented_functions(decls)
+    for d in decls:
+        for n, _ in walk(d):
+            fields = [c for c in n.get("inner", []) if c.get("kind") == "FieldDecl"]
+            m = re.fullmatch(r"uint8_t\[(\d+)\]", fields[0]["type"]["qualType"]) if len(
+                fields) == 1 and fields[0].get("name") == "bytes" else None
+            if n.get("kind") == "CXXRecordDecl" and n.get("completeDefinition") and m:
+                STRUCTS[n["name"]] = int(m[1])
 
     def spec_of(var, inst):
         spec = specs.get((inst["name"], inst["offset"]))
+        if spec is None:
+            # A conversion operator template: the name of the instance has its type.
+            spec = next((s for (n, o), s in specs.items() if o == inst["offset"]
+                         and n.startswith("operator ") and inst["name"].startswith("operator ")),
+                        None)
+            if spec is not None:
+                spec = dict(spec, name=inst["name"])
         if spec is None:
             sys.exit(f"{var}: {inst['name']} has no @post in its documentation")
         return spec
@@ -559,7 +746,7 @@ def main():
     wip = instances(decls, "wip")  # The specifications without proofs yet.
     lines = ["-- Generated by scripts/rv_api.py from IntxRV/Api.cpp and the documentation of",
              "-- include/intx/intx.hpp. Do not edit.", "import IntxRV.Gen.Code",
-             "import IntxRV.Words", "import IntxRV.Image", "",
+             "import IntxRV.Words", "import IntxRV.Bytes", "import IntxRV.Image", "",
              "-- A specification need not use all of N, result and the parameters.",
              "set_option linter.unusedVariables false", "",
              "namespace IntxRV.Api", "open IntxRV.Gen", ""]

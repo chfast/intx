@@ -63,6 +63,16 @@ theorem mem_bufWords {n i : Nat} (h : i < n) : ∀ {a : BitVec 64},
       rwa [show a + BitVec.ofNat 64 (8 * (i + 1)) = a + 8 + BitVec.ofNat 64 (8 * i) by
         rw [BitVec.add_assoc]; congr 1; rw [Nat.mul_succ, Nat.add_comm, BitVec.ofNat_add]; rfl]
 
+/-- The words of a buffer at an aligned address are aligned down into it. -/
+theorem and_not7_mem_bufWords {a : BitVec 64} {n i : Nat} (ha : a.toNat % 8 = 0)
+    (hi : i < 8 * n) :
+    (a + BitVec.ofNat 64 i) &&& ~~~7#64 ∈ bufWords a n := by
+  have : (a + BitVec.ofNat 64 i) &&& ~~~7#64 = a + BitVec.ofNat 64 (8 * (i / 8)) := by
+    apply BitVec.eq_of_toNat_eq
+    rw [toNat_and_not7]
+    bv_omega
+  rw [this]; exact mem_bufWords (by omega)
+
 /-- The data word `i`. -/
 theorem holdsData_get {m : Mem} : ∀ {data : List (BitVec 64)} {a : BitVec 64},
     HoldsData m a data → ∀ {i : Nat} (hi : i < data.length),

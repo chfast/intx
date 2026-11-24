@@ -1,6 +1,7 @@
 import IntxRV
 import IntxRV.EnvM
 import IntxRV.Memset
+import IntxRV.Memcpy
 set_option warningAsError true
 /-!
 # Checks: the RV64 machine code
@@ -31,3 +32,5 @@ elab "#check_rv_axioms " thm:ident : command => do
 #check_rv_axioms IntxRV.envM_exists
 -- memset() has no specification in intx.hpp: its proof is checked here.
 #check_rv_axioms IntxRV.memset.reach
+-- memcpy() has no specification in intx.hpp: its proof is checked here.
+#check_rv_axioms IntxRV.memcpy.reach

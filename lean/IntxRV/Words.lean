@@ -19,6 +19,12 @@ def bufWords (a : BitVec 64) : Nat → List (BitVec 64)
   | 0 => []
   | k + 1 => a :: bufWords (a + 8) k
 
+/-- The addresses of the aligned words of the `k` bytes at `a` of any alignment, one for each byte,
+so that the address of a byte load or store is in the list as it is (`IntxRV/Bytes.lean`). -/
+def bufBytes (a : BitVec 64) : Nat → List (BitVec 64)
+  | 0 => []
+  | k + 1 => (a &&& ~~~7#64) :: bufBytes (a + 1#64) k
+
 theorem getElem?_memStore_of_ne (m : Mem) (a : Nat) (v : BitVec 64) (k : Nat)
     (h : k < a ∨ a + 8 ≤ k) : (memStore m a v)[k]? = m[k]? := by
   simp only [memStore, Std.ExtHashMap.getElem?_insert, beq_iff_eq]
@@ -86,6 +92,9 @@ def signed (N x : Nat) : Int := if x < 2 ^ (N - 1) then x else (x : Int) - 2 ^ N
 /-- The `len` bytes at `a` are a buffer of words: `a` is aligned to 8 bytes and the buffer does
 not wrap around the address space. -/
 def Buf (a : BitVec 64) (len : Nat) : Prop := a.toNat % 8 = 0 ∧ a.toNat + len ≤ 2 ^ 64
+
+/-- The `len` bytes at `a`, of any alignment, do not wrap around the address space. -/
+def BufBytes (a : BitVec 64) (len : Nat) : Prop := a.toNat + len ≤ 2 ^ 64
 
 /-- The `la` bytes at `a` and the `lb` bytes at `b` do not overlap. -/
 def Disjoint (a : BitVec 64) (la : Nat) (b : BitVec 64) (lb : Nat) : Prop :=

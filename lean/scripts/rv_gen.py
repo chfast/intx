@@ -304,6 +304,8 @@ def code_lines(name, desc, code, var):
             f"def {name}_code : Code := [\n  {words_text}]", "",
             f"/-- The instructions of {var}. -/",
             f"def {name}_prog : List instruction := [\n  {prog_text}]", "",
+            # The length of a long code exceeds the default depth of the recursion of simp.
+            *(["set_option maxRecDepth 100000 in"] if len(code) > 128 else []),
             f"theorem {name}_decodes : Decodes {name}_code {name}_prog :=",
             f"  decodes_of (by rfl) fun",
             cases, f"  | _ + {len(code)}, hk, _ => absurd hk (by simp [{name}_code])", "", ""]

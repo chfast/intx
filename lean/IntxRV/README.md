@@ -165,6 +165,22 @@ quotient to alias `u`; its specification does not, and `udivrem_knuth()` passes 
 other, and the memory outside the written buffers and the frame is unchanged (`UnchangedExcept`,
 `UnchangedExcept2` and `UnchangedExcept3` in [`Words.lean`](Words.lean)).
 
+The instance of a lambda has the registers of the types of the lambda, so a parameter that the
+function takes by reference may be a value of the lambda. An `int` or `int64_t` is an `Int`
+(`toInt` of the register; an `int` is sign-extended from 32 bits); a `uint8_t` or `uint16_t`
+result is zero-extended to the register and an `int` result sign-extended from 32 bits. A non-const
+`uint<N>&`, as the object of an operator in place such as `+=`, is a written buffer: `self` is its
+value at the return and `old(self)` at the entry. A conversion operator template has
+`sizeof(Int)` of the type of its instance; a constructor has the constructed object, the result,
+as `self`, and its parameter pack `v` is the list of the values as integers. Bytes are of any
+alignment ([`Bytes.lean`](Bytes.lean)): a `const uint8_t*` with the `@pre p.size() = n`, a
+`const uint8_t (&)[n]`, and a struct whose only field is the array `bytes` (the layouts of
+`evmc::bytes32` and `evmc::address`, `Bytes32` and `Address` in `Api.cpp`) are the list of their
+bytes (`bytes`), `t.bytes` of a struct `t` too, and `bigEndian` their number in big-endian order.
+A `uint8_t*` and a struct result (in memory at a0, as it is wider than two registers) are written
+buffers of bytes. A buffer of bytes needs only not to wrap around (`BufBytes`), and its words are
+the aligned words of its bytes (`bufBytes`).
+
 The proofs are in [`Api/`](Api/): the generated `Checks/Gen/IntxRVApi.lean` requires a proof
 `Api.p.proof : Api.p.spec` for every instance, with the allowed axioms only, and that the
 assumptions of the specification hold: with `NonVacuous` ([`EnvM.lean`](EnvM.lean)) in an

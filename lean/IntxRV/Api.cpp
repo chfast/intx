@@ -31,10 +31,23 @@ extern "C" [[clang::no_builtin("memset")]] void* memset(void* dst, int c, size_t
     return dst;
 }
 
+// memcpy() for the calls that clang emits to copy the bytes of a buffer of any alignment, as in
+// be::load(): one byte at a time. Its proof is in IntxRV/Memcpy.lean.
+extern "C" [[clang::no_builtin("memcpy")]] void* memcpy(
+    void* dst, const void* src, size_t n) noexcept
+{
+    auto* const d = static_cast<unsigned char*>(dst);
+    const auto* const s = static_cast<const unsigned char*>(src);
+    for (size_t i = 0; i != n; ++i)
+        d[i] = s[i];
+    return dst;
+}
+
 // The functions of the C library that the code calls: their code in the images, proved by hand.
 namespace intx::lib
 {
 [[gnu::used]] constexpr auto* memset = &::memset;
+[[gnu::used]] constexpr auto* memcpy = &::memcpy;
 }  // namespace intx::lib
 
 namespace intx::api
@@ -171,4 +184,75 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
+// The uses of the interpreter of evmone. The layouts of evmc::bytes32 and evmc::address.
+struct Bytes32
+{
+    uint8_t bytes[32];
+};
+struct Address
+{
+    uint8_t bytes[20];
+};
+// The conversions.
+[[gnu::used]] constexpr auto* bool_256 =
+    +[](const uint256& x) noexcept { return static_cast<bool>(x); };
+[[gnu::used]] constexpr auto* to_u64_256 =
+    +[](const uint256& x) noexcept { return static_cast<uint64_t>(x); };
+[[gnu::used]] constexpr auto* to_i64_256 =
+    +[](const uint256& x) noexcept { return static_cast<int64_t>(x); };
+[[gnu::used]] constexpr auto* to_u8_256 =
+    +[](const uint256& x) noexcept { return static_cast<uint8_t>(x); };
+[[gnu::used]] constexpr auto* to_i32_256 =
+    +[](const uint256& x) noexcept { return static_cast<int>(x); };
+[[gnu::used]] constexpr auto* from_i32_256 = +[](int v) noexcept { return uint256{v}; };
+[[gnu::used]] constexpr auto* assign_256 = +[](uint256& x, uint64_t v) noexcept { x = v; };
+// The operators in place.
+[[gnu::used]] constexpr auto* add_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x += y; };
+[[gnu::used]] constexpr auto* and_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x &= y; };
+[[gnu::used]] constexpr auto* or_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x |= y; };
+[[gnu::used]] constexpr auto* xor_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x ^= y; };
+[[gnu::used]] constexpr auto* mul_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x *= y; };
+[[gnu::used]] constexpr auto* shl_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x <<= y; };
+[[gnu::used]] constexpr auto* shr_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x >>= y; };
+// The comparisons with builtin integers.
+[[gnu::used]] constexpr auto* lt_256_i32 = +[](const uint256& x, int y) noexcept { return x < y; };
+[[gnu::used]] constexpr auto* lt_256_i64 =
+    +[](const uint256& x, int64_t y) noexcept { return x < y; };
+[[gnu::used]] constexpr auto* lt_256_u64 =
+    +[](const uint256& x, uint64_t y) noexcept { return x < y; };
+[[gnu::used]] constexpr auto* lt_u64_256 =
+    +[](uint64_t x, const uint256& y) noexcept { return x < y; };
+[[gnu::used]] constexpr auto* lt_u32_256 =
+    +[](uint32_t x, const uint256& y) noexcept { return x < y; };
+[[gnu::used]] constexpr auto* lt_i32_256 = +[](int x, const uint256& y) noexcept { return x < y; };
+// The conversions to and from bytes of big-endian order.
+[[gnu::used]] constexpr auto* be_load_u64 =
+    +[](const uint8_t* p) noexcept { return be::unsafe::load<uint64_t>(p); };
+[[gnu::used]] constexpr auto* be_load_u16 =
+    +[](const uint8_t* p) noexcept { return be::unsafe::load<uint16_t>(p); };
+[[gnu::used]] constexpr auto* be_store_u64 =
+    +[](uint8_t* p, uint64_t x) noexcept { be::unsafe::store(p, x); };
+[[gnu::used]] constexpr auto* be_load_u32 =
+    +[](const uint8_t* p) noexcept { return be::unsafe::load<uint32_t>(p); };
+[[gnu::used]] constexpr auto* be_load_256 =
+    +[](const uint8_t* p) noexcept { return be::unsafe::load<uint256>(p); };
+[[gnu::used]] constexpr auto* be_load_256_32 =
+    +[](const uint8_t (&p)[32]) noexcept { return be::load<uint256>(p); };
+[[gnu::used]] constexpr auto* be_load_256_bytes32 =
+    +[](const Bytes32& p) noexcept { return be::load<uint256>(p); };
+[[gnu::used]] constexpr auto* be_load_256_address =
+    +[](const Address& p) noexcept { return be::load<uint256>(p); };
+[[gnu::used]] constexpr auto* be_store_256 =
+    +[](uint8_t* p, const uint256& x) noexcept { be::unsafe::store(p, x); };
+[[gnu::used]] constexpr auto* be_store_bytes32 =
+    +[](const uint256& x) noexcept { return be::store<Bytes32>(x); };
+[[gnu::used]] constexpr auto* be_trunc_address =
+    +[](const uint256& x) noexcept { return be::trunc<Address>(x); };
 }  // namespace intx::wip

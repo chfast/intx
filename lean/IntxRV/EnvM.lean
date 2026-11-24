@@ -154,13 +154,14 @@ macro "rv_nonvacuous" rs:term " using " "[" ls:Lean.Parser.Tactic.simpLemma,* "]
   `(tactic| (
   obtain ⟨S, val, e, -, hw⟩ := envM_exists
   refine ⟨S, val, ramArgs $rs, e, ?_, ?_⟩
-  · simp (config := { decide := true }) only [ramArgs, bufWords, List.forall_mem_append,
+  · simp (config := { decide := true }) only [ramArgs, bufWords, bufBytes, List.forall_mem_append,
       List.forall_mem_cons, List.forall_mem_nil, and_true, $ls,*]
     repeat' apply And.intro
     all_goals first
       | exact (hw _ (by decide) (by decide) (by decide)).1
       | exact (hw _ (by decide) (by decide) (by decide)).2
       | simp (config := { decide := true }) [$ls,*]
-  · simp (config := { decide := true }) [ramArgs, IntxRV.Buf, IntxRV.Disjoint, $ls,*]))
+  · simp (config := { decide := true }) [ramArgs, IntxRV.Buf, IntxRV.BufBytes, IntxRV.Disjoint,
+      $ls,*]))
 
 end IntxRV
