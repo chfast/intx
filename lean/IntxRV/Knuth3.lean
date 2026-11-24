@@ -187,15 +187,6 @@ theorem k3_sub {hi : BitVec 20} {lo : BitVec 12} (base : BitVec 64) (x : Regs) (
       simp only [List.mem_cons, List.not_mem_nil, or_false, not_or] at hr
       simp (config := { decide := true }) only [Regs.set_apply, hr, ↓reduceIte]
 
-/-- The registers `x` with a register set to its value. -/
-theorem regs_set_of_get' {x : Regs} {i : BitVec 5} {v : BitVec 64} (hi : i ≠ 0)
-    (h : x.get i = v) : x.set i v = x := by
-  funext j
-  rw [Regs.set_apply, if_neg hi]
-  split_ifs with hj
-  · subst hj; rw [Regs.eq_get x hi, h]
-  · rfl
-
 /-- The registers that the division of the overflow at 0x200 may change: the call of `submul()`
 changes the registers that are not callee-saved. -/
 def k3OverCl : List (BitVec 5) :=

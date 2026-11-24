@@ -237,6 +237,12 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
     +[](uint8_t* p, uint64_t x) noexcept { be::unsafe::store(p, x); };
 [[gnu::used]] constexpr auto* be_load_256 =
     +[](const uint8_t* p) noexcept { return be::unsafe::load<uint256>(p); };
+[[gnu::used]] constexpr auto* be_load_256_32 =
+    +[](const uint8_t (&p)[32]) noexcept { return be::load<uint256>(p); };
+[[gnu::used]] constexpr auto* be_load_256_bytes32 =
+    +[](const Bytes32& p) noexcept { return be::load<uint256>(p); };
+[[gnu::used]] constexpr auto* be_load_256_address =
+    +[](const Address& p) noexcept { return be::load<uint256>(p); };
 [[gnu::used]] constexpr auto* be_store_256 =
     +[](uint8_t* p, const uint256& x) noexcept { be::unsafe::store(p, x); };
 [[gnu::used]] constexpr auto* be_store_bytes32 =
@@ -258,11 +264,4 @@ using namespace evm;
     +[](uint256& x, const uint256& y) noexcept { x <<= y; };
 [[gnu::used]] constexpr auto* shr_assign_256 =
     +[](uint256& x, const uint256& y) noexcept { x >>= y; };
-// The conversions to and from bytes of big-endian order.
-[[gnu::used]] constexpr auto* be_load_256_32 =
-    +[](const uint8_t (&p)[32]) noexcept { return be::load<uint256>(p); };
-[[gnu::used]] constexpr auto* be_load_256_bytes32 =
-    +[](const Bytes32& p) noexcept { return be::load<uint256>(p); };
-[[gnu::used]] constexpr auto* be_load_256_address =
-    +[](const Address& p) noexcept { return be::load<uint256>(p); };
 }  // namespace intx::wip

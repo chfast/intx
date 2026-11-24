@@ -126,6 +126,15 @@ theorem Regs.set_apply (x : Regs) (i j : BitVec 5) (v : BitVec 64) :
     x.set i v j = if i = 0 then x j else if j = i then v else x j := by
   unfold Regs.set; split <;> rfl
 
+/-- The registers `x` with a register set to its value. -/
+theorem regs_set_of_get' {x : Regs} {i : BitVec 5} {v : BitVec 64} (hi : i ≠ 0)
+    (h : x.get i = v) : x.set i v = x := by
+  funext j
+  rw [Regs.set_apply, if_neg hi]
+  split_ifs with hj
+  · subst hj; rw [Regs.eq_get x hi, h]
+  · rfl
+
 /-- The product of two 4-word numbers by the sums of the products of the words. -/
 theorem mul_words4 (a0 a1 a2 a3 b0 b1 b2 b3 : Nat) :
     (a0 + 2 ^ 64 * (a1 + 2 ^ 64 * (a2 + 2 ^ 64 * a3))) *

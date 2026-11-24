@@ -30,6 +30,17 @@ def bytes (m : Mem) (a : BitVec 64) (k : Nat) : List (BitVec 8) := bytesAt m a.t
 /-- The number of the bytes in big-endian order: the first byte is the most significant. -/
 def bigEndian (l : List (BitVec 8)) : Nat := l.foldl (fun v b => 256 * v + b.toNat) 0
 
+/-- The aligned word of the byte `i` of a buffer of bytes is in the words of the buffer. -/
+theorem mem_bufBytes : ∀ {a : BitVec 64} {n i : Nat}, i < n →
+    (a + BitVec.ofNat 64 i) &&& ~~~7#64 ∈ bufBytes a n
+  | _, 0, _, h => absurd h (Nat.not_lt_zero _)
+  | a, n + 1, 0, _ => by simp [bufBytes]
+  | a, n + 1, i + 1, h => by
+    have := @mem_bufBytes (a + 1#64) n i (by omega)
+    rw [BitVec.add_assoc, show 1#64 + BitVec.ofNat 64 i = BitVec.ofNat 64 (i + 1) by
+      rw [BitVec.ofNat_add, BitVec.add_comm]] at this
+    exact List.mem_cons_of_mem _ this
+
 /-- The word of up to 8 bytes in big-endian order: the first byte is the most significant. -/
 def beWord (l : List (BitVec 8)) : BitVec 64 := l.foldl (fun v b => v <<< 8 ||| b.setWidth 64) 0#64
 
@@ -265,6 +276,27 @@ theorem memByte_memStoreByte_self (m : Mem) (n : Nat) (v : BitVec 8) :
     memByte (memStoreByte m n v) n = v := by
   rw [memByte_memStoreByte]; simp
 
+/-- A byte of a stored word. -/
+theorem memByte_memStore_in (m : Mem) (a b : Nat) (v : BitVec 64) (h : a ≤ b ∧ b < a + 8) :
+    memByte (memStore m a v) b = byteAt v (b - a) := by
+  obtain ⟨k, rfl⟩ : ∃ k, b = a + k := ⟨b - a, by omega⟩
+  rw [Nat.add_sub_cancel_left]
+  have hk : k < 8 := by omega
+  rw [← byteAt_memWord _ _ _ hk, memWord_memStore_self]
+
+/-- The 20 bytes at `n` in big-endian order as the 4 words of a `uint256`, the top word 0. -/
+theorem bigEndian_bytesAt20 (m : Mem) (n : Nat) :
+    bigEndian (bytesAt m n 20) =
+      (beWord (bytesAt m (n + 12) 8)).toNat + 2 ^ 64 * ((beWord (bytesAt m (n + 4) 8)).toNat +
+        2 ^ 64 * ((beWord (bytesAt m n 4)).toNat + 2 ^ 64 * (0#64).toNat)) := by
+  have hb : ∀ k j, j ≤ 8 → (beWord (bytesAt m k j)).toNat = bigEndian (bytesAt m k j) :=
+    fun k j hj => toNat_beWord _ (by rw [length_bytesAt]; exact hj)
+  rw [show 20 = 4 + (8 + 8) from rfl, bytesAt_add, bytesAt_add, bigEndian_append,
+    bigEndian_append]
+  simp only [length_bytesAt, List.length_append, hb _ _ (by decide : 8 ≤ 8),
+    hb _ _ (by decide : 4 ≤ 8), Nat.add_assoc, Nat.reduceAdd, BitVec.toNat_ofNat, Nat.zero_mod]
+  ring
+
 /-- A word outside a stored byte. -/
 theorem memWord_memStoreByte_of_ne (m : Mem) (a b : Nat) (v : BitVec 8) (h : a < b ∨ b + 8 ≤ a) :
     memWord (memStoreByte m a v) b = memWord m b := by
@@ -416,7 +448,7 @@ macro "rv_bytes_simp" : tactic => `(tactic|
     byteAt_slliw, byteAt_signExtend8, srliw_eq, Nat.reduceDiv, Nat.reduceMod, Nat.reducePow,
     Nat.reduceMul, Nat.reduceAdd, Nat.reduceSub, ↓reduceIte, BitVec.ofNat_eq_ofNat, and_ff,
     BitVec.and_zero, BitVec.zero_and, BitVec.or_zero, BitVec.zero_or, BitVec.reduceOfNat,
-    Nat.add_zero])
+    Nat.add_zero, Nat.add_assoc])
 
 /-- A word of the operations of the code on the bytes is the word of the bytes `beWord`: compares
 the 8 bytes. -/

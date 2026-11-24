@@ -43,6 +43,27 @@ theorem unchangedExcept_memCopy (m : Mem) (d : BitVec 64) (s n : Nat) :
   intro k hk
   rw [getElem?_memCopy, if_neg (by omega)]
 
+/-- `memcpy()` to bytes in the first of two regions. -/
+theorem unchangedExcept2_memCopy {m m' : Mem} {a b : BitVec 64} {la lb : Nat} (d s n : Nat)
+    (hd : a.toNat ≤ d ∧ d + n ≤ a.toNat + la) :
+    UnchangedExcept2 m (memCopy m' d s n) a la b lb ↔ UnchangedExcept2 m m' a la b lb := by
+  constructor <;> intro h k hka hkb
+  · have := h k hka hkb
+    rwa [getElem?_memCopy, if_neg (by omega)] at this
+  · rw [getElem?_memCopy, if_neg (by omega)]; exact h k hka hkb
+
+/-- A byte that `memcpy()` writes: the byte of the source. -/
+theorem memByte_memCopy_in (m : Mem) (d s n b : Nat) (h : d ≤ b ∧ b < d + n) :
+    memByte (memCopy m d s n) b = memByte m (s + (b - d)) := by
+  simp only [memByte, Std.ExtHashMap.getD_eq_getD_getElem?, getElem?_memCopy, if_pos h,
+    Option.getD_some]
+
+/-- A byte outside the bytes that `memcpy()` writes. -/
+theorem memByte_memCopy_out (m : Mem) (d s n b : Nat) (h : b < d ∨ d + n ≤ b) :
+    memByte (memCopy m d s n) b = memByte m b := by
+  simp only [memByte, Std.ExtHashMap.getD_eq_getD_getElem?, getElem?_memCopy]
+  rw [if_neg (by omega)]
+
 /-- A word outside the bytes that `memcpy()` writes. -/
 theorem memWord_memCopy_of_disjoint (m : Mem) (d s n b : Nat) (h : b + 8 ≤ d ∨ d + n ≤ b) :
     memWord (memCopy m d s n) b = memWord m b := by
