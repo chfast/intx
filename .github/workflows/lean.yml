@@ -90,7 +90,7 @@ jobs:
             IntxRV.Api.udivrem_top1_3 IntxRV.Api.udivrem_top2_3 IntxRV.Api.udivrem_256 \
             IntxRV.Api.udivrem_knuth_normalized_3 IntxRV.Api.udivrem_knuth_normalized_4 \
             IntxRV.Div512K3 IntxRV.Div512K4 IntxRV.Api.mulmod_256 IntxRV.DivBy24 \
-            IntxRV.Api.udivrem_top1_3_320
+            IntxRV.Api.udivrem_top1_3_320 IntxRV.AddMod
           LEAN_NUM_THREADS=4 lake build Intx IntxRV Checks
       # A cancelled or timed out step leaves Lean processes that still write the build, and the
       # cache below fails when a file changes while it is archived: stop them first, so that the

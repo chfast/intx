@@ -69,6 +69,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `internal::udivrem_top2<3, true>()` of `uint320` by `uint256` | [`udivrem_top2_3_equal_320`](Api/udivrem_top2_3_equal_320.lean) |
 | `internal::udivrem_top2<4>()` of `uint320` by `uint256` | [`udivrem_top2_4_320`](Api/udivrem_top2_4_320.lean) |
 | `udivrem()` of `uint320` by `uint256` | [`udivrem_320_256`](Api/udivrem_320_256.lean) |
+| `addmod()` of `uint256` | [`addmod_256`](Api/addmod_256.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |

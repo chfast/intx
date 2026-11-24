@@ -156,12 +156,12 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
     &intx::internal::udivrem_top2<3, true, 320, 256>;
 [[gnu::used]] constexpr auto* udivrem_top2_4_320 =
     &intx::internal::udivrem_top2<4, false, 320, 256>;
+// addmod(), which divides the 320-bit sum with udivrem<320, 256>().
+[[gnu::used]] constexpr auto* addmod_256 = &intx::addmod;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
-// addmod(), which divides the 320-bit sum with udivrem<320, 256>().
-[[gnu::used]] constexpr auto* addmod_256 = &intx::addmod;
 }  // namespace intx::wip
