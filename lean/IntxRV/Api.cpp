@@ -178,22 +178,7 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
 [[gnu::used]] constexpr auto* count_significant_bytes_256 = &intx::count_significant_bytes<256>;
 // exp(), which calls operator<< by uint64_t.
 [[gnu::used]] constexpr auto* exp_256 = &intx::exp<256>;
-}  // namespace intx::api
-
-// The instances whose RV64 machine code is not proved yet: their specifications are generated
-// and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
-namespace intx::wip
-{
-// The uses of the interpreter of evmone. The layouts of evmc::bytes32 and evmc::address.
-struct Bytes32
-{
-    uint8_t bytes[32];
-};
-struct Address
-{
-    uint8_t bytes[20];
-};
-// The conversions.
+// The uses of the interpreter of evmone: the conversions to and from builtin integers.
 [[gnu::used]] constexpr auto* bool_256 =
     +[](const uint256& x) noexcept { return static_cast<bool>(x); };
 [[gnu::used]] constexpr auto* to_u64_256 =
@@ -215,12 +200,6 @@ struct Address
     +[](uint256& x, const uint256& y) noexcept { x |= y; };
 [[gnu::used]] constexpr auto* xor_assign_256 =
     +[](uint256& x, const uint256& y) noexcept { x ^= y; };
-[[gnu::used]] constexpr auto* mul_assign_256 =
-    +[](uint256& x, const uint256& y) noexcept { x *= y; };
-[[gnu::used]] constexpr auto* shl_assign_256 =
-    +[](uint256& x, const uint256& y) noexcept { x <<= y; };
-[[gnu::used]] constexpr auto* shr_assign_256 =
-    +[](uint256& x, const uint256& y) noexcept { x >>= y; };
 // The comparisons with builtin integers.
 [[gnu::used]] constexpr auto* lt_256_i32 = +[](const uint256& x, int y) noexcept { return x < y; };
 [[gnu::used]] constexpr auto* lt_256_i64 =
@@ -239,6 +218,29 @@ struct Address
     +[](const uint8_t* p) noexcept { return be::unsafe::load<uint16_t>(p); };
 [[gnu::used]] constexpr auto* be_store_u64 =
     +[](uint8_t* p, uint64_t x) noexcept { be::unsafe::store(p, x); };
+}  // namespace intx::api
+
+// The instances whose RV64 machine code is not proved yet: their specifications are generated
+// and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
+namespace intx::wip
+{
+// The uses of the interpreter of evmone. The layouts of evmc::bytes32 and evmc::address.
+struct Bytes32
+{
+    uint8_t bytes[32];
+};
+struct Address
+{
+    uint8_t bytes[20];
+};
+// The operators in place.
+[[gnu::used]] constexpr auto* mul_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x *= y; };
+[[gnu::used]] constexpr auto* shl_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x <<= y; };
+[[gnu::used]] constexpr auto* shr_assign_256 =
+    +[](uint256& x, const uint256& y) noexcept { x >>= y; };
+// The conversions to and from bytes of big-endian order.
 [[gnu::used]] constexpr auto* be_load_u32 =
     +[](const uint8_t* p) noexcept { return be::unsafe::load<uint32_t>(p); };
 [[gnu::used]] constexpr auto* be_load_256 =

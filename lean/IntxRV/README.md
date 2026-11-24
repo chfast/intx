@@ -74,6 +74,26 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `sdivrem()` of `uint256` | [`sdivrem_256`](Api/sdivrem_256.lean) |
 | `count_significant_bytes()` of `uint256` | [`count_significant_bytes_256`](Api/count_significant_bytes_256.lean) |
 | `exp()` of `uint256` | [`exp_256`](Api/exp_256.lean) |
+| `operator bool` of `uint256` | [`bool_256`](Api/bool_256.lean) |
+| `operator uint64_t` of `uint256` | [`to_u64_256`](Api/to_u64_256.lean) |
+| `operator int64_t` of `uint256` | [`to_i64_256`](Api/to_i64_256.lean) |
+| `operator uint8_t` of `uint256` | [`to_u8_256`](Api/to_u8_256.lean) |
+| `operator int` of `uint256` | [`to_i32_256`](Api/to_i32_256.lean) |
+| the constructor of `uint256` from an `int` | [`from_i32_256`](Api/from_i32_256.lean) |
+| `operator=` of `uint256` by `uint64_t` | [`assign_256`](Api/assign_256.lean) |
+| `operator+=` of `uint256` | [`add_assign_256`](Api/add_assign_256.lean) |
+| `operator&=` of `uint256` | [`and_assign_256`](Api/and_assign_256.lean) |
+| `operator\|=` of `uint256` | [`or_assign_256`](Api/or_assign_256.lean) |
+| `operator^=` of `uint256` | [`xor_assign_256`](Api/xor_assign_256.lean) |
+| `operator<` of `uint256` and `int` | [`lt_256_i32`](Api/lt_256_i32.lean) |
+| `operator<` of `uint256` and `int64_t` | [`lt_256_i64`](Api/lt_256_i64.lean) |
+| `operator<` of `uint256` and `uint64_t` | [`lt_256_u64`](Api/lt_256_u64.lean) |
+| `operator<` of `uint64_t` and `uint256` | [`lt_u64_256`](Api/lt_u64_256.lean) |
+| `operator<` of `unsigned` and `uint256` | [`lt_u32_256`](Api/lt_u32_256.lean) |
+| `operator<` of `int` and `uint256` | [`lt_i32_256`](Api/lt_i32_256.lean) |
+| `be::unsafe::load<uint64_t>()` | [`be_load_u64`](Api/be_load_u64.lean) |
+| `be::unsafe::load<uint16_t>()` | [`be_load_u16`](Api/be_load_u16.lean) |
+| `be::unsafe::store()` of `uint64_t` | [`be_store_u64`](Api/be_store_u64.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
