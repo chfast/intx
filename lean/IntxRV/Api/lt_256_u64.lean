@@ -27,7 +27,7 @@ set_option maxHeartbeats 4000000
 
 theorem lt_256_u64.proof : lt_256_u64.spec :=
   runsM_of_reach lt_256_u64_decodes fun base ret _ hr _ x m hx1 hpre => by
-    simp only [lt_256_u64.pre, lt_256_u64.bufs, Buf, Disjoint] at hpre ⊢
+    simp only [lt_256_u64.pre, lt_256_u64.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1
     refine Reach.start ?_
@@ -44,13 +44,13 @@ theorem lt_256_u64.proof : lt_256_u64.spec :=
     simp only [BitVec.ofNat_eq_ofNat] at *
     refine ⟨?_, ite_and_ite_cases _ _, trivial, ?_⟩
     · rw [decide_eq_true_eq, ite_and_ite_eq_one,
-        show ((x.get 11#5).toNat : Int) % 2 ^ 64 = (x.get 11#5).toNat by have := (x.get 11#5).isLt; omega,
+        show ((x.get 11#5).toNat : Int) % 2 ^ 64 = (x.get 11#5).toNat by
+          have := (x.get 11#5).isLt; omega,
         Int.ofNat_lt]
       simp only [words, Nat.mul_zero, Nat.add_zero, BitVec.add_assoc, BitVec.reduceAdd,
         words4_lt_iff, BitVec.or_eq_zero_iff]
       tauto
-    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat,
-        and_self, and_true, true_and]
+    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte]
       simp (disch := decide) only [Regs.eq_get x, and_self]
 
 end IntxRV.Api

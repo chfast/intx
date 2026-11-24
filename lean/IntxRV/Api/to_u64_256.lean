@@ -24,7 +24,7 @@ set_option maxHeartbeats 4000000
 
 theorem to_u64_256.proof : to_u64_256.spec :=
   runsM_of_reach to_u64_256_decodes fun base ret _ hr _ x m hx1 hpre => by
-    simp only [to_u64_256.pre, to_u64_256.bufs, Buf, Disjoint] at hpre ⊢
+    simp only [to_u64_256.pre, to_u64_256.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1
     refine Reach.start ?_
@@ -41,8 +41,7 @@ theorem to_u64_256.proof : to_u64_256.spec :=
     refine ⟨?_, trivial, ?_⟩
     · simp only [words, Nat.mul_zero, Nat.add_zero, Nat.reduceMul, Nat.reducePow]
       omega
-    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat,
-        and_self, and_true, true_and]
+    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat]
       simp (disch := decide) only [Regs.eq_get x, and_self]
 
 end IntxRV.Api

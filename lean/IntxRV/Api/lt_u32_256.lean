@@ -27,7 +27,7 @@ set_option maxHeartbeats 4000000
 
 theorem lt_u32_256.proof : lt_u32_256.spec :=
   runsM_of_reach lt_u32_256_decodes fun base ret _ hr _ x m hx1 hpre => by
-    simp only [lt_u32_256.pre, lt_u32_256.bufs, Buf, Disjoint] at hpre ⊢
+    simp only [lt_u32_256.pre, lt_u32_256.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1
     refine Reach.start ?_
@@ -47,7 +47,8 @@ theorem lt_u32_256.proof : lt_u32_256.spec :=
         simp only [BitVec.toNat_ushiftRight, BitVec.toNat_shiftLeft, Nat.shiftLeft_eq,
           Nat.shiftRight_eq_div_pow]
         omega
-      have key : (((x.get 10#5).toNat % 2 ^ 32 : Nat) : Int) % 2 ^ 64 < (words m (x.get 11#5) 4 : Int) ↔
+      have key :
+          (((x.get 10#5).toNat % 2 ^ 32 : Nat) : Int) % 2 ^ 64 < (words m (x.get 11#5) 4 : Int) ↔
           (x.get 10#5 <<< 32 >>> 32).toNat < words m (x.get 11#5) 4 := by
         rw [hz]; omega
       rw [decide_eq_true_eq, ite_or_ite_eq_one, zero_lt_iff_ne_zero]
@@ -55,8 +56,7 @@ theorem lt_u32_256.proof : lt_u32_256.spec :=
       simp only [words, Nat.mul_zero, Nat.add_zero, BitVec.add_assoc, BitVec.reduceAdd,
         lt_words4_iff, ne_eq, BitVec.or_eq_zero_iff]
       tauto
-    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat,
-        and_self, and_true, true_and]
+    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte]
       simp (disch := decide) only [Regs.eq_get x, and_self]
 
 end IntxRV.Api

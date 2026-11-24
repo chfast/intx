@@ -27,7 +27,7 @@ set_option maxHeartbeats 4000000
 
 theorem be_store_u64.proof : be_store_u64.spec :=
   runsM_of_reach be_store_u64_decodes fun base ret _ hr _ x m hx1 hpre => by
-    simp only [be_store_u64.pre, be_store_u64.bufs, BufBytes, Buf, Disjoint] at hpre ⊢
+    simp only [be_store_u64.pre, be_store_u64.bufs, BufBytes] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1
     refine Reach.start ?_
@@ -44,7 +44,7 @@ theorem be_store_u64.proof : be_store_u64.spec :=
     refine ⟨?_, ?_, ?_⟩
     · simp only [bytes, bytesAt, Nat.add_assoc, Nat.reduceAdd]
       simp (disch := omega) only [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.reducePow,
-        Nat.reduceMod, Nat.mod_eq_of_lt, BitVec.add_zero]
+        Nat.mod_eq_of_lt]
       simp (config := { decide := true }) only [memByte_memStoreByte_add,
         memByte_memStoreByte_add_zero, memByte_memStoreByte_zero_add, memByte_memStoreByte_self,
         ↓reduceIte]
@@ -52,10 +52,8 @@ theorem be_store_u64.proof : be_store_u64.spec :=
       rw [setWidth_eq_byteAt]
       exact bigEndian_byteAt _
     · simp (disch := omega) only [unchangedExcept_memStoreByte, unchangedExcept_refl,
-        BitVec.toNat_add, BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod, Nat.mod_eq_of_lt,
-        BitVec.add_zero]
-    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat,
-        and_self, and_true, true_and]
+        BitVec.toNat_add, BitVec.toNat_ofNat, Nat.reducePow, Nat.mod_eq_of_lt]
+    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat]
       simp (disch := decide) only [Regs.eq_get x, and_self]
 
 end IntxRV.Api

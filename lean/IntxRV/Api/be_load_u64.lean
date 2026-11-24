@@ -46,10 +46,9 @@ theorem be_load_u64.proof : be_load_u64.spec :=
       congr 1
       simp only [bytesAt, Nat.add_assoc, Nat.reduceAdd]
       simp (disch := omega) only [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.reducePow,
-        Nat.reduceMod, Nat.mod_eq_of_lt]
+        Nat.mod_eq_of_lt]
       rv_bytes
-    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat,
-        and_self, and_true, true_and]
+    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat]
       simp (disch := decide) only [Regs.eq_get x, and_self]
 
 end IntxRV.Api

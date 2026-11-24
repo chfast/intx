@@ -30,7 +30,7 @@ set_option maxHeartbeats 4000000
 
 theorem from_i32_256.proof : from_i32_256.spec :=
   runsM_of_reach from_i32_256_decodes fun base ret _ hr _ x m hx1 hpre => by
-    simp only [from_i32_256.pre, from_i32_256.bufs, Buf, Disjoint] at hpre ⊢
+    simp only [from_i32_256.pre, from_i32_256.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1
     refine Reach.start ?_
@@ -48,13 +48,13 @@ theorem from_i32_256.proof : from_i32_256.spec :=
     · simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, Nat.mul_zero,
         Nat.add_zero]
       simp (disch := first | bv_omega | fail) only [memWord_memStore_self, memWord_memStore_of_ne]
-      have hz : (x.get 0#5).toNat = 0 := by rw [show (0#5 : BitVec 5) = 0 from rfl, Regs.get_zero]; rfl
+      have hz : (x.get 0#5).toNat = 0 := by
+        rw [show (0#5 : BitVec 5) = 0 from rfl, Regs.get_zero]; rfl
       simp only [hz, Nat.mul_zero, Nat.add_zero]
       try simp only [List.foldr, toInt_emod_toNat, Nat.mul_zero, Nat.add_zero]
     · simp (disch := first | bv_omega | fail) only [unchangedExcept_memStore,
         unchangedExcept_refl]
-    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat,
-        and_self, and_true, true_and]
+    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte, BitVec.ofNat_eq_ofNat]
       simp (disch := decide) only [Regs.eq_get x, and_self]
 
 end IntxRV.Api
