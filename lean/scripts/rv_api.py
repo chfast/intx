@@ -293,14 +293,18 @@ MEM_RESULTS = {
 
 def mem_result(ret):
     """The result in memory at a0 (sret) of the type `ret` as in MEM_RESULTS, or None:
-    `div_result<uint<M>, uint<N>>` is the words of the quotient and then of the remainder."""
+    `div_result<uint<M>, uint<N>>` is the words of the quotient and then of the remainder, and
+    `div_result<uint<M>>` has the remainder of the type of the quotient."""
     if ret in MEM_RESULTS:
         return MEM_RESULTS[ret]
-    m = re.fullmatch(r"div_result<uint<(\d+)>, uint<(\d+)>>",
+    m = re.fullmatch(r"div_result<uint<(\d+)>(?:, uint<(\d+)>)?>",
                      ret.replace("uint256", "uint<256>").replace("uint128", "uint<128>"))
-    if not m or int(m[1]) % 64 or int(m[2]) % 64 or int(m[1]) + int(m[2]) <= 128:
+    if not m:
         return None
-    q, r = int(m[1]) // 64, int(m[2]) // 64
+    q, r = int(m[1]), int(m[2] or m[1])
+    if q % 64 or r % 64 or q + r <= 128:
+        return None
+    q, r = q // 64, r // 64
     return ("DivResult", f"⟨words m' (x 10#5) {q}, words m' (x 10#5 + {8 * q}#64) {r}⟩",
             64 * (q + r))
 
@@ -405,7 +409,10 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
         elif t == "uint128":
             v = (name, "Nat", f"(x {reg}#5).toNat + 2 ^ 64 * (x {reg + 1}#5).toNat")
             reg += 2
-        elif (w is not None and t.endswith("&") and w % 64 == 0) or (span and span[1]):
+        # A uint<N> of more than 128 bits by value is the address of a copy that the caller makes
+        # (the calling convention of an aggregate over 2 XLEN): as a const reference, so the proof
+        # shows too that the code leaves the copy unchanged.
+        elif (w is not None and (t.endswith("&") or w > 128) and w % 64 == 0) or (span and span[1]):
             n = str((w or 64 * int(span[2])) // 64)
             ins.append((reg, n))
             v = (name, "Nat", f"words m (x {reg}#5) {n}")
