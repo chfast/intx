@@ -168,6 +168,10 @@ structure of these (`ResultWithCarry`, `DivResult` in [`Words.lean`](Words.lean)
 friend constexpr uint operator+(const uint& x, const uint& y) noexcept
 ```
 
+A `@note FV:` in the documentation marks what a specification does not cover, as `x += x` (the
+specification of an operator in place requires y not to overlap the object). A function without
+`@post` is not verified: on `main`, the documentation shows the specifications proved here.
+
 `rv_api.py` reads the comments from the AST that clang dumps for `Api.cpp` (clang-doc drops `@pre`
 and `@post`). The operators are hidden friends, so an instance in `Api.cpp` is a lambda that calls
 the function; the generator finds the function in the AST, and so binds the machine code of the

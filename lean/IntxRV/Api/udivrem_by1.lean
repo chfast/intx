@@ -15,6 +15,7 @@ The specification, from `include/intx/intx.hpp`:
 /// @pre 0 < d
 /// @post q = u / d
 /// @post result = u % d
+/// @note FV: not proved for q that overlaps u.
 template <size_t W>
 constexpr uint64_t udivrem_by1(std::span<uint64_t, W> q,
     std::type_identity_t<std::span<const uint64_t, W>> u, uint64_t d) noexcept

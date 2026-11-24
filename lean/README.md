@@ -8,6 +8,29 @@ Machine-checked proofs that functions of intx compute the specifications in thei
   in Lean) and their proofs (`Intx.Proofs`), which the proofs of the machine code use: `umul()`,
   `addc()`, `subc()`, `udivrem_2by1()` with the reciprocal, `shl()` and others.
 
+## The specifications
+
+The `@pre` and `@post` commands in the documentation of `include/intx/intx.hpp` are terms of Lean 4
+([Theorem Proving in Lean 4](https://lean-lang.org/theorem_proving_in_lean4/) introduces the
+notation). A parameter name stands for its value as a natural number (an integer for a signed type,
+a list of bytes for a buffer of bytes, a list for a parameter pack), `result` for the result, `self`
+for the object of a member function, `old(p)` for the value of a written buffer `p` at the entry,
+`N` for the width of `uint<N>` and `sizeof(T)` for the size of a type; `p.size()` of a pointer `p`
+is the number of the elements that it points to. `|||`, `&&&` and `^^^` are the bitwise operations,
+`bigEndian b` is the number of the bytes `b` in big-endian order
+([`IntxRV/Bytes.lean`](IntxRV/Bytes.lean)) and `signed N x` is `x` as a signed `N`-bit integer
+([`IntxRV/Words.lean`](IntxRV/Words.lean)).
+
+The RV64 machine code that clang 21 emits for the instances in [`IntxRV/Api.cpp`](IntxRV/Api.cpp) is
+proved to satisfy these specifications (the table of
+[`IntxRV/README.md`](IntxRV/README.md#the-proof-of-a-function) lists the proofs, and [its section on
+the specifications](IntxRV/README.md#the-specifications) has the details). A specification of a
+template is proved for these instances, mostly of `uint256`. It assumes that the buffers that a
+function writes do not overlap its other arguments, and `@note FV:` marks what else it does not
+cover. The documentation on `main` has the specifications proved here, so a function without `@post`
+is not verified; the proofs follow this branch, not each change of `main`. What the proofs trust is
+in [`IntxRV/README.md`](IntxRV/README.md#what-the-proofs-trust).
+
 ## Audit map
 
 | file | review |

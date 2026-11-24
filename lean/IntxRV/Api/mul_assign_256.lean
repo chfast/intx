@@ -9,6 +9,7 @@ The specification, from `include/intx/intx.hpp`:
 ```cpp
 /// Multiplies by y modulo 2^N.
 /// @post self = old(self) * y % 2 ^ N
+/// @note FV: not proved for x *= x.
 constexpr uint& operator*=(const uint& y) noexcept
 ```
 

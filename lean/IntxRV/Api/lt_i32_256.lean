@@ -7,7 +7,7 @@ import IntxRV.Conv
 The specification, from `include/intx/intx.hpp`:
 
 ```cpp
-/// Compares a builtin integer of up to 64 bits as its uint conversion with y.
+/// Compares a builtin integer of up to 64 bits with y, as its uint conversion.
 /// @post result <-> (x : Int) % 2 ^ 64 < (y : Int)
 template <std::same_as<uint> U, std::integral T>
     requires(sizeof(T) <= sizeof(uint64_t))

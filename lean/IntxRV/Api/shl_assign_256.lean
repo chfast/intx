@@ -15,6 +15,7 @@ The specification, from `include/intx/intx.hpp`:
 ```cpp
 /// The shift left by shift modulo 2^N.
 /// @post self = old(self) * 2 ^ shift % 2 ^ N
+/// @note FV: not proved for x <<= x.
 constexpr uint& operator<<=(uint shift) noexcept { return *this = *this << shift; }
 ```
 

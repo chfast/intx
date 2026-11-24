@@ -8,6 +8,7 @@ The specification, from `include/intx/intx.hpp`:
 ```cpp
 /// The bitwise or with y.
 /// @post self = old(self) ||| y
+/// @note FV: not proved for x |= x.
 constexpr uint& operator|=(const uint& y) noexcept { return *this = *this | y; }
 ```
 
