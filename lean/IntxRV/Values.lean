@@ -85,6 +85,17 @@ theorem shiftiopVal_slli (sh : BitVec 6) (a : BitVec 64) :
   have : BitVec.extractLsb 5 0 sh = sh := by apply BitVec.eq_of_toNat_eq; simp; omega
   rw [this]; rfl
 
+theorem shiftiwopVal_srliw (sh : BitVec 5) (a : BitVec 64) :
+    shiftiwopVal .SRLIW sh a = (a.setWidth 32 >>> sh.toNat).signExtend 64 := by
+  have ha : Sail.BitVec.extractLsb a 31 0 = a.setWidth 32 := BitVec.eq_of_toNat_eq rfl
+  simp only [shiftiwopVal, ha, shift_bits_right, Sail.shift_bits_right]
+  rfl
+
+theorem addiwVal_eq (imm : BitVec 12) (a : BitVec 64) :
+    addiwVal imm a = ((a + imm.signExtend 64).setWidth 32).signExtend 64 := by
+  simp only [addiwVal]
+  rfl
+
 theorem utypeVal_lui (imm : BitVec 20) (pc : BitVec 64) :
     utypeVal .LUI imm pc = (imm ++ 0x000#12).signExtend 64 := rfl
 

@@ -77,6 +77,12 @@ def StepGoal (A : List (BitVec 64)) (prog : List instruction) (base : BitVec 64)
   | .RTYPEW (.Regidx rs2, .Regidx rs1, .Regidx rd, op) =>
     ∀ w, Defn w (rtypewVal op (x.get rs1) (x.get rs2)) →
       Reach A prog base (pcAt base (k + 1)) (x.set rd w) m tgt Q
+  | .SHIFTIWOP (shamt, .Regidx rs1, .Regidx rd, op) =>
+    ∀ w, Defn w (shiftiwopVal op shamt (x.get rs1)) →
+      Reach A prog base (pcAt base (k + 1)) (x.set rd w) m tgt Q
+  | .ADDIW (imm, .Regidx rs1, .Regidx rd) =>
+    ∀ w, Defn w (addiwVal imm (x.get rs1)) →
+      Reach A prog base (pcAt base (k + 1)) (x.set rd w) m tgt Q
   | .UTYPE (imm, .Regidx rd, op) =>
     Reach A prog base (pcAt base (k + 1)) (x.set rd (utypeVal op imm (pcAt base k))) m tgt Q
   | .JAL (imm, .Regidx rd) =>
@@ -136,6 +142,8 @@ theorem Reach.step {A : List (BitVec 64)} {prog : List instruction} {base tgt : 
   split at h
   · exact Reach.step_execM hf (by simp [execM, exec, pcAt_succ]) (h _ rfl)
   · exact Reach.step_execM hf (by simp [execM, exec, pcAt_succ]) h
+  · exact Reach.step_execM hf (by simp [execM, exec, pcAt_succ]) (h _ rfl)
+  · exact Reach.step_execM hf (by simp [execM, exec, pcAt_succ]) (h _ rfl)
   · exact Reach.step_execM hf (by simp [execM, exec, pcAt_succ]) (h _ rfl)
   · exact Reach.step_execM hf (by simp [execM, exec, pcAt_succ]) (h _ rfl)
   · exact Reach.step_execM hf (by simp [execM, exec, pcAt_succ]) (h _ rfl)

@@ -217,6 +217,7 @@ MUL_OPS = {0: "⟨.Low, .Signed, .Signed⟩", 1: "⟨.High, .Signed, .Signed⟩"
 I_OPS = {0: "ADDI", 2: "SLTI", 3: "SLTIU", 4: "XORI", 6: "ORI", 7: "ANDI"}
 B_OPS = {0: "BEQ", 1: "BNE", 4: "BLT", 5: "BGE", 6: "BLTU", 7: "BGEU"}
 RW_OPS = {(0, 0): "ADDW", (0, 0x20): "SUBW", (1, 0): "SLLW", (5, 0): "SRLW", (5, 0x20): "SRAW"}
+IW_OPS = {(1, 0): "SLLIW", (5, 0): "SRLIW", (5, 0x20): "SRAIW"}
 
 
 def decode(w):
@@ -231,6 +232,10 @@ def decode(w):
         return f".RTYPE ({reg(rs2)}, {reg(rs1)}, {reg(rd)}, .{R_OPS[(f3, f7)]})"
     if opcode == 0x3b and (f3, f7) in RW_OPS:
         return f".RTYPEW ({reg(rs2)}, {reg(rs1)}, {reg(rd)}, .{RW_OPS[(f3, f7)]})"
+    if opcode == 0x1b and f3 == 0:
+        return f".ADDIW ({lean_bv(w >> 20, 12)}, {reg(rs1)}, {reg(rd)})"
+    if opcode == 0x1b and (f3, f7) in IW_OPS:
+        return f".SHIFTIWOP ({lean_bv(rs2, 5)}, {reg(rs1)}, {reg(rd)}, .{IW_OPS[(f3, f7)]})"
     if opcode in (0x37, 0x17):
         op = "LUI" if opcode == 0x37 else "AUIPC"
         return f".UTYPE ({lean_bv(w >> 12, 20)}, {reg(rd)}, .{op})"

@@ -62,6 +62,18 @@ def rtypewVal (op : ropw) (a b : BitVec 64) : BitVec 64 :=
     | .SRLW => shift_bits_right a (Sail.BitVec.extractLsb b 4 0)
     | .SRAW => shift_bits_right_arith a (Sail.BitVec.extractLsb b 4 0))
 
+/-- The result of a 32-bit shift by an immediate, as in `execute_SHIFTIWOP`. -/
+def shiftiwopVal (op : sopw) (shamt : BitVec 5) (a : BitVec 64) : BitVec 64 :=
+  let a := Sail.BitVec.extractLsb a 31 0
+  sign_extend (m := 64) (match op with
+    | .SLLIW => shift_bits_left a shamt
+    | .SRLIW => shift_bits_right a shamt
+    | .SRAIW => shift_bits_right_arith a shamt)
+
+/-- The result of a 32-bit addition of an immediate, as in `execute_ADDIW`. -/
+def addiwVal (imm : BitVec 12) (a : BitVec 64) : BitVec 64 :=
+  sign_extend (m := 64) (Sail.BitVec.extractLsb (a + sign_extend (m := 64) imm) 31 0)
+
 /-- The result of `lui` and `auipc` at `pc`, as in `execute_UTYPE`. -/
 def utypeVal (op : uop) (imm : BitVec 20) (pc : BitVec 64) : BitVec 64 :=
   match op with
@@ -93,6 +105,9 @@ def exec (i : instruction) (pc : BitVec 64) (x : Regs) : Option (BitVec 64 × Re
     some (pc + 4, x.set rd (mulVal op (x.get rs1) (x.get rs2)))
   | .RTYPEW (.Regidx rs2, .Regidx rs1, .Regidx rd, op) =>
     some (pc + 4, x.set rd (rtypewVal op (x.get rs1) (x.get rs2)))
+  | .SHIFTIWOP (shamt, .Regidx rs1, .Regidx rd, op) =>
+    some (pc + 4, x.set rd (shiftiwopVal op shamt (x.get rs1)))
+  | .ADDIW (imm, .Regidx rs1, .Regidx rd) => some (pc + 4, x.set rd (addiwVal imm (x.get rs1)))
   | .UTYPE (imm, .Regidx rd, op) => some (pc + 4, x.set rd (utypeVal op imm pc))
   | .JAL (imm, .Regidx rd) => some (pc + sign_extend (m := 64) imm, x.set rd (pc + 4))
   | .BTYPE (imm, .Regidx rs2, .Regidx rs1, op) =>
@@ -203,6 +218,26 @@ theorem exec_rtypew {S s : SailState} {pc npc : BitVec 64} {x : Regs} (h : Inv S
   cases op <;> simp [execute_RTYPEW, rtypewVal, rX_bits_inv h, hs, bind, EStateM.bind, pure,
     EStateM.pure] at hs ⊢ <;> rfl
 
+theorem exec_shiftiwop {S s : SailState} {pc npc : BitVec 64} {x : Regs} (h : Inv S s pc npc x)
+    (shamt : BitVec 5) (rs1 rd : BitVec 5) (op : sopw) :
+    ∃ s', execute (.SHIFTIWOP (shamt, .Regidx rs1, .Regidx rd, op)) s = .ok RETIRE_SUCCESS s' ∧
+      Inv S s' pc npc (x.set rd (shiftiwopVal op shamt (x.get rs1))) := by
+  obtain ⟨s', hs, hi⟩ := wX_bits_inv h rd (shiftiwopVal op shamt (x.get rs1))
+  refine ⟨s', ?_, hi⟩
+  show execute_SHIFTIWOP _ _ _ _ s = _
+  cases op <;> simp [execute_SHIFTIWOP, shiftiwopVal, rX_bits_inv h, hs, bind, EStateM.bind, pure,
+    EStateM.pure] at hs ⊢ <;> rfl
+
+theorem exec_addiw {S s : SailState} {pc npc : BitVec 64} {x : Regs} (h : Inv S s pc npc x)
+    (imm : BitVec 12) (rs1 rd : BitVec 5) :
+    ∃ s', execute (.ADDIW (imm, .Regidx rs1, .Regidx rd)) s = .ok RETIRE_SUCCESS s' ∧
+      Inv S s' pc npc (x.set rd (addiwVal imm (x.get rs1))) := by
+  obtain ⟨s', hs, hi⟩ := wX_bits_inv h rd (addiwVal imm (x.get rs1))
+  refine ⟨s', ?_, hi⟩
+  show execute_ADDIW _ _ _ s = _
+  simp [execute_ADDIW, addiwVal, rX_bits_inv h, hs, bind, EStateM.bind, pure,
+    EStateM.pure] at hs ⊢ <;> rfl
+
 theorem exec_utype {S s : SailState} {pc npc : BitVec 64} {x : Regs} (h : Inv S s pc npc x)
     (imm : BitVec 20) (rd : BitVec 5) (op : uop) :
     ∃ s', execute (.UTYPE (imm, .Regidx rd, op)) s = .ok RETIRE_SUCCESS s' ∧
@@ -290,6 +325,8 @@ theorem exec_sim {S s : SailState} {val : (r : Register) → RegisterType r} {pc
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_shiftiop h _ _ _ _
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_mul h _ _ _ _
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_rtypew h _ _ _ _
+  · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_shiftiwop h _ _ _ _
+  · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_addiw h _ _ _
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_utype h _ _ _
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm; exact exec_jal e h _ _ ha
   · obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hi).symm

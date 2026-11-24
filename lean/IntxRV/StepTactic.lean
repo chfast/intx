@@ -45,7 +45,7 @@ macro "rv_val" loc:(Lean.Parser.Tactic.location)? : tactic => `(tactic| (
     Regs.get_zero, ↓reduceIte, memWord_memStore_of_ne, memHalf_memStore_of_ne,
     memByte_memStore_of_ne,
     rtypeVal_add, rtypeVal_sub, rtypeVal_and, rtypeVal_or, rtypeVal_xor, rtypeVal_sltu,
-    rtypeVal_sll, rtypeVal_srl, rtypewVal_subw,
+    rtypeVal_sll, rtypeVal_srl, rtypewVal_subw, shiftiwopVal_srliw, addiwVal_eq,
     itypeVal_addi, itypeVal_xori, itypeVal_andi, itypeVal_ori, itypeVal_seqz, shiftiopVal_srli,
     shiftiopVal_slli, utypeVal_lui, utypeVal_auipc, BitVec.reduceAppend, BitVec.reduceToNat,
     BitVec.reduceHShiftLeft, BitVec.reduceHShiftRight, BitVec.reduceShiftLeft,
