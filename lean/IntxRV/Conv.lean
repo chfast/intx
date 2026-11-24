@@ -94,4 +94,11 @@ theorem zero_lt_iff_ne_zero (v : BitVec 64) : 0#64 < v ↔ v ≠ 0#64 := by
   simp only [BitVec.lt_def, ne_eq, ← BitVec.toNat_inj, BitVec.toNat_ofNat, Nat.zero_mod]
   omega
 
+/-- The low 160 bits of the 4 words: the low 2 words and the low 32 bits of the third. -/
+theorem words4_mod160 (x0 x1 x2 x3 : BitVec 64) :
+    (x0.toNat + 2 ^ 64 * (x1.toNat + 2 ^ 64 * (x2.toNat + 2 ^ 64 * x3.toNat))) % 2 ^ (8 * 20) =
+      x0.toNat + 2 ^ 64 * (x1.toNat + 2 ^ 64 * (x2.toNat % 2 ^ 32)) := by
+  have := x0.isLt; have := x1.isLt; have := x2.isLt
+  omega
+
 end IntxRV

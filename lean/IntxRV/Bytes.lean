@@ -1,4 +1,5 @@
 import IntxRV.Words
+import IntxRV.Reach
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.IntervalCases
@@ -264,6 +265,12 @@ theorem memByte_memStoreByte_self (m : Mem) (n : Nat) (v : BitVec 8) :
     memByte (memStoreByte m n v) n = v := by
   rw [memByte_memStoreByte]; simp
 
+/-- A word outside a stored byte. -/
+theorem memWord_memStoreByte_of_ne (m : Mem) (a b : Nat) (v : BitVec 8) (h : a < b ∨ b + 8 ≤ a) :
+    memWord (memStoreByte m a v) b = memWord m b := by
+  simp only [memWord, memStoreByte, Std.ExtHashMap.getD_insert, beq_iff_eq]
+  repeat rw [if_neg (by omega)]
+
 theorem unchangedExcept_memStoreByte {m m' : Mem} {a : BitVec 64} {len : Nat} (b : Nat)
     (v : BitVec 8) (hb : a.toNat ≤ b ∧ b < a.toNat + len) :
     UnchangedExcept m (memStoreByte m' b v) a len ↔ UnchangedExcept m m' a len := by
@@ -288,8 +295,8 @@ theorem beWord_byteAt (w : BitVec 64) :
   simp only [beWord, List.foldl]
   interval_cases k <;>
     simp (config := { decide := true }) (disch := decide) only [byteAt_or, byteAt_shiftLeft,
-      byteAt_setWidth, byteAt_ofNat, Nat.reduceDiv, Nat.reduceMod, Nat.reducePow, Nat.reduceMul,
-      Nat.reduceSub, ↓reduceIte, BitVec.reduceOfNat, BitVec.or_zero, BitVec.zero_or]
+      byteAt_setWidth, Nat.reduceDiv,
+      Nat.reduceSub, ↓reduceIte, BitVec.or_zero, BitVec.zero_or]
 
 theorem toNat_byteAt (w : BitVec 64) (k : Nat) :
     (byteAt w k).toNat = w.toNat / 2 ^ (8 * k) % 256 := by
@@ -343,6 +350,63 @@ theorem bigEndian_byteAt32 (w0 w1 w2 w3 : BitVec 64) :
       bigEndian_byteAt]
     ring)
   simpa only [id, wb, List.cons_append, List.nil_append] using h
+
+/-- The bytes of the low 160 bits of 3 words in big-endian order (`be::trunc()` to 20 bytes). -/
+theorem bigEndian_byteAt20 (w0 w1 w2 : BitVec 64) :
+    bigEndian [byteAt w2 3, byteAt w2 2, byteAt w2 1, byteAt w2 0, byteAt w1 7, byteAt w1 6,
+      byteAt w1 5, byteAt w1 4, byteAt w1 3, byteAt w1 2, byteAt w1 1, byteAt w1 0, byteAt w0 7,
+      byteAt w0 6, byteAt w0 5, byteAt w0 4, byteAt w0 3, byteAt w0 2, byteAt w0 1, byteAt w0 0] =
+      w0.toNat + 2 ^ 64 * (w1.toNat + 2 ^ 64 * (w2.toNat % 2 ^ 32)) := by
+  let wb := fun w : BitVec 64 => [byteAt w 7, byteAt w 6, byteAt w 5, byteAt w 4, byteAt w 3,
+    byteAt w 2, byteAt w 1, byteAt w 0]
+  have h4 : bigEndian [byteAt w2 3, byteAt w2 2, byteAt w2 1, byteAt w2 0] = w2.toNat % 2 ^ 32 := by
+    simpa [List.range_succ] using bigEndian_byteAt_low w2 4
+  have h := congrArg id (show bigEndian ([byteAt w2 3, byteAt w2 2, byteAt w2 1, byteAt w2 0] ++
+      (wb w1 ++ wb w0)) = w0.toNat + 2 ^ 64 * (w1.toNat + 2 ^ 64 * (w2.toNat % 2 ^ 32)) by
+    simp only [bigEndian_append, List.length_append, wb, List.length_cons, List.length_nil,
+      bigEndian_byteAt, h4]
+    ring)
+  simpa only [id, wb, List.cons_append, List.nil_append] using h
+
+/-- The number of 4 words from the equalities of the words, without `congr`, which would unfold
+`beWord`. -/
+theorem words4_congr {a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64} (h0 : a0 = b0) (h1 : a1 = b1)
+    (h2 : a2 = b2) (h3 : a3 = b3) :
+    a0.toNat + 2 ^ 64 * (a1.toNat + 2 ^ 64 * (a2.toNat + 2 ^ 64 * a3.toNat)) =
+      b0.toNat + 2 ^ 64 * (b1.toNat + 2 ^ 64 * (b2.toNat + 2 ^ 64 * b3.toNat)) := by
+  rw [h0, h1, h2, h3]
+
+/-- An address at an offset in a buffer that does not wrap around, in `Nat`. -/
+theorem toNat_add_ofNat (a : BitVec 64) (k : Nat) (h : a.toNat + k < 2 ^ 64) :
+    (a + BitVec.ofNat 64 k).toNat = a.toNat + k := by
+  rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega : k < 2 ^ 64),
+    Nat.mod_eq_of_lt h]
+
+/-- An address in the stack frame of `n` bytes below sp, `a + c` with a negative offset `c`, in
+`Nat` from the start of the frame: sp may be 0, with the frame at the end of the address space. -/
+theorem toNat_add_frame (a c : BitVec 64) (n : Nat) (hc : 2 ^ 64 - n ≤ c.toNat) (hn : n < 2 ^ 64)
+    (ha : (a - BitVec.ofNat 64 n).toNat + n ≤ 2 ^ 64) :
+    (a + c).toNat = (a - BitVec.ofNat 64 n).toNat + (c.toNat + n - 2 ^ 64) := by
+  have h1 := a.isLt; have h2 := c.isLt
+  rw [BitVec.toNat_sub, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hn] at ha ⊢
+  rw [BitVec.toNat_add]
+  by_cases h : n ≤ a.toNat
+  · rw [Nat.mod_eq_sub_mod (by omega : 2 ^ 64 ≤ 2 ^ 64 - n + a.toNat),
+      Nat.mod_eq_of_lt (by omega : 2 ^ 64 - n + a.toNat - 2 ^ 64 < 2 ^ 64),
+      Nat.mod_eq_sub_mod (by omega : 2 ^ 64 ≤ a.toNat + c.toNat),
+      Nat.mod_eq_of_lt (by omega : a.toNat + c.toNat - 2 ^ 64 < 2 ^ 64)]
+    omega
+  · rw [Nat.mod_eq_of_lt (by omega : 2 ^ 64 - n + a.toNat < 2 ^ 64)] at ha ⊢
+    rw [Nat.mod_eq_of_lt (by omega : a.toNat + c.toNat < 2 ^ 64)]
+    omega
+
+open LeanRV64D.Defs in
+/-- A run from the memory `m` by the facts `P` of it: the code after the stores of bytes runs on
+a memory with the facts that the proof needs, not on the term of all the stores. -/
+theorem Reach.of_mem {A : List (BitVec 64)} {prog : List instruction} {base pc tgt : BitVec 64}
+    {x : Regs} {m : Mem} {Q : Regs → Mem → Prop} (P : Mem → Prop) (hm : P m)
+    (h : ∀ m', P m' → Reach A prog base pc x m' tgt Q) : Reach A prog base pc x m tgt Q :=
+  h m hm
 
 /-- Moves `byteAt` through the operations of the code to the bytes: the bytes loaded or the
 bytes of the loaded words. -/

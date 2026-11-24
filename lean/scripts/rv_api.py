@@ -186,7 +186,7 @@ def instances(decls, namespace):
 
 
 def norm_type(t):
-    t = re.sub(r"\b(?:intx|wip)::", "", t.strip())
+    t = re.sub(r"\b(?:intx|wip|evm)::", "", t.strip())
     # The parameters that are not deduced (`std::type_identity_t<T>` is T).
     t = re.sub(r"^std::type_identity_t<(.*)>$", r"\1", t)
     # A span of dynamic extent without the extent.

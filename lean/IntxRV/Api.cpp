@@ -50,8 +50,23 @@ namespace intx::lib
 [[gnu::used]] constexpr auto* memcpy = &::memcpy;
 }  // namespace intx::lib
 
+// The layouts of evmc::bytes32 and evmc::address, which the interpreter of evmone converts to and
+// from uint256 with be::.
+namespace intx::evm
+{
+struct Bytes32
+{
+    uint8_t bytes[32];
+};
+struct Address
+{
+    uint8_t bytes[20];
+};
+}  // namespace intx::evm
+
 namespace intx::api
 {
+using namespace evm;
 using Binop = uint256 (*)(const uint256&, const uint256&) noexcept;
 using Cmp = bool (*)(const uint256&, const uint256&) noexcept;
 
@@ -216,23 +231,26 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
     +[](const uint8_t* p) noexcept { return be::unsafe::load<uint64_t>(p); };
 [[gnu::used]] constexpr auto* be_load_u16 =
     +[](const uint8_t* p) noexcept { return be::unsafe::load<uint16_t>(p); };
+[[gnu::used]] constexpr auto* be_load_u32 =
+    +[](const uint8_t* p) noexcept { return be::unsafe::load<uint32_t>(p); };
 [[gnu::used]] constexpr auto* be_store_u64 =
     +[](uint8_t* p, uint64_t x) noexcept { be::unsafe::store(p, x); };
+[[gnu::used]] constexpr auto* be_load_256 =
+    +[](const uint8_t* p) noexcept { return be::unsafe::load<uint256>(p); };
+[[gnu::used]] constexpr auto* be_store_256 =
+    +[](uint8_t* p, const uint256& x) noexcept { be::unsafe::store(p, x); };
+[[gnu::used]] constexpr auto* be_store_bytes32 =
+    +[](const uint256& x) noexcept { return be::store<Bytes32>(x); };
+[[gnu::used]] constexpr auto* be_trunc_address =
+    +[](const uint256& x) noexcept { return be::trunc<Address>(x); };
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
-// The uses of the interpreter of evmone. The layouts of evmc::bytes32 and evmc::address.
-struct Bytes32
-{
-    uint8_t bytes[32];
-};
-struct Address
-{
-    uint8_t bytes[20];
-};
+// The uses of the interpreter of evmone.
+using namespace evm;
 // The operators in place.
 [[gnu::used]] constexpr auto* mul_assign_256 =
     +[](uint256& x, const uint256& y) noexcept { x *= y; };
@@ -241,20 +259,10 @@ struct Address
 [[gnu::used]] constexpr auto* shr_assign_256 =
     +[](uint256& x, const uint256& y) noexcept { x >>= y; };
 // The conversions to and from bytes of big-endian order.
-[[gnu::used]] constexpr auto* be_load_u32 =
-    +[](const uint8_t* p) noexcept { return be::unsafe::load<uint32_t>(p); };
-[[gnu::used]] constexpr auto* be_load_256 =
-    +[](const uint8_t* p) noexcept { return be::unsafe::load<uint256>(p); };
 [[gnu::used]] constexpr auto* be_load_256_32 =
     +[](const uint8_t (&p)[32]) noexcept { return be::load<uint256>(p); };
 [[gnu::used]] constexpr auto* be_load_256_bytes32 =
     +[](const Bytes32& p) noexcept { return be::load<uint256>(p); };
 [[gnu::used]] constexpr auto* be_load_256_address =
     +[](const Address& p) noexcept { return be::load<uint256>(p); };
-[[gnu::used]] constexpr auto* be_store_256 =
-    +[](uint8_t* p, const uint256& x) noexcept { be::unsafe::store(p, x); };
-[[gnu::used]] constexpr auto* be_store_bytes32 =
-    +[](const uint256& x) noexcept { return be::store<Bytes32>(x); };
-[[gnu::used]] constexpr auto* be_trunc_address =
-    +[](const uint256& x) noexcept { return be::trunc<Address>(x); };
 }  // namespace intx::wip

@@ -94,6 +94,11 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `be::unsafe::load<uint64_t>()` | [`be_load_u64`](Api/be_load_u64.lean) |
 | `be::unsafe::load<uint16_t>()` | [`be_load_u16`](Api/be_load_u16.lean) |
 | `be::unsafe::store()` of `uint64_t` | [`be_store_u64`](Api/be_store_u64.lean) |
+| `be::unsafe::load<uint32_t>()` | [`be_load_u32`](Api/be_load_u32.lean) |
+| `be::unsafe::load<uint256>()` | [`be_load_256`](Api/be_load_256.lean) |
+| `be::unsafe::store()` of `uint256` | [`be_store_256`](Api/be_store_256.lean) |
+| `be::store<evmc::bytes32>()` | [`be_store_bytes32`](Api/be_store_bytes32.lean) |
+| `be::trunc<evmc::address>()` | [`be_trunc_address`](Api/be_trunc_address.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |
