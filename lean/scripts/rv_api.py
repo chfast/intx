@@ -302,8 +302,9 @@ def apply(term, width, result, values, targs=()):
 
 
 def line_of(hpp, offset):
-    """The line of the offset in intx.hpp (the JSON AST omits the lines equal to the previous)."""
-    return hpp.count("\n", 0, offset) + 1
+    """The line of the offset in intx.hpp (the JSON AST omits the lines equal to the previous).
+    The offset counts bytes, not the characters of the text."""
+    return hpp.encode().count(b"\n", 0, offset) + 1
 
 
 def cpp_doc(hpp, spec):
