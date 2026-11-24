@@ -71,6 +71,7 @@ it. The lemmas and the tactics that the proofs share are in the other files of `
 | `udivrem()` of `uint320` by `uint256` | [`udivrem_320_256`](Api/udivrem_320_256.lean) |
 | `addmod()` of `uint256` | [`addmod_256`](Api/addmod_256.lean) |
 | `operator-()` of `uint256` | [`neg_256`](Api/neg_256.lean) |
+| `sdivrem()` of `uint256` | [`sdivrem_256`](Api/sdivrem_256.lean) |
 | `reciprocal_2by1()` | [`reciprocal_2by1`](Api/reciprocal_2by1.lean) |
 | `reciprocal_3by2()` | [`reciprocal_3by2`](Api/reciprocal_3by2.lean) |
 | `operator+` of `uint256` | [`add_256`](Api/add_256.lean) |

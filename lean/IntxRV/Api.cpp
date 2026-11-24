@@ -160,14 +160,14 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
 [[gnu::used]] constexpr auto* addmod_256 = &intx::addmod;
 // The negation.
 [[gnu::used]] constexpr auto* neg_256 = +[](const uint256& x) noexcept { return -x; };
+// sdivrem(), which calls udivrem<256, 256>().
+[[gnu::used]] constexpr auto* sdivrem_256 = &intx::sdivrem<256>;
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
 // and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
 namespace intx::wip
 {
-// sdivrem(), which calls udivrem<256, 256>().
-[[gnu::used]] constexpr auto* sdivrem_256 = &intx::sdivrem<256>;
 [[gnu::used]] constexpr auto* count_significant_bytes_256 = &intx::count_significant_bytes<256>;
 // exp(), which calls operator<< by uint64_t.
 [[gnu::used]] constexpr auto* exp_256 = &intx::exp<256>;
