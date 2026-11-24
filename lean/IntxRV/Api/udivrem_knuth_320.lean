@@ -6,13 +6,13 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Divides the words u by d into the result of udivrem<M, N>(), built in the return slot.
-/// @pre 3 <= d.size()
-/// @pre d.size() <= N / 64
-/// @pre 2 ^ (64 * (d.size() - 1)) <= d
-/// @pre m <= u.size()
-/// @pre u < 2 ^ (64 * m)
-/// @pre 2 ^ (64 * (m - 1)) <= u
-/// @pre d / 2 ^ (64 * (d.size() - 1)) <= u / 2 ^ (64 * (d.size() - 1))
+/// @pre 3 ≤ d.size()
+/// @pre d.size() ≤ N / 64
+/// @pre 2^(64 * (d.size() - 1)) ≤ d
+/// @pre m ≤ u.size()
+/// @pre u < 2^(64 * m)
+/// @pre 2^(64 * (m - 1)) ≤ u
+/// @pre d / 2^(64 * (d.size() - 1)) ≤ u / 2^(64 * (d.size() - 1))
 /// @post result.quot = u / d
 /// @post result.rem = u % d
 template <unsigned M, unsigned N, size_t D>

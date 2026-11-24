@@ -12,7 +12,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Counts the trailing zero bits of x.
-/// @post x % 2 ^ result = 0
+/// @post x % 2^result = 0
 /// @post result = N ∨ x.testBit result
 template <unsigned N>
 constexpr unsigned ctz(const uint<N>& x) noexcept

@@ -12,9 +12,9 @@ The specification, from `include/intx/intx.hpp`:
 /// @param u  The numerator words.
 /// @param d  The divisor.
 /// @return   The remainder.
-/// @pre 3 <= u.size()
+/// @pre 3 ≤ u.size()
 /// @pre q.size() + 1 = u.size()
-/// @pre 2 ^ 64 <= d
+/// @pre 2^64 ≤ d
 /// @post q = u / d
 /// @post result = u % d
 /// @note FV: not proved for q that overlaps u.

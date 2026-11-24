@@ -6,7 +6,7 @@ import IntxRV.TacticM
 The specification, from `include/intx/intx.hpp`:
 
 ```cpp
-/// @post result <-> x >= y
+/// @post result ↔ x ≥ y
 friend constexpr bool operator>=(const uint& x, const uint& y) noexcept { return !(x < y); }
 ```
 

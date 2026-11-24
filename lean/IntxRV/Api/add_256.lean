@@ -7,7 +7,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// The sum modulo 2^N.
-/// @post result = (x + y) % 2 ^ N
+/// @post result = (x + y) % 2^N
 friend constexpr uint operator+(const uint& x, const uint& y) noexcept
 ```
 

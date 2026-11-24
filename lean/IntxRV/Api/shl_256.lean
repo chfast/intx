@@ -8,7 +8,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// The shift left modulo 2^N.
-/// @post result = x * 2 ^ shift % 2 ^ N
+/// @post result = x * 2^shift % 2^N
 friend constexpr uint operator<<(const uint& x, uint64_t shift) noexcept
 ```
 

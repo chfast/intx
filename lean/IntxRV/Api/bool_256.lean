@@ -8,7 +8,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Tests that the value is not 0.
-/// @post result <-> self ≠ 0
+/// @post result ↔ self ≠ 0
 constexpr explicit operator bool() const noexcept { return *this != uint{}; }
 ```
 

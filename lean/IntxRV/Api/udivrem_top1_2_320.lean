@@ -11,9 +11,9 @@ The specification, from `include/intx/intx.hpp`:
 /// The quotient is estimated from the top word of the normalized divisor with 2/1 division
 /// and corrected with the remainder computed on the original (not normalized) operands.
 /// The word v[TOP] must not be zero.
-/// @pre 2 ^ (64 * TOP) <= v
-/// @pre v < 2 ^ (64 * (TOP + 1))
-/// @pre u / 2 ^ (64 * (TOP + 1)) < v / 2 ^ (64 * TOP)
+/// @pre 2^(64 * TOP) ≤ v
+/// @pre v < 2^(64 * (TOP + 1))
+/// @pre u / 2^(64 * (TOP + 1)) < v / 2^(64 * TOP)
 /// @post result.quot = u / v
 /// @post result.rem = u % v
 template <size_t TOP, unsigned M, unsigned N>

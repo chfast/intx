@@ -7,7 +7,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Explicit converting operator for all builtin integral types.
-/// @post result % 2 ^ (8 * sizeof(Int)) = self % 2 ^ (8 * sizeof(Int))
+/// @post result % 2^(8 * sizeof(Int)) = self % 2^(8 * sizeof(Int))
 /// @note FV: not proved for Int = bool, which operator bool serves.
 template <typename Int>
 constexpr explicit operator Int() const noexcept

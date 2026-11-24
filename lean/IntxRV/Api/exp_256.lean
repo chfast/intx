@@ -6,7 +6,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Raises base to the power of exponent modulo 2^N.
-/// @post result = base ^ exponent % 2 ^ N
+/// @post result = base^exponent % 2^N
 template <unsigned N>
 constexpr uint<N> exp(uint<N> base, uint<N> exponent) noexcept
 ```

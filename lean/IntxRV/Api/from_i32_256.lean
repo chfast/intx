@@ -9,7 +9,7 @@ The specification, from `include/intx/intx.hpp`:
 ```cpp
 /// Constructs from the words v, the first the least significant, each converted to uint64_t
 /// (modulo 2^64).
-/// @post self = v.foldr (fun a s => (a % 2 ^ 64).toNat + 2 ^ 64 * s) 0
+/// @post self = v.foldr (fun a s ↦ (a % 2^64).toNat + 2^64 * s) 0
 template <typename... T>
 constexpr explicit(false) uint(T... v) noexcept
     requires std::conjunction_v<std::is_convertible<T, uint64_t>...> &&

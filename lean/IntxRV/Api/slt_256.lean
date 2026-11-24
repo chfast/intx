@@ -10,7 +10,7 @@ The specification, from `include/intx/intx.hpp`:
 ///
 /// Interprets the arguments as two's complement signed integers
 /// and checks the "less than" relation.
-/// @post result <-> signed N x < signed N y
+/// @post result ↔ signed N x < signed N y
 template <unsigned N>
 constexpr bool slt(const uint<N>& x, const uint<N>& y) noexcept
 ```

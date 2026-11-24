@@ -13,7 +13,7 @@ The specification, from `include/intx/intx.hpp`:
 /// Subtract y multiplied by multiplier from x as: x[] -= multiplier * y[].
 /// @pre 0 < y.size()
 /// @pre x.size() = y.size()
-/// @post x + multiplier * y = old(x) + result * 2 ^ (64 * y.size())
+/// @post x + multiplier * y = old(x) + result * 2^(64 * y.size())
 constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t multiplier) noexcept
 ```
 

@@ -7,7 +7,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// The negation modulo 2^N.
-/// @post result = (2 ^ N - self) % 2 ^ N
+/// @post result = (2^N - self) % 2^N
 constexpr uint operator-() const noexcept { return uint{} - *this; }
 ```
 

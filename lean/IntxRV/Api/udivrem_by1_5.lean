@@ -10,7 +10,7 @@ The specification, from `include/intx/intx.hpp`:
 /// @param u  The numerator words.
 /// @param d  The divisor.
 /// @return   The remainder.
-/// @pre 2 <= u.size()
+/// @pre 2 ≤ u.size()
 /// @pre q.size() = u.size()
 /// @pre 0 < d
 /// @post q = u / d

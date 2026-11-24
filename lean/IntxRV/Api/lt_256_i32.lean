@@ -9,7 +9,7 @@ The specification, from `include/intx/intx.hpp`:
 ```cpp
 /// Compares with a builtin integer of up to 64 bits as with its uint conversion, which goes
 /// through uint64_t, so -1 compares as 2^64 - 1.
-/// @post result <-> (x : Int) < (y : Int) % 2 ^ 64
+/// @post result ↔ (x : ℤ) < (y : ℤ) % 2^64
 template <std::same_as<uint> U, std::integral T>
     requires(sizeof(T) <= sizeof(uint64_t))
 friend constexpr bool operator<(const U& x, T y) noexcept

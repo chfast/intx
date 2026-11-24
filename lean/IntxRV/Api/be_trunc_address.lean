@@ -8,7 +8,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Stores the truncated value of an uint in the .bytes field of an object of type T.
-/// @post bigEndian result.bytes = x % 2 ^ (8 * sizeof(T))
+/// @post bigEndian result.bytes = x % 2^(8 * sizeof(T))
 template <typename T, unsigned N>
 inline T trunc(const uint<N>& x) noexcept
 ```

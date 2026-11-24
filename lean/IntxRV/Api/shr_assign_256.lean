@@ -14,7 +14,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// The shift right by shift.
-/// @post self = old(self) / 2 ^ shift
+/// @post self = old(self) / 2^shift
 /// @note FV: not proved for x >>= x.
 constexpr uint& operator>>=(uint shift) noexcept { return *this = *this >> shift; }
 ```

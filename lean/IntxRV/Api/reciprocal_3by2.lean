@@ -11,8 +11,8 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Computes the reciprocal (2^192 - 1) / d - 2^64 for normalized d.
-/// @pre 2 ^ 127 <= d
-/// @post result = (2 ^ 192 - 1) / d - 2 ^ 64
+/// @pre 2^127 ≤ d
+/// @post result = (2^192 - 1) / d - 2^64
 constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 ```
 

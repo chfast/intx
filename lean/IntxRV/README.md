@@ -164,7 +164,7 @@ structure of these (`ResultWithCarry`, `DivResult` in [`Words.lean`](Words.lean)
 
 ```cpp
 /// The sum modulo 2^N.
-/// @post result = (x + y) % 2 ^ N
+/// @post result = (x + y) % 2^N
 friend constexpr uint operator+(const uint& x, const uint& y) noexcept
 ```
 

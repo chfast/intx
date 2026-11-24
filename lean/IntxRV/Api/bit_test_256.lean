@@ -12,7 +12,7 @@ The specification, from `include/intx/intx.hpp`:
 ```cpp
 /// Tests the bit of x at bit_index.
 /// @pre bit_index < N
-/// @post result <-> x.testBit bit_index
+/// @post result ↔ x.testBit bit_index
 template <unsigned N>
 constexpr bool bit_test(const uint<N>& x, size_t bit_index) noexcept
 ```

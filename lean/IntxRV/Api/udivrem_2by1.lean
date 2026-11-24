@@ -8,9 +8,9 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Divides u by the normalized d with its reciprocal v (Moller and Granlund, Algorithm 4).
-/// @pre 2 ^ 63 <= d
-/// @pre u < d * 2 ^ 64
-/// @pre v = (2 ^ 128 - 1) / d - 2 ^ 64
+/// @pre 2^63 ≤ d
+/// @pre u < d * 2^64
+/// @pre v = (2^128 - 1) / d - 2^64
 /// @post result.quot = u / d
 /// @post result.rem = u % d
 constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) noexcept

@@ -6,8 +6,8 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Divides u by v as signed numbers. A division by 0 gives 0 as the quotient and the remainder.
-/// @post result.quot = Int.toNat ((signed N u).tdiv (signed N v) % 2 ^ N)
-/// @post result.rem = if v = 0 then 0 else Int.toNat ((signed N u).tmod (signed N v) % 2 ^ N)
+/// @post result.quot = Int.toNat ((signed N u).tdiv (signed N v) % 2^N)
+/// @post result.rem = if v = 0 then 0 else Int.toNat ((signed N u).tmod (signed N v) % 2^N)
 template <unsigned N>
 constexpr div_result<uint<N>> sdivrem(const uint<N>& u, const uint<N>& v) noexcept
 ```

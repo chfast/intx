@@ -14,9 +14,9 @@ The specification, from `include/intx/intx.hpp`:
 /// divisions and corrected with the remainder, computed from the remainder of the 3/2 divisions
 /// and the low words of the original (not normalized) operands.
 /// The word v[TOP - 1] must not be zero.
-/// @pre 2 ^ (64 * (TOP - 1)) <= v
-/// @pre v < 2 ^ (64 * TOP)
-/// @pre u / 2 ^ (64 * (TOP + 1)) < v / 2 ^ (64 * (TOP - 1)) + EQUAL
+/// @pre 2^(64 * (TOP - 1)) ≤ v
+/// @pre v < 2^(64 * TOP)
+/// @pre u / 2^(64 * (TOP + 1)) < v / 2^(64 * (TOP - 1)) + EQUAL
 /// @post result.quot = u / v
 /// @post result.rem = u % v
 template <size_t TOP, bool EQUAL = false, unsigned M, unsigned N>

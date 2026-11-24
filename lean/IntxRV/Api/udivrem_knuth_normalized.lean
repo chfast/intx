@@ -9,13 +9,13 @@ The specification, from `include/intx/intx.hpp`:
 /// of u become the normalized remainder.
 /// A fixed size of d (DIVISOR_WORDS) lets the loops over the divisor words unroll. d is not
 /// deduced, so spans of non-const words convert to it.
-/// @pre 3 <= d.size()
+/// @pre 3 ≤ d.size()
 /// @pre d.size() < u.size()
 /// @pre q.size() = u.size() - d.size()
-/// @pre 2 ^ (64 * d.size() - 1) <= d
-/// @pre u / 2 ^ (64 * (u.size() - d.size())) < d
+/// @pre 2^(64 * d.size() - 1) ≤ d
+/// @pre u / 2^(64 * (u.size() - d.size())) < d
 /// @post q = old(u) / d
-/// @post u % 2 ^ (64 * d.size()) = old(u) % d
+/// @post u % 2^(64 * d.size()) = old(u) % d
 template <size_t DIVISOR_WORDS = std::dynamic_extent>
 constexpr void udivrem_knuth_normalized(uint64_t q[], std::span<uint64_t> u,
     std::type_identity_t<std::span<const uint64_t, DIVISOR_WORDS>> d) noexcept

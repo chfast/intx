@@ -7,7 +7,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// The difference modulo 2^N.
-/// @post result = (x + 2 ^ N - y) % 2 ^ N
+/// @post result = (x + 2^N - y) % 2^N
 friend constexpr uint operator-(const uint& x, const uint& y) noexcept
 ```
 

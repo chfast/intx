@@ -8,7 +8,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Compares a builtin integer of up to 64 bits with y, as its uint conversion.
-/// @post result <-> (x : Int) % 2 ^ 64 < (y : Int)
+/// @post result ↔ (x : ℤ) % 2^64 < (y : ℤ)
 template <std::same_as<uint> U, std::integral T>
     requires(sizeof(T) <= sizeof(uint64_t))
 friend constexpr bool operator<(T x, const U& y) noexcept

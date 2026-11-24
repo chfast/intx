@@ -8,7 +8,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// The shift right.
-/// @post result = x / 2 ^ shift
+/// @post result = x / 2^shift
 friend constexpr uint operator>>(const uint& x, uint64_t shift) noexcept
 ```
 

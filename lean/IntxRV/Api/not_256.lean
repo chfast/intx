@@ -7,7 +7,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// The bitwise complement.
-/// @post result = 2 ^ N - 1 - self
+/// @post result = 2^N - 1 - self
 constexpr uint operator~() const noexcept
 ```
 

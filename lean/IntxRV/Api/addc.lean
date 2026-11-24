@@ -8,7 +8,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Addition with carry.
-/// @post result.value + 2 ^ 64 * result.carry.toNat = x + y + carry.toNat
+/// @post result.value + 2^64 * result.carry.toNat = x + y + carry.toNat
 constexpr result_with_carry<uint64_t> addc(uint64_t x, uint64_t y, bool carry = false) noexcept
 ```
 
