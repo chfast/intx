@@ -11,7 +11,7 @@ The specification, from `include/intx/intx.hpp`:
 /// The r must have the same size as x, or one word more to also receive the bits shifted out.
 /// The r may alias x. The shift must be less than 64.
 /// @pre shift < 64
-/// @post r = x * 2^shift % 2^N
+/// @post r = x * 2^shift % 2^(64 * r.size())
 template <size_t RN, size_t XN>
 constexpr void shl(
     std::span<uint64_t, RN> r, std::span<const uint64_t, XN> x, unsigned shift) noexcept

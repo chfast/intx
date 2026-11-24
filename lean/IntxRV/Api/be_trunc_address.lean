@@ -8,7 +8,7 @@ The specification, from `include/intx/intx.hpp`:
 
 ```cpp
 /// Stores the truncated value of an uint in the .bytes field of an object of type T.
-/// @post bigEndian result.bytes = x % 2^(8 * sizeof(T))
+/// @post bigEndian result.bytes = x % 2^(8 * result.bytes.length)
 template <typename T, unsigned N>
 inline T trunc(const uint<N>& x) noexcept
 ```
@@ -55,7 +55,8 @@ theorem be_trunc_address.proof : be_trunc_address.spec :=
       forall_eq_or_imp, forall_eq]
     simp (disch := decide) only [Regs.eq_get x]
     refine ⟨?_, ?_, ?_⟩
-    · simp only [bytes, bytesAt, Nat.add_assoc, Nat.reduceAdd]
+    · simp only [bytes, length_bytesAt]
+      simp only [bytesAt, Nat.add_assoc, Nat.reduceAdd]
       simp (config := { decide := true }) only [memByte_memStoreByte_add,
         memByte_memStoreByte_add_zero, memByte_memStoreByte_zero_add, memByte_memStoreByte_self,
         ↓reduceIte]
