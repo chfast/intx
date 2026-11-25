@@ -321,13 +321,12 @@ def cpp_doc(hpp, spec):
     return "\n".join(t[indent:] for t in block)
 
 
-def header(var, spec, hpp):
+def header(var, spec):
+    # Without the line in intx.hpp: a change of other lines would rebuild the proofs.
     doc = spec["brief"] + "\n\n" if spec["brief"] else ""
     doc += "\n".join(f"@pre {p}" for p in spec["pre"])
     doc += ("\n" if spec["pre"] else "") + "\n".join(f"@post {p}" for p in spec["post"])
-    line = line_of(hpp, spec["offset"])
-    return [f"/-! ## `{var}`: `{spec['name']}` (intx.hpp:{line})", "", doc, "-/", "",
-            f"namespace {var}", ""]
+    return [f"/-! ## `{var}`: `{spec['name']}`", "", doc, "-/", "", f"namespace {var}", ""]
 
 
 # The results in registers (the RISC-V calling convention): the Lean type, the value and the
@@ -646,7 +645,7 @@ def spec_rv(var, inst, spec, stack, hpp, image=False):
         term, old_values = old_calls(var, size_calls(p, known), olds)
         post.append(apply(term, width, result, post_values + old_values, targs))
     post += frame + ["∀ i ∈ calleeSaved, x' i = x i"]
-    lines = header(var, spec, hpp)
+    lines = header(var, spec)
     if inst.get("negate"):
         lines[0] = lines[0].replace(f"`{spec['name']}`", f"`{spec['name']}`, negated (`!=`)", 1)
     if bufs or image:  # The functions of the image read the data in the memory.
@@ -689,7 +688,7 @@ def spec_model(var, inst, spec, hpp):
     names = " ".join(n for n, _, _ in values)
     post = " ∧\n      ".join(apply(p, ret_width, ("Nat", "(val res.toList)"), values)
                               for p in spec["post"])
-    lines = header(var, spec, hpp) + [
+    lines = header(var, spec) + [
         f"/-- The specification of the model of `{var}`, for every code path (`Platform`). -/",
         f"def spec : Prop :=\n  ∀ (P : Model.Platform) {' '.join(vectors)},\n    "
         f"∃ res, Model.{var} P {names} = some res ∧\n      {post}",
