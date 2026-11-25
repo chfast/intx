@@ -348,22 +348,28 @@ elab "rv_arith" : tactic => withMainContext do
     g.assign p
     replaceMainGoal []
 
-/-- Writes the values of the hypothesis `h` with the names of the run: rewrites each value `v` of a
-definition `Defn w v` to `w`, in the order of the run, so that a value is written with the names of
-its operands before it is folded itself. -/
+/-- Writes the values of the hypothesis `h` with the names of the run: replaces each value `v` of a
+definition `Defn w v` by `w`, in the order of the run, so that a value is written with the names of
+its operands before it is folded itself. The values are matched as written, and `h` is replaced
+once at the end: a `rewrite` for each name took seconds on a long path (it matches up to
+unfolding, and each replacement of `h` reintroduces the hypotheses after it). -/
 elab "rv_fold " h:ident : tactic => withMainContext do
-  let defs := (← getLCtx).foldl (init := #[]) fun acc d =>
-    if !d.isImplementationDetail && d.type.isAppOfArity ``Defn 2 then acc.push d.fvarId else acc
-  for fv in defs do
-    let g ← getMainGoal
-    g.withContext do
-      let hd ← getLocalDeclFromUserName h.getId
-      let eq ← mkAppM ``Eq.symm #[← mkAppM ``Defn.eq #[mkFVar fv]]
-      try
-        let r ← g.rewrite hd.type eq
-        let g' ← g.replaceLocalDecl hd.fvarId r.eNew r.eqProof
-        replaceMainGoal (g'.mvarId :: r.mvarIds)
-      catch _ => pure ()
+  let g ← getMainGoal
+  let hd ← getLocalDeclFromUserName h.getId
+  let mut t ← instantiateMVars hd.type
+  let mut p := hd.toExpr
+  for d in ← getLCtx do
+    if d.isImplementationDetail || !d.type.isAppOfArity ``Defn 2 then continue
+    let v := d.type.getArg! 1
+    if (t.find? (· == v)).isNone then continue
+    -- `t` is `m v` for the motive `m := fun z => t[v := z]`, and `m w` is the new `t`.
+    let m ← withLocalDeclD `z (← inferType v) fun z =>
+      mkLambdaFVars #[z] (t.replace fun e => if e == v then some z else none)
+    p ← mkEqMP (← mkCongrArg m (← mkEqSymm (← mkAppM ``Defn.eq #[d.toExpr]))) p
+    t := t.replace fun e => if e == v then some (d.type.getArg! 0) else none
+  if p == hd.toExpr then return
+  let (_, g) ← (← g.assert hd.userName t p).intro1P
+  replaceMainGoal [← g.tryClear hd.fvarId]
 
 theorem defn_ite_eq_zero {c : Prop} [Decidable c] {w : BitVec 64}
     (h : Defn w (if c then 1#64 else 0#64)) (hw : w = 0#64) : ¬c := by
