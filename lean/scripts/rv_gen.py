@@ -311,7 +311,7 @@ def code_lines(name, desc, code, var):
             # The length of a long code exceeds the default depth of the recursion of simp.
             *(["set_option maxRecDepth 100000 in"] if len(code) > 128 else []),
             f"theorem {name}_decodes : Decodes {name}_code {name}_prog :=",
-            f"  decodes_of (by rfl) fun",
+            f"  decodes_of (by kernel_rfl) fun",
             cases, f"  | _ + {len(code)}, hk, _ => absurd hk (by simp [{name}_code])", "", ""]
 
 
@@ -696,7 +696,7 @@ def main():
                           "set_option maxRecDepth 100000 in",
                           f"theorem {n}_{q}_in :",
                           f"    ({n}_prog.drop {n}_{q}_offset).take {q}_prog.length = "
-                          f"{q}_prog := by rfl", ""]
+                          f"{q}_prog := by kernel_rfl", ""]
         # The functions of the image with the code of an instance q with the addresses of its
         # data: the same words but the immediates of the addresses.
         for q, (code, pairs) in rel_funcs.items():
@@ -724,7 +724,7 @@ def main():
                           "set_option maxRecDepth 100000 in",
                           f"theorem {n}_{q}_in :",
                           f"    ({n}_prog.drop {n}_{q}_offset).take ({at}).length = "
-                          f"{at} := by rfl", ""]
+                          f"{at} := by kernel_rfl", ""]
         # The functions of the image with the code of an instance q with calls and the code of
         # the instances that it calls after it, with the immediates of the addresses of their data.
         for q, segs in linked.items():
@@ -741,7 +741,7 @@ def main():
                           "set_option maxRecDepth 100000 in",
                           f"theorem {n}_{q}_in :",
                           f"    ({n}_prog.drop {n}_{q}_offset).take ({at}).length = "
-                          f"{at} := by rfl", ""]
+                          f"{at} := by kernel_rfl", ""]
     stack_json.write_text(json.dumps(dict(sorted(info.items())), indent=1) + "\n")
 
     # The imports of the code modules must not form a cycle (instances with the same code).
@@ -766,7 +766,8 @@ def main():
     (gen / "Code").mkdir(exist_ok=True)
     (gen / "Decodes").mkdir(exist_ok=True)
     for var, (lines, deps) in code_mods.items():
-        imports = ["IntxRV.Run"] + [f"IntxRV.Gen.Code.{q}" for q in sorted(deps - {var})]
+        imports = ["IntxRV.Run", "IntxRV.KernelRfl"] + [
+            f"IntxRV.Gen.Code.{q}" for q in sorted(deps - {var})]
         write_if_changed(gen / "Code" / f"{var}.lean", module(imports, lines))
     for var, (lines, ws) in dec_mods.items():
         imports = ["IntxRV.Decode", f"IntxRV.Gen.Code.{var}"] + [
