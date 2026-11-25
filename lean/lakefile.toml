@@ -28,6 +28,12 @@ globs = ["IntxRV.*"]
 leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
 moreLeanArgs = ["--tstack=4000000"]
 
+# The proof that the hart of the Sail model runs the code as the proofs do (Hart.lean). Not in CI:
+# its build of the Sail model takes 13.3 GiB.
+[[lean_lib]]
+name = "Hart"
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
+
 # CI-only axiom-footprint guards, kept out of the default targets.
 [[lean_lib]]
 name = "Checks"

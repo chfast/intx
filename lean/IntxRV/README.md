@@ -422,6 +422,18 @@ it. [`Memset.lean`](Memset.lean) proves it by hand (`memset.reach`): it has no s
   hart, the counting of the retired instructions (`minstret`), and the fetch, which is the code at
   its address (the model of the fetch translates the address and reads the memory). So "nothing
   else changes" excludes `minstret`.
+
+  This rendering is not necessary: [`../Hart.lean`](../Hart.lean) proves that the hart of the Sail
+  model, `try_step` itself, runs the code as the proofs do (`hart_simM`). It fetches each
+  instruction from the memory through the address translation and the PMP and PMA checks, takes
+  no interrupt with `mstatus.MIE` clear, and counts the instruction in `minstret`; the stores do
+  not overwrite the code. The specifications could state the runs of `try_step`, but they do not
+  because of the cost: `try_step` imports `LeanRV64D.RvfiDii` of the model, whose build takes
+  28 minutes and 13.3 GiB, and 50 minutes under a limit of 14 GiB: barely within the 16 GB runner
+  of CI. The specifications would also
+  assume more: the code in an executable region of the memory, outside the buffers, the
+  interrupts off, and machine mode for the functions without memory. `lake build Hart` checks the
+  proof; CI does not.
 * The environment `Env`: every register of the model exists, no landing pad is expected, the M
   extension is enabled and the privilege level is machine, supervisor or user. For the functions
   with memory, `EnvM` and `WordOk` (above).
