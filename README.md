@@ -25,6 +25,19 @@ build/test/intx-unittests
 build/test/intx-bench
 ```
 
+## Formal verification
+
+The `@pre` and `@post` sections in the documentation of functions in
+[`intx.hpp`](include/intx/intx.hpp) are specifications written in [Lean 4]
+(the notation is introduced in [Theorem Proving in Lean 4]).
+The `fv/main` branch contains proofs that the RV64 machine code
+of these functions satisfies their specifications.
+The proofs cover selected template instances, mostly for `uint256`.
+See the [`fv/main` README][fv/main README]
+for what is proved and what is assumed.
+Functions without `@post` are not verified.
+The `@note FV:` sections mark the cases not covered by the proofs.
+
 ## Maintainer
 
 Paweł Bylica [@chfast]
@@ -35,6 +48,9 @@ Licensed under the [Apache License, Version 2.0].
 
 
 [@chfast]: https://github.com/chfast
+[Lean 4]: https://lean-lang.org
+[Theorem Proving in Lean 4]: https://lean-lang.org/theorem_proving_in_lean4/
+[fv/main README]: https://github.com/chfast/intx/blob/fv/main/lean/README.md
 [Apache License, Version 2.0]: LICENSE
 [standard readme]: https://github.com/RichardLitt/standard-readme
 
