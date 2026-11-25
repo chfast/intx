@@ -30,7 +30,7 @@ theorem to_u8_256.proof_of_decodes (hdec : to_u8_256.decodes) : to_u8_256.spec :
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1
     refine Reach.start ?_
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend]
     refine ⟨and_not7_mem_bufWords hpre.1 (by decide : 0 < 8 * 4), fun w hw => ?_⟩
     rv_exec

@@ -62,7 +62,7 @@ theorem u512_dispatch {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : 
   rv_exec_cut 56
   rv_subst
   -- The top word v[n - 1] of v.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [hva']

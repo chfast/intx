@@ -73,11 +73,11 @@ theorem kn_sub_loop {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} {ba
   have hw8 : (wp + BitVec.ofNat 64 (8 * i)).toNat = wp.toNat + 8 * i := by
     rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hi8]; omega
   -- d[i]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   refine ⟨by rw [h6]; exact hdA i hi, fun wy hwy => ?_⟩
   -- u[i]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨by rw [h7]; exact hwA i hi, fun wx hwx => ?_⟩
@@ -119,7 +119,7 @@ theorem kn_sub_loop {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} {ba
       show 64 * (i + 1) = 64 * i + 64 by ring, pow_add]
     exact submul_step hm hcar hkn hs.1 hw
   -- The store of u[i].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨by rw [h7]; exact hwA i hi, ?_⟩
@@ -232,11 +232,11 @@ theorem kn_add_loop {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} {ba
   have hw8 : (wp + BitVec.ofNat 64 (8 * i)).toNat = wp.toNat + 8 * i := by
     rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hi8]; omega
   -- u[i]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   refine ⟨by rw [h12]; exact hwA i hi, fun wu hwu => ?_⟩
   -- d[i]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨by rw [h15]; exact hdA i hi, fun wd hwd => ?_⟩
@@ -273,7 +273,7 @@ theorem kn_add_loop {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} {ba
       show 64 * (i + 1) = 64 * i + 64 by ring, pow_add]
     exact add_step hs' hw
   -- The store of u[i].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨by rw [h12]; exact hwA i hi, ?_⟩
@@ -570,14 +570,14 @@ theorem kn_tail {hi : BitVec 20} {lo : BitVec 12} {Dt : List (BitVec 64)} (base 
       18446744073709551600#64) = x.get 11#5 + BitVec.ofNat 64 (8 * (j + (x.get 14#5).toNat - 2)) :=
     kn_addr_m16 _ _ (by omega) (by omega)
   -- The words u[j + n - 2] and u[j + n - 1] of the next partial remainder.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
   rw [e26]
   refine ⟨List.mem_append_left _ (List.mem_append_left _
     (List.mem_append_right _ (mem_bufWords (by omega)))), fun w15 hw15 => ?_⟩
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte, BitVec.add_zero]
@@ -641,7 +641,7 @@ theorem kn_tail {hi : BitVec 20} {lo : BitVec 12} {Dt : List (BitVec 64)} (base 
       rfl | rfl <;>
       first | (simp at hnr; done) | exact h4c _ (by decide)
   -- The store of the quotient digit q[j].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte, BitVec.add_zero]
@@ -1123,7 +1123,7 @@ theorem kn_normal {hi : BitVec 20} {lo : BitVec 12} {Dt : List (BitVec 64)} (bas
       (by rw [← hRs, ← hDs]; exact hRD) hne'
     omega
   -- The word u[j + n - 2].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h26, kn_addr_m16' _ _ (by omega) (by omega)]
@@ -1170,7 +1170,7 @@ theorem kn_normal {hi : BitVec 20} {lo : BitVec 12} {Dt : List (BitVec 64)} (bas
   have ea17 : a17 = x.get 11#5 + BitVec.ofNat 64 (8 * (j + (x.get 14#5).toNat - 1)) := by
     rw [ha17.eq, h21, h27]; exact kn_addr_m8' _ _ (by omega) (by omega)
   -- The stores of the top 2 words of the remainder.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
@@ -1178,7 +1178,7 @@ theorem kn_normal {hi : BitVec 20} {lo : BitVec 12} {Dt : List (BitVec 64)} (bas
   refine ⟨List.mem_append_left _ (List.mem_append_left _
     (List.mem_append_right _ (mem_bufWords (i := j + (x.get 14#5).toNat - 2)
       (by clear * - hjn hn3; omega)))), ?_⟩
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte, BitVec.add_zero]

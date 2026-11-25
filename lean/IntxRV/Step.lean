@@ -186,4 +186,51 @@ theorem Reach.step {A : List (BitVec 64)} {prog : List instruction} {base tgt : 
       rcases hr with rfl | rfl | rfl <;> simp [execM, exec, sign_extend_eq, pcAt_succ]) h
   · exact h.elim
 
+open Lean Meta in
+/-- The length of the list `e` and its element `k`, read from the expression: the literals
+(`a :: l`, `[]`, and the long ones as `have y := [...]; a :: ... :: y`), the appends `l₁ ++ l₂`
+and the definitions, unfolded. -/
+partial def listGet? (e : Expr) (k : Nat) : MetaM (Nat × Option Expr) := do
+  let e := e.consumeMData
+  if e.isAppOfArity ``List.cons 3 then
+    if k = 0 then
+      let (n, _) ← listGet? (e.getArg! 2) 0
+      return (n + 1, some (e.getArg! 1))
+    let (n, r) ← listGet? (e.getArg! 2) (k - 1)
+    return (n + 1, r)
+  if e.isAppOfArity ``List.nil 1 then return (0, none)
+  if let .letE _ _ v b _ := e then return ← listGet? (b.instantiate1 v) k
+  if e.isAppOfArity ``letFun 4 then return ← listGet? ((e.getArg! 3).beta #[e.getArg! 2]) k
+  if e.isAppOfArity ``HAppend.hAppend 6 then
+    let (n₁, r₁) ← listGet? (e.getArg! 4) k
+    if r₁.isSome then
+      let (n₂, _) ← listGet? (e.getArg! 5) 0
+      return (n₁ + n₂, r₁)
+    let (n₂, r₂) ← listGet? (e.getArg! 5) (k - n₁)
+    return (n₁ + n₂, r₂)
+  match ← delta? e with
+  | some e' => listGet? e' k
+  | none => throwError "rv_fetch: not a list literal: {e}"
+
+open Lean Meta Elab Tactic in
+/-- Proves `prog[k]? = some i` for the `k`-th instruction `i` of `prog`, found in the expression
+of `prog` (`listGet?`). The proof is `rfl`, left to the kernel: elaborating `rfl` evaluates
+`prog[k]?` in `MetaM`, which takes seconds at the instruction 1000. -/
+elab "rv_fetch" : tactic => withMainContext do
+  let g ← getMainGoal
+  let t ← instantiateMVars (← g.getType)
+  let some (_, lhs, rhs) := t.eq? | throwError "rv_fetch: not an equality: {t}"
+  unless lhs.isAppOfArity ``GetElem?.getElem? 7 do throwError "rv_fetch: not `l[k]?`: {lhs}"
+  -- The index of a branch target is `jumpIdx` reduced by `simp` but for `Nat.cast`: reduce it.
+  let ke := lhs.getArg! 6
+  let some k ← (do
+      if let some k ← (evalNat ke).run then return some k
+      let r ← reduce ke
+      return r.rawNatLit? <|> r.nat?) | throwError "rv_fetch: not a numeral: {lhs}"
+  let (_, some i) ← listGet? (lhs.getArg! 5) k | throwError "rv_fetch: no instruction {k}"
+  unless ← isDefEq rhs (← mkAppM ``Option.some #[i]) do
+    throwError "rv_fetch: {rhs} is not the instruction {i}"
+  g.assign (← mkEqRefl rhs)
+  replaceMainGoal []
+
 end IntxRV

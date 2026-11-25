@@ -111,7 +111,7 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
     -- The address of the table in the run.
     simp only [hT] at *
     -- The table entry of the top word of the normalized divisor: the low half.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     have ha := table_addr_by1 _ T hdn63
@@ -124,7 +124,7 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
       ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
     rv_exec_cut 69
     -- The high half.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     have hah := table_addr_by1_hi _ T hdn63
@@ -138,7 +138,7 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
       ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwH
     rv_exec_cut 69
     -- The top word of the numerator, u[4].
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     refine ⟨List.mem_append_left _ (List.mem_append_left _ (mem_bufWords (i := 4) (by norm_num))),
@@ -162,12 +162,12 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
   -- u[4] > d1, s ≠ 0: the words u[2] and u[3] for the funnel shifts of the top digits.
   all_goals first
     | (rv_not_at 108; skip)
-    | (refine Reach.step (by decide) rfl ?_
+    | (refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        refine ⟨List.mem_append_left _ (List.mem_append_left _
          (mem_bufWords (i := 2) (by norm_num))), fun wC hwC => ?_⟩
-       refine Reach.step (by decide) rfl ?_
+       refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        refine ⟨List.mem_append_left _ (List.mem_append_left _
@@ -176,7 +176,7 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
   -- u[4] > d1, s = 0: the word u[3].
   all_goals first
     | (rv_not_at 152; skip)
-    | (refine Reach.step (by decide) rfl ?_
+    | (refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        refine ⟨List.mem_append_left _ (List.mem_append_left _
@@ -213,13 +213,13 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
        simp only [setRegs]
        rv_exec_cut 184
        -- The quotient word q[3].
-       refine Reach.step (by decide) rfl ?_
+       refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        refine ⟨List.mem_append_left _ (List.mem_append_right _
          (mem_bufWords (i := 3) (by norm_num))), ?_⟩
        -- The word u[2] of the digit 2.
-       refine Reach.step (by decide) rfl ?_
+       refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        refine ⟨List.mem_append_left _ (List.mem_append_left _
@@ -233,7 +233,7 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
   -- u[4] ≤ d1: the word u[3] and d subtracted from the top two words at most once.
   all_goals first
     | (rv_not_at 121; skip)
-    | (refine Reach.step (by decide) rfl ?_
+    | (refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        refine ⟨List.mem_append_left _ (List.mem_append_left _
@@ -250,7 +250,7 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
        rw [regs_eq_sets _ x' _ h00 hfr]
        simp only [setRegs]
        -- The quotient word q[3], 0 or 1.
-       refine Reach.step (by decide) rfl ?_
+       refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        refine ⟨List.mem_append_left _ (List.mem_append_right _
@@ -264,7 +264,7 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
   -- u[4] ≤ d1: the word u[2] for the remainder (s ≠ 0) and the digit 2.
   all_goals first
     | (rv_not_at 141; rv_not_at 195; skip)
-    | (refine Reach.step (by decide) rfl ?_
+    | (refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        refine ⟨List.mem_append_left _ (List.mem_append_left _
@@ -273,7 +273,7 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
   -- s ≠ 0: the word u[1] for the funnel shift of the digit 2.
   all_goals first
     | (rv_not_at 188; skip)
-    | (refine Reach.step (by decide) rfl ?_
+    | (refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        refine ⟨List.mem_append_left _ (List.mem_append_left _

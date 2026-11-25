@@ -909,7 +909,7 @@ theorem topE_mid (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64) (x : Reg
     rv_exec_cut 162
     simp only [hT] at *
     -- The table entry of vt: the low half.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     have ha := table_addr_by1 _ T hd63
@@ -922,7 +922,7 @@ theorem topE_mid (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64) (x : Reg
       ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
     rv_exec_cut 162
     -- The high half.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     have hah := table_addr_by1_hi _ T hd63

@@ -96,7 +96,7 @@ theorem memset.reach (base : BitVec 64) (x : Regs) (m : Mem) {A : List (BitVec 6
     intro k x' m' ⟨i, hi, hk, h13, h12, hx', hm'⟩ ih
     subst hk hm'
     -- sb a1, 0(a3)
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
     refine ⟨by rw [h13]; exact hA i hi, ?_⟩
     have h13n : (x'.get 13#5).toNat = (x.get 10#5).toNat + i := by

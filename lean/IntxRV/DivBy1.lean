@@ -355,7 +355,7 @@ theorem by1_exit {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
     try simp only [BitVec.add_assoc] at hs
     rv_fold hs
     -- The word q[0] and the return.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rw [h10]
@@ -426,7 +426,7 @@ theorem by1_loop {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
   simp (disch := decide) only [Regs.eq_get x] at hpre'
   obtain ⟨⟨hqa, hqn⟩, ⟨hua, hun⟩, hdis, hn2, h1113, hdpos⟩ := hpre'
   -- The word u[i - 1].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h7]
@@ -435,7 +435,7 @@ theorem by1_loop {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
   rv_exec_cut 148 167
   -- The quotient word q[i].
   all_goals
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rw [h14]

@@ -656,19 +656,19 @@ theorem top2_div_low {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} (b
   rv_exec
   -- The restore of s0 to s3 from the frame.
   all_goals
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     refine ⟨hsp 24 (by simp), fun ws0 hws0 => ?_⟩
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     refine ⟨hsp 16 (by simp), fun ws1 hws1 => ?_⟩
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     refine ⟨hsp 8 (by simp), fun ws2 hws2 => ?_⟩
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     refine ⟨by simpa using hsp 0 (by simp), fun ws3 hws3 => ?_⟩

@@ -97,7 +97,7 @@ macro "rv_mem" : tactic => `(tactic| (
 
 /-- Runs one instruction. -/
 macro "rv_step" : tactic => `(tactic| (
-  refine Reach.step ?hk rfl ?_
+  refine Reach.step ?hk (by rv_fetch) ?_
   case hk => decide
   simp only [StepGoal, Nat.reduceAdd, true_and, jumpIdx, BitVec.reduceToInt, Nat.reduceMul,
     Int.reduceAdd, Int.reduceToNat, Nat.reduceDiv, Nat.cast_ofNat]
@@ -128,7 +128,7 @@ macro "rv_val_loop" loc:(Lean.Parser.Tactic.location)? : tactic => `(tactic| (
 
 /-- `rv_step` with `rv_val_loop` and `rv_const_loop`. -/
 macro "rv_step_loop" : tactic => `(tactic| (
-  refine Reach.step ?hk rfl ?_
+  refine Reach.step ?hk (by rv_fetch) ?_
   case hk => decide
   simp only [StepGoal, Nat.reduceAdd, true_and, jumpIdx, BitVec.reduceToInt, Nat.reduceMul,
     Int.reduceAdd, Int.reduceToNat, Nat.reduceDiv, Nat.cast_ofNat]

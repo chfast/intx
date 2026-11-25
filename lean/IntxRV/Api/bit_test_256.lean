@@ -38,7 +38,7 @@ theorem bit_test_256.reach (base : BitVec 64) (x : Regs) (m : Mem) (hra : x.get 
   simp only [bit_test_256.pre, bit_test_256.bufs, Buf] at hpre ⊢
   simp (disch := decide) only [Regs.eq_get x] at hpre ⊢
   rv_exec
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   simp only [Defn] at *

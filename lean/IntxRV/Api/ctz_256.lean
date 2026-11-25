@@ -149,7 +149,7 @@ theorem ctz_256.proof_of_decodes (hdec : ctz_256.decodes) : ctz_256.spec := by
         and_self, and_true, true_and]
       simp (disch := decide) only [Regs.eq_get x, and_self]
   all_goals
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rw [ctz_mul_addr]
@@ -160,7 +160,7 @@ theorem ctz_256.proof_of_decodes (hdec : ctz_256.decodes) : ctz_256.spec := by
   all_goals
     simp only [Defn] at *
     subst_vars
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
   · ctz_lbu (memWord m (x.get 10#5 + 24#64).toNat), 192#64, 3, 0

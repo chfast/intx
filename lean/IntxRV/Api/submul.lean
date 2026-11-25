@@ -107,11 +107,11 @@ theorem submul.reach (base : BitVec 64) (x : Regs) (m : Mem) (hr : x.get 1#5 &&&
   have hy8 : (x.get 11#5 + BitVec.ofNat 64 (8 * i)).toNat = (x.get 11#5).toNat + 8 * i := by
     rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hi8]; omega
   -- y[i]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   refine ⟨by rw [h11]; exact List.mem_append_left _ (mem_bufWords hi), fun wy hwy => ?_⟩
   -- x[i]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨by rw [h10]; exact List.mem_append_right _ (mem_bufWords hi), fun wx hwx => ?_⟩
@@ -155,7 +155,7 @@ theorem submul.reach (base : BitVec 64) (x : Regs) (m : Mem) (hr : x.get 1#5 &&&
       show 64 * (i + 1) = 64 * i + 64 by ring, pow_add]
     exact submul_step hm hcar hkn hs.1 hw
   -- The store of x[i].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨by rw [h10]; exact List.mem_append_right _ (mem_bufWords hi), ?_⟩

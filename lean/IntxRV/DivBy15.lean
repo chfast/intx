@@ -121,7 +121,7 @@ theorem by15_d0 {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base :
     try simp only [BitVec.add_assoc] at hs
     rv_fold hs
     -- The word q[0] and the return.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rw [h10]
@@ -192,7 +192,7 @@ theorem by15_d1 {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base :
     try simp only [BitVec.add_assoc] at hs
     rv_fold hs
     -- The word q[1].
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rw [h10]
@@ -251,7 +251,7 @@ theorem by15_d2 {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base :
   rv_exec_cut 181
   all_goals
     -- The word q[2].
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
@@ -362,7 +362,7 @@ theorem by15_d3 {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base :
   rv_exec_cut 151
   all_goals
     -- The word q[3].
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]

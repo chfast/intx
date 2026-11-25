@@ -519,7 +519,7 @@ theorem k4_tail {hi : BitVec 20} {lo : BitVec 12} {Dt : List (BitVec 64)} (base 
   rw [← regs_set_of_get' (by decide) k2, ← regs_set_of_get' (by decide) k8,
     ← regs_set_of_get' (by decide) k20, ← regs_set_of_get' (by decide) k21]
   -- The store of the quotient digit q[j].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
@@ -750,7 +750,7 @@ theorem k4_loop {hi : BitVec 20} {lo : BitVec 12} {Dt : List (BitVec 64)} (base 
         base (pcAt base 100) x' m' (x.get 1#5) (udivrem_knuth_normalized_4.post x m) := by
     intro hne
     -- The word u[j + 2] at 0x138 of its code.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend]
     refine ⟨hbufs _ (List.mem_append_right _
       (mem_bufWords (n := 4) (i := 2) (a := x'.get 8#5) (by norm_num) : _)), fun w hw => ?_⟩

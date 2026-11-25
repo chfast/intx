@@ -42,7 +42,7 @@ theorem reciprocal_3by2.proof_of_decodes (hdec : reciprocal_3by2.decodes) :
   have hd1 : 2 ^ 63 ≤ (x.get 11#5).toNat := by have := (x.get 10#5).isLt; omega
   have hi : (x.get 11#5).toNat / 2 ^ 55 - 256 < 256 := by have := (x.get 11#5).isLt; omega
   rv_exec
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   simp only [Defn] at *
   subst_vars
@@ -53,7 +53,7 @@ theorem reciprocal_3by2.proof_of_decodes (hdec : reciprocal_3by2.decodes) :
     holdsData_get hhold (by rw [show reciprocal_3by2_image_data.length = 256 from rfl]; exact hi),
     ← List.getD_eq_getElem _ 0, reciprocal_3by2_image_data_eq, image_data_get _ hi] at hwL
   rv_exec
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [table_addr3_hi _ _ hd1]

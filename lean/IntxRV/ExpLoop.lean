@@ -158,7 +158,7 @@ theorem ex_after {D : List (BitVec 64)} (base ret : BitVec 64) (x : Regs) (m : M
   have hkn := ex_toNat_ofNat k hk
   have hi := ex_word_lt k hk
   simp only [hk1] at *
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   simp only [Defn] at *

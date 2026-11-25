@@ -142,7 +142,7 @@ theorem u320_dispatch {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : 
   rv_exec_cut 99
   rv_subst
   -- The top word u[mm - 1] of u.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [hua']
@@ -151,7 +151,7 @@ theorem u320_dispatch {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : 
   rw [huw] at hwa
   rv_subst
   -- The top word v[n - 1] of v.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [hva']

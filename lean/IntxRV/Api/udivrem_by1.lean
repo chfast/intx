@@ -67,7 +67,7 @@ theorem udivrem_by1.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
   -- The address of the table in the run.
   simp only [hT] at *
   -- The table entry of dn: the low half.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have ha := table_addr_by1 _ T hdn63
@@ -80,7 +80,7 @@ theorem udivrem_by1.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
     ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
   rv_exec_cut 148 167
   -- The high half.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have hah := table_addr_by1_hi _ T hdn63
@@ -94,7 +94,7 @@ theorem udivrem_by1.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
     ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwH
   rv_exec_cut 148 167
   -- The words u[top - 1] and u[top] of the numerator.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have hn2 : 2 ≤ (x.get 11#5).toNat := by omega
@@ -105,7 +105,7 @@ theorem udivrem_by1.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
   rw [hua]
   refine ⟨List.mem_append_left _ (List.mem_append_left _ (mem_bufWords (by omega))),
     fun wA hwA => ?_⟩
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have hub : x.get 12#5 + x.get 11#5 <<< 3 + 18446744073709551608#64 =
@@ -121,7 +121,7 @@ theorem udivrem_by1.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
     have hqa : x.get 10#5 + x.get 11#5 <<< 3 + 18446744073709551608#64 =
         x.get 10#5 + BitVec.ofNat 64 (8 * ((x.get 11#5).toNat - 1)) := by
       rw [BitVec.add_assoc, off_sub1 _ (by omega) hn8]
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rv_fold hqa

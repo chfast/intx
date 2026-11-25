@@ -74,7 +74,7 @@ theorem top2_main (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64) (x : Re
   -- The table entry of vt: the low half.
   all_goals
     simp only [hT] at *
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     have ha := table_addr_by1 _ T hd63
@@ -88,7 +88,7 @@ theorem top2_main (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64) (x : Re
       ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
     rv_exec_cut 140
     -- The high half.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     have hah := table_addr_by1_hi _ T hd63

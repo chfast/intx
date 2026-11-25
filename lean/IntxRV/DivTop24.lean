@@ -542,19 +542,19 @@ theorem top24_sub {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Re
   rw [← h12] at hsp
   rv_exec_cut 252
   -- The restore of s0 to s3 from the frame.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   refine ⟨hsp 24 (by simp), fun ws0 hws0 => ?_⟩
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   refine ⟨hsp 16 (by simp), fun ws1 hws1 => ?_⟩
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   refine ⟨hsp 8 (by simp), fun ws2 hws2 => ?_⟩
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   refine ⟨by simpa using hsp 0 (by simp), fun ws3 hws3 => ?_⟩
@@ -764,7 +764,7 @@ theorem top24_main (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64) (x : R
   rv_exec_cut 139
   simp only [hT] at *
   -- The table entry of vt: the low half.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have ha := table_addr_by1 _ T hd63
@@ -778,7 +778,7 @@ theorem top24_main (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64) (x : R
     ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
   rv_exec_cut 139
   -- The high half.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have hah := table_addr_by1_hi _ T hd63

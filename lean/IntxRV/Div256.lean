@@ -125,7 +125,7 @@ theorem u256_epi {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Mem)
   have hm8 : x.get 2#5 + 18446744073709551600#64 + 8#64 = x.get 2#5 + 18446744073709551608#64 := by
     rw [BitVec.add_assoc]; rfl
   -- ra and s0.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h2, hm8]
@@ -134,7 +134,7 @@ theorem u256_epi {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Mem)
              exact List.mem_append_left _ (List.mem_append_right _ (mem_bufWords (by norm_num))),
     fun w1 hw1 => ?_⟩
   rw [hra] at hw1
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h2]

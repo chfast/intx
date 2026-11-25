@@ -119,7 +119,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
     -- The address of the table in the run.
     simp only [hT] at *
     -- The table entry of the top word of the normalized divisor: the low half.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     have ha := table_addr_by1 _ T hdn63
@@ -133,7 +133,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
       ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
     rv_exec_cut 201
     -- The high half.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     have hah := table_addr_by1_hi _ T hdn63
@@ -149,7 +149,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
     rv_exec_cut 201
   -- The top word of the numerator, u[n - 1] with n - 1 = q.size().
   all_goals
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     have hut : x.get 12#5 + x.get 11#5 <<< 3 =
@@ -179,7 +179,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
     | skip
   -- The word u[n - 2]: from n - 2 (u[n - 1] > d1) or from the end of u (u[n - 1] ≤ d1).
   all_goals
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     first
@@ -199,7 +199,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
   -- u[n - 1] > d1, s ≠ 0: the word u[n - 3] for the funnel shift of the third digit.
   all_goals first
     | (rv_not_at 123; skip)
-    | (refine Reach.step (by decide) rfl ?_
+    | (refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        have huc : x.get 12#5 + x.get 13#5 <<< 3 + 18446744073709551592#64 =
@@ -240,7 +240,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
        simp only [setRegs]
        rv_exec_cut 201
        -- The quotient word q[n - 2].
-       refine Reach.step (by decide) rfl ?_
+       refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        -- (n - 2) << 3 is computed for u[n - 2] and again for q[n - 2].
@@ -270,7 +270,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
        simp only [setRegs]
        rv_exec_cut 201
        -- The quotient word q[n - 2], 0 or 1.
-       refine Reach.step (by decide) rfl ?_
+       refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        have hqa : x.get 10#5 + x.get 13#5 <<< 3 + 18446744073709551600#64 =
@@ -290,7 +290,7 @@ theorem udivrem_by2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
   -- u[n - 1] ≤ d1, s ≠ 0: the word u[n - 3] for the funnel shift of the remainder.
   all_goals first
     | (rv_not_at 153; skip)
-    | (refine Reach.step (by decide) rfl ?_
+    | (refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        have huc : x.get 12#5 + x.get 13#5 <<< 3 + 18446744073709551592#64 =

@@ -69,7 +69,7 @@ theorem udivrem_knuth_normalized_4.reach (hi : BitVec 20) (lo : BitVec 12) (base
   have hix := index_lt_256 hdn63'
   simp only [hT] at *
   -- The table entry of d[2]: the low half.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have ha := table_addr_by1 _ T hdn63'
@@ -82,7 +82,7 @@ theorem udivrem_knuth_normalized_4.reach (hi : BitVec 20) (lo : BitVec 12) (base
     ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
   rv_exec_cut 98
   -- The high half.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have hah := table_addr_by1_hi _ T hdn63'
@@ -98,13 +98,13 @@ theorem udivrem_knuth_normalized_4.reach (hi : BitVec 20) (lo : BitVec 12) (base
   rv_exec_cut 98
   have hn4 : 5 ≤ (x.get 12#5).toNat := by clear * - hn3; omega
   -- The words u[n - 2] and u[n - 1].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [hwue.eq, hwsh.eq, k4_addr_u2 _ _ hn4]
   refine ⟨List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
     (mem_bufWords (by clear * - hn4; omega)))), fun wu2 hwu2 => ?_⟩
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [k4_addr_u3 _ _ hn4]

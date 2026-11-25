@@ -448,7 +448,7 @@ theorem by2_exit {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
   have hS64 : 63 - Nat.log2 (x.get 15#5).toNat < 64 := by
     have := (Nat.log2_lt hd1).mpr (x.get 15#5).isLt; omega
   -- The word u[0].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h12]
@@ -468,7 +468,7 @@ theorem by2_exit {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
   rw [regs_eq_sets _ x'' _ h00 hfr']
   simp only [setRegs]
   -- The word q[0].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h10]
@@ -477,7 +477,7 @@ theorem by2_exit {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
   rv_exec_cut
   -- The saved s0, s1 and s2.
   have hq0n : 0 < (x.get 11#5).toNat := by omega
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h2]
@@ -487,7 +487,7 @@ theorem by2_exit {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
     rw [BitVec.add_assoc]; rfl] at hws0
   try rw [memStore_q0_stack _ hq0n _ hqn hsn hdsq _ (Or.inl rfl)] at hws0
   rw [hs8] at hws0
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h2]
@@ -497,7 +497,7 @@ theorem by2_exit {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
     rw [BitVec.add_assoc]; rfl] at hws1
   try rw [memStore_q0_stack _ hq0n _ hqn hsn hdsq _ (Or.inr (Or.inl rfl))] at hws1
   rw [hs9] at hws1
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h2]
@@ -600,7 +600,7 @@ theorem by2_loop {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
   have hDp : 0 < ((x.get 14#5).toNat + 2 ^ 64 * (x.get 15#5).toNat) *
       2 ^ (63 - Nat.log2 (x.get 15#5).toNat) := by omega
   -- The word u[i].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [h14, BitVec.add_assoc, ofNat_sub1_add8 i hi1]
@@ -610,7 +610,7 @@ theorem by2_loop {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
   -- s ≠ 0: the word u[i - 1] for the funnel shift.
   all_goals first
     | (rv_not_at 209; skip)
-    | (refine Reach.step (by decide) rfl ?_
+    | (refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        rw [h14]
@@ -659,7 +659,7 @@ theorem by2_loop {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base 
       fun a b c => by ring, hdn] at hq0 hr0
     have hstep := div_step i hq hq0 hr0
     -- The quotient word q[i].
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     rw [h15]

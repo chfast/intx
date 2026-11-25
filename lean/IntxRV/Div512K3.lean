@@ -73,7 +73,7 @@ theorem u512_k3_div {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Me
   rv_exec_cut 195
   rv_subst
   -- The top word u[mm - 1] of u.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [hua']
@@ -87,7 +87,7 @@ theorem u512_k3_div {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Me
   have hmm3 : 3 ≤ mm := by split_ifs at hnum <;> omega
   have hqa : x.get 10#5 + (BitVec.ofNat 64 mm <<< 3 + 18446744073709551592#64) =
       x.get 10#5 + BitVec.ofNat 64 (8 * (mm - 3)) := by bv_omega
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [hqa]

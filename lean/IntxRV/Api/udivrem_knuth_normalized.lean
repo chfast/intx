@@ -81,14 +81,14 @@ theorem udivrem_knuth_normalized.reach (hi : BitVec 20) (lo : BitVec 12) (base T
     omega
   rv_exec_cut 85
   rename_i wsh hwsh wus hwus wde hwde
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [hwde.eq, hwsh.eq, kn_addr_dn2 _ _ (by omega) (by omega)]
   refine ⟨List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
     (List.mem_append_left _ (mem_bufWords (i := (x.get 14#5).toNat - 2) (by omega))))),
     fun wd0 hwd0 => ?_⟩
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [kn_addr_dn1 _ _ (by omega) (by omega)]
@@ -107,7 +107,7 @@ theorem udivrem_knuth_normalized.reach (hi : BitVec 20) (lo : BitVec 12) (base T
   rename_i wj0 hwj0 w52 hw52 w24 hw24 wta hwta
   simp only [hT] at *
   -- The table entry of d[n - 1]: the low half.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have ha := table_addr_by1 _ T hdn63'
@@ -120,7 +120,7 @@ theorem udivrem_knuth_normalized.reach (hi : BitVec 20) (lo : BitVec 12) (base T
     ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
   rv_exec_cut 85
   -- The high half.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   have hah := table_addr_by1_hi _ T hdn63'
@@ -140,13 +140,13 @@ theorem udivrem_knuth_normalized.reach (hi : BitVec 20) (lo : BitVec 12) (base T
       (x.get 11#5).toNat + 8 * ((x.get 12#5).toNat - 2) := toNat_add8 _ _ (by omega) (by omega)
   have hu1 : (x.get 11#5 + BitVec.ofNat 64 (8 * ((x.get 12#5).toNat - 1))).toNat =
       (x.get 11#5).toNat + 8 * ((x.get 12#5).toNat - 1) := toNat_add8 _ _ (by omega) (by omega)
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [hwue.eq, hwus.eq, kn_addr_dn2 _ _ (by omega) (by omega)]
   refine ⟨List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
     (mem_bufWords (i := (x.get 12#5).toNat - 2) (by omega)))), fun wu2 hwu2 => ?_⟩
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   first

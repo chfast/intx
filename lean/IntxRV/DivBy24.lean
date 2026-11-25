@@ -306,7 +306,7 @@ theorem by24_d0 {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base :
   rw [← regs_set_of_get' (by decide) h14, ← regs_set_of_get' (by decide) h15]
   rv_exec_cut 273
   -- The word u[0].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
@@ -336,7 +336,7 @@ theorem by24_d0 {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base :
     rv_fold hs
     rv_fold hs
     -- The word q[0] and the return.
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd]
     rv_val
     try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
@@ -407,7 +407,7 @@ theorem by24_d1 {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base :
   rw [regs_eq_sets _ x'' _ h00 hfr]
   simp only [setRegs]
   -- The word q[1].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
@@ -471,14 +471,14 @@ theorem by24_d2 {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base :
   rw [← regs_set_of_get' (by decide) h10, ← regs_set_of_get' (by decide) h11,
     ← regs_set_of_get' (by decide) h14, ← regs_set_of_get' (by decide) h15]
   -- The word q[2].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
   refine ⟨List.mem_append_left _ (List.mem_append_right _ (mem_bufWords (i := 2) (by norm_num))),
     ?_⟩
   -- The word u[1].
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
@@ -490,7 +490,7 @@ theorem by24_d2 {hi : BitVec 20} {lo : BitVec 12} {D : List (BitVec 64)} (base :
   -- s ≠ 0: the word u[0] for the funnel shift of the digit 1.
   all_goals first
     | (rv_not_at 231; skip)
-    | (refine Reach.step (by decide) rfl ?_
+    | (refine Reach.step (by decide) (by rv_fetch) ?_
        simp only [StepGoal, Nat.reduceAdd]
        rv_val
        try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]

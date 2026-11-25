@@ -80,7 +80,7 @@ theorem udivrem_256.reach (hi0 : BitVec 20) (lo0 : BitVec 12) (hi1 : BitVec 20) 
     | (by_cases hv1 : memWord m (x.get 12#5 + 8#64).toNat = 0#64
        all_goals
          simp (disch := assumption) only [ite_zero_lt_of_ne, ite_zero_lt_of_eq, BitVec.reduceAdd]
-         refine Reach.step (by decide) rfl ?_
+         refine Reach.step (by decide) (by rv_fetch) ?_
          simp only [StepGoal, Nat.reduceAdd]
          rv_val
          first

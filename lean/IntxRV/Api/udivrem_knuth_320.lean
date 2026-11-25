@@ -46,7 +46,7 @@ local macro "k320_join" : tactic => `(tactic| (
   rv_exec_cut 126
   rename_i wun0 hwun0 wum hwum wsm hwsm
   -- u[m - 1]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   rw [hwsm.eq, hwum.eq, kn_addr_dn1b _ _ (by omega) (by omega)]
@@ -174,7 +174,7 @@ theorem udivrem_knuth_320.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitV
   -- The top word of d.
   have hdt : (x.get 13#5 + BitVec.ofNat 64 (8 * ((x.get 14#5).toNat - 1))).toNat =
       (x.get 13#5).toNat + 8 * ((x.get 14#5).toNat - 1) := toNat_add8 _ _ (by omega) (by omega)
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [hwde.eq, hwsh.eq, kn_addr_dn1b _ _ (by omega) (by omega)]
@@ -248,7 +248,7 @@ theorem udivrem_knuth_320.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitV
     rw [memWord_of_unchangedExcept hdun b (by rw [hsp0]; omega)]
     exact hmu b h1 h2
   -- d[0]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _

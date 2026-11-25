@@ -106,7 +106,7 @@ theorem shr_256_by_256.proof_of_decodes (hdec : shr_256_by_256.decodes) : shr_25
       simp (disch := decide) only [Regs.eq_get x] at hsaved
       have h2 : x2.get 2#5 = x.get 2#5 + 18446744073709551600#64 := by
         rw [← Regs.eq_get x2 (by decide)]; exact hsaved.1
-      refine Reach.step (by decide) rfl ?_
+      refine Reach.step (by decide) (by rv_fetch) ?_
       simp only [StepGoal, Nat.reduceAdd]
       refine ⟨?_, fun w hw => ?_⟩
       · rw [h2]; rv_mem

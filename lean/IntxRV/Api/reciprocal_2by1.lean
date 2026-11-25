@@ -43,7 +43,7 @@ theorem reciprocal_2by1.proof_of_decodes (hdec : reciprocal_2by1.decodes) :
   simp only [reciprocal_2by1_entry, show reciprocal_2by1_image_data.length = 256 from rfl,
     show reciprocal_2by1_image_dataOff = 160 from rfl] at *
   rv_exec
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, true_and]
   simp only [Defn] at *
   subst_vars
@@ -55,7 +55,7 @@ theorem reciprocal_2by1.proof_of_decodes (hdec : reciprocal_2by1.decodes) :
     holdsData_get hhold (by rw [show reciprocal_2by1_image_data.length = 256 from rfl]; exact hi),
     ← List.getD_eq_getElem _ 0, image_data_get _ hi] at hw
   rv_exec
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd]
   rv_val
   rw [table_addr_hi _ _ hpre]

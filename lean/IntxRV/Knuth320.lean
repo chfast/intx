@@ -193,7 +193,7 @@ theorem k320_dn_tail {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} {b
     ← regs_set_of_get' (by decide) h13]
   rv_exec_cut 69
   rename_i wp hwp
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   rw [hwp.eq]
@@ -288,7 +288,7 @@ theorem k320_dn_loop {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} {b
   rv_exec_cut 72
   rename_i wa hwa
   -- d[k]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   rw [hwa.eq]
@@ -312,7 +312,7 @@ theorem k320_dn_loop {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} {b
       rw [k320DnWord_zero]; exact hdk
   · -- S ≠ 0: the funnel shift with d[k - 1].
     rename_i hS0
-    refine Reach.step (by decide) rfl ?_
+    refine Reach.step (by decide) (by rv_fetch) ?_
     simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
     rv_val
     rw [k320_addr_m8' _ _ hk1 (by omega)]
@@ -402,7 +402,7 @@ theorem k320_r_loop {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} {ba
     ← regs_set_of_get' (by decide) h12, ← regs_set_of_get' (by decide) h11',
     ← regs_set_of_get' (by decide) h21', ← regs_set_of_get' (by decide) h22']
   -- un[i + 1]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨huA (i + 1) hin, fun wu hwu => ?_⟩
@@ -413,7 +413,7 @@ theorem k320_r_loop {A : List (BitVec 64)} {hi : BitVec 20} {lo : BitVec 12} {ba
   have hv' : v = k320RWord m0 up S i := by
     rw [hv.eq, hc.eq, hb.eq, ha.eq, hdu]; rfl
   -- The store of the word i.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   refine ⟨hrA i (by omega), ?_⟩
@@ -715,7 +715,7 @@ theorem k320_tail {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Re
     ← regs_set_of_get' (by decide) h19, ← regs_set_of_get' (by decide) h20,
     ← regs_set_of_get' (by decide) h21, ← regs_set_of_get' (by decide) h22]
   -- The quotient word m - n: 0.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
@@ -824,7 +824,7 @@ theorem k320_tail {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Re
   rv_exec_cut 155
   rename_i wa hwa
   -- un[n - 1]
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   rw [hwa.eq, k320_un_top _ _ (by omega) (by omega)]
@@ -834,7 +834,7 @@ theorem k320_tail {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Re
     fun wl hwl => ?_⟩
   rv_exec_cut 157
   -- The store of the last word of the remainder.
-  refine Reach.step (by decide) rfl ?_
+  refine Reach.step (by decide) (by rv_fetch) ?_
   simp only [StepGoal, Nat.reduceAdd, BitVec.reduceSignExtend, BitVec.add_zero]
   rv_val
   rw [hwre.eq, k320_rend _ _ (by omega) (by omega)]
