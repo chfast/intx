@@ -37,8 +37,10 @@ requires clang 21.
 
 Lake rebuilds a module when its text or the text of a module that it imports changes. A proof
 imports only the modules of the instances that it uses, and not the proofs of the decoding: a
-change of the code or of the specification of an instance rebuilds only its proofs and the proofs
-of the images that hold its code, and the generated files have no line numbers of `intx.hpp`.
+change of the code or of the specification of an instance rebuilds only the proofs that import its
+modules, through the images that hold its code or through the lemma modules. A new word of machine
+code and a change of other lines of `intx.hpp` rebuild no proof: the generated files have no line
+numbers of `intx.hpp`.
 
 ## The proof of a function
 
