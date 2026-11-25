@@ -8,6 +8,7 @@ import IntxRV.Loop
 import IntxRV.Div2by1
 import IntxRV.DivWords
 import IntxRV.Call
+import IntxRV.DivShared
 /-!
 # The division of a span by a word
 
@@ -30,21 +31,6 @@ set_option maxRecDepth 100000
 set_option linter.unusedTactic false
 set_option linter.unreachableTactic false
 
-/-- The address of the table entry of `d` in the table at `T`. -/
-theorem table_addr_by1 (d T : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
-    (d >>> 52 &&& 18446744073709551608#64) + T + 18446744073709549568#64 =
-      T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) := by
-  rw [show (18446744073709551608#64) = 0xfffffffffffffff8#64 from rfl, shr52_and]
-  have := d.isLt
-  bv_omega
-
-theorem table_addr_by1_hi (d T : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
-    (d >>> 52 &&& 18446744073709551608#64) + T + 18446744073709549572#64 =
-      T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) + 4 := by
-  rw [show (18446744073709551608#64) = 0xfffffffffffffff8#64 from rfl, shr52_and]
-  have := d.isLt
-  bv_omega
-
 /-- The offset of the word `n - 2` of a buffer of `n` words. -/
 theorem off_sub2 (n : BitVec 64) (h : 2 ≤ n.toNat) (hn : 8 * n.toNat ≤ 2 ^ 64) :
     (n + 18446744073709551614#64) <<< 3 = BitVec.ofNat 64 (8 * (n.toNat - 2)) := by
@@ -53,18 +39,6 @@ theorem off_sub2 (n : BitVec 64) (h : 2 ≤ n.toNat) (hn : 8 * n.toNat ≤ 2 ^ 6
 /-- The offset of the word `n - 1` of a buffer of `n` words. -/
 theorem off_sub1 (n : BitVec 64) (h : 1 ≤ n.toNat) (hn : 8 * n.toNat ≤ 2 ^ 64) :
     n <<< 3 + 18446744073709551608#64 = BitVec.ofNat 64 (8 * (n.toNat - 1)) := by
-  bv_omega
-
-/-- The index of the table entry of a normalized `d`. -/
-theorem index_lt_256 {d : BitVec 64} (h : 2 ^ 63 ≤ d.toNat) : d.toNat / 2 ^ 55 - 256 < 256 := by
-  have := d.isLt; omega
-
-/-- The address of the high half of the table entry, 4 bytes above the entry. -/
-theorem table_entry_add4 (T : BitVec 64) {d : BitVec 64} (h : 2 ^ 63 ≤ d.toNat)
-    (hw : T.toNat + 8 * 256 ≤ 2 ^ 64) :
-    (T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) + 4).toNat =
-      (T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256))).toNat + 4 := by
-  have := index_lt_256 h
   bv_omega
 
 /-- The normalized divisor: `d` shifted left by the count of its leading zeros. -/
@@ -88,11 +62,6 @@ theorem norm_shift (d : BitVec 64) (hd : d ≠ 0) :
           rw [← pow_add]; congr 1; omega
       _ ≤ _ := Nat.mul_le_mul_right _ h2
   exact ⟨Nat.mod_eq_of_lt hp, hq⟩
-
-/-- The first word of a buffer. -/
-theorem mem_bufWords_zero {a : BitVec 64} {n : Nat} (h : 0 < n) : a ∈ bufWords a n := by
-  have := mem_bufWords (a := a) h
-  simpa using this
 
 /-- The low word of the normalized numerator. -/
 theorem words_mul_mod (m : Mem) (a : BitVec 64) (n S : Nat) (hn : 0 < n) :
@@ -143,82 +112,6 @@ theorem defn_shl_toNat {w a : BitVec 64} {n : Nat} (h : Defn w (a <<< n)) :
     w.toNat = a.toNat * 2 ^ n % 2 ^ 64 := by
   rw [h.eq, BitVec.toNat_shiftLeft, Nat.shiftLeft_eq]
 
-/-- The words of a buffer after a store of its first word. -/
-theorem words_memStore_first (m : Mem) (a v : BitVec 64) (n : Nat) (hn : 0 < n)
-    (ha : a.toNat + 8 * n ≤ 2 ^ 64) :
-    words (memStore m a.toNat v) a n = v.toNat + 2 ^ 64 * words m (a + 8) (n - 1) := by
-  obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
-  rw [words, memWord_memStore_self, Nat.add_sub_cancel]
-  cases k with
-  | zero => rfl
-  | succ k =>
-    have h8 : (a + 8).toNat = a.toNat + 8 := by rw [BitVec.toNat_add]; simp; omega
-    rw [words_memStore_of_disjoint m a.toNat v (k + 1) (a + 8) (by omega) (by omega)]
-
-/-- The funnel shift of `a:b` left by `0 < t < 64` as the code computes it, with `srl` by `~t`. -/
-theorem toNat_fshl_code (a b t : BitVec 64) (ht : t.toNat < 64) :
-    ((a <<< (t.toNat % 64)) ||| ((b >>> 1) >>> ((t ^^^ 18446744073709551615#64).toNat % 64))).toNat =
-      (a.toNat * 2 ^ t.toNat + b.toNat / 2 ^ (64 - t.toNat)) % 2 ^ 64 := by
-  rw [toNat_xor_allOnes_mod_64, Nat.mod_eq_of_lt ht, ushiftRight_one_ushiftRight _ _ ht,
-    toNat_shl_or_shr _ _ _ ht]
-  have e64 : (2 : Nat) ^ 64 = 2 ^ t.toNat * 2 ^ (64 - t.toNat) := by rw [← pow_add]; congr 1; omega
-  have hb : b.toNat / 2 ^ (64 - t.toNat) < 2 ^ t.toNat := by
-    rw [Nat.div_lt_iff_lt_mul (by positivity), ← e64]; exact b.isLt
-  have hc64 : b.toNat / 2 ^ (64 - t.toNat) < 2 ^ 64 :=
-    lt_of_lt_of_le hb (Nat.pow_le_pow_right (by norm_num) (by omega))
-  have hm : a.toNat * 2 ^ t.toNat % 2 ^ 64 + 2 ^ t.toNat ≤ 2 ^ 64 := by
-    rw [e64, Nat.mul_comm a.toNat, Nat.mul_mod_mul_left]
-    have := Nat.mod_lt a.toNat (show 0 < 2 ^ (64 - t.toNat) by positivity)
-    have := Nat.mul_le_mul_left (2 ^ t.toNat) (show a.toNat % 2 ^ (64 - t.toNat) + 1 ≤
-      2 ^ (64 - t.toNat) by omega)
-    rw [Nat.mul_add, Nat.mul_one] at this
-    omega
-  have hlt : a.toNat * 2 ^ t.toNat % 2 ^ 64 + b.toNat / 2 ^ (64 - t.toNat) < 2 ^ 64 := by omega
-  rw [Nat.add_mod, Nat.mod_eq_of_lt hc64, Nat.mod_eq_of_lt hlt]
-
-theorem ofNat_add8 (i : Nat) : BitVec.ofNat 64 (8 * i) + 8 = BitVec.ofNat 64 (8 * (i + 1)) := by
-  bv_omega
-
-theorem ofNat_sub1 (i : Nat) (h : 1 ≤ i) (hi : i < 2 ^ 64) :
-    BitVec.ofNat 64 i + 18446744073709551615#64 = BitVec.ofNat 64 (i - 1) := by
-  bv_omega
-
-theorem ptr_sub8 (p : BitVec 64) (k : Nat) (h : 1 ≤ k) (hk : 8 * k < 2 ^ 64) :
-    p + BitVec.ofNat 64 (8 * k) + 18446744073709551608#64 = p + BitVec.ofNat 64 (8 * (k - 1)) := by
-  bv_omega
-
-theorem ofNat_sub1_eq_zero (i : Nat) (hi : i < 2 ^ 64)
-    (h : BitVec.ofNat 64 i + 18446744073709551615#64 = 0#64) : i = 1 := by
-  bv_omega
-
-/-- The table entry of the normalized `d` in the run: `v0 * v0` and `2^11 * v0 - 1`. -/
-theorem table_LH {d wL wH : BitVec 64} (h : 2 ^ 63 ≤ d.toNat)
-    (hwL : Defn wL (BitVec.setWidth 64 (BitVec.setWidth 32 (BitVec.ofNat 64
-      (523520 / (d.toNat / 2 ^ 55 - 256 + 256) * (523520 / (d.toNat / 2 ^ 55 - 256 + 256)) +
-        2 ^ 32 * (2 ^ 11 * (523520 / (d.toNat / 2 ^ 55 - 256 + 256)) - 1))))))
-    (hwH : Defn wH (BitVec.setWidth 64 (BitVec.setWidth 32 (BitVec.ofNat 64
-      (523520 / (d.toNat / 2 ^ 55 - 256 + 256) * (523520 / (d.toNat / 2 ^ 55 - 256 + 256)) +
-        2 ^ 32 * (2 ^ 11 * (523520 / (d.toNat / 2 ^ 55 - 256 + 256)) - 1)) >>> 32)))) :
-    wL.toNat = 523520 / (d.toNat / 2 ^ 55) * (523520 / (d.toNat / 2 ^ 55)) ∧
-      wH.toNat = 2 ^ 11 * (523520 / (d.toNat / 2 ^ 55)) - 1 := by
-  have hi := index_lt_256 h
-  have hV := Intx.Model.reciprocal_table_entry _ hi
-  rw [show d.toNat / 2 ^ 55 - 256 + 256 = d.toNat / 2 ^ 55 by have := d.isLt; omega] at hV hwL hwH
-  obtain ⟨-, hv0b, -, -⟩ := hV
-  have hVV := Nat.mul_le_mul hv0b hv0b
-  rw [hwL.eq, hwH.eq]
-  constructor
-  · simp only [BitVec.toNat_setWidth, BitVec.toNat_ofNat]; omega
-  · simp only [BitVec.toNat_setWidth, BitVec.toNat_ushiftRight, BitVec.toNat_ofNat,
-      Nat.shiftRight_eq_div_pow]
-    omega
-
-/-- The shift amount of `srl` by `negw s`: `64 - s` for `0 < s < 64`. -/
-theorem negw_shift : ∀ k < 64, 0 < k →
-    (BitVec.signExtend 64 (BitVec.setWidth 32 0#64 - BitVec.setWidth 32 (BitVec.ofNat 64 k))).toNat
-      % 64 = 64 - k := by
-  decide
-
 /-- The top digits of the numerator shifted left by `S` with the top word `uT` and the word below it
 `uT1`: the bits above the words, and the digit of the top word. -/
 theorem by1_top (m : Mem) (a : BitVec 64) (n S : Nat) (hS : S < 64) (hn : 2 ≤ n) :
@@ -227,19 +120,6 @@ theorem by1_top (m : Mem) (a : BitVec 64) (n S : Nat) (hS : S < 64) (hn : 2 ≤ 
   rw [← norm_top m a n S hS (by omega), ← norm_digit m a n S (n - 1) hS (by omega) (by omega)]
   have h := Nat.div_add_mod (words m a n * 2 ^ S / 2 ^ (64 * (n - 1))) (2 ^ 64)
   rw [Nat.div_div_eq_div_mul, ← pow_add, show 64 * (n - 1) + 64 = 64 * n by omega] at h
-  omega
-
-/-- The high word of the top digits of the numerator for `0 < S < 64`: below the normalized divisor. -/
-theorem top_hi_lt {wB dn : BitVec 64} {S : Nat} (h63 : 2 ^ 63 ≤ dn.toNat) (hS : S < 64)
-    (hS0 : 0 < S) :
-    (wB >>> ((BitVec.signExtend 64 (BitVec.setWidth 32 0#64 - BitVec.setWidth 32
-      (BitVec.ofNat 64 S))).toNat % 64)).toNat < dn.toNat := by
-  rw [negw_shift S hS hS0, BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow]
-  have := wB.isLt
-  have : wB.toNat / 2 ^ (64 - S) < 2 ^ S := by
-    rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, show S + (64 - S) = 64 by omega]
-    exact wB.isLt
-  have : 2 ^ S ≤ 2 ^ 63 := Nat.pow_le_pow_right (by norm_num) (by omega)
   omega
 
 /-- The first quotient word and the remainder with the division of the top digits. -/
@@ -269,18 +149,6 @@ theorem top_zero {Un d S uT uT1 lo : Nat} (hS : S < 64) (hd : d * 2 ^ S < 2 ^ 64
   refine ⟨by omega, ?_⟩
   rw [hlo]
   exact lt_of_le_of_lt (Nat.mod_le _ _) (by omega)
-
-theorem ofNat_S_toNat {S : Nat} (h : S < 64) : (BitVec.ofNat 64 S).toNat = S := by
-  rw [BitVec.toNat_ofNat]; omega
-
-theorem ofNat_S_ne {S : Nat} (h : S < 64) (hne : ¬BitVec.ofNat 64 S = 0#64) : 0 < S := by
-  rcases Nat.eq_zero_or_pos S with rfl | h0
-  · exact absurd rfl hne
-  · exact h0
-
-theorem ofNat_S_eq {S : Nat} (h : S < 64) (he : BitVec.ofNat 64 S = 0#64) : S = 0 := by
-  have := congrArg BitVec.toNat he
-  rwa [ofNat_S_toNat h] at this
 
 theorem cnt_sub2 (n : BitVec 64) (h : 2 ≤ n.toNat) :
     n + 18446744073709551614#64 = BitVec.ofNat 64 (n.toNat - 2) := by

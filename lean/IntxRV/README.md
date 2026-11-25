@@ -36,11 +36,13 @@ the code and the documentation of the commit. Another compiler emits other code:
 requires clang 21.
 
 Lake rebuilds a module when its text or the text of a module that it imports changes. A proof
-imports only the modules of the instances that it uses, and not the proofs of the decoding: a
-change of the code or of the specification of an instance rebuilds only the proofs that import its
-modules, through the images that hold its code or through the lemma modules. A new word of machine
-code and a change of other lines of `intx.hpp` rebuild no proof: the generated files have no line
-numbers of `intx.hpp`.
+imports only the modules of the instances that it uses, and not the proofs of the decoding: a change
+of the code or of the specification of an instance rebuilds only the proofs that import its modules,
+through the images that hold its code or through the lemma modules. The lemmas that the proofs of
+several functions use are in modules without generated code (`DivShared.lean` for the division): a
+change of `udivrem_by2()` rebuilds 14 proofs, its own, the 8 of the instances whose images hold its
+code and 5 through the lemma modules. A new word of machine code and a change of other lines of
+`intx.hpp` rebuild no proof: the generated files have no line numbers of `intx.hpp`.
 
 ## The proof of a function
 

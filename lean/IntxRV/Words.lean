@@ -150,4 +150,52 @@ theorem unchangedExcept3_memStore {m m' : Mem} {a b c : BitVec 64} {la lb lc : N
   · rw [← getElem?_memStore_of_ne m' e v k (by omega)]; exact h k hka hkb hkc
   · rw [getElem?_memStore_of_ne _ _ _ _ (by omega)]; exact h k hka hkb hkc
 
+/-- The word at `c` outside the bytes at `a` and `b` that may change. -/
+theorem memWord_of_unchangedExcept2 {m m' : Mem} {a b : BitVec 64} {la lb : Nat}
+    (h : UnchangedExcept2 m m' a la b lb) (c : Nat) (ha : c + 8 ≤ a.toNat ∨ a.toNat + la ≤ c)
+    (hb : c + 8 ≤ b.toNat ∨ b.toNat + lb ≤ c) : memWord m' c = memWord m c := by
+  simp only [memWord, Std.ExtHashMap.getD_eq_getD_getElem?]
+  rw [h c (by omega) (by omega), h (c + 1) (by omega) (by omega), h (c + 2) (by omega) (by omega),
+    h (c + 3) (by omega) (by omega), h (c + 4) (by omega) (by omega),
+    h (c + 5) (by omega) (by omega), h (c + 6) (by omega) (by omega),
+    h (c + 7) (by omega) (by omega)]
+
+/-- The words outside the bytes that may change. -/
+theorem words_of_unchangedExcept2 {m m' : Mem} {a b : BitVec 64} {la lb : Nat}
+    (h : UnchangedExcept2 m m' a la b lb) : ∀ (n : Nat) (c : BitVec 64), c.toNat + 8 * n ≤ 2 ^ 64 →
+      (c.toNat + 8 * n ≤ a.toNat ∨ a.toNat + la ≤ c.toNat) →
+      (c.toNat + 8 * n ≤ b.toNat ∨ b.toNat + lb ≤ c.toNat) → words m' c n = words m c n
+  | 0, _, _, _, _ => rfl
+  | n + 1, c, hc, ha, hb => by
+    rw [words, words, memWord_of_unchangedExcept2 h c.toNat (by omega) (by omega)]
+    cases n with
+    | zero => rfl
+    | succ k =>
+      have h8 : (c + 8).toNat = c.toNat + 8 := by
+        rw [BitVec.toNat_add]; simp; omega
+      rw [words_of_unchangedExcept2 h (k + 1) (c + 8) (by omega) (by omega) (by omega)]
+
+/-- The four words at `a`. -/
+theorem words4_unfold (m : Mem) (a : BitVec 64) :
+    words m a 4 = (memWord m a.toNat).toNat + 2 ^ 64 * ((memWord m (a + 8#64).toNat).toNat +
+      2 ^ 64 * ((memWord m (a + 16#64).toNat).toNat +
+      2 ^ 64 * (memWord m (a + 24#64).toNat).toNat)) := by
+  simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, Nat.mul_zero,
+    Nat.add_zero]
+
+theorem ofNat_add8 (i : Nat) : BitVec.ofNat 64 (8 * i) + 8 = BitVec.ofNat 64 (8 * (i + 1)) := by
+  bv_omega
+
+theorem ofNat_sub1 (i : Nat) (h : 1 ≤ i) (hi : i < 2 ^ 64) :
+    BitVec.ofNat 64 i + 18446744073709551615#64 = BitVec.ofNat 64 (i - 1) := by
+  bv_omega
+
+theorem ptr_sub8 (p : BitVec 64) (k : Nat) (h : 1 ≤ k) (hk : 8 * k < 2 ^ 64) :
+    p + BitVec.ofNat 64 (8 * k) + 18446744073709551608#64 = p + BitVec.ofNat 64 (8 * (k - 1)) := by
+  bv_omega
+
+theorem ofNat_sub1_eq_zero (i : Nat) (hi : i < 2 ^ 64)
+    (h : BitVec.ofNat 64 i + 18446744073709551615#64 = 0#64) : i = 1 := by
+  bv_omega
+
 end IntxRV

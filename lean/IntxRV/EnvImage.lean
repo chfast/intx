@@ -104,4 +104,18 @@ theorem nonVacuousI_of {code : Code} {data : List (BitVec 64)} {off : Nat}
   · rw [hdat]
     exact holdsData_storeWords (a := 0x80000400#64) data (by simp; omega)
 
+/-- The words of a buffer at an offset of `k` words are in a buffer at the address. -/
+theorem mem_bufWords_of_offset {a b : BitVec 64} {k n n' : Nat} (h : k + n ≤ n')
+    (hb : b ∈ bufWords (a + BitVec.ofNat 64 (8 * k)) n) : b ∈ bufWords a n' := by
+  obtain ⟨i, hi, rfl⟩ := exists_of_mem_bufWords hb
+  rw [BitVec.add_assoc, show BitVec.ofNat 64 (8 * k) + BitVec.ofNat 64 (8 * i) =
+    BitVec.ofNat 64 (8 * (k + i)) by
+      apply BitVec.eq_of_toNat_eq; simp only [BitVec.toNat_add, BitVec.toNat_ofNat]; omega]
+  exact mem_bufWords (by omega)
+
+/-- The first word of a buffer. -/
+theorem mem_bufWords_zero {a : BitVec 64} {n : Nat} (h : 0 < n) : a ∈ bufWords a n := by
+  have := mem_bufWords (a := a) h
+  simpa using this
+
 end IntxRV

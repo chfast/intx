@@ -79,4 +79,53 @@ theorem image_data_get : ∀ i < 256, reciprocal_2by1_image_data.getD i 0 =
       2 ^ 32 * (2 ^ 11 * (523520 / (i + 256)) - 1)) := by
   decide
 
+/-- The address of the table entry of `d` in the table at `T`. -/
+theorem table_addr_by1 (d T : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
+    (d >>> 52 &&& 18446744073709551608#64) + T + 18446744073709549568#64 =
+      T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) := by
+  rw [show (18446744073709551608#64) = 0xfffffffffffffff8#64 from rfl, shr52_and]
+  have := d.isLt
+  bv_omega
+
+theorem table_addr_by1_hi (d T : BitVec 64) (hd : 2 ^ 63 ≤ d.toNat) :
+    (d >>> 52 &&& 18446744073709551608#64) + T + 18446744073709549572#64 =
+      T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) + 4 := by
+  rw [show (18446744073709551608#64) = 0xfffffffffffffff8#64 from rfl, shr52_and]
+  have := d.isLt
+  bv_omega
+
+/-- The index of the table entry of a normalized `d`. -/
+theorem index_lt_256 {d : BitVec 64} (h : 2 ^ 63 ≤ d.toNat) : d.toNat / 2 ^ 55 - 256 < 256 := by
+  have := d.isLt; omega
+
+/-- The address of the high half of the table entry, 4 bytes above the entry. -/
+theorem table_entry_add4 (T : BitVec 64) {d : BitVec 64} (h : 2 ^ 63 ≤ d.toNat)
+    (hw : T.toNat + 8 * 256 ≤ 2 ^ 64) :
+    (T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256)) + 4).toNat =
+      (T + BitVec.ofNat 64 (8 * (d.toNat / 2 ^ 55 - 256))).toNat + 4 := by
+  have := index_lt_256 h
+  bv_omega
+
+/-- The table entry of the normalized `d` in the run: `v0 * v0` and `2^11 * v0 - 1`. -/
+theorem table_LH {d wL wH : BitVec 64} (h : 2 ^ 63 ≤ d.toNat)
+    (hwL : Defn wL (BitVec.setWidth 64 (BitVec.setWidth 32 (BitVec.ofNat 64
+      (523520 / (d.toNat / 2 ^ 55 - 256 + 256) * (523520 / (d.toNat / 2 ^ 55 - 256 + 256)) +
+        2 ^ 32 * (2 ^ 11 * (523520 / (d.toNat / 2 ^ 55 - 256 + 256)) - 1))))))
+    (hwH : Defn wH (BitVec.setWidth 64 (BitVec.setWidth 32 (BitVec.ofNat 64
+      (523520 / (d.toNat / 2 ^ 55 - 256 + 256) * (523520 / (d.toNat / 2 ^ 55 - 256 + 256)) +
+        2 ^ 32 * (2 ^ 11 * (523520 / (d.toNat / 2 ^ 55 - 256 + 256)) - 1)) >>> 32)))) :
+    wL.toNat = 523520 / (d.toNat / 2 ^ 55) * (523520 / (d.toNat / 2 ^ 55)) ∧
+      wH.toNat = 2 ^ 11 * (523520 / (d.toNat / 2 ^ 55)) - 1 := by
+  have hi := index_lt_256 h
+  have hV := Intx.Model.reciprocal_table_entry _ hi
+  rw [show d.toNat / 2 ^ 55 - 256 + 256 = d.toNat / 2 ^ 55 by have := d.isLt; omega] at hV hwL hwH
+  obtain ⟨-, hv0b, -, -⟩ := hV
+  have hVV := Nat.mul_le_mul hv0b hv0b
+  rw [hwL.eq, hwH.eq]
+  constructor
+  · simp only [BitVec.toNat_setWidth, BitVec.toNat_ofNat]; omega
+  · simp only [BitVec.toNat_setWidth, BitVec.toNat_ushiftRight, BitVec.toNat_ofNat,
+      Nat.shiftRight_eq_div_pow]
+    omega
+
 end IntxRV.Api

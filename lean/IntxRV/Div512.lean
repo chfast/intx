@@ -185,13 +185,6 @@ def U512Frame (x : Regs) (m : Mem) (x' : Regs) (m' : Mem) : Prop :=
   UnchangedExcept2 m m' (x.get 10#5) 96 (x.get 2#5 - 240#64) 240 ∧
   ∀ r ∈ calleeSaved, r ∉ [2#5, 8#5, 9#5, 18#5, 19#5, 20#5, 21#5] → x'.get r = x.get r
 
-/-- A callee-saved register after a call. -/
-theorem get_of_calleeSaved {x2 x1 : Regs} (hcs : ∀ i ∈ calleeSaved, x2 i = x1 i) {i : BitVec 5}
-    (hi : i ∈ calleeSaved) : x2.get i = x1.get i := by
-  have h0 : ∀ i ∈ calleeSaved, i ≠ 0 := by decide
-  rw [← Regs.eq_get x2 (h0 i hi), hcs i hi, Regs.eq_get x1 (h0 i hi)]
-
-
 set_option hygiene false in
 /-- The callee-saved registers that the frame keeps, through the sets of the other registers. -/
 macro "u512_cs" : tactic => `(tactic| (
@@ -301,13 +294,6 @@ theorem U512Frame.memWord_v {x : Regs} {m : Mem} {x' : Regs} {m' : Mem} (hF : U5
   simp (disch := decide) only [Regs.eq_get x] at hpre
   obtain ⟨⟨hra, hrn⟩, -, ⟨hva, hvn⟩, -, hdrv, ⟨hsa, hsn⟩, -, hdsv, -⟩ := hpre
   exact memWord_of_unchangedExcept2 hF.2.2.2.2.2.2.2.2.1 _ (by bv_omega) (by bv_omega)
-
-/-- An instruction address in aligned code. -/
-theorem pcAt_aligned {base : BitVec 64} (hb3 : base &&& 3 = 0) (r : Nat) : pcAt base r &&& 3 = 0 := by
-  simp only [pcAt]
-  refine aligned_add hb3 ?_
-  rw [aligned_iff, BitVec.toNat_ofNat]
-  omega
 
 /-- The call of `memset()` that zeroes the 96 bytes of the result, with the return at `r`. -/
 theorem u512_memset {D : List (BitVec 64)} {Q : Regs → Mem → Prop} (base : BitVec 64) (x : Regs)
@@ -491,21 +477,6 @@ theorem u512_words_u (m : Mem) (u : BitVec 64) (mm U : Nat) (hU : mm ≤ U) (hU8
   have hs := words_split m U (8 - U) u
   rw [show U + (8 - U) = 8 by omega] at hs
   exact lo_of_lt hs (lt_of_lt_of_le hum (Nat.pow_le_pow_right (by norm_num) (by omega)))
-
-/-- The words outside the bytes that may change. -/
-theorem words_of_unchangedExcept2 {m m' : Mem} {a b : BitVec 64} {la lb : Nat}
-    (h : UnchangedExcept2 m m' a la b lb) : ∀ (n : Nat) (c : BitVec 64), c.toNat + 8 * n ≤ 2 ^ 64 →
-      (c.toNat + 8 * n ≤ a.toNat ∨ a.toNat + la ≤ c.toNat) →
-      (c.toNat + 8 * n ≤ b.toNat ∨ b.toNat + lb ≤ c.toNat) → words m' c n = words m c n
-  | 0, _, _, _, _ => rfl
-  | n + 1, c, hc, ha, hb => by
-    rw [words, words, memWord_of_unchangedExcept2 h c.toNat (by omega) (by omega)]
-    cases n with
-    | zero => rfl
-    | succ k =>
-      have h8 : (c + 8).toNat = c.toNat + 8 := by
-        rw [BitVec.toNat_add]; simp; omega
-      rw [words_of_unchangedExcept2 h (k + 1) (c + 8) (by omega) (by omega) (by omega)]
 
 /-- The words of u in the memory of the frame. -/
 theorem U512Frame.words_u {x : Regs} {m : Mem} {x' : Regs} {m' : Mem} (hF : U512Frame x m x' m')

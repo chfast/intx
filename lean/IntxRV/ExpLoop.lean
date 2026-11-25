@@ -1,5 +1,7 @@
 import IntxRV.Exp
 import IntxRV.Api.shl_256
+import IntxRV.DivWords
+import IntxRV.EnvImage
 
 
 /-!

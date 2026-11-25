@@ -1,8 +1,8 @@
 import IntxRV.Gen.Api.exp_256
 import IntxRV.Mul256
-import IntxRV.Div512
 import IntxRV.Bits
 import IntxRV.Loop
+import IntxRV.Call
 
 /-!
 # The paths of `exp()`

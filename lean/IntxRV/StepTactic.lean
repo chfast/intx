@@ -146,4 +146,17 @@ decide their branches, so each branch takes its one path. -/
 macro "rv_exec_loop" : tactic => `(tactic| (
   repeat' (first | refine Reach.refl_at ?_ | rv_step_loop)))
 
+/-- A callee-saved register after a call. -/
+theorem get_of_calleeSaved {x2 x1 : Regs} (hcs : ∀ i ∈ calleeSaved, x2 i = x1 i) {i : BitVec 5}
+    (hi : i ∈ calleeSaved) : x2.get i = x1.get i := by
+  have h0 : ∀ i ∈ calleeSaved, i ≠ 0 := by decide
+  rw [← Regs.eq_get x2 (h0 i hi), hcs i hi, Regs.eq_get x1 (h0 i hi)]
+
+/-- An instruction address in aligned code. -/
+theorem pcAt_aligned {base : BitVec 64} (hb3 : base &&& 3 = 0) (r : Nat) : pcAt base r &&& 3 = 0 := by
+  simp only [pcAt]
+  refine aligned_add hb3 ?_
+  rw [aligned_iff, BitVec.toNat_ofNat]
+  omega
+
 end IntxRV

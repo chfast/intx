@@ -104,4 +104,17 @@ elab "rv_get " h:ident " : " t:term : tactic => withMainContext do
       replaceMainGoal [g]
       return
   throwError "rv_get: no hypothesis {t}"
+
+/-- The words of a buffer after a store of its first word. -/
+theorem words_memStore_first (m : Mem) (a v : BitVec 64) (n : Nat) (hn : 0 < n)
+    (ha : a.toNat + 8 * n ≤ 2 ^ 64) :
+    words (memStore m a.toNat v) a n = v.toNat + 2 ^ 64 * words m (a + 8) (n - 1) := by
+  obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
+  rw [words, memWord_memStore_self, Nat.add_sub_cancel]
+  cases k with
+  | zero => rfl
+  | succ k =>
+    have h8 : (a + 8).toNat = a.toNat + 8 := by rw [BitVec.toNat_add]; simp; omega
+    rw [words_memStore_of_disjoint m a.toNat v (k + 1) (a + 8) (by omega) (by omega)]
+
 end IntxRV

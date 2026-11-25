@@ -477,15 +477,6 @@ theorem u256_by1_u (m : Mem) (r sp ra s0 u : BitVec 64) (n : Nat) (hn : n ≤ 4)
     simp (disch := first | bv_omega | fail) only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc,
       BitVec.reduceAdd, memWord_memStore_of_ne]
 
-/-- The words of a buffer at an offset of `k` words are in a buffer at the address. -/
-theorem mem_bufWords_of_offset {a b : BitVec 64} {k n n' : Nat} (h : k + n ≤ n')
-    (hb : b ∈ bufWords (a + BitVec.ofNat 64 (8 * k)) n) : b ∈ bufWords a n' := by
-  obtain ⟨i, hi, rfl⟩ := exists_of_mem_bufWords hb
-  rw [BitVec.add_assoc, show BitVec.ofNat 64 (8 * k) + BitVec.ofNat 64 (8 * i) =
-    BitVec.ofNat 64 (8 * (k + i)) by
-      apply BitVec.eq_of_toNat_eq; simp only [BitVec.toNat_add, BitVec.toNat_ofNat]; omega]
-  exact mem_bufWords (by omega)
-
 /-- The words of an argument of `udivrem<256, 256>()` are outside its frame of 16 bytes. -/
 theorem u256_frame_words (m : Mem) (sp ra s0 u : BitVec 64) (hun : u.toNat + 32 ≤ 2 ^ 64)
     (hdsu : (sp - 48#64).toNat + 48 ≤ u.toNat ∨ u.toNat + 32 ≤ (sp - 48#64).toNat)
@@ -514,13 +505,6 @@ theorem u256_top_mem (m m3 : Mem) (r sp ra s0 fb : BitVec 64) (fl : Nat)
   · refine UnchangedExcept2.trans2 ?_ hunc (by omega) (by omega)
     simp (disch := first | bv_omega | fail) only [unchangedExcept2_memStore]
     exact unchangedExcept2_refl _ _ _ _ _
-
-theorem words4_unfold (m : Mem) (a : BitVec 64) :
-    words m a 4 = (memWord m a.toNat).toNat + 2 ^ 64 * ((memWord m (a + 8#64).toNat).toNat +
-      2 ^ 64 * ((memWord m (a + 16#64).toNat).toNat +
-      2 ^ 64 * (memWord m (a + 24#64).toNat).toNat)) := by
-  simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, Nat.mul_zero,
-    Nat.add_zero]
 
 /-- The values of the arguments of `udivrem_top1<3>()` in `udivrem<256, 256>()`. -/
 theorem u256_top13_vals (m : Mem) (u v : BitVec 64) (hv3 : memWord m (v + 24#64).toNat ≠ 0#64) :
