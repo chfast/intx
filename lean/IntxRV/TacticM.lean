@@ -96,8 +96,11 @@ macro "rv_runm" d:term " with " c:ident p:ident " using " "[" ls:Lean.Parser.Tac
   all_goals (try simp only [sign_xor, BitVec.reduceToNat, ite_self, $fs,*] at *) <;>
     (try split_ifs) <;> (try simp only [and_self, true_and, and_true] at *) <;>
     (try simp only [$c:ident, List.length_cons, List.length_nil] at *) <;>
-    (repeat' (first | apply And.intro | apply Iff.intro)) <;> (try intro) <;> (try trivial) <;>
-    bv_omega))
+    (repeat' (first | apply And.intro | apply Iff.intro)) <;> (try intro) <;>
+    (try (first | rfl | assumption | exact True.intro)) <;>
+    -- `decide` and `contradiction` (of `trivial`) after `bv_omega`: `contradiction` takes seconds
+    -- in the context of a path when it fails. The last `bv_omega` reports the goal that none proves.
+    first | bv_omega | decide | contradiction | bv_omega))
 
 /-- `rv_runm` with no definitions to unfold at the end. -/
 macro "rv_runm" d:term " with " c:ident p:ident " using "
