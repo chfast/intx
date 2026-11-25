@@ -432,8 +432,8 @@ theorem u320_main {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Mem)
     | (rv_not_at 37; skip)
     | (refine u320_top12 base x m hb3 hr hpre0 hw hTr hTs hhold hD hT4 _ m'
          (U320Frame.regs hF ?_ ?_) ?_ ?_ ?_ (by assumption)
-         (bv_ne_zero_of_lt (a := memWord m (x.get 11#5 + 32#64).toNat) (by omega)) (by tauto)
-         (by tauto)
+         (bv_ne_zero_of_lt (a := memWord m (x.get 11#5 + 32#64).toNat) (by omega)) (by first | rv_taut | tauto)
+         (by first | rv_taut | tauto)
        all_goals try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
        all_goals first | rfl | u320_cs)
   -- v[3] = 0, v[2] ≠ 0 and u[4] = v[2]: `udivrem_top2<3, true>()`.
@@ -505,7 +505,7 @@ theorem u320_main {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Mem)
     | skip
   -- v[3] = v[2] = 0 and u[4] = u[3] = 0: n by v[1].
   all_goals
-    have hu4 : memWord m (x.get 11#5 + 32#64).toNat = 0#64 := by tauto
+    have hu4 : memWord m (x.get 11#5 + 32#64).toNat = 0#64 := by first | rv_taut | tauto
     by_cases hv1 : memWord m (x.get 12#5 + 8#64).toNat = 0#64
     · refine u320_scan base x m hb3 hr hpre0 hw hTr hTs hhold hD hT0 hT2 hT9 _ m'
         (U320Frame.regs hF ?_ ?_) ?_ ?_ ?_ 1 (by norm_num) (by norm_num) ?_ ?_ (Or.inl rfl) hu4

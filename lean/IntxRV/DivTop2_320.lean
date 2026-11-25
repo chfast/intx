@@ -235,7 +235,7 @@ theorem top2_320_loop {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x 
     | (rv_not_at 241; skip)
     | (have ha := add3c_carry (r0 := x'.get 15#5) (r1 := x'.get 13#5) (r2 := x'.get 14#5)
          (v0 := x'.get 16#5) (v1 := x'.get 17#5) (v2 := x'.get 5#5) rfl rfl rfl rfl rfl rfl rfl rfl rfl
-         (by tauto)
+         (by first | rv_taut | tauto)
        rw [hv] at ha
        refine top2_320_exit base T x m hpre hr _ _ ?_ ?_ ?_ hm ?_
        · simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]; exact h10
@@ -328,7 +328,7 @@ theorem top2_320_sub {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x :
   all_goals
     have hs := top2_submul_b (rw0 := x'.get 16#5) (rw1 := x'.get 7#5) (rw2 := x'.get 17#5)
       (vl := x'.get 13#5) (q0 := x'.get 6#5) (q1 := x'.get 11#5) rfl rfl rfl rfl rfl rfl rfl rfl
-      rfl rfl rfl rfl rfl rfl (by tauto)
+      rfl rfl rfl rfl rfl rfl (by first | rv_taut | tauto)
     refine top2_320_loop base T x m hpre hr _ _ _ ⟨?_, ?_, ?_, hm, ?_, ?_, rfl⟩
     all_goals try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
     · exact h10

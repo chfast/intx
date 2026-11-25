@@ -380,7 +380,7 @@ theorem topE_loop {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Re
     | (rv_not_at 268; skip)
     | (have ha := add3c_carry (r0 := x'.get 15#5) (r1 := x'.get 13#5) (r2 := x'.get 14#5)
          (v0 := x'.get 16#5) (v1 := x'.get 17#5) (v2 := x'.get 6#5) rfl rfl rfl rfl rfl rfl rfl rfl rfl
-         (by tauto)
+         (by first | rv_taut | tauto)
        rw [hv] at ha
        refine topE_exit base T x m hpre hr _ _ ?_ ?_ ?_ hm ?_
        · simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]; exact h10
@@ -546,13 +546,13 @@ theorem topE_sub {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Reg
         rfl | rfl <;> simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte]
     · simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
       exact topE_sub_exit_nat hQ hQ64 rfl hT hvl hrw hs hR hr0l hq hclamp hqe hU' hV hVl
-        (Or.inl (by rw [if_neg (by tauto)]))
+        (Or.inl (by rw [if_neg (by first | rv_taut | tauto)]))
   · -- A borrow and the bit 128 of r0 clear: the correction loop.
     rename_i hb1' hb2' wv0 hwv0 wv1 hwv1 wv2 hwv2
     rw [h12]
     have hr0 : r0 < 2 ^ 128 := hr0h'.2 hb2'
     have hc1' : (x'.get 6#5 < z2 ∨ z2 < R2) := by
-      by_contra hc; exact hb1' (hbz.2 (by tauto))
+      by_contra hc; exact hb1' (hbz.2 (by first | rv_taut | tauto))
     rw [if_pos hc1'] at hs
     refine topE_loop base T x m hpre hr U' _ _ _ ⟨?_, ?_, ?_, hm, ?_, ?_, ?_, hU', rfl⟩
     all_goals try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]

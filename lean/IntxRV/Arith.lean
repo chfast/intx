@@ -371,6 +371,80 @@ elab "rv_fold " h:ident : tactic => withMainContext do
   let (_, g) ← (← g.assert hd.userName t p).intro1P
   replaceMainGoal [← g.tryClear hd.fvarId]
 
+/-- `contradiction` for the paths that the conditions of the branches exclude: a hypothesis
+`False`, `p` with `¬p`, `a ≠ a`, or a closed proposition that `decide` refutes. The hypotheses are
+compared as written: `contradiction` compares them up to unfolding, seconds on a path with the
+words of the memory. -/
+elab "rv_contra" : tactic => liftMetaFinishingTactic fun g => g.withContext do
+  let mut tys : Std.HashMap Expr Expr := {}
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    tys := tys.insert (← instantiateMVars d.type) d.toExpr
+  for (t, h) in tys do
+    if t.isConstOf ``False then
+      g.assign (← mkFalseElim (← g.getType) h); return
+    if t.isAppOfArity ``Not 1 then
+      if let some h' := tys.get? (t.getArg! 0) then
+        g.assign (← mkAbsurd (← g.getType) h' h); return
+    if t.isAppOfArity ``Ne 3 && t.getArg! 1 == t.getArg! 2 then
+      g.assign (← mkAbsurd (← g.getType) (← mkEqRefl (t.getArg! 1)) h); return
+    if !t.hasFVar && !t.hasMVar then
+      try
+        let d ← mkDecide t
+        if (← withDefault <| whnf d).isConstOf ``false then
+          let hn := mkAppN (mkConst ``of_decide_eq_false) <| d.getAppArgs.push (← mkEqRefl d)
+          g.assign (← mkAbsurd (← g.getType) h hn); return
+      catch _ => pure ()
+  throwError "rv_contra: no contradiction"
+
+/-- The facts of the hypothesis `h : t`: `t`, the parts of a conjunction, and `¬p`, `¬q` of
+`¬(p ∨ q)`. -/
+partial def tautFacts (facts : Std.HashMap Expr Expr) (t h : Expr) :
+    MetaM (Std.HashMap Expr Expr) := do
+  let mut facts := facts.insert t h
+  if t.isAppOfArity ``And 2 then
+    facts ← tautFacts facts (t.getArg! 0) (← mkAppM ``And.left #[h])
+    facts ← tautFacts facts (t.getArg! 1) (← mkAppM ``And.right #[h])
+  if t.isAppOfArity ``Not 1 && (t.getArg! 0).isAppOfArity ``Or 2 then
+    let o := t.getArg! 0
+    let n ← mkAppM ``Iff.mp #[← mkAppOptM ``not_or #[o.getArg! 0, o.getArg! 1], h]
+    facts ← tautFacts facts (mkAnd (mkNot (o.getArg! 0)) (mkNot (o.getArg! 1))) n
+  return facts
+
+/-- The proof of `t` from the facts: a fact, `p ∧ q`, `p ∨ q`, `¬(p ∨ q)` from `¬p` and `¬q`. -/
+partial def tautProve (facts : Std.HashMap Expr Expr) (t : Expr) : MetaM (Option Expr) := do
+  if let some h := facts.get? t then return some h
+  if t.isConstOf ``True then return some (mkConst ``True.intro)
+  if t.isAppOfArity ``And 2 then
+    let some a ← tautProve facts (t.getArg! 0) | return none
+    let some b ← tautProve facts (t.getArg! 1) | return none
+    return some (← mkAppM ``And.intro #[a, b])
+  if t.isAppOfArity ``Or 2 then
+    if let some a ← tautProve facts (t.getArg! 0) then
+      return some (← mkAppOptM ``Or.inl #[t.getArg! 0, t.getArg! 1, a])
+    if let some b ← tautProve facts (t.getArg! 1) then
+      return some (← mkAppOptM ``Or.inr #[t.getArg! 0, t.getArg! 1, b])
+    return none
+  if t.isAppOfArity ``Not 1 && (t.getArg! 0).isAppOfArity ``Or 2 then
+    let o := t.getArg! 0
+    let some a ← tautProve facts (mkNot (o.getArg! 0)) | return none
+    let some b ← tautProve facts (mkNot (o.getArg! 1)) | return none
+    return some (← mkAppM ``not_or_intro #[a, b])
+  return none
+
+/-- `tauto` for the conditions of the paths, from the hypotheses as they are written (`tautFacts`,
+`tautProve`): `tauto` compares them up to unfolding, minutes on a path with the words of the
+memory. -/
+elab "rv_taut" : tactic => liftMetaFinishingTactic fun g => g.withContext do
+  let mut facts : Std.HashMap Expr Expr := {}
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let t ← instantiateMVars d.type
+    if ← isProp t then facts ← tautFacts facts t d.toExpr
+  let some p ← tautProve facts (← instantiateMVars (← g.getType)) |
+    throwError "rv_taut: not proved"
+  g.assign p
+
 theorem defn_ite_eq_zero {c : Prop} [Decidable c] {w : BitVec 64}
     (h : Defn w (if c then 1#64 else 0#64)) (hw : w = 0#64) : ¬c := by
   intro hc; rw [h.eq, if_pos hc] at hw; exact absurd hw (by decide)

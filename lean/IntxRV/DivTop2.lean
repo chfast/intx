@@ -264,7 +264,7 @@ theorem add3c_nocarry {r0 r1 r2 v0 v1 v2 n0 a1 c0 e1 n1 f1 c1 a2 n2 : BitVec 64}
       r0.toNat + 2 ^ 64 * (r1.toNat + 2 ^ 64 * r2.toNat) +
         (v0.toNat + 2 ^ 64 * (v1.toNat + 2 ^ 64 * v2.toNat)) := by
   have h := add3c_words hn0 hn1 ha1 hc0 he1 hf1 hn2 ha2 hc1
-  rwa [if_neg (by tauto), Nat.mul_zero, Nat.add_zero] at h
+  rwa [if_neg (by first | rv_taut | tauto), Nat.mul_zero, Nat.add_zero] at h
 
 /-- The quotient and the remainder after the last correction of `udivrem_top2()`. -/
 theorem top2_exit_nat {R' q' R q U V : Nat} (h : R' + 2 ^ 192 = R + V) (hd : q' + 1 = q)
@@ -319,7 +319,7 @@ theorem top2_loop {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Re
     | (rv_not_at 239; skip)
     | (have ha := add3c_carry (r0 := x'.get 15#5) (r1 := x'.get 13#5) (r2 := x'.get 14#5)
          (v0 := x'.get 16#5) (v1 := x'.get 17#5) (v2 := x'.get 5#5) rfl rfl rfl rfl rfl rfl rfl rfl rfl
-         (by tauto)
+         (by first | rv_taut | tauto)
        rw [hv] at ha
        refine top2_exit base T x m hpre hr _ _ ?_ ?_ ?_ hm ?_
        · simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]; exact h10
@@ -372,7 +372,7 @@ theorem top2_submul_nb {rw0 rw1 rw2 vl q0 q1 p0 h0 p1 h1 R0 y1 c0 c1 b0 b1 R1 c2
         (q0.toNat + 2 ^ 64 * q1.toNat) * vl.toNat =
       rw0.toNat + 2 ^ 64 * (rw1.toNat + 2 ^ 64 * rw2.toNat) := by
   have h := top2_submul_words hR2 hz2 hc2 hR1 hb1 hb0 hc1 hc0 hy1 hR0 hh1 hp1 hh0 hp0
-  rwa [if_neg (by tauto), Nat.mul_zero, Nat.add_zero] at h
+  rwa [if_neg (by first | rv_taut | tauto), Nat.mul_zero, Nat.add_zero] at h
 
 /-- The quotient and the remainder of `udivrem_top2()` when the remainder has no borrow. -/
 theorem top2_sub_exit_nat {U V q r0 R vl rw Q : Nat} (hV : 0 < V) (hD : 0 < V / Q)
@@ -456,7 +456,7 @@ theorem top2_sub {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Reg
   all_goals
     have hs := top2_submul_b (rw0 := x'.get 16#5) (rw1 := x'.get 7#5) (rw2 := x'.get 17#5)
       (vl := x'.get 13#5) (q0 := x'.get 6#5) (q1 := x'.get 11#5) rfl rfl rfl rfl rfl rfl rfl rfl
-      rfl rfl rfl rfl rfl rfl (by tauto)
+      rfl rfl rfl rfl rfl rfl (by first | rv_taut | tauto)
     refine top2_loop base T x m hpre hr _ _ _ ⟨?_, ?_, ?_, hm, ?_, ?_, rfl⟩
     all_goals try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
     · exact h10

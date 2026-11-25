@@ -214,7 +214,7 @@ macro "rv_clz_paths" post:ident : tactic => `(tactic| (
        simp (disch := decide) only [Regs.eq_get x, and_self]; done)
     | skip
   all_goals try simp only [beq_eq_false_iff_ne, ne_eq] at *
-  all_goals first | contradiction | skip
+  all_goals first | rv_contra | skip
   all_goals try simp only [words, BitVec.add_assoc, BitVec.reduceAdd, Nat.mul_zero, Nat.add_zero]
   all_goals generalize memWord m (x.get 10#5).toNat = w0 at *
   all_goals generalize memWord m (x.get 10#5 + 8#64).toNat = w1 at *

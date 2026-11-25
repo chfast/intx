@@ -96,7 +96,7 @@ theorem udivrem_256.reach (hi0 : BitVec 20) (lo0 : BitVec 12) (hi1 : BitVec 20) 
     try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte,
       BitVec.reduceSignExtend, BitVec.add_assoc, BitVec.reduceAdd, BitVec.add_zero]
   -- The paths that the branch conditions exclude.
-  all_goals try contradiction
+  all_goals try rv_contra
   all_goals first
     | (rv_not_at 5; skip)
     | (refine u256_top13 base x m hb3 hr hpre0 hw hTs hhold hD hT3.down _ ?_ ?_ ?_ ?_ ?_ ?_

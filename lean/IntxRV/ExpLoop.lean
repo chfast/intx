@@ -374,7 +374,7 @@ theorem ex_bw {D : List (BitVec 64)} (base : BitVec 64) (x : Regs) (m : Mem)
   all_goals try simp only [hew 8#64 (by decide), hew 16#64 (by decide), hew 24#64 (by decide),
     he0] at *
   all_goals try simp only [beq_iff_eq, bne_iff_ne, ne_eq, Bool.not_eq_true, beq_eq_false_iff_ne] at *
-  all_goals first | contradiction | skip
+  all_goals first | rv_contra | skip
   -- The exponent 0, or the contradiction of 64 times the words with the leading zeros.
   all_goals first
     | (rv_not_at 97; skip)

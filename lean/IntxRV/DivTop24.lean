@@ -224,7 +224,7 @@ theorem add4c_nocarry {r0 r1 r2 r3 v0 v1 v2 v3 n0 c0 a1 e1 n1 f1 c1 a2 e2 n2 f2 
       r0.toNat + 2 ^ 64 * (r1.toNat + 2 ^ 64 * (r2.toNat + 2 ^ 64 * r3.toNat)) +
         (v0.toNat + 2 ^ 64 * (v1.toNat + 2 ^ 64 * (v2.toNat + 2 ^ 64 * v3.toNat))) := by
   have h := add4c_words hn0 hc0 ha1 he1 hn1 hf1 hc1 ha2 he2 hn2 hf2 hc2 ha3 hn3
-  rwa [if_neg (by tauto), Nat.mul_zero, Nat.add_zero] at h
+  rwa [if_neg (by first | rv_taut | tauto), Nat.mul_zero, Nat.add_zero] at h
 
 /-- The quotient estimate is too large if `R + q v = u + 2^256` with `R < 2^256`. -/
 theorem top24_q_gt {R q U V : Nat} (hR : R < 2 ^ 256) (h : R + q * V = U + 2 ^ 256) :
@@ -285,7 +285,7 @@ theorem top24_loop {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : R
     | (have ha := add4c_carry (r0 := x'.get 7#5) (r1 := x'.get 11#5) (r2 := x'.get 13#5)
          (r3 := x'.get 14#5) (v0 := x'.get 15#5) (v1 := x'.get 16#5) (v2 := x'.get 6#5)
          (v3 := x'.get 28#5) rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl
-         (by tauto)
+         (by first | rv_taut | tauto)
        rw [hv] at ha
        refine top24_exit base T x m hpre hr _ _ ?_ ?_ ?_ hm ?_
        · simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]; exact h10
@@ -444,7 +444,7 @@ theorem top24_submul_nb
       r0.toNat + 2 ^ 64 * (r1.toNat + 2 ^ 64 * (r2.toNat + 2 ^ 64 * r3.toNat)) := by
   have h := top24_submul_words hp00 hh00 hp10 hp01 hh01 hp11 hh11 hh10 hR0 hm1 hm2 hbw0 hcm1 hy1 hcm2 hy2
     hbm1 hy1' hB1h hbm2 hB0h hbb hR1 hbq1 hbb1 hy2' hB0 hb6 hR2 hbb2 hc hz2 hz1 hR3
-  rwa [if_neg (by tauto), Nat.mul_zero, Nat.add_zero] at h
+  rwa [if_neg (by first | rv_taut | tauto), Nat.mul_zero, Nat.add_zero] at h
 
 theorem top24_submul_b
     {r0 r1 r2 r3 v0 v1 q0 q1 p00 h00 p10 h10 p01 h01 p11 h11 R0 m1 m2 bw0 cm1 y1 cm2 y2 bm1 y1'
@@ -597,7 +597,7 @@ theorem top24_sub {hi : BitVec 20} {lo : BitVec 12} (base T : BitVec 64) (x : Re
     have hs := top24_submul_b (r0 := x'.get 28#5) (r1 := x'.get 11#5) (r2 := x'.get 6#5)
       (r3 := x'.get 30#5) (v0 := x'.get 15#5) (v1 := x'.get 29#5) (q0 := x'.get 5#5)
       (q1 := x'.get 17#5) rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl
-      rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl (by tauto)
+      rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl (by first | rv_taut | tauto)
     refine top24_loop base T x m hpre hr _ _ _ ⟨?_, ?_, ?_, ?_, ?_, ?_, rfl⟩
     all_goals try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
     · exact h10
