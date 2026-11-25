@@ -205,10 +205,10 @@ theorem udivrem_knuth_normalized.reach (hi : BitVec 20) (lo : BitVec 12) (base T
   · exact hv
   · rw [show (x.get 12#5).toNat - (x.get 14#5).toNat - 1 + (x.get 14#5).toNat - 1 =
       (x.get 12#5).toNat - 2 by omega, hwu2.eq]
-    all_goals first | rfl | exact (hmu _ (by rw [hu2]; omega)).symm
+    all_goals first | with_reducible rfl | exact (hmu _ (by rw [hu2]; omega)).symm
   · rw [show (x.get 12#5).toNat - (x.get 14#5).toNat - 1 + (x.get 14#5).toNat =
       (x.get 12#5).toNat - 1 by omega, hwu1.eq]
-    all_goals first | rfl | exact (hmu _ (by rw [hu1]; omega)).symm
+    all_goals first | with_reducible rfl | exact (hmu _ (by rw [hu1]; omega)).symm
   · intro k hk
     have := toNat_add8 (x.get 11#5) (8 * k) (by omega) (by omega)
     exact hmu _ (by rw [this]; omega)
