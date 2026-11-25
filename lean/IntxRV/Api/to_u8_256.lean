@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.to_u8_256
 import IntxRV.Arith
 /-!
 # `operator uint8_t` of `uint256`
@@ -15,7 +15,7 @@ constexpr explicit operator Int() const noexcept
 ```
 
 `to_u8_256.spec` states it for the RV64 machine code of `to_u8_256` in `IntxRV/Api.cpp` (generated
-in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function loads the low byte with `lbu`, the
+in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function loads the low byte with `lbu`, the
 byte 0 of the low word (`byteAt_memWord`, `IntxRV/Bytes.lean`).
 -/
 
@@ -24,8 +24,8 @@ open IntxRV IntxRV.Gen
 
 set_option maxHeartbeats 4000000
 
-theorem to_u8_256.proof : to_u8_256.spec :=
-  runsM_of_reach to_u8_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem to_u8_256.proof_of_decodes (hdec : to_u8_256.decodes) : to_u8_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [to_u8_256.pre, to_u8_256.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

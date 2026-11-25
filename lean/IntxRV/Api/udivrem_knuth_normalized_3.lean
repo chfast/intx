@@ -23,7 +23,7 @@ constexpr void udivrem_knuth_normalized(uint64_t q[], std::span<uint64_t> u,
 ```
 
 `udivrem_knuth_normalized_3.spec` states it for the RV64 machine code of
-`udivrem_knuth_normalized_3` in `IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api.lean`, see
+`udivrem_knuth_normalized_3` in `IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api/`, see
 `IntxRV/README.md`). The prologue saves ra and s0 to s7, loads the top 2 words of d and computes
 their reciprocal with the table (`recip3BV`, as in `udivrem_by2()`), and sets the pointers to the
 digit `n - 4` of u and q; the loop and its blocks are in `IntxRV/Knuth3.lean`. The proof holds for
@@ -178,8 +178,9 @@ theorem udivrem_knuth_normalized_3.reach (hi : BitVec 20) (lo : BitVec 12) (base
       show (x.get 12#5).toNat - 4 + 1 = (x.get 12#5).toNat - 3 by clear * - hn4; omega]
     exact hU
 
-theorem udivrem_knuth_normalized_3.proof : udivrem_knuth_normalized_3.spec := by
-  apply runsI_of_reach udivrem_knuth_normalized_3_image_decodes
+theorem udivrem_knuth_normalized_3.proof_of_decodes (hdec : udivrem_knuth_normalized_3.decodes) :
+    udivrem_knuth_normalized_3.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb8 hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_knuth_normalized_3_image_dataOff = 792 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_knuth_normalized_3_image_data.length = 256 from rfl] at hw hbufs ⊢

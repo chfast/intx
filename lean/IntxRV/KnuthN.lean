@@ -1,5 +1,6 @@
 import IntxRV.Div512
 import IntxRV.Api.submul
+import IntxRV.Gen.Api.udivrem_knuth_normalized
 /-!
 # The blocks of `internal::udivrem_knuth_normalized()` with a dynamic size of d
 

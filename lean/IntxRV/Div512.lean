@@ -2,6 +2,7 @@ import IntxRV.Div256
 import IntxRV.Memset
 import IntxRV.Knuth3
 import IntxRV.Bits
+import IntxRV.Gen.Api.udivrem_512_256
 /-!
 # The paths of `udivrem<512, 256>()`
 

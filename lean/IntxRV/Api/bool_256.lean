@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.bool_256
 import IntxRV.Arith
 import IntxRV.Conv
 /-!
@@ -13,7 +13,7 @@ constexpr explicit operator bool() const noexcept { return *this != uint{}; }
 ```
 
 `bool_256.spec` states it for the RV64 machine code of `bool_256` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function ors the 4 words and compares the or
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function ors the 4 words and compares the or
 with 0 (`sltu`); `words4_eq_zero_iff` (`IntxRV/Conv.lean`) gives the number 0.
 -/
 
@@ -22,8 +22,8 @@ open IntxRV IntxRV.Gen
 
 set_option maxHeartbeats 4000000
 
-theorem bool_256.proof : bool_256.spec :=
-  runsM_of_reach bool_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem bool_256.proof_of_decodes (hdec : bool_256.decodes) : bool_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [bool_256.pre, bool_256.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

@@ -2,6 +2,7 @@ import IntxRV.Api.udivrem_256
 import IntxRV.Neg
 import IntxRV.Div512
 import IntxRV.TacticM
+import IntxRV.Gen.Api.sdivrem_256
 
 /-!
 # The paths of `sdivrem()`

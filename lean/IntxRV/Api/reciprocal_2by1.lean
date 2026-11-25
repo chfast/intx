@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.reciprocal_2by1
 import IntxRV.Arith
 import IntxRV.EnvImage
 import IntxRV.ApiModel
@@ -17,7 +17,7 @@ constexpr uint64_t reciprocal_2by1(uint64_t d) noexcept
 ```
 
 `reciprocal_2by1.spec` states it for the RV64 machine code of `reciprocal_2by1` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function reads the entry of
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function reads the entry of
 `RECIPROCAL_TABLE` for the top 9 bits of `d` (two `lwu` from the data of the image) and computes the
 reciprocal with the Newton steps and the correction of `internal::reciprocal()`. `rv_exec` runs its
 40 instructions, the two loads read the table entry (`table_addr`, `image_data_get` in
@@ -34,8 +34,9 @@ set_option linter.unusedSimpArgs false
 namespace IntxRV.Api
 open IntxRV IntxRV.Gen
 
-theorem reciprocal_2by1.proof : reciprocal_2by1.spec := by
-  apply runsI_of_reach reciprocal_2by1_image_decodes
+theorem reciprocal_2by1.proof_of_decodes (hdec : reciprocal_2by1.decodes) :
+    reciprocal_2by1.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr hc hl hw x m hx1 hbufs hhold hpre
   simp only [reciprocal_2by1.pre, reciprocal_2by1.bufs, List.nil_append] at hpre ⊢
   simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢

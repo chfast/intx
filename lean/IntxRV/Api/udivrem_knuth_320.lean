@@ -23,7 +23,7 @@ constexpr div_result<uint<M>, uint<N>> udivrem_knuth(
 
 `udivrem_knuth_320.spec` states it for the RV64 machine code of the instance that
 `udivrem<320, 256>()` calls, `udivrem_knuth_320` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The code clears the result by `memset()`, shifts
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The code clears the result by `memset()`, shifts
 d left by the count of the leading zeros of its top word into the stack in a loop
 (`k320_dn_loop`), shifts the 5 words of u into 6 words (two paths, for a zero shift and for the
 others), counts the words to divide, calls `udivrem_knuth_normalized()` (`k320_tail`), and shifts
@@ -350,8 +350,9 @@ theorem k320_buf_outside (a base : BitVec 64) (k o : Nat)
     rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
   omega
 
-theorem udivrem_knuth_320.proof : udivrem_knuth_320.spec := by
-  apply runsI_of_reach udivrem_knuth_320_image_decodes
+theorem udivrem_knuth_320.proof_of_decodes (hdec : udivrem_knuth_320.decodes) :
+    udivrem_knuth_320.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb8 hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_knuth_320_image_dataOff = 1672 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_knuth_320_image_data.length = 256 from rfl] at hw hbufs ⊢

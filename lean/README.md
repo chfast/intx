@@ -35,7 +35,7 @@ in [`IntxRV/README.md`](IntxRV/README.md#what-the-proofs-trust).
 
 | file | review |
 |---|---|
-| `include/intx/intx.hpp` | The specifications: the `@pre` and `@post` commands. `scripts/rv_api.py` states them in `IntxRV/Gen/Api.lean` and `Intx/Gen/Spec.lean` (generated); [`Intx/Spec.lean`](Intx/Spec.lean) and [`IntxRV/Words.lean`](IntxRV/Words.lean) are their vocabulary. The proof file of each function quotes its specification. |
+| `include/intx/intx.hpp` | The specifications: the `@pre` and `@post` commands. `scripts/rv_api.py` states them in `IntxRV/Gen/Api/` and `Intx/Gen/Spec.lean` (generated); [`Intx/Spec.lean`](Intx/Spec.lean) and [`IntxRV/Words.lean`](IntxRV/Words.lean) are their vocabulary. The proof file of each function quotes its specification. |
 | [`Intx/Model/`](Intx/Model/) | The C++ code rendered in Lean. Compare it with `include/intx/intx.hpp`: each definition shows its C++ code. |
 | [`Intx/ProofSupport/`](Intx/ProofSupport/), [`Intx/Proofs/`](Intx/Proofs/) | The proofs of the models, checked by Lean. |
 | [`IntxRV/`](IntxRV/) | The proofs of the machine code, see [`IntxRV/README.md`](IntxRV/README.md): the proof of each function in [`IntxRV/Api/`](IntxRV/Api/), one file per function. |

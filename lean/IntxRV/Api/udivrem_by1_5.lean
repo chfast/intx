@@ -253,8 +253,8 @@ theorem udivrem_by1_5.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
     all_goals simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
     all_goals assumption
 
-theorem udivrem_by1_5.proof : udivrem_by1_5.spec := by
-  apply runsI_of_reach udivrem_by1_5_image_decodes
+theorem udivrem_by1_5.proof_of_decodes (hdec : udivrem_by1_5.decodes) : udivrem_by1_5.spec := by
+  apply runsI_of_reach hdec
   intro base ret _ hr _ _ hw x m hx1 _ hhold hpre
   rw [show udivrem_by1_5_image_dataOff = 976 from rfl] at hw hhold ⊢
   rw [show udivrem_by1_5_image_data.length = 256 from rfl] at hw ⊢

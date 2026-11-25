@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.from_i32_256
 import IntxRV.Arith
 import IntxRV.Conv
 /-!
@@ -18,7 +18,7 @@ constexpr explicit(false) uint(T... v) noexcept
 ```
 
 `from_i32_256.spec` states it for the RV64 machine code of `from_i32_256` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function stores the register of v,
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function stores the register of v,
 sign-extended from 32 bits, and three words 0: v modulo 2^64 (`toInt_emod_toNat`,
 `IntxRV/Conv.lean`).
 -/
@@ -28,8 +28,8 @@ open IntxRV IntxRV.Gen
 
 set_option maxHeartbeats 4000000
 
-theorem from_i32_256.proof : from_i32_256.spec :=
-  runsM_of_reach from_i32_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem from_i32_256.proof_of_decodes (hdec : from_i32_256.decodes) : from_i32_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [from_i32_256.pre, from_i32_256.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

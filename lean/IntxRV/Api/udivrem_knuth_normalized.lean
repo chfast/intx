@@ -23,7 +23,7 @@ constexpr void udivrem_knuth_normalized(uint64_t q[], std::span<uint64_t> u,
 
 `udivrem_knuth_normalized.spec` states it for the RV64 machine code of the instance with a
 dynamic size of d, `udivrem_knuth_normalized` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The prologue saves ra and s0 to s11, loads the top
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The prologue saves ra and s0 to s11, loads the top
 2 words of d and computes their reciprocal with the table (`recip3BV`, as in `udivrem_by2()`), and
 sets the pointers to the digit `u.size() - d.size() - 1` of u; the loop and its blocks are in
 `IntxRV/KnuthN.lean`. The proof holds for any immediates of the address of the table
@@ -222,8 +222,9 @@ theorem udivrem_knuth_normalized.reach (hi : BitVec 20) (lo : BitVec 12) (base T
       ← kn_topn _ _ _ _ hj.le]
     exact hU
 
-theorem udivrem_knuth_normalized.proof : udivrem_knuth_normalized.spec := by
-  apply runsI_of_reach udivrem_knuth_normalized_image_decodes
+theorem udivrem_knuth_normalized.proof_of_decodes (hdec : udivrem_knuth_normalized.decodes) :
+    udivrem_knuth_normalized.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb8 hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_knuth_normalized_image_dataOff = 976 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_knuth_normalized_image_data.length = 256 from rfl] at hw hbufs ⊢

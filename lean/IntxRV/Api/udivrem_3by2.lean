@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.udivrem_3by2
 import IntxRV.Arith
 import IntxRV.Div3by2
 import IntxRV.EnvM
@@ -19,7 +19,7 @@ constexpr div_result<uint64_t, uint128> udivrem_3by2(
 ```
 
 `udivrem_3by2.spec` states it for the RV64 machine code of `udivrem_3by2` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The result has 24 bytes and is
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The result has 24 bytes and is
 returned in memory at a0.
 
 `rv_exec` runs the 8 paths of the 3 branches: the selection of the remainder of `q1` or `q1 + 1`
@@ -35,8 +35,8 @@ open IntxRV IntxRV.Gen
 
 set_option maxHeartbeats 4000000
 
-theorem udivrem_3by2.proof : udivrem_3by2.spec :=
-  runsM_of_reach udivrem_3by2_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem udivrem_3by2.proof_of_decodes (hdec : udivrem_3by2.decodes) : udivrem_3by2.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [udivrem_3by2.pre, udivrem_3by2.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

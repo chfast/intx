@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.udivrem_by1
 import IntxRV.Arith
 import IntxRV.EnvImage
 import IntxRV.Reciprocal

@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.submul
 import IntxRV.Loop
 import IntxRV.Arith
 import IntxRV.EnvM
@@ -18,7 +18,7 @@ constexpr uint64_t submul(uint64_t x[], std::span<const uint64_t> y, uint64_t mu
 ```
 
 `submul.spec` states it for the RV64 machine code of `submul` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The code is a loop over the words: the product of
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The code is a loop over the words: the product of
 the word of y by the multiplier and the high word of the previous product (`mul`, `mulhu` and the
 carry of `add`), its subtraction with the borrow from the word of x, and the store. `Reach.loop`
 runs it with the invariant `submulLoop`: the words of x below the word `i` and the words of y and
@@ -213,8 +213,8 @@ theorem submul.reach (base : BitVec 64) (x : Regs) (m : Mem) (hr : x.get 1#5 &&&
       simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte] <;>
       exact hcs _ (by decide)
 
-theorem submul.proof : submul.spec := by
-  apply runsM_of_reach submul_decodes
+theorem submul.proof_of_decodes (hdec : submul.decodes) : submul.spec := by
+  apply runsM_of_reach hdec
   intro base ret _ hr _ x m hx1 hpre
   have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
   have h := submul.reach base x m (hx ▸ hr) hpre

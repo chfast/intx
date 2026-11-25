@@ -3,6 +3,7 @@ import IntxRV.Api.udivrem_by2
 import IntxRV.Api.udivrem_top1_2
 import IntxRV.Api.udivrem_top1_3
 import IntxRV.Api.udivrem_top2_3
+import IntxRV.Gen.Api.udivrem_256
 
 /-!
 # The paths of `udivrem<256, 256>()`

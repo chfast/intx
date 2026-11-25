@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.be_load_256
 import IntxRV.Arith
 /-!
 # `be::unsafe::load<uint256>()`
@@ -15,7 +15,7 @@ inline IntT load(const uint8_t* src) noexcept
 ```
 
 `be_load_256.spec` states it for the RV64 machine code of `be_load_256` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function saves 13 registers in its
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function saves 13 registers in its
 frame, loads the 32 bytes with `lbu`, swaps each 8 into a word with shifts, masks and ors and stores
 the words to the result: the addresses as numbers from the buffers and the frame (`toNat_add_ofNat`,
 `toNat_add_frame`, `IntxRV/Bytes.lean`) for `omega`, and `rv_bytes` for each word
@@ -28,8 +28,8 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 4000000
 set_option maxRecDepth 100000
 
-theorem be_load_256.proof : be_load_256.spec :=
-  runsM_of_reach be_load_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem be_load_256.proof_of_decodes (hdec : be_load_256.decodes) : be_load_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [be_load_256.pre, be_load_256.bufs, BufBytes, Buf, Disjoint] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

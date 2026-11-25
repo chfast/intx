@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.mul_256
 import IntxRV.Mul256
 /-!
 # `operator*` of `uint256`
@@ -16,7 +16,7 @@ friend constexpr uint operator*(const uint& x, const uint& y) noexcept
 ```
 
 `mul_256.spec` states it for the RV64 machine code of `mul_256` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function zeroes the result and runs the loops of
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function zeroes the result and runs the loops of
 `operator*`: the rows `y[j] * x` with `mac()` to the words below the top one, and the top word.
 `rv_exec_loop` unrolls them, deciding the branches on the counters and on the pointers to the words
 of `x`. `rv_cse` gives the words of `x` that each row loads again the names of the first loads, and
@@ -30,8 +30,8 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 40000000
 set_option maxRecDepth 100000
 
-theorem mul_256.proof : mul_256.spec :=
-  runsM_of_reach mul_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem mul_256.proof_of_decodes (hdec : mul_256.decodes) : mul_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [mul_256.pre, mul_256.bufs, Buf, Disjoint] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

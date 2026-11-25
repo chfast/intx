@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.to_i64_256
 import IntxRV.Arith
 import IntxRV.Conv
 /-!
@@ -16,7 +16,7 @@ constexpr explicit operator Int() const noexcept
 ```
 
 `to_i64_256.spec` states it for the RV64 machine code of `to_i64_256` in `IntxRV/Api.cpp` (generated
-in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function loads the low word: its bits are the
+in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function loads the low word: its bits are the
 result as a signed integer modulo 2^64 (`toInt_emod`, `IntxRV/Conv.lean`).
 -/
 
@@ -25,8 +25,8 @@ open IntxRV IntxRV.Gen
 
 set_option maxHeartbeats 4000000
 
-theorem to_i64_256.proof : to_i64_256.spec :=
-  runsM_of_reach to_i64_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem to_i64_256.proof_of_decodes (hdec : to_i64_256.decodes) : to_i64_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [to_i64_256.pre, to_i64_256.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

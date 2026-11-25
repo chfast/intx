@@ -1,5 +1,6 @@
 import IntxRV.Api.udivrem_512_256
 import IntxRV.Api.umul_256
+import IntxRV.Gen.Api.mulmod_256
 /-!
 # `mulmod()` of `uint256`
 
@@ -12,7 +13,7 @@ constexpr uint256 mulmod(const uint256& x, const uint256& y, const uint256& mod)
 ```
 
 `mulmod_256.spec` states it for the RV64 machine code of `mulmod_256` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The code saves ra, s0 and s1 in a
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The code saves ra, s0 and s1 in a
 frame of 192 bytes, calls `umul()` with the product at sp + 8 and `udivrem<512, 256>()` with the
 result at sp + 72, and copies the remainder to the result. The callees in the image run by
 `umul_256.reach` and by `udivrem_512_256.reach` with the immediates of the address of the table in
@@ -25,8 +26,8 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 40000000
 set_option maxRecDepth 100000
 
-theorem mulmod_256.proof : mulmod_256.spec := by
-  apply runsI_of_reach mulmod_256_image_decodes
+theorem mulmod_256.proof_of_decodes (hdec : mulmod_256.decodes) : mulmod_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show mulmod_256_image_dataOff = 6016 from rfl] at hw hhold hbufs ⊢
   rw [show mulmod_256_image_data.length = 256 from rfl] at hw hbufs ⊢

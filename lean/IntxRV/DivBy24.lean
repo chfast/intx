@@ -1,5 +1,6 @@
 import IntxRV.DivBy2
 import IntxRV.Knuth3
+import IntxRV.Gen.Api.udivrem_by2_4
 /-!
 # The digits of `internal::udivrem_by2<4>()`
 

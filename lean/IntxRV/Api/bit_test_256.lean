@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.bit_test_256
 import IntxRV.Arith
 import IntxRV.Image
 import IntxRV.Clz
@@ -18,7 +18,7 @@ constexpr bool bit_test(const uint<N>& x, size_t bit_index) noexcept
 ```
 
 `bit_test_256.spec` states it for the RV64 machine code of `bit_test_256` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function loads the word of the bit
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function loads the word of the bit
 at an address computed from the bit index (`shr3_and`). `rv_exec` runs the instructions, and
 `testBit_words` (`IntxRV/Bits.lean`) gives the bit of the number.
 -/
@@ -62,8 +62,8 @@ theorem bit_test_256.reach (base : BitVec 64) (x : Regs) (m : Mem) (hra : x.get 
     and_self, and_true, true_and]
   simp (disch := decide) only [Regs.eq_get x, and_self]
 
-theorem bit_test_256.proof : bit_test_256.spec :=
-  runsM_of_reach bit_test_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem bit_test_256.proof_of_decodes (hdec : bit_test_256.decodes) : bit_test_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
     have h := bit_test_256.reach base x m (hx ▸ hr) hpre
     rwa [pcAt_zero, hx] at h

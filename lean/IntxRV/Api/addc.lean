@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.addc
 import IntxRV.Tactic
 import Intx.Proofs.Div
 /-!
@@ -13,7 +13,7 @@ constexpr result_with_carry<uint64_t> addc(uint64_t x, uint64_t y, bool carry = 
 ```
 
 `addc.spec` states it for the RV64 machine code of `addc` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The `bool` argument and the carry are 0 or 1 in a
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The `bool` argument and the carry are 0 or 1 in a
 register. `rv_run` proves that the machine code computes the model `Intx.Model.addc`, and the
 specification follows from its proof `addc_spec`.
 -/
@@ -27,19 +27,19 @@ namespace IntxRV.Api
 open IntxRV IntxRV.Gen Intx Intx.Model
 
 /-- With the `bool` argument `c` in a2, the `bool` result is 0 or 1 in a1. -/
-theorem addc.model (c : Bool) : Runs addc_code (fun x => x 12#5 = if c then 1 else 0)
-    fun x x' =>
+theorem addc.model (hdec : addc.decodes) (c : Bool) :
+    Runs addc_code (fun x => x 12#5 = if c then 1 else 0) fun x x' =>
       x'.get 10#5 = (Model.addc (.ofBitVec (x 10#5)) (.ofBitVec (x 11#5)) c).1.toBitVec ∧
       x'.get 11#5 = (if (Model.addc (.ofBitVec (x 10#5)) (.ofBitVec (x 11#5)) c).2 then 1 else 0) ∧
       ∀ i ∈ calleeSaved, x' i = x i := by
-  rv_run addc_decodes with addc_code addc_prog using [Model.addc]
+  rv_run hdec with addc_code addc_prog using [Model.addc]
 
-theorem addc.proof : addc.spec := by
+theorem addc.proof_of_decodes (hdec : addc.decodes) : addc.spec := by
   intro S val e base ret hb hr hl s npc x hs hx hp
   have hc : x 12#5 = if decide (x 12#5 = 1) then 1 else 0 := by
     rcases hp with h | h <;> rw [h] <;> rfl
   obtain ⟨n, s', npc', x', hrun, hs', h0, h1, hcs⟩ :=
-    addc.model (decide (x 12#5 = 1)) S val e base ret hb hr hl s npc x hs hx hc
+    (addc.model hdec) (decide (x 12#5 = 1)) S val e base ret hb hr hl s npc x hs hx hc
   refine ⟨n, s', npc', x', hrun, hs', ?_, ?_, hcs⟩
   · have := addc_spec (.ofBitVec (x 10#5)) (.ofBitVec (x 11#5)) (decide (x 12#5 = 1))
     rw [h0, h1]

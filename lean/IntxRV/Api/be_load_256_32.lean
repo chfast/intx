@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.be_load_256_32
 import IntxRV.Memcpy
 import IntxRV.Arith
 import IntxRV.Call
@@ -18,7 +18,7 @@ inline T load(const uint8_t (&src)[M]) noexcept
 ```
 
 `be_load_256_32.spec` states it for the RV64 machine code of the image of `be_load_256_32` in
-`IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function copies
+`IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function copies
 the 32 bytes to the result with `memcpy()`, by its proof `memcpy.reach` (`IntxRV/Memcpy.lean`),
 loads them back as words, swaps them with shifts, masks and ors and stores them: `memWord_memCopy`
 reads the words of the source, and `rv_bytes` (`IntxRV/Bytes.lean`) proves each word by its bytes.
@@ -30,8 +30,8 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 4000000
 set_option maxRecDepth 100000
 
-theorem be_load_256_32.proof : be_load_256_32.spec := by
-  apply runsI_of_reach be_load_256_32_image_decodes
+theorem be_load_256_32.proof_of_decodes (hdec : be_load_256_32.decodes) : be_load_256_32.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ _ x m hx1 _ _ hpre
   have hb3 : base &&& 3 = 0 := by
     have := congrArg (· &&& 3#64) hb

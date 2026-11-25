@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.ctz_256
 import IntxRV.Arith
 import IntxRV.Image
 import IntxRV.EnvImage
@@ -19,7 +19,7 @@ constexpr unsigned ctz(const uint<N>& x) noexcept
 ```
 
 `ctz_256.spec` states it for the RV64 machine code of `ctz_256` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function is in its image with its data: the
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function is in its image with its data: the
 multiplier of a de Bruijn sequence and a table of 64 bytes.
 
 The code finds the first nonzero word `w`, at `i`, and returns `64 * i | t`, where `t` is the
@@ -120,8 +120,8 @@ macro "ctz_lbu" W:term ", " c:term ", " i:term ", " R:term : tactic => `(tactic|
       and_self, and_true, true_and]
     simp (disch := decide) only [Regs.eq_get x, and_self]))
 
-theorem ctz_256.proof : ctz_256.spec := by
-  apply runsI_of_reach ctz_256_image_decodes
+theorem ctz_256.proof_of_decodes (hdec : ctz_256.decodes) : ctz_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr hc hl hw x m hx1 hbufs hhold hpre
   simp only [ctz_256.pre, ctz_256.bufs, Buf] at hpre ⊢
   simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢

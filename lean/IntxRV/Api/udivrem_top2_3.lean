@@ -321,8 +321,8 @@ theorem udivrem_top2_3.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 
       simp
     · simp; omega
 
-theorem udivrem_top2_3.proof : udivrem_top2_3.spec := by
-  apply runsI_of_reach udivrem_top2_3_image_decodes
+theorem udivrem_top2_3.proof_of_decodes (hdec : udivrem_top2_3.decodes) : udivrem_top2_3.spec := by
+  apply runsI_of_reach hdec
   intro base ret _ hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_top2_3_image_dataOff = 1136 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_top2_3_image_data.length = 256 from rfl] at hw hbufs ⊢

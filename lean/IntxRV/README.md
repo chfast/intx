@@ -17,14 +17,17 @@ models (`Intx.Proofs`) then give the specification of the machine code.
    copy.
 2. [`../scripts/rv_build.sh`](../scripts/rv_build.sh) compiles `Api.cpp` for RV64 (clang 21,
    `-O2 -march=rv64imafd`) and runs [`../scripts/rv_gen.py`](../scripts/rv_gen.py), which writes
-   `Gen/Code.lean`: the machine code of each function (the words of its section of the object
-   file, which must have no relocations), the instructions that the words decode to, and the
-   bytes of the stack each function uses (its frame); `Gen/Decode/`: the proofs that the decoder
-   of the Sail model decodes the words so, in 192 files by the hash of the word, which build in
-   parallel and of which new code rebuilds only those with its new words; and
-   [`../scripts/rv_api.py`](../scripts/rv_api.py), which writes the specifications of the
-   instances to `Gen/Api.lean` and `../Intx/Gen/Spec.lean`, and their checks to
-   `../Checks/Gen/IntxRVApi.lean` and `../Checks/Gen/IntxSpec.lean`.
+   `Gen/Code/p.lean` for each instance `p`: its machine code (the words of its section of the
+   object file, which must have no relocations, or of its image) and the instructions that the
+   words decode to; `Gen/Decode/`: the proofs that the decoder of the Sail model decodes the
+   words so, in 192 files by the hash of the word, which build in parallel and of which new code
+   rebuilds only those with its new words; `Gen/Decodes/p.lean`: the proof that the code of `p`
+   decodes to its instructions; and, for the specifications, the bytes of the stack that each
+   function uses (its frame). Then
+   [`../scripts/rv_api.py`](../scripts/rv_api.py) writes the specification of each instance to
+   `Gen/Api/p.lean`, the proof of the specification to `Gen/Proof/p.lean`, the specifications of
+   the models to `../Intx/Gen/Spec.lean`, and their checks to `../Checks/Gen/IntxRVApi.lean` and
+   `../Checks/Gen/IntxSpec.lean`.
 3. `lake build IntxRV Checks` checks the proofs.
 
 The generated files are not in git: run `scripts/rv_build.sh` before `lake build`, and again after
@@ -32,14 +35,20 @@ a change of `intx.hpp` or `Api.cpp`. CI generates them in every build, so the pr
 the code and the documentation of the commit. Another compiler emits other code: `rv_build.sh`
 requires clang 21.
 
+Lake rebuilds a module when its text or the text of a module that it imports changes. A proof
+imports only the modules of the instances that it uses, and not the proofs of the decoding: a
+change of the code or of the specification of an instance rebuilds only its proofs and the proofs
+of the images that hold its code, and the generated files have no line numbers of `intx.hpp`.
+
 ## The proof of a function
 
 The proof of the instance `p` of `Api.cpp` is in `Api/p.lean`, and the file holds only it. The
 file quotes the documentation and the declaration of the function from `intx.hpp`, so it reads
 without the generated files: `Api.p.spec` states the quoted `@pre` and `@post` for the machine code
-of `p` (see [the specifications](#the-specifications)), and `Api.p.proof` proves it. `rv_api.py`
-fails if a quote differs from `intx.hpp`, if the file is missing, or if this table does not link
-it. The lemmas and the tactics that the proofs share are in the other files of `IntxRV/`.
+of `p` (see [the specifications](#the-specifications)), and `Api.p.proof_of_decodes` proves it
+from `Api.p.decodes`, that the machine code decodes to its instructions. `Api.p.proof` in the
+generated `Gen/Proof/p.lean` adds the proof of the decoding. `rv_api.py` fails if a quote differs
+from `intx.hpp`, if the file is missing, or if this table does not link it. The lemmas and the tactics that the proofs share are in the other files of `IntxRV/`.
 
 | function | proof |
 |---|---|

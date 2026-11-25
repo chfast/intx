@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.le_256
 import IntxRV.TacticM
 /-!
 # `operator<=` of `uint256`
@@ -11,7 +11,7 @@ friend constexpr bool operator<=(const uint& x, const uint& y) noexcept { return
 ```
 
 `le_256.spec` states it for the RV64 machine code of `le_256` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). `rv_runm` runs the machine code on symbolic words,
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). `rv_runm` runs the machine code on symbolic words,
 splits the paths at the branches and proves the specification on each path.
 -/
 
@@ -23,8 +23,8 @@ set_option linter.unusedSimpArgs false
 namespace IntxRV.Api
 open IntxRV IntxRV.Gen Intx Intx.Model
 
-theorem le_256.proof : le_256.spec := by
-  rv_runm le_256_decodes with le_256_code le_256_prog using [le_256.bufs, le_256.pre,
+theorem le_256.proof_of_decodes (hdec : le_256.decodes) : le_256.spec := by
+  rv_runm hdec with le_256_code le_256_prog using [le_256.bufs, le_256.pre,
     le_256.post, Buf]
 
 end IntxRV.Api

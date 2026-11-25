@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.udivrem_2by1
 import IntxRV.Tactic
 import Intx.Proofs.Div
 /-!
@@ -17,7 +17,7 @@ constexpr div_result<uint64_t> udivrem_2by1(uint128 u, uint64_t d, uint64_t v) n
 ```
 
 `udivrem_2by1.spec` states it for the RV64 machine code of `udivrem_2by1` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). `rv_run` proves that the machine code
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). `rv_run` proves that the machine code
 computes the model `udivrem_2by1_v`, and the specification follows from its proof
 `udivrem_2by1_v_spec` with the bounds that the reciprocal `v` gives.
 -/
@@ -32,16 +32,17 @@ open IntxRV IntxRV.Gen Intx Intx.Model
 
 /-- The `uint128` argument `u` is in a1:a0, the divisor `d` in a2 and the reciprocal `v` in a3;
 the quotient is returned in a0 and the remainder in a1. -/
-theorem udivrem_2by1.model : Runs udivrem_2by1_code (fun _ => True) fun x x' =>
-    x'.get 10#5 = (udivrem_2by1_v ⟨.ofBitVec (x 10#5), .ofBitVec (x 11#5)⟩ (.ofBitVec (x 12#5))
-      (.ofBitVec (x 13#5))).1.toBitVec ∧
-    x'.get 11#5 = (udivrem_2by1_v ⟨.ofBitVec (x 10#5), .ofBitVec (x 11#5)⟩ (.ofBitVec (x 12#5))
-      (.ofBitVec (x 13#5))).2.toBitVec ∧
-    ∀ i ∈ calleeSaved, x' i = x i := by
-  rv_run udivrem_2by1_decodes with udivrem_2by1_code udivrem_2by1_prog using [udivrem_2by1_v]
+theorem udivrem_2by1.model (hdec : udivrem_2by1.decodes) :
+    Runs udivrem_2by1_code (fun _ => True) fun x x' =>
+      x'.get 10#5 = (udivrem_2by1_v ⟨.ofBitVec (x 10#5), .ofBitVec (x 11#5)⟩ (.ofBitVec (x 12#5))
+        (.ofBitVec (x 13#5))).1.toBitVec ∧
+      x'.get 11#5 = (udivrem_2by1_v ⟨.ofBitVec (x 10#5), .ofBitVec (x 11#5)⟩ (.ofBitVec (x 12#5))
+        (.ofBitVec (x 13#5))).2.toBitVec ∧
+      ∀ i ∈ calleeSaved, x' i = x i := by
+  rv_run hdec with udivrem_2by1_code udivrem_2by1_prog using [udivrem_2by1_v]
 
-theorem udivrem_2by1.proof : udivrem_2by1.spec :=
-  udivrem_2by1.model.mono (fun _ _ => trivial) fun x _ ⟨hd, hu, hv⟩ ⟨h0, h1, hc⟩ => by
+theorem udivrem_2by1.proof_of_decodes (hdec : udivrem_2by1.decodes) : udivrem_2by1.spec :=
+  (udivrem_2by1.model hdec).mono (fun _ _ => trivial) fun x _ ⟨hd, hu, hv⟩ ⟨h0, h1, hc⟩ => by
     simp only at hd hu hv ⊢
     have hdl := (x 12#5).isLt
     have hlo := (x 10#5).isLt

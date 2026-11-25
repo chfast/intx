@@ -1,4 +1,5 @@
 import IntxRV.Knuth3
+import IntxRV.Gen.Api.udivrem_knuth_normalized_4
 
 /-!
 # The blocks and the loop of `internal::udivrem_knuth_normalized<4>()`

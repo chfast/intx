@@ -23,7 +23,7 @@ constexpr void udivrem_knuth_normalized(uint64_t q[], std::span<uint64_t> u,
 ```
 
 `udivrem_knuth_normalized_4.spec` states it for the RV64 machine code of
-`udivrem_knuth_normalized_4` in `IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api.lean`, see
+`udivrem_knuth_normalized_4` in `IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api/`, see
 `IntxRV/README.md`). Its image is `submul()` and then the function, at the instruction 22: the
 proof is the proof of the 3-word instance (`IntxRV/Api/udivrem_knuth_normalized_3.lean`) with the
 top 2 words d[2] and d[3] of d, the 2-word `submul()` of d[0] and d[1] and the 4-word add-back
@@ -177,8 +177,9 @@ theorem udivrem_knuth_normalized_4.reach (hi : BitVec 20) (lo : BitVec 12) (base
       show (x.get 12#5).toNat - 5 + 1 = (x.get 12#5).toNat - 4 by clear * - hn4; omega]
     exact hU
 
-theorem udivrem_knuth_normalized_4.proof : udivrem_knuth_normalized_4.spec := by
-  apply runsI_of_reach udivrem_knuth_normalized_4_image_decodes
+theorem udivrem_knuth_normalized_4.proof_of_decodes (hdec : udivrem_knuth_normalized_4.decodes) :
+    udivrem_knuth_normalized_4.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb8 hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_knuth_normalized_4_image_dataOff = 872 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_knuth_normalized_4_image_data.length = 256 from rfl] at hw hbufs ⊢

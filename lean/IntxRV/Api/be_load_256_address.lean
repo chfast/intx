@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.be_load_256_address
 import IntxRV.Memcpy
 import IntxRV.Arith
 import IntxRV.Call
@@ -17,7 +17,7 @@ inline IntT load(const T& t) noexcept
 ```
 
 `be_load_256_address.spec` states it for the RV64 machine code of the image of `be_load_256_address`
-in `IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function
+in `IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function
 stores 0 to the first 16 bytes of the result, copies the 20 bytes to the result at 12 with
 `memcpy()`, by its proof `memcpy.reach` (`IntxRV/Memcpy.lean`), loads the low 3 words back, swaps
 them and stores them with the top word 0. The word with 4 bytes 0 and 4 bytes of the source is read
@@ -31,8 +31,9 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 4000000
 set_option maxRecDepth 100000
 
-theorem be_load_256_address.proof : be_load_256_address.spec := by
-  apply runsI_of_reach be_load_256_address_image_decodes
+theorem be_load_256_address.proof_of_decodes (hdec : be_load_256_address.decodes) :
+    be_load_256_address.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ _ x m hx1 _ _ hpre
   have hb3 : base &&& 3 = 0 := by
     have := congrArg (· &&& 3#64) hb

@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.gt_256
 import IntxRV.TacticM
 /-!
 # `operator>` of `uint256`
@@ -11,7 +11,7 @@ friend constexpr bool operator>(const uint& x, const uint& y) noexcept { return 
 ```
 
 `gt_256.spec` states it for the RV64 machine code of `gt_256` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). `rv_runm` runs the machine code on symbolic words,
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). `rv_runm` runs the machine code on symbolic words,
 splits the paths at the branches and proves the specification on each path.
 -/
 
@@ -23,8 +23,8 @@ set_option linter.unusedSimpArgs false
 namespace IntxRV.Api
 open IntxRV IntxRV.Gen Intx Intx.Model
 
-theorem gt_256.proof : gt_256.spec := by
-  rv_runm gt_256_decodes with gt_256_code gt_256_prog using [gt_256.bufs, gt_256.pre,
+theorem gt_256.proof_of_decodes (hdec : gt_256.decodes) : gt_256.spec := by
+  rv_runm hdec with gt_256_code gt_256_prog using [gt_256.bufs, gt_256.pre,
     gt_256.post, Buf]
 
 end IntxRV.Api

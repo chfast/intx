@@ -1,5 +1,6 @@
 import IntxRV.Api.udivrem_top2_3_320
 import IntxRV.Div256
+import IntxRV.Gen.Api.udivrem_top2_3_equal_320
 
 /-!
 # The blocks of `udivrem_top2<3, true>()` of `uint320` by `uint256`

@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.mul_assign_256
 import IntxRV.Mul256
 import IntxRV.Loop
 /-!
@@ -14,7 +14,7 @@ constexpr uint& operator*=(const uint& y) noexcept
 ```
 
 `mul_assign_256.spec` states it for the RV64 machine code of `mul_assign_256` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function multiplies y by the
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function multiplies y by the
 object as `operator*` does, its two loops into a temporary in its frame, and copies the temporary to
 the object: as for `operator*` (`IntxRV/Api/mul_256.lean`), `rv_exec_loop` unrolls the loops and
 `mul256_words` (`IntxRV/Mul256.lean`) gives the product modulo 2^256 of the words that the run
@@ -27,8 +27,8 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 4000000
 set_option maxRecDepth 100000
 
-theorem mul_assign_256.proof : mul_assign_256.spec :=
-  runsM_of_reach mul_assign_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem mul_assign_256.proof_of_decodes (hdec : mul_assign_256.decodes) : mul_assign_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [mul_assign_256.pre, mul_assign_256.bufs, Buf, Disjoint] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

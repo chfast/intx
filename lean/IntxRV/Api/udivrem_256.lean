@@ -137,8 +137,8 @@ theorem udivrem_256.reach (hi0 : BitVec 20) (lo0 : BitVec 12) (hi1 : BitVec 20) 
          | (rw [words4_unfold, words4_unfold]
             bv_omega))
 
-theorem udivrem_256.proof : udivrem_256.spec := by
-  apply runsI_of_reach udivrem_256_image_decodes
+theorem udivrem_256.proof_of_decodes (hdec : udivrem_256.decodes) : udivrem_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_256_image_dataOff = 5272 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_256_image_data.length = 256 from rfl] at hw hbufs ⊢

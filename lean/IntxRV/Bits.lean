@@ -1,4 +1,3 @@
-import IntxRV.Gen.Api
 import IntxRV.Arith
 import IntxRV.Image
 import IntxRV.Clz
@@ -188,7 +187,7 @@ theorem signExtend_setWidth_of_lt {v : BitVec 64} (h : v.toNat < 2 ^ 31) :
 end IntxRV
 
 namespace IntxRV.Api
-open IntxRV IntxRV.Gen
+open IntxRV
 
 set_option hygiene false in
 /-- The paths of `clz()` and `bit_width()` of `uint256` to the return: the word tests, the value of

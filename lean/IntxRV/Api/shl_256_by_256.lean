@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.shl_256_by_256
 import IntxRV.Api.shl_256
 import IntxRV.Call
 import IntxRV.EnvImage
@@ -14,7 +14,7 @@ friend constexpr uint operator<<(const uint& x, const uint& shift) noexcept
 ```
 
 `shl_256_by_256.spec` states it for the RV64 machine code of `shl_256_by_256` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The instance has `[[gnu::flatten]]`,
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The instance has `[[gnu::flatten]]`,
 but clang inlines one level only: the code tests the high words of the shift and calls the operator
 by `uint64_t` with the low word. The callee in the image has the code of `shl_256`
 (`Gen.shl_256_by_256_image_shl_256_in`), so `Reach.call_sub` runs it by `shl_256.reach`.
@@ -29,8 +29,8 @@ set_option linter.unusedSimpArgs false
 namespace IntxRV.Api
 open IntxRV IntxRV.Gen
 
-theorem shl_256_by_256.proof : shl_256_by_256.spec := by
-  apply runsI_of_reach shl_256_by_256_image_decodes
+theorem shl_256_by_256.proof_of_decodes (hdec : shl_256_by_256.decodes) : shl_256_by_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ _ x m hx1 _ _ hpre
   have hb3 : base &&& 3 = 0 := by
     have := congrArg (· &&& 3#64) hb

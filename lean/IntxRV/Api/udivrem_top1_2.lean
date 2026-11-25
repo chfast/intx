@@ -297,8 +297,8 @@ theorem udivrem_top1_2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 
       try simp (disch := decide) only [Regs.eq_get x]
       assumption
 
-theorem udivrem_top1_2.proof : udivrem_top1_2.spec := by
-  apply runsI_of_reach udivrem_top1_2_image_decodes
+theorem udivrem_top1_2.proof_of_decodes (hdec : udivrem_top1_2.decodes) : udivrem_top1_2.spec := by
+  apply runsI_of_reach hdec
   intro base ret _ hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_top1_2_image_dataOff = 840 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_top1_2_image_data.length = 256 from rfl] at hw hbufs ⊢

@@ -11,7 +11,7 @@
 // function that clang does not inline otherwise. scripts/rv_api.py finds the function in the AST
 // of this file and states its specification for the instance:
 // - intx::api: a [[gnu::used]] pointer `p` whose RV64 machine code is proved (the specification
-//   `Api.p.spec` in the generated IntxRV/Gen/Api.lean, the proof in IntxRV/Api/p.lean),
+//   `Api.p.spec` in the generated IntxRV/Gen/Api/p.lean, the proof in IntxRV/Api/p.lean),
 // - intx::model: a function whose model in Lean is proved (the generated Intx/Gen/Spec.lean, the
 //   model Intx.Model.<name>, the proofs in Intx/Proofs/); none at present.
 
@@ -258,7 +258,7 @@ using Submul = uint64_t (*)(uint64_t[], std::span<const uint64_t>, uint64_t) noe
 }  // namespace intx::api
 
 // The instances whose RV64 machine code is not proved yet: their specifications are generated
-// and their code is in the image (IntxRV/Gen/Code.lean), without the checks.
+// and their code is in the image (IntxRV/Gen/Code/), without the checks.
 namespace intx::wip
 {
 }  // namespace intx::wip

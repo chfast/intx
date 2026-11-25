@@ -97,8 +97,9 @@ theorem udivrem_320_256.reach (hi0 : BitVec 20) (lo0 : BitVec 12) (hi1 : BitVec 
     (by simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte])
     (by simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte])
 
-theorem udivrem_320_256.proof : udivrem_320_256.spec := by
-  apply runsI_of_reach udivrem_320_256_image_decodes
+theorem udivrem_320_256.proof_of_decodes (hdec : udivrem_320_256.decodes) :
+    udivrem_320_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_320_256_image_dataOff = 12016 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_320_256_image_data.length = 256 from rfl] at hw hbufs ⊢

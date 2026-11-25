@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.reciprocal_3by2
 import IntxRV.Arith
 import IntxRV.EnvImage
 import IntxRV.ApiModel
@@ -17,7 +17,7 @@ constexpr uint64_t reciprocal_3by2(uint128 d) noexcept
 ```
 
 `reciprocal_3by2.spec` states it for the RV64 machine code of `reciprocal_3by2` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function reads the entry of
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function reads the entry of
 `RECIPROCAL_TABLE` for the top 9 bits of the top word `d1` (two `lwu` from the data of the image,
 as `reciprocal_2by1()`) and computes the reciprocal with the Newton steps for `d1`, the step against
 the whole divisor and the exact correction of `internal::reciprocal()` for `uint128`. `rv_exec`
@@ -31,8 +31,9 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 40000000
 set_option maxRecDepth 100000
 
-theorem reciprocal_3by2.proof : reciprocal_3by2.spec := by
-  apply runsI_of_reach reciprocal_3by2_image_decodes
+theorem reciprocal_3by2.proof_of_decodes (hdec : reciprocal_3by2.decodes) :
+    reciprocal_3by2.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr hc hl hw x m hx1 hbufs hhold hpre
   simp only [reciprocal_3by2.pre, reciprocal_3by2.bufs, List.nil_append] at hpre ⊢
   simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢

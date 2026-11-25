@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.neg_256
 import IntxRV.Neg
 /-!
 # `operator-()` of `uint256`
@@ -12,7 +12,7 @@ constexpr uint operator-() const noexcept { return uint{} - *this; }
 ```
 
 `neg_256.spec` states it for the RV64 machine code of `neg_256` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function loads the words of x, subtracts them
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function loads the words of x, subtracts them
 from 0 with the borrows and stores the result: `neg4_words` (`IntxRV/Neg.lean`) gives its number
 from the definitions of the values of the run.
 -/
@@ -22,8 +22,8 @@ open IntxRV IntxRV.Gen
 
 set_option maxHeartbeats 4000000
 
-theorem neg_256.proof : neg_256.spec :=
-  runsM_of_reach neg_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem neg_256.proof_of_decodes (hdec : neg_256.decodes) : neg_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [neg_256.pre, neg_256.bufs, Buf, Disjoint] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

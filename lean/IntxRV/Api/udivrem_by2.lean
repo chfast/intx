@@ -448,8 +448,8 @@ theorem frame_outside (sp base : BitVec 64) (o1 o2 : Nat)
     rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
   omega
 
-theorem udivrem_by2.proof : udivrem_by2.spec := by
-  apply runsI_of_reach udivrem_by2_image_decodes
+theorem udivrem_by2.proof_of_decodes (hdec : udivrem_by2.decodes) : udivrem_by2.spec := by
+  apply runsI_of_reach hdec
   intro base ret _ hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_by2_image_dataOff = 1256 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_by2_image_data.length = 256 from rfl] at hw hbufs ⊢

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Compiles IntxRV/Api.cpp for RV64 and generates the Lean sources from it, which are not in git:
-# the machine code IntxRV/Gen/Code.lean (rv_gen.py), the specifications from the documentation of
-# intx.hpp IntxRV/Gen/Api.lean and Intx/Gen/Spec.lean, and their checks Checks/Gen/IntxRVApi.lean
-# and Checks/Gen/IntxSpec.lean (rv_api.py). Run it before lake build and after a change of intx.hpp
-# or IntxRV/Api.cpp.
+# the machine code IntxRV/Gen/Code/ and the proofs of its decoding IntxRV/Gen/Decode/ and
+# IntxRV/Gen/Decodes/ (rv_gen.py), the specifications from the documentation of intx.hpp
+# IntxRV/Gen/Api/ and Intx/Gen/Spec.lean, the proofs of the specifications IntxRV/Gen/Proof/, and
+# their checks Checks/Gen/IntxRVApi.lean and Checks/Gen/IntxSpec.lean (rv_api.py). Run it before
+# lake build and after a change of intx.hpp or IntxRV/Api.cpp.
 #   CXX: clang++ 21 with the RISC-V target (default: clang++; CI uses clang 21 of Ubuntu 26.04)
 #   LD: the LLVM linker (default: ld.lld)
 #   RV64_SYSROOT: the riscv64-linux-gnu sysroot with the libstdc++ headers

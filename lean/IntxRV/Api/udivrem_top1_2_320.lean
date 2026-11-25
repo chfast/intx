@@ -1,4 +1,5 @@
 import IntxRV.DivTop1
+import IntxRV.Gen.Api.udivrem_top1_2_320
 /-!
 # `internal::udivrem_top1()` of `uint320` by `uint256`, the top word 2
 
@@ -439,8 +440,9 @@ theorem udivrem_top1_2_320.reach (hi : BitVec 20) (lo : BitVec 12) (base T : Bit
       all_goals assumption
     · rw [hU54]; exact hest
 
-theorem udivrem_top1_2_320.proof : udivrem_top1_2_320.spec := by
-  apply runsI_of_reach udivrem_top1_2_320_image_decodes
+theorem udivrem_top1_2_320.proof_of_decodes (hdec : udivrem_top1_2_320.decodes) :
+    udivrem_top1_2_320.spec := by
+  apply runsI_of_reach hdec
   intro base ret _ hr _ _ hw x m hx1 _ hhold hpre
   rw [show udivrem_top1_2_320_image_dataOff = 728 from rfl] at hw hhold ⊢
   rw [show udivrem_top1_2_320_image_data.length = 256 from rfl] at hw ⊢

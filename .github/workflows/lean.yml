@@ -71,16 +71,19 @@ jobs:
           key: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-${{ github.run_id }}
           restore-keys: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-
       # The runner has 4 CPUs and 16 GB: 4 Lean processes, and 2 for the proofs that take 3-5 GB
-      # each. The build of the decode files of an earlier layout is deleted, so that the cache
-      # does not keep it.
+      # each. The build of the generated files of an earlier layout or of removed instances is
+      # deleted, so that the cache does not keep it.
       - name: Check the proofs and their axioms
         timeout-minutes: 320
         run: |
-          for f in .lake/build/lib/lean/IntxRV/Gen/Decode/* .lake/build/ir/IntxRV/Gen/Decode/*; do
-            b=$(basename "$f")
-            [ -e "IntxRV/Gen/Decode/${b%%.*}.lean" ] || rm -f "$f"
+          shopt -s globstar nullglob
+          for f in .lake/build/lib/lean/IntxRV/Gen/** .lake/build/ir/IntxRV/Gen/**; do
+            [ -f "$f" ] || continue
+            m=${f#.lake/build/lib/lean/}
+            m=${m#.lake/build/ir/}
+            [ -e "${m%%.*}.lean" ] || rm -f "$f"
           done
-          LEAN_NUM_THREADS=4 lake build IntxRV.Gen.Code
+          LEAN_NUM_THREADS=4 lake build IntxRV.Gen.Decodes
           # 11 GB: alone.
           LEAN_NUM_THREADS=2 lake build IntxRV.Api.udivrem_knuth_normalized
           # 8 GB: alone.

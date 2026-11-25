@@ -1,4 +1,5 @@
 import IntxRV.Div256Op
+import IntxRV.Gen.Api.mod_256
 /-!
 # `operator%` of `uint256`
 
@@ -11,7 +12,7 @@ friend constexpr uint operator%(const uint& x, const uint& y) noexcept
 ```
 
 `mod_256.spec` states it for the RV64 machine code of `mod_256` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The code saves ra and s0 in a frame
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The code saves ra and s0 in a frame
 of 80 bytes, calls `udivrem<256, 256>()` with the result at sp and copies the remainder to the
 result. The callee in the image has the code of `udivrem_256` and its callees, with the immediates
 of the address of the table in this image (`Gen.mod_256_image_udivrem_256_in`), so `Reach.call_sub`
@@ -24,8 +25,8 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 4000000
 set_option maxRecDepth 100000
 
-theorem mod_256.proof : mod_256.spec := by
-  apply runsI_of_reach mod_256_image_decodes
+theorem mod_256.proof_of_decodes (hdec : mod_256.decodes) : mod_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show mod_256_image_dataOff = 5344 from rfl] at hw hhold hbufs ⊢
   rw [show mod_256_image_data.length = 256 from rfl] at hw hbufs ⊢

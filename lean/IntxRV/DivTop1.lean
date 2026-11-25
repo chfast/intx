@@ -1,5 +1,7 @@
 import IntxRV.DivBy2
 import IntxRV.Umul256
+import IntxRV.Gen.Api.udivrem_top1_2
+import IntxRV.Gen.Api.udivrem_top1_3
 
 /-!
 # The division by the top word of the divisor: `udivrem_top1()`

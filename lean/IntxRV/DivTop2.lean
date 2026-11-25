@@ -1,4 +1,5 @@
 import IntxRV.DivTop1
+import IntxRV.Gen.Api.udivrem_top2_3
 
 /-!
 # The division by the top two words of the divisor: `udivrem_top2<3>()`

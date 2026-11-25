@@ -90,8 +90,8 @@ theorem sdivrem_256.reach (base T : BitVec 64) (x : Regs) (m : Mem)
     (by simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte])
     (by simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte])
 
-theorem sdivrem_256.proof : sdivrem_256.spec := by
-  apply runsI_of_reach sdivrem_256_image_decodes
+theorem sdivrem_256.proof_of_decodes (hdec : sdivrem_256.decodes) : sdivrem_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show sdivrem_256_image_dataOff = 5792 from rfl] at hw hhold hbufs ⊢
   rw [show sdivrem_256_image_data.length = 256 from rfl] at hw hbufs ⊢

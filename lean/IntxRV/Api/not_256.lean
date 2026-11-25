@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.not_256
 import IntxRV.TacticM
 /-!
 # `operator~` of `uint256`
@@ -12,7 +12,7 @@ constexpr uint operator~() const noexcept
 ```
 
 `not_256.spec` states it for the RV64 machine code of `not_256` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). `rv_runm` proves that the machine code computes
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). `rv_runm` proves that the machine code computes
 `List.map` of the complement of the words, and `val_map_not` gives the number.
 -/
 
@@ -24,14 +24,15 @@ set_option linter.unusedSimpArgs false
 namespace IntxRV.Api
 open IntxRV IntxRV.Gen Intx Intx.Model
 
-theorem not_256.model : RunsM not_256_code not_256.bufs not_256.pre fun x m x' m' =>
-    wordList m' (x 10#5) 4 = (wordList m (x 11#5) 4).map (~~~·) ∧
-    UnchangedExcept m m' (x 10#5) 32 ∧ ∀ i ∈ calleeSaved, x' i = x i := by
-  rv_runm not_256_decodes with not_256_code not_256_prog using [not_256.bufs, not_256.pre, Buf,
+theorem not_256.model (hdec : not_256.decodes) :
+    RunsM not_256_code not_256.bufs not_256.pre fun x m x' m' =>
+      wordList m' (x 10#5) 4 = (wordList m (x 11#5) 4).map (~~~·) ∧
+      UnchangedExcept m m' (x 10#5) 32 ∧ ∀ i ∈ calleeSaved, x' i = x i := by
+  rv_runm hdec with not_256_code not_256_prog using [not_256.bufs, not_256.pre, Buf,
     Disjoint, List.map_cons, List.map_nil, UInt64.toBitVec_not]
 
-theorem not_256.proof : not_256.spec :=
-  not_256.model.mono (fun _ _ h => h) fun x m x' m' _ ⟨h, hu, hc⟩ => by
+theorem not_256.proof_of_decodes (hdec : not_256.decodes) : not_256.spec :=
+  (not_256.model hdec).mono (fun _ _ h => h) fun x m x' m' _ ⟨h, hu, hc⟩ => by
     refine ⟨?_, hu, hc⟩
     simp only [← val_wordList, h, val_map_not, length_wordList]
 

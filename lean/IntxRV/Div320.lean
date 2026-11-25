@@ -1,4 +1,5 @@
 import IntxRV.Div512
+import IntxRV.Gen.Api.udivrem_320_256
 /-!
 # The paths of `udivrem<320, 256>()`
 

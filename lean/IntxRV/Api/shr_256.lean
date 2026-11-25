@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.shr_256
 import IntxRV.Arith
 import IntxRV.Shift
 /-!
@@ -13,7 +13,7 @@ friend constexpr uint operator>>(const uint& x, uint64_t shift) noexcept
 ```
 
 `shr_256.spec` states it for the RV64 machine code of `shr_256` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The instance has `[[gnu::flatten]]`: its code is
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The instance has `[[gnu::flatten]]`: its code is
 the operator, which clang does not inline otherwise.
 
 The code returns 0 for a shift by 256 or more. For the shift `s = 64 * k + t`, `t < 64`, it stores
@@ -82,8 +82,8 @@ theorem shr_256.reach (base : BitVec 64) (x : Regs) (m : Mem) (hra : x.get 1#5 &
     | shr_close shr_val_2
     | shr_close shr_val_3
 
-theorem shr_256.proof : shr_256.spec :=
-  runsM_of_reach shr_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem shr_256.proof_of_decodes (hdec : shr_256.decodes) : shr_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
     have h := shr_256.reach base x m (hx ▸ hr) hpre
     rwa [pcAt_zero, hx] at h

@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.be_load_u32
 import IntxRV.Arith
 /-!
 # `be::unsafe::load<uint32_t>()`
@@ -15,7 +15,7 @@ inline IntT load(const uint8_t* src) noexcept
 ```
 
 `be_load_u32.spec` states it for the RV64 machine code of `be_load_u32` in `IntxRV/Api.cpp`
-(generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function loads the low byte with
+(generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function loads the low byte with
 `lb` and masks it, and shifts the top byte with `slliw`, so the result is the 32-bit value
 sign-extended, as the calling convention requires (`signExtend_or`, `IntxRV/Bytes.lean`);
 `setWidth32_eq_of_byteAt` compares its low 4 bytes with the bytes of the buffer.
@@ -26,8 +26,8 @@ open IntxRV IntxRV.Gen
 
 set_option maxHeartbeats 4000000
 
-theorem be_load_u32.proof : be_load_u32.spec :=
-  runsM_of_reach be_load_u32_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem be_load_u32.proof_of_decodes (hdec : be_load_u32.decodes) : be_load_u32.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [be_load_u32.pre, be_load_u32.bufs, BufBytes] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

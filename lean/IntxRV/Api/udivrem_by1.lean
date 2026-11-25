@@ -22,7 +22,7 @@ constexpr uint64_t udivrem_by1(std::span<uint64_t, W> q,
 ```
 
 `udivrem_by1.spec` states it for the RV64 machine code of `udivrem_by1` in `IntxRV/Api.cpp`, the
-version for spans of dynamic extent (generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`),
+version for spans of dynamic extent (generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`),
 for `q` and `u` that do not overlap. The function normalizes `d` with the count of its leading
 zeros (`clz_ite`), computes the reciprocal with the table of the image (`recip2BV_spec`), divides
 the top digits of the shifted numerator into the top quotient word, runs the loop over the words
@@ -282,8 +282,8 @@ theorem udivrem_by1.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64)
          rfl | rfl <;>
        simp (config := { decide := true }) only [↓reduceIte])
 
-theorem udivrem_by1.proof : udivrem_by1.spec := by
-  apply runsI_of_reach udivrem_by1_image_decodes
+theorem udivrem_by1.proof_of_decodes (hdec : udivrem_by1.decodes) : udivrem_by1.spec := by
+  apply runsI_of_reach hdec
   intro base ret _ hr _ _ hw x m hx1 _ hhold hpre
   rw [show udivrem_by1_image_dataOff = 776 from rfl] at hw hhold ⊢
   rw [show udivrem_by1_image_data.length = 256 from rfl] at hw ⊢

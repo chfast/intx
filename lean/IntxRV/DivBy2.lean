@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.udivrem_by2
 import IntxRV.Arith
 import IntxRV.Div3by2
 import IntxRV.Loop

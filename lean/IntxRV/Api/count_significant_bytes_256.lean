@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.count_significant_bytes_256
 import IntxRV.Arith
 import IntxRV.Image
 import IntxRV.Clz
@@ -19,7 +19,7 @@ constexpr unsigned count_significant_bytes(const uint<N>& x) noexcept
 ```
 
 `count_significant_bytes_256.spec` states it for the RV64 machine code of
-`count_significant_bytes_256` in `IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api.lean`, see
+`count_significant_bytes_256` in `IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api/`, see
 `IntxRV/README.md`). The function finds the top nonzero word, counts its leading zeros with the
 SWAR code of `swarClz` (`IntxRV/Clz.lean`) and computes `(71 - clz) / 8` in 32 bits (`srliw`) plus
 8 bytes for each word below it. `csb_words4` gives the count from the top nonzero word.
@@ -111,8 +111,9 @@ theorem count_significant_bytes_256.reach (base : BitVec 64) (x : Regs) (m : Mem
       | (apply signExtend_setWidth_of_lt
          simp only [BitVec.toNat_add, BitVec.toNat_ofNat]; omega)
 
-theorem count_significant_bytes_256.proof : count_significant_bytes_256.spec :=
-  runsM_of_reach count_significant_bytes_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem count_significant_bytes_256.proof_of_decodes (hdec : count_significant_bytes_256.decodes) :
+    count_significant_bytes_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
     have h := count_significant_bytes_256.reach base x m (hx ▸ hr) hpre
     rwa [pcAt_zero, hx] at h

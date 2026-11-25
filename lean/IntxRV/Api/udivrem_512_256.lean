@@ -134,8 +134,9 @@ theorem udivrem_512_256.reach (hi0 : BitVec 20) (lo0 : BitVec 12) (hi1 : BitVec 
   all_goals try split_ifs
   all_goals first | u512_top 4 | u512_top 3 | u512_top 2 | u512_top 1
 
-theorem udivrem_512_256.proof : udivrem_512_256.spec := by
-  apply runsI_of_reach udivrem_512_256_image_decodes
+theorem udivrem_512_256.proof_of_decodes (hdec : udivrem_512_256.decodes) :
+    udivrem_512_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ hw x m hx1 hbufs hhold hpre
   rw [show udivrem_512_256_image_dataOff = 5264 from rfl] at hw hhold hbufs ⊢
   rw [show udivrem_512_256_image_data.length = 256 from rfl] at hw hbufs ⊢

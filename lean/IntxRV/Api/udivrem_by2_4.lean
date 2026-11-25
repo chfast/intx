@@ -438,8 +438,8 @@ theorem udivrem_by2_4.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 6
            simp only [pow_zero, Nat.mul_one, Nat.sub_zero, wordAt]
            rw [Nat.div_eq_of_lt (BitVec.isLt _), Nat.add_zero, Nat.mod_eq_of_lt (BitVec.isLt _)])
 
-theorem udivrem_by2_4.proof : udivrem_by2_4.spec := by
-  apply runsI_of_reach udivrem_by2_4_image_decodes
+theorem udivrem_by2_4.proof_of_decodes (hdec : udivrem_by2_4.decodes) : udivrem_by2_4.spec := by
+  apply runsI_of_reach hdec
   intro base ret _ hr _ _ hw x m hx1 _ hhold hpre
   rw [show udivrem_by2_4_image_dataOff = 1376 from rfl] at hw hhold ⊢
   rw [show udivrem_by2_4_image_data.length = 256 from rfl] at hw ⊢

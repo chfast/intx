@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.lt_u64_256
 import IntxRV.Arith
 import IntxRV.Conv
 /-!
@@ -15,7 +15,7 @@ friend constexpr bool operator<(T x, const U& y) noexcept
 ```
 
 `lt_u64_256.spec` states it for the RV64 machine code of `lt_u64_256` in `IntxRV/Api.cpp` (generated
-in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function compares x with the low word and
+in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function compares x with the low word and
 tests the high words for 0 (`lt_words4_iff`, `IntxRV/Conv.lean`).
 -/
 
@@ -24,8 +24,8 @@ open IntxRV IntxRV.Gen
 
 set_option maxHeartbeats 4000000
 
-theorem lt_u64_256.proof : lt_u64_256.spec :=
-  runsM_of_reach lt_u64_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem lt_u64_256.proof_of_decodes (hdec : lt_u64_256.decodes) : lt_u64_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [lt_u64_256.pre, lt_u64_256.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

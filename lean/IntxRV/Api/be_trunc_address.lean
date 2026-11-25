@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.be_trunc_address
 import IntxRV.Arith
 import IntxRV.Conv
 /-!
@@ -14,7 +14,7 @@ inline T trunc(const uint<N>& x) noexcept
 ```
 
 `be_trunc_address.spec` states it for the RV64 machine code of `be_trunc_address` in
-`IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function saves 3
+`IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function saves 3
 registers in its frame, loads the low 3 words and stores the low 20 bytes with `sb` to the result:
 the addresses as numbers from the buffers and the frame (`toNat_add_ofNat`, `toNat_add_frame`,
 `IntxRV/Bytes.lean`) for `omega`, and `bigEndian_byteAt20` gives the number modulo 2^160
@@ -27,8 +27,9 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 4000000
 set_option maxRecDepth 100000
 
-theorem be_trunc_address.proof : be_trunc_address.spec :=
-  runsM_of_reach be_trunc_address_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem be_trunc_address.proof_of_decodes (hdec : be_trunc_address.decodes) :
+    be_trunc_address.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [be_trunc_address.pre, be_trunc_address.bufs, BufBytes, Buf, Disjoint] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

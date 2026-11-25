@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.shl_9_8
 import IntxRV.Arith
 import IntxRV.ApiModel
 /-!
@@ -18,7 +18,7 @@ constexpr void shl(
 ```
 
 `shl_9_8.spec` states it for the RV64 machine code of `shl_9_8` in `IntxRV/Api.cpp` (generated in
-`IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function stores the funnel shifts of the words
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function stores the funnel shifts of the words
 (`sll`, `srl`) on one path and copies the words for the shift 0 on the other. `rv_exec` runs the
 paths, and `val_shl_words` gives the value from the words, through the model `Intx.Model.shl` and
 its proof `shl_spec`.
@@ -84,8 +84,8 @@ theorem shl_9_8.reach (base : BitVec 64) (x : Regs) (m : Mem) (hra : x.get 1#5 &
          Nat.zero_mod, Nat.zero_add]
        try rw [BitVec.or_comm, toNat_funnel _ _ _ h0 hs])
 
-theorem shl_9_8.proof : shl_9_8.spec :=
-  runsM_of_reach shl_9_8_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem shl_9_8.proof_of_decodes (hdec : shl_9_8.decodes) : shl_9_8.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
     have h := shl_9_8.reach base x m (hx ▸ hr) hpre
     rwa [pcAt_zero, hx] at h

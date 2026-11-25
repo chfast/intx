@@ -1,6 +1,7 @@
 import IntxRV.Api.udivrem_knuth_normalized
 import IntxRV.Clz
 import IntxRV.Shift
+import IntxRV.Gen.Api.udivrem_knuth_320
 /-!
 # The blocks of `internal::udivrem_knuth<320, 256>()` with a dynamic size of d
 

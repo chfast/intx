@@ -65,8 +65,8 @@ theorem exp_256.reach (base : BitVec 64) (x : Regs) (m : Mem) (hb3 : base &&& 3 
     (by simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte])
     (by simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte])
 
-theorem exp_256.proof : exp_256.spec := by
-  apply runsI_of_reach exp_256_image_decodes
+theorem exp_256.proof_of_decodes (hdec : exp_256.decodes) : exp_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ _ x m hx1 _ _ hpre
   have hb3 : base &&& 3 = 0 := by
     have := congrArg (· &&& 3#64) hb

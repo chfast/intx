@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.assign_256
 import IntxRV.Arith
 /-!
 # `operator=` of `uint256` by `uint64_t`
@@ -12,7 +12,7 @@ constexpr uint& operator=(uint64_t v) noexcept
 ```
 
 `assign_256.spec` states it for the RV64 machine code of `assign_256` in `IntxRV/Api.cpp` (generated
-in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function stores v and three words 0.
+in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function stores v and three words 0.
 -/
 
 namespace IntxRV.Api
@@ -20,8 +20,8 @@ open IntxRV IntxRV.Gen
 
 set_option maxHeartbeats 4000000
 
-theorem assign_256.proof : assign_256.spec :=
-  runsM_of_reach assign_256_decodes fun base ret _ hr _ x m hx1 hpre => by
+theorem assign_256.proof_of_decodes (hdec : assign_256.decodes) : assign_256.spec :=
+  runsM_of_reach hdec fun base ret _ hr _ x m hx1 hpre => by
     simp only [assign_256.pre, assign_256.bufs, Buf] at hpre ⊢
     simp (disch := decide) only [Regs.eq_get x] at hpre hx1 ⊢
     subst hx1

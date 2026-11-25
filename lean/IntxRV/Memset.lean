@@ -1,6 +1,6 @@
 import IntxRV.Loop
 import IntxRV.Arith
-import IntxRV.Gen.Code
+import IntxRV.Gen.Code.memset
 /-!
 # `memset()`
 

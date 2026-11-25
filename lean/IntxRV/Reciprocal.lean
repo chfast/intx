@@ -1,4 +1,5 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Code.reciprocal_2by1
+import IntxRV.Gen.Code.reciprocal_3by2
 import IntxRV.Arith
 import IntxRV.EnvImage
 import IntxRV.ApiModel

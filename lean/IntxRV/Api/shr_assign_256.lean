@@ -1,4 +1,4 @@
-import IntxRV.Gen.Api
+import IntxRV.Gen.Api.shr_assign_256
 import IntxRV.Api.shr_256
 import IntxRV.Arith
 import IntxRV.Call
@@ -20,7 +20,7 @@ constexpr uint& operator>>=(uint shift) noexcept { return *this = *this >> shift
 ```
 
 `shr_assign_256.spec` states it for the RV64 machine code of the image of `shr_assign_256` in
-`IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api.lean`, see `IntxRV/README.md`). The function tests
+`IntxRV/Api.cpp` (generated in `IntxRV/Gen/Api/`, see `IntxRV/README.md`). The function tests
 the high words of the shift: if one is not 0, it stores 0 to a temporary in its frame, the shift of
 2^64 or more giving 0 (the bound of the 4 words); else it calls `operator>>` by `uint64_t`
 (`IntxRV/Api/shr_256.lean`) by its proof, with the low word of the shift, the object and the
@@ -34,8 +34,8 @@ open IntxRV IntxRV.Gen
 set_option maxHeartbeats 4000000
 set_option maxRecDepth 100000
 
-theorem shr_assign_256.proof : shr_assign_256.spec := by
-  apply runsI_of_reach shr_assign_256_image_decodes
+theorem shr_assign_256.proof_of_decodes (hdec : shr_assign_256.decodes) : shr_assign_256.spec := by
+  apply runsI_of_reach hdec
   intro base ret hb hr _ _ _ x m hx1 _ _ hpre
   have hb3 : base &&& 3 = 0 := by
     have := congrArg (· &&& 3#64) hb
