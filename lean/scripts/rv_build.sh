@@ -26,13 +26,20 @@ if [ "$cxx_major" != 21 ]; then
     exit 1
 fi
 
-# rv64imafd with the lp64d ABI of the Linux distributions; integer code has no F/D instructions.
+# rv64im with the lp64 ABI, the target of the zkVMs (the code is the same as of rv64imafd with
+# lp64d: integer code has no F/D instructions).
 # -mno-relax: the assembler resolves the branches, so the function sections have no relocations.
-flags=(--target=riscv64-linux-gnu -march=rv64imafd -mabi=lp64d -mno-relax
+# The sysroot of the Linux distributions has the glibc headers of lp64d only: lp64 gets the list of
+# the stub functions of glibc of lp64d (the same functions, none of which intx calls).
+mkdir -p "$out/include/gnu"
+if [ ! -e "$sysroot/include/gnu/stubs-lp64.h" ]; then
+    cp "$sysroot/include/gnu/stubs-lp64d.h" "$out/include/gnu/stubs-lp64.h"
+fi
+flags=(--target=riscv64-linux-gnu -march=rv64im -mabi=lp64 -mno-relax
     -O2 -std=c++20 -DNDEBUG -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables
     -nostdinc++ -isystem "$sysroot/include/c++/$gcc_ver"
     -isystem "$sysroot/include/c++/$gcc_ver/riscv64-linux-gnu" -isystem "$sysroot/include"
-    --sysroot="$sysroot" -I "$lean_dir/../include")
+    -isystem "$out/include" --sysroot="$sysroot" -I "$lean_dir/../include")
 "$cxx" "${flags[@]}" -c "$lean_dir/IntxRV/Api.cpp" -o "$out/Api.o"
 # The declarations of the namespace intx with their documentation comments, for rv_api.py.
 "$cxx" "${flags[@]}" -fsyntax-only -Xclang -ast-dump=json -Xclang -ast-dump-filter=intx \

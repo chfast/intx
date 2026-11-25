@@ -16,7 +16,7 @@ models (`Intx.Proofs`) then give the specification of the machine code.
    present). A `[[gnu::used]]` pointer to a function makes the compiler emit its out-of-line
    copy.
 2. [`../scripts/rv_build.sh`](../scripts/rv_build.sh) compiles `Api.cpp` for RV64 (clang 21,
-   `-O2 -march=rv64imafd`) and runs [`../scripts/rv_gen.py`](../scripts/rv_gen.py), which writes
+   `-O2 -march=rv64im`) and runs [`../scripts/rv_gen.py`](../scripts/rv_gen.py), which writes
    `Gen/Code/p.lean` for each instance `p`: its machine code (the words of its section of the
    object file, which must have no relocations, or of its image) and the instructions that the
    words decode to; `Gen/Decode/`: the proofs that the decoder of the Sail model decodes the
