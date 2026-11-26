@@ -62,13 +62,17 @@ theorem decodes_append {c₁ c₂ : Code} {p₁ p₂ : List instruction} (h₁ :
     simp only [h₁.1] at h ⊢
     exact h
 
-/-- Proves `DecodesTo w i` for a word `w` by evaluating the decoder. -/
+/-- Proves `DecodesTo w i` for a word `w` by evaluating the decoder. The decoder is a chain of a few
+hundred cases, and the instructions of the functions are in the first ones: `reduceIte` and
+`pure_bind'` before the subterms (`↓`) decide the condition of a case first and go on with the
+next case without simplifying the branches of the failed one. -/
 macro "rv_decode" : tactic => `(tactic| (
   intro S s val pc npc x e h
   obtain ⟨b, hb⟩ := get_xLPE_env e h
   unfold ext_decode
   delta encdec_backwards
-  simp (config := { decide := true }) only [bind, EStateM.bind, pure, pure_bind', pure_apply',
+  simp (config := { decide := true }) only [↓reduceIte, ↓pure_bind', bind, EStateM.bind, pure,
+    pure_bind', pure_apply',
     ite_apply', Sail.BitVec.extractLsb, BitVec.extractLsb, if_true, if_false, currentlyEnabled,
     hartSupports, Bool.true_and, Bool.false_and, Bool.and_false, Bool.and_true, Bool.and_eq_true,
     and_false, false_and, Bool.or_false, Bool.false_or, Bool.or_true, readReg_env e h, isRunReg,
