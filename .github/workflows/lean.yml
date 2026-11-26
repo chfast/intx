@@ -98,14 +98,17 @@ jobs:
       # The times of Lake include the waits for the memory: the log has the peak, the time and the
       # wait of each module, for PEAKS in scripts/lake_build.py.
       - name: Show the peaks of the modules
+        id: modules
         if: always()
         run: |
           [ -f "$RUNNER_TEMP/modules.log" ] || exit 0
+          echo built=true >> "$GITHUB_OUTPUT"
           sort -k2 -rn "$RUNNER_TEMP/modules.log" | head -30
           awk '{t += $4; w += $7} END {printf "%d modules, %.0f s in Lean, %.0f s waited\n", NR, t, w}' \
             "$RUNNER_TEMP/modules.log"
+      # A run that built no module keeps the restored cache.
       - uses: actions/cache/save@v4
-        if: always()
+        if: always() && steps.modules.outputs.built == 'true'
         with:
           path: |
             lean/.lake/build/lib/lean
