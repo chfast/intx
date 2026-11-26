@@ -581,7 +581,7 @@ def main():
                    {w for im in images.values() for w in im["img"]})
     # The proof that the decoder decodes a word, in a file of its own: new code rebuilds only the
     # proofs of its new words, and the files build in parallel. A file of its own adds the import
-    # of the Sail model, under a second, to the 1-2 s of the proof of a word.
+    # of the Sail model, under a second, to the proof of a word (5 s in all in CI).
     gen = out / "IntxRV" / "Gen"
     (gen / "Decode").mkdir(parents=True, exist_ok=True)
     for w in words:
