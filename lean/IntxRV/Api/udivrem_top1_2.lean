@@ -1,0 +1,350 @@
+import IntxRV.DivTop1
+/-!
+# `internal::udivrem_top1()` of `uint256` by the top word 2
+
+The specification, from `include/intx/intx.hpp`:
+
+```cpp
+/// Divides u by v when the quotient fits in a single word: v has TOP + 1 significant words
+/// and u has at most one more significant word, which is less than v[TOP].
+///
+/// The quotient is estimated from the top word of the normalized divisor with 2/1 division
+/// and corrected with the remainder computed on the original (not normalized) operands.
+/// The word v[TOP] must not be zero.
+/// @pre 2^(64 * TOP) ≤ v
+/// @pre v < 2^(64 * (TOP + 1))
+/// @pre u / 2^(64 * (TOP + 1)) < v / 2^(64 * TOP)
+/// @post result.quot = u / v
+/// @post result.rem = u % v
+template <size_t TOP, unsigned M, unsigned N>
+constexpr div_result<uint<M>, uint<N>> udivrem_top1(const uint<M>& u, const uint<N>& v) noexcept
+```
+
+`udivrem_top1_2.spec` states it for the RV64 machine code of `udivrem_top1_2` in
+`IntxRV/Api.cpp`, the instance that `udivrem<256, 256>()` calls for a divisor of 3 words when the
+top word u[3] of u is less than v[2]. The function returns u as the remainder when u[3] = 0 and
+u[2] < v[2]. Otherwise the paths meet at 0x18 (`top1_2_main`), and the function normalizes the
+top words of v with the count of the leading zeros of v[2], computes the reciprocal of the top
+word with the table of the image (`recip2BVb`, `recip2BV_spec`), estimates the quotient from
+u[3], u[2] and u[1] with the inlined `udivrem_2by1()` (`div2by1BVz_spec`), not less than the
+quotient (`top1_est`), subtracts q * v from the 3 words of u below u[3] (`submul3_words`) and runs
+the correction loop while the borrow is not 0 (`top1_2_tail`, in `IntxRV/DivTop1.lean`). It
+saves s0 in a frame of 16 bytes. `udivrem_top1_2.reach` is the run for any immediates of the
+address of the table (`udivrem_top1_2_progAt`).
+-/
+
+namespace IntxRV.Api
+open IntxRV IntxRV.Gen
+
+set_option maxHeartbeats 40000000
+set_option maxRecDepth 100000
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
+
+/-- The run of `udivrem_top1<2>()` from 0x18, where the paths of the test of u < v meet. -/
+theorem top1_2_main (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64) (x : Regs)
+    (m : Mem) (hT : pcAt base 89 + ((hi ++ 0x000#12).signExtend 64 + lo.signExtend 64) = T)
+    (hw : T.toNat + 8 * 256 ≤ 2 ^ 64) (hr : x.get 1#5 &&& 3 = 0)
+    (hstk : (x.get 2#5 - 16#64).toNat + 16 ≤ T.toNat ∨ T.toNat + 8 * 256 ≤ (x.get 2#5 - 16#64).toNat)
+    (hhold : HoldsData m T reciprocal_2by1_image_data) (hpre : udivrem_top1_2.pre x m)
+    (x' : Regs) (h0 : x' 0#5 = x 0#5) (hfr : ∀ r, r ∉ [13#5, 14#5, 15#5, 16#5] → x' r = x r)
+    (h13 : x' 13#5 = memWord m (x.get 11#5 + 16#64).toNat)
+    (h14 : x' 14#5 = memWord m (x.get 11#5 + 24#64).toNat)
+    (h15 : x' 15#5 = memWord m (x.get 12#5 + 16#64).toNat) :
+    Reach (bufWords (x.get 11#5) 4 ++ bufWords (x.get 12#5) 4 ++ bufWords (x.get 10#5) 8 ++
+        bufWords (x.get 2#5 - 16#64) 2 ++ bufWords T 256) (udivrem_top1_2_progAt hi lo) base
+      (pcAt base 6) x' m (x.get 1#5) (udivrem_top1_2.post x m) := by
+  rw [regs_eq_sets x x' _ h0 hfr]
+  simp only [setRegs]
+  rw [h13, h14, h15]
+  have hpre0 := hpre
+  simp only [udivrem_top1_2.pre, Buf] at hpre
+  simp (disch := decide) only [Regs.eq_get x] at hpre
+  obtain ⟨⟨hra, hrn⟩, ⟨hua, hun⟩, ⟨hva, hvn⟩, hdru, hdrv, ⟨hsa, hsn⟩, hdsu, hdsv, hdsr, hv1, hv2,
+    hu3⟩ := hpre
+  simp only [Disjoint] at hdru hdsu hdsv
+  have hv3 := top4_zero m (x.get 12#5) hv2
+  have hv2' := top3_ne_zero m (x.get 12#5) hv1 hv3
+  have hue := top1_2_ue m (x.get 11#5) (x.get 12#5) hu3 hv3
+  rv_exec_cut 180
+  -- The words v[2], v[1], u[3], u[2] and u[1] by names.
+  all_goals
+    set v2 := memWord m (x.get 12#5 + 16#64).toNat with hv2e
+    set v1 := memWord m (x.get 12#5 + 8#64).toNat with hv1e
+    set ue := memWord m (x.get 11#5 + 24#64).toNat with huee
+    set u2 := memWord m (x.get 11#5 + 16#64).toNat with hu2e
+    set u1 := memWord m (x.get 11#5 + 8#64).toNat with hu1e
+    rv_copies
+    have hv2n : v2 ≠ 0 := fun h => hv2' (by rw [h]; rfl)
+    -- The count of the leading zeros of v[2], S.
+    have hs := clz_ite v2
+    rw [if_neg hv2n, swarClz_expand, smear_expand] at hs
+    rv_fold hs
+    rv_fold hs
+    subst hs
+    have hL64 : v2.toNat.log2 < 64 := (Nat.log2_lt hv2').mpr v2.isLt
+    have hSt : (BitVec.ofNat 64 (63 - v2.toNat.log2)).toNat = 63 - v2.toNat.log2 :=
+      ofNat_S_toNat (by omega)
+    have hS1 : v2.toNat * 2 ^ (63 - v2.toNat.log2) < 2 ^ 64 := by
+      have := Nat.lt_log2_self (n := v2.toNat)
+      calc v2.toNat * 2 ^ (63 - v2.toNat.log2)
+          < 2 ^ (v2.toNat.log2 + 1) * 2 ^ (63 - v2.toNat.log2) :=
+            Nat.mul_lt_mul_of_pos_right this (Nat.two_pow_pos _)
+        _ = 2 ^ 64 := by rw [← pow_add]; congr 1; omega
+    have hS63 : 2 ^ 63 ≤ v2.toNat * 2 ^ (63 - v2.toNat.log2) := by
+      have := Nat.log2_self_le hv2'
+      calc 2 ^ 63 = 2 ^ v2.toNat.log2 * 2 ^ (63 - v2.toNat.log2) := by
+            rw [← pow_add]; congr 1; omega
+        _ ≤ _ := Nat.mul_le_mul_right _ this
+  -- The normalized top word vt of v, the funnel shift of v[2] and v[1] for s ≠ 0.
+  all_goals first
+    | (rv_lacks ¬BitVec.ofNat 64 (63 - v2.toNat.log2) = 0#64; skip)
+    | (have h1 := toNat_fshl_code v2 v1 (BitVec.ofNat 64 (63 - v2.toNat.log2)) (by rw [hSt]; omega)
+       rv_fold h1
+       rv_fold h1
+       rw [hSt] at h1
+       have hdn63 := norm2_hi (d0 := v1.toNat) (by omega) v1.isLt hS1 hS63
+       rw [← h1] at hdn63)
+  all_goals first
+    | (rv_lacks BitVec.ofNat 64 (63 - v2.toNat.log2) = 0#64; skip)
+    | (rv_get hz : BitVec.ofNat 64 (63 - v2.toNat.log2) = 0#64
+       have hS0 := ofNat_S_eq (by omega) hz
+       have hdn63 : 2 ^ 63 ≤ v2.toNat := by rw [hS0] at hS63; simpa using hS63)
+  -- The table entry of vt: the low half.
+  all_goals
+    simp only [hT] at *
+    refine Reach.step (by decide) (by rv_fetch) ?_
+    simp only [StepGoal, Nat.reduceAdd]
+    rv_val
+    have ha := table_addr_by1 _ T hdn63
+    rv_fold ha
+    have hix := index_lt_256 hdn63
+    rw [ha]
+    refine ⟨Or.inl (List.mem_append_right _ (mem_bufWords hix)), fun wL hwL => ?_⟩
+    try simp (disch := bv_omega) only [memHalf_memStore_of_ne] at hwL
+    rw [memHalf_lo, holdsData_get hhold
+        (by rw [show reciprocal_2by1_image_data.length = 256 from rfl]; exact hix),
+      ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwL
+    rv_exec_cut 180
+    -- The high half.
+    refine Reach.step (by decide) (by rv_fetch) ?_
+    simp only [StepGoal, Nat.reduceAdd]
+    rv_val
+    have hah := table_addr_by1_hi _ T hdn63
+    rv_fold hah
+    rw [hah]
+    refine ⟨Or.inr (by
+      rw [show ∀ a : BitVec 64, a + 4 - 4#64 = a from fun a => by bv_omega]
+      exact List.mem_append_right _ (mem_bufWords hix)), fun wH hwH => ?_⟩
+    try simp (disch := bv_omega) only [memHalf_memStore_of_ne] at hwH
+    rw [table_entry_add4 T hdn63 hw, memHalf_hi, holdsData_get hhold
+        (by rw [show reciprocal_2by1_image_data.length = 256 from rfl]; exact hix),
+      ← List.getD_eq_getElem _ 0, image_data_get _ hix] at hwH
+    rv_exec_cut 180
+  -- The reciprocal of vt.
+  all_goals
+    rv_cse
+    obtain ⟨hL, hH⟩ := table_LH hdn63 hwL hwH
+    have hv := recip2BV_spec _ wL wH hdn63 hL hH
+    rw [← recip2BVb_eq] at hv
+    simp only [recip2BVb] at hv
+    rv_fold hv
+    rv_fold hv
+  all_goals simp only [zopz0zI_u_eq, decide_eq_true_eq, decide_eq_false_iff_not] at *
+  -- The quotient estimate: s ≠ 0.
+  all_goals first
+    | (rv_lacks ¬BitVec.ofNat 64 (63 - v2.toNat.log2) = 0#64; skip)
+    | (rv_get hne : ¬BitVec.ofNat 64 (63 - v2.toNat.log2) = 0#64
+       have hS0 := ofNat_S_ne (by omega) hne
+       have hhi := toNat_fshl_code ue u2 (BitVec.ofNat 64 (63 - v2.toNat.log2)) (by rw [hSt]; omega)
+       have hlo := toNat_fshl_code u2 u1 (BitVec.ofNat 64 (63 - v2.toNat.log2)) (by rw [hSt]; omega)
+       conv at hhi => rhs; rw [hSt]
+       conv at hlo => rhs; rw [hSt]
+       have hue1 : ue.toNat * 2 ^ (63 - v2.toNat.log2) < 2 ^ 64 :=
+         Nat.lt_of_le_of_lt (Nat.mul_le_mul_right _ (Nat.le_of_lt hue)) hS1
+       rw [Nat.mod_eq_of_lt (fshl_lt (by omega) u2.isLt hue1)] at hhi
+       have hs := div2by1BVz_spec ((ue <<< ((BitVec.ofNat 64 (63 - v2.toNat.log2)).toNat % 64)) |||
+           ((u2 >>> 1) >>> ((BitVec.ofNat 64 (63 - v2.toNat.log2) ^^^
+             18446744073709551615#64).toNat % 64)))
+         ((u2 <<< ((BitVec.ofNat 64 (63 - v2.toNat.log2)).toNat % 64)) |||
+           ((u1 >>> 1) >>> ((BitVec.ofNat 64 (63 - v2.toNat.log2) ^^^
+             18446744073709551615#64).toNat % 64))) _ _ hdn63
+         (by rw [hhi, h1]; exact top1_2_hi_lt (by omega) u2.isLt v1.isLt hue hS1) hv
+       simp only [div2by1BVz] at hs
+       rv_fold hs
+       rv_fold hs
+       try simp (disch := assumption) only [if_pos, if_neg] at hs
+       rv_fold hs
+       try (simp only [BitVec.add_assoc] at hs; rv_fold hs)
+       rv_fold hhi
+       rv_fold hhi
+       rv_fold hlo
+       rv_fold hlo
+       rw [hhi, hlo, top1_2_ut _ _ _ _ (by omega) u1.isLt, h1,
+         Nat.mod_eq_of_lt (fshl_lt (by omega) v1.isLt hS1)] at hs)
+  -- s = 0.
+  all_goals first
+    | (rv_lacks BitVec.ofNat 64 (63 - v2.toNat.log2) = 0#64; skip)
+    | (have hs := div2by1BVz_spec ue u2 _ _ hdn63 hue hv
+       simp only [div2by1BVz] at hs
+       rv_fold hs
+       rv_fold hs
+       try simp (disch := assumption) only [if_pos, if_neg] at hs
+       rv_fold hs
+       try (simp only [BitVec.add_assoc] at hs; rv_fold hs)
+       have hN : (2 ^ 64 * ue.toNat + u2.toNat) / v2.toNat =
+           ((u2.toNat + 2 ^ 64 * ue.toNat) * 2 ^ (63 - v2.toNat.log2) +
+             u1.toNat / 2 ^ (64 - (63 - v2.toNat.log2))) /
+           (v2.toNat * 2 ^ (63 - v2.toNat.log2) + v1.toNat / 2 ^ (64 - (63 - v2.toNat.log2))) := by
+         rw [hS0, Nat.div_eq_of_lt u1.isLt, Nat.div_eq_of_lt v1.isLt]
+         simp only [Nat.pow_zero, Nat.mul_one, Nat.add_zero]
+         rw [Nat.add_comm (2 ^ 64 * _)]
+       rw [hN] at hs)
+  -- The estimate is not less than the quotient.
+  all_goals
+    have hest := top1_est (U := words m (x.get 11#5) 4) (V := words m (x.get 12#5) 4) (by omega)
+      (words4_lt_top3 m (x.get 11#5)) (words4_ge_top3 m (x.get 12#5))
+      (Nat.lt_of_lt_of_le (by norm_num) (Nat.le_add_right_of_le hS63)) hs
+  -- The submul() and the correction.
+  all_goals
+    have hv3n : (memWord m (x.get 12#5 + 24#64).toNat).toNat = 0 := by rw [hv3]; rfl
+    have hest' := hest
+    have hV0 : 0 < words m (x.get 12#5) 4 := by
+      have : 0 < 2 ^ (64 * 2) := by positivity
+      omega
+    simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, Nat.mul_zero,
+      Nat.add_zero, hv3n] at hest' hV0
+    rv_fold hest'
+    rv_fold hV0
+    try rw [← hu1e] at hest' hV0
+    try rw [← hu2e] at hest' hV0
+    try rw [← huee] at hest' hV0
+    try rw [← hv1e] at hest' hV0
+    refine top1_2_tail base T x m hpre0 hr _ _ ?_ ?_ ?_ ?_ (unchangedExcept2_s0 _ _ _ _ hsn) ?_ ?_ ?_
+    all_goals try simp (config := { decide := true }) only [Regs.get_set, ↓reduceIte]
+    · intro i hi
+      simp only [calleeSaved, List.mem_cons, List.not_mem_nil, or_false] at hi
+      rcases hi with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+        rfl | rfl <;> simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte] <;>
+        exact (Regs.eq_get x (by decide)).symm
+    · simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, Nat.mul_zero,
+        Nat.add_zero, hv3n]
+      rv_loads
+      rfl
+    · simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, Nat.mul_zero,
+        Nat.add_zero, hv3n]
+      rv_loads
+      try rw [← hu1e]
+      try rw [← hu2e]
+      try rw [← huee]
+      try rw [← hv1e]
+      apply submul3_words
+      all_goals assumption
+    · exact hest
+
+/-- The run of `udivrem_top1<2, 256, 256>()` for any immediates `hi` and `lo` of the address `T`
+of the table of the reciprocal, with the frame of 16 bytes below sp outside the table. -/
+theorem udivrem_top1_2.reach (hi : BitVec 20) (lo : BitVec 12) (base T : BitVec 64) (x : Regs)
+    (m : Mem) (hT : pcAt base 89 + ((hi ++ 0x000#12).signExtend 64 + lo.signExtend 64) = T)
+    (hw : T.toNat + 8 * 256 ≤ 2 ^ 64) (hr : x.get 1#5 &&& 3 = 0)
+    (hstk : (x.get 2#5 - 16#64).toNat + 16 ≤ T.toNat ∨ T.toNat + 8 * 256 ≤ (x.get 2#5 - 16#64).toNat)
+    (hhold : HoldsData m T reciprocal_2by1_image_data) (hpre : udivrem_top1_2.pre x m) :
+    Reach (udivrem_top1_2.bufs x ++ bufWords T 256) (udivrem_top1_2_progAt hi lo) base
+      (pcAt base 0) x m (x.get 1#5) (udivrem_top1_2.post x m) := by
+  have hpre0 := hpre
+  simp only [udivrem_top1_2.pre, udivrem_top1_2.bufs, Buf] at hpre ⊢
+  simp (disch := decide) only [Regs.eq_get x] at hpre ⊢
+  obtain ⟨⟨hra, hrn⟩, ⟨hua, hun⟩, ⟨hva, hvn⟩, hdru, hdrv, ⟨hsa, hsn⟩, hdsu, hdsv, hdsr, hv1, hv2,
+    hu3⟩ := hpre
+  simp only [Disjoint] at hdru hdsu hdsv
+  have hv3 := top4_zero m (x.get 12#5) hv2
+  rv_exec_cut 6
+  -- u < v: the quotient 0 and the remainder u.
+  all_goals first
+    | (fail_if_success rv_not_at 6; skip)
+    | (rv_val
+       rw [update_aligned hr]
+       refine Reach.refl ?_
+       simp only [udivrem_top1_2.post, calleeSaved, List.mem_cons, List.not_mem_nil, or_false,
+         forall_eq_or_imp, forall_eq]
+       simp (disch := decide) only [Regs.eq_get x]
+       have hlt := words_lt_of_top3 m (x.get 11#5) (x.get 12#5)
+       rv_fold hlt
+       have hc := ite_xor_one_eq_zero ‹Defn _ (if (_ : BitVec 64) < _ then 1#64 else 0#64)›
+         ‹(_ : BitVec 64) ^^^ 1#64 = 0#64›
+       have hUV := hlt (by assumption) hv3 hc
+       refine ⟨?_, ?_, ?_, ?_⟩
+       · rw [(words_ret8 m (x.get 10#5) _ _ _ _ _ 0 rfl hrn _ rfl).1, Nat.div_eq_of_lt hUV]; rfl
+       · rw [(words_ret8 m (x.get 10#5) _ _ _ _ _ 0 rfl hrn _ rfl).2.1, Nat.mod_eq_of_lt hUV]
+         simp only [Defn] at *
+         subst_vars
+         simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, Nat.mul_zero,
+           Nat.add_zero]
+       · exact unchangedExcept2_of _ _ (words_ret8 m (x.get 10#5) _ _ _ _ _ 0 rfl hrn _ rfl).2.2
+       · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte]
+         refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+         exact Regs.eq_get x (by decide))
+  -- The paths meet at 0x18.
+  all_goals
+    refine top1_2_main hi lo base T x m hT hw hr hstk hhold hpre0 _ ?_ ?_ ?_ ?_ ?_
+    · simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte]
+    · intro r hr
+      simp only [List.mem_cons, List.not_mem_nil, or_false, not_or] at hr
+      obtain ⟨h13, h14, h15, h16⟩ := hr
+      simp (config := { decide := true }) only [Regs.set_apply, h13, h14, h15, h16, ↓reduceIte]
+    all_goals
+      simp (config := { decide := true }) only [Regs.set_apply, ↓reduceIte]
+      try simp (disch := decide) only [Regs.eq_get x]
+      assumption
+
+theorem udivrem_top1_2.proof_of_decodes (hdec : udivrem_top1_2.decodes) : udivrem_top1_2.spec := by
+  apply runsI_of_reach hdec
+  intro base ret _ hr _ _ hw x m hx1 hbufs hhold hpre
+  rw [show udivrem_top1_2_image_dataOff = 840 from rfl] at hw hhold hbufs ⊢
+  rw [show udivrem_top1_2_image_data.length = 256 from rfl] at hw hbufs ⊢
+  have hx : x.get 1#5 = ret := by rw [← Regs.eq_get x (by decide)]; exact hx1
+  have hpre' := hpre
+  simp only [udivrem_top1_2.pre, Buf] at hpre'
+  simp (disch := decide) only [Regs.eq_get x] at hpre'
+  have hst := frame16_outside (x 2#5) base 840 (8 * 256)
+    (hbufs _ (List.mem_append_right _ (mem_bufWords_zero (by norm_num))))
+    (hbufs _ (List.mem_append_right _ (mem_bufWords (by norm_num))))
+    (by rw [Regs.eq_get x (by decide)]; exact hpre'.2.2.2.2.2.1.2) (by norm_num)
+  rw [Regs.eq_get x (by decide)] at hst
+  rw [show udivrem_top1_2_entry = udivrem_top1_2_image_udivrem_top1_2_offset from rfl, dataWords,
+    ← hx]
+  refine Reach.lift udivrem_top1_2_image_udivrem_top1_2_in (by decide) ?_
+  have hT : (base + BitVec.ofNat 64 840).toNat = base.toNat + 840 := by
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
+  have h := udivrem_top1_2.reach 0x0#20 0x1e4#12
+    (pcAt base udivrem_top1_2_image_udivrem_top1_2_offset) _ x m
+    (by simp only [udivrem_top1_2_image_udivrem_top1_2_offset, pcAt, BitVec.reduceAppend,
+      BitVec.reduceSignExtend]; bv_omega)
+    (by rw [hT]; omega) (hx ▸ hr) (by rw [hT]; omega) hhold hpre
+  rwa [pcAt_zero] at h
+
+/-- The registers of the nonvacuous instance: the result, u = 2^128 and v = 2^128 above the data,
+and the frame below sp. -/
+theorem udivrem_top1_2.nonvacuous :
+    NonVacuousI udivrem_top1_2_image_code udivrem_top1_2_image_data udivrem_top1_2_image_dataOff
+      udivrem_top1_2.bufs udivrem_top1_2.pre :=
+  nonVacuousI_of_args (fun i => if i = 10#5 then 0x80000C00#64 else if i = 11#5 then 0x80000C40#64
+      else if i = 12#5 then 0x80000C60#64 else if i = 2#5 then 0x80000CA0#64 else 0)
+    0x80000C40 [0, 0, 1, 0, 0, 0, 1, 0]
+    (by decide) (by decide) (by decide) (by decide)
+    (by rw [show udivrem_top1_2_image_dataOff = 840 from rfl,
+          show udivrem_top1_2_image_data.length = 256 from rfl]
+        simp only [udivrem_top1_2.bufs, ↓reduceIte, BitVec.reduceEq, BitVec.reduceSub, bufWords,
+          List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil, or_false,
+          forall_eq_or_imp, forall_eq]
+        repeat' apply And.intro
+        all_goals decide)
+    (by decide)
+    (fun m => by
+      simp only [udivrem_top1_2.pre, Buf, Disjoint, words, ↓reduceIte, BitVec.reduceEq,
+        BitVec.ofNat_eq_ofNat, BitVec.reduceAdd, BitVec.reduceSub, BitVec.toNat_ofNat,
+        Nat.reducePow, Nat.reduceMod, Nat.mul_zero, Nat.add_zero]
+      simp (disch := decide) only [memWord_storeWords_getD]
+      decide)
+
+end IntxRV.Api

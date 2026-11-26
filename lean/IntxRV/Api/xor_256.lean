@@ -1,0 +1,40 @@
+import IntxRV.Gen.Api.xor_256
+import IntxRV.TacticM
+/-!
+# `operator^` of `uint256`
+
+The specification, from `include/intx/intx.hpp`:
+
+```cpp
+/// @post result = x ^^^ y
+friend constexpr uint operator^(const uint& x, const uint& y) noexcept
+```
+
+`xor_256.spec` states it for the RV64 machine code of `xor_256` in `IntxRV/Api.cpp` (generated in
+`IntxRV/Gen/Api/`, see `IntxRV/README.md`). `rv_runm` proves that the machine code computes
+`List.zipWith` of the word operation, and `val_zipWith_xor` gives the number.
+-/
+
+-- rv_runm evaluates the runs with simp, and passes it lemmas some paths do not use.
+set_option maxHeartbeats 4000000
+set_option maxRecDepth 100000
+set_option linter.unusedSimpArgs false
+
+namespace IntxRV.Api
+open IntxRV IntxRV.Gen Intx Intx.Model
+
+theorem xor_256.model (hdec : xor_256.decodes) :
+    RunsM xor_256_code xor_256.bufs xor_256.pre fun x m x' m' =>
+      wordList m' (x 10#5) 4 =
+        List.zipWith (· ^^^ ·) (wordList m (x 11#5) 4) (wordList m (x 12#5) 4) ∧
+      UnchangedExcept m m' (x 10#5) 32 ∧ ∀ i ∈ calleeSaved, x' i = x i := by
+  rv_runm hdec with xor_256_code xor_256_prog using [xor_256.bufs, xor_256.pre, Buf,
+    Disjoint]
+
+theorem xor_256.proof_of_decodes (hdec : xor_256.decodes) : xor_256.spec :=
+  (xor_256.model hdec).mono (fun _ _ h => h) fun x m x' m' _ ⟨h, hu, hc⟩ => by
+    refine ⟨?_, hu, hc⟩
+    simp only [← val_wordList, h]
+    exact val_zipWith_xor _ _ (by simp only [length_wordList])
+
+end IntxRV.Api

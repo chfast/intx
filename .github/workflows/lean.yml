@@ -1,0 +1,118 @@
+# The proofs of the RV64 machine code (lean/). They run on GitHub Actions: its runner for public
+# repositories has 16 GB, twice the memory of the CircleCI one, and a job may take 6 hours, so a
+# build without the cache fits in one run.
+name: lean
+
+on:
+  push:
+    branches: [fv/main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lean-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lean:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 355
+    env:
+      ELAN_VERSION: v4.2.4
+      ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+    defaults:
+      run:
+        working-directory: lean
+    steps:
+      - name: Install tools
+        working-directory: .
+        run: |
+          sudo apt-get update -q
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
+            clang-21 lld g++-riscv64-linux-gnu zstd
+          clang++-21 --version | head -1
+          ld.lld --version
+      # The Mathlib build and the build of the proofs take 15 GB.
+      - name: Free the disk
+        working-directory: .
+        run: |
+          df -h /
+          if [ "$(df --output=avail -BG / | tail -1 | tr -dc 0-9)" -lt 30 ]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+              /opt/hostedtoolcache/CodeQL
+            df -h /
+          fi
+      - uses: actions/checkout@v4
+      - name: Install Lean
+        working-directory: .
+        run: |
+          curl -sSfL -o /tmp/elan.tar.gz https://github.com/leanprover/elan/releases/download/$ELAN_VERSION/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo "$ELAN_SHA256  /tmp/elan.tar.gz" | sha256sum -c
+          tar xzf /tmp/elan.tar.gz -C /tmp
+          /tmp/elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+      - uses: actions/cache@v4
+        with:
+          path: lean/.lake/packages
+          key: lean-packages-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}
+      - name: Get the Mathlib build
+        run: lake exe cache get
+      - name: Generate the RV64 machine code and the specifications
+        run: CXX=clang++-21 scripts/rv_build.sh
+      # The build of the proofs is cached: Lake compares the hashes of the sources and of their
+      # imports, so a run rebuilds only the proofs of the changed code and specifications, and a
+      # new word adds only its proof in Gen/Decode/.
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            lean/.lake/build/lib/lean
+            lean/.lake/build/ir
+          key: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-${{ github.run_id }}
+          restore-keys: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-
+      # The runner has 4 CPUs and 16 GB: 4 Lean processes, as many of them as fit in 13 GB by the
+      # peaks of the modules in scripts/lake_build.py. The build of the generated files of an
+      # earlier layout or of removed instances is deleted, so that the cache does not keep it.
+      - name: Check the proofs and their axioms
+        timeout-minutes: 320
+        run: |
+          shopt -s globstar nullglob
+          for f in .lake/build/lib/lean/IntxRV/Gen/** .lake/build/ir/IntxRV/Gen/**; do
+            [ -f "$f" ] || continue
+            m=${f#.lake/build/lib/lean/}
+            m=${m#.lake/build/ir/}
+            [ -e "${m%%.*}.lean" ] || rm -f "$f"
+          done
+          LEAN_NUM_THREADS=4 scripts/lake_build.py --budget 13 --log "$RUNNER_TEMP/modules.log" \
+            Intx IntxRV Checks
+      # A cancelled or timed out step leaves Lean processes that still write the build, and the
+      # cache below fails when a file changes while it is archived: stop them first, so that the
+      # cache keeps the modules built so far.
+      - name: Stop the build
+        if: always()
+        run: |
+          pkill -x lake || true
+          # scripts/lake_build.py starts no more Lean processes after Lake exits, and those that
+          # it starts until then are stopped here too.
+          while pgrep -x lean > /dev/null; do pkill -x lean || true; sleep 1; done
+      # The times of Lake include the waits for the memory: the log has the peak, the time and the
+      # wait of each module, for PEAKS in scripts/lake_build.py.
+      - name: Show the peaks of the modules
+        id: modules
+        if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/modules.log" ] || exit 0
+          echo built=true >> "$GITHUB_OUTPUT"
+          sort -k2 -rn "$RUNNER_TEMP/modules.log" | head -30
+          awk '{t += $4; w += $7} END {printf "%d modules, %.0f s in Lean, %.0f s waited\n", NR, t, w}' \
+            "$RUNNER_TEMP/modules.log"
+      # A run that built no module keeps the restored cache.
+      - uses: actions/cache/save@v4
+        if: always() && steps.modules.outputs.built == 'true'
+        with:
+          path: |
+            lean/.lake/build/lib/lean
+            lean/.lake/build/ir
+          key: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Check the hashes of the modeled C++ code
+        run: scripts/check-source.py

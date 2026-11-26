@@ -1,0 +1,201 @@
+import IntxRV.RunM
+/-!
+# Numbers in memory
+
+`words m a k` is the number that the `k` 64-bit words at `a` in the memory `m` store,
+little-endian: the value of a `uint<64 k>` at `a`. `bufWords a k` are the addresses of these
+words. The lemmas evaluate `memWord` after `memStore`.
+-/
+
+namespace IntxRV
+
+/-- The number of the `k` words at `a` in `m`, the lowest word first. -/
+def words (m : Mem) (a : BitVec 64) : Nat → Nat
+  | 0 => 0
+  | k + 1 => (memWord m a.toNat).toNat + 2 ^ 64 * words m (a + 8) k
+
+/-- The addresses of the `k` words at `a`. -/
+def bufWords (a : BitVec 64) : Nat → List (BitVec 64)
+  | 0 => []
+  | k + 1 => a :: bufWords (a + 8) k
+
+/-- The addresses of the aligned words of the `k` bytes at `a` of any alignment, one for each byte,
+so that the address of a byte load or store is in the list as it is (`IntxRV/Bytes.lean`). -/
+def bufBytes (a : BitVec 64) : Nat → List (BitVec 64)
+  | 0 => []
+  | k + 1 => (a &&& ~~~7#64) :: bufBytes (a + 1#64) k
+
+theorem getElem?_memStore_of_ne (m : Mem) (a : Nat) (v : BitVec 64) (k : Nat)
+    (h : k < a ∨ a + 8 ≤ k) : (memStore m a v)[k]? = m[k]? := by
+  simp only [memStore, Std.ExtHashMap.getElem?_insert, beq_iff_eq]
+  repeat rw [if_neg (by omega)]
+
+theorem getD_memStore_of_ne (m : Mem) (a : Nat) (v : BitVec 64) (k : Nat)
+    (h : k < a ∨ a + 8 ≤ k) : (memStore m a v).getD k 0 = m.getD k 0 := by
+  simp only [Std.ExtHashMap.getD_eq_getD_getElem?, getElem?_memStore_of_ne m a v k h]
+
+theorem memWord_memStore_of_ne (m : Mem) (a b : Nat) (v : BitVec 64) (h : a + 8 ≤ b ∨ b + 8 ≤ a) :
+    memWord (memStore m a v) b = memWord m b := by
+  simp only [memWord]
+  repeat rw [getD_memStore_of_ne _ _ _ _ (by omega)]
+
+theorem memHalf_memStore_of_ne (m : Mem) (a b : Nat) (v : BitVec 64) (h : a + 8 ≤ b ∨ b + 4 ≤ a) :
+    memHalf (memStore m a v) b = memHalf m b := by
+  simp only [memHalf]
+  repeat rw [getD_memStore_of_ne _ _ _ _ (by omega)]
+
+theorem memByte_memStore_of_ne (m : Mem) (a b : Nat) (v : BitVec 64) (h : a + 8 ≤ b ∨ b + 1 ≤ a) :
+    memByte (memStore m a v) b = memByte m b := by
+  simp only [memByte]
+  rw [getD_memStore_of_ne _ _ _ _ (by omega)]
+
+theorem append_extractLsb'_8 (v : BitVec 64) :
+    @Eq (BitVec 64) (v.extractLsb' 56 8 ++ v.extractLsb' 48 8 ++ v.extractLsb' 40 8 ++
+      v.extractLsb' 32 8 ++ v.extractLsb' 24 8 ++ v.extractLsb' 16 8 ++ v.extractLsb' 8 8 ++
+      v.extractLsb' 0 8) v := by
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  simp only [BitVec.getLsbD_append, BitVec.getLsbD_extractLsb']
+  have hd : ∀ (c : Prop) [Decidable c] (b : Bool), c → (decide c && b) = b := by
+    intro c _ b hc; simp [hc]
+  repeat' split
+  all_goals rw [hd]
+  all_goals first | (congr 1; omega) | omega
+
+theorem memWord_memStore_self (m : Mem) (a : Nat) (v : BitVec 64) :
+    memWord (memStore m a v) a = v := by
+  simp only [memWord, memStore, Std.ExtHashMap.getD_insert, beq_iff_eq]
+  simp only [Nat.add_left_cancel_iff, Nat.add_eq_left, ↓reduceIte,
+    show (7 : Nat) ≠ 0 by decide, show (6 : Nat) ≠ 0 by decide, show (5 : Nat) ≠ 0 by decide,
+    show (4 : Nat) ≠ 0 by decide, show (3 : Nat) ≠ 0 by decide, show (2 : Nat) ≠ 0 by decide,
+    show (1 : Nat) ≠ 0 by decide]
+  simp (config := { decide := true }) only [↓reduceIte]
+  exact append_extractLsb'_8 v
+
+/-! ## The vocabulary of the specifications -/
+
+/-! ## The vocabulary of the specifications in the documentation of intx.hpp -/
+
+/-- A `result_with_carry<uint64_t>`. -/
+structure ResultWithCarry where
+  value : Nat
+  carry : Bool
+
+/-- A `div_result<uint64_t>`. -/
+structure DivResult where
+  quot : Nat
+  rem : Nat
+
+/-- The value of the `N`-bit number `x` as a two's complement signed number. -/
+def signed (N x : Nat) : Int := if x < 2 ^ (N - 1) then x else (x : Int) - 2 ^ N
+
+/-- The `len` bytes at `a` are a buffer of words: `a` is aligned to 8 bytes and the buffer does
+not wrap around the address space. -/
+def Buf (a : BitVec 64) (len : Nat) : Prop := a.toNat % 8 = 0 ∧ a.toNat + len ≤ 2 ^ 64
+
+/-- The `len` bytes at `a`, of any alignment, do not wrap around the address space. -/
+def BufBytes (a : BitVec 64) (len : Nat) : Prop := a.toNat + len ≤ 2 ^ 64
+
+/-- The `la` bytes at `a` and the `lb` bytes at `b` do not overlap. -/
+def Disjoint (a : BitVec 64) (la : Nat) (b : BitVec 64) (lb : Nat) : Prop :=
+  a.toNat + la ≤ b.toNat ∨ b.toNat + lb ≤ a.toNat
+
+/-- The memory `m'` is `m` except for the `len` bytes at `a`. -/
+def UnchangedExcept (m m' : Mem) (a : BitVec 64) (len : Nat) : Prop :=
+  ∀ k, k < a.toNat ∨ a.toNat + len ≤ k → m'[k]? = m[k]?
+
+theorem unchangedExcept_refl (m : Mem) (a : BitVec 64) (len : Nat) : UnchangedExcept m m a len :=
+  fun _ _ => rfl
+
+theorem unchangedExcept_memStore {m m' : Mem} {a : BitVec 64} {len : Nat} (b : Nat)
+    (v : BitVec 64) (hb : a.toNat ≤ b ∧ b + 8 ≤ a.toNat + len) :
+    UnchangedExcept m (memStore m' b v) a len ↔ UnchangedExcept m m' a len := by
+  constructor <;> intro h k hk
+  · rw [← getElem?_memStore_of_ne m' b v k (by omega)]; exact h k hk
+  · rw [getElem?_memStore_of_ne _ _ _ _ (by omega)]; exact h k hk
+
+/-- The memory `m'` is `m` except for the `la` bytes at `a` and the `lb` bytes at `b`. -/
+def UnchangedExcept2 (m m' : Mem) (a : BitVec 64) (la : Nat) (b : BitVec 64) (lb : Nat) : Prop :=
+  ∀ k, k < a.toNat ∨ a.toNat + la ≤ k → k < b.toNat ∨ b.toNat + lb ≤ k → m'[k]? = m[k]?
+
+theorem unchangedExcept2_refl (m : Mem) (a : BitVec 64) (la : Nat) (b : BitVec 64) (lb : Nat) :
+    UnchangedExcept2 m m a la b lb :=
+  fun _ _ _ => rfl
+
+theorem unchangedExcept2_memStore {m m' : Mem} {a b : BitVec 64} {la lb : Nat} (c : Nat)
+    (v : BitVec 64)
+    (hc : a.toNat ≤ c ∧ c + 8 ≤ a.toNat + la ∨ b.toNat ≤ c ∧ c + 8 ≤ b.toNat + lb) :
+    UnchangedExcept2 m (memStore m' c v) a la b lb ↔ UnchangedExcept2 m m' a la b lb := by
+  constructor <;> intro h k hka hkb
+  · rw [← getElem?_memStore_of_ne m' c v k (by omega)]; exact h k hka hkb
+  · rw [getElem?_memStore_of_ne _ _ _ _ (by omega)]; exact h k hka hkb
+
+/-- The memory `m'` is `m` except for the `la` bytes at `a`, the `lb` bytes at `b` and the `lc`
+bytes at `c`. -/
+def UnchangedExcept3 (m m' : Mem) (a : BitVec 64) (la : Nat) (b : BitVec 64) (lb : Nat)
+    (c : BitVec 64) (lc : Nat) : Prop :=
+  ∀ k, k < a.toNat ∨ a.toNat + la ≤ k → k < b.toNat ∨ b.toNat + lb ≤ k →
+    k < c.toNat ∨ c.toNat + lc ≤ k → m'[k]? = m[k]?
+
+theorem unchangedExcept3_refl (m : Mem) (a : BitVec 64) (la : Nat) (b : BitVec 64) (lb : Nat)
+    (c : BitVec 64) (lc : Nat) : UnchangedExcept3 m m a la b lb c lc :=
+  fun _ _ _ _ => rfl
+
+theorem unchangedExcept3_memStore {m m' : Mem} {a b c : BitVec 64} {la lb lc : Nat} (e : Nat)
+    (v : BitVec 64)
+    (he : a.toNat ≤ e ∧ e + 8 ≤ a.toNat + la ∨ b.toNat ≤ e ∧ e + 8 ≤ b.toNat + lb ∨
+      c.toNat ≤ e ∧ e + 8 ≤ c.toNat + lc) :
+    UnchangedExcept3 m (memStore m' e v) a la b lb c lc ↔ UnchangedExcept3 m m' a la b lb c lc := by
+  constructor <;> intro h k hka hkb hkc
+  · rw [← getElem?_memStore_of_ne m' e v k (by omega)]; exact h k hka hkb hkc
+  · rw [getElem?_memStore_of_ne _ _ _ _ (by omega)]; exact h k hka hkb hkc
+
+/-- The word at `c` outside the bytes at `a` and `b` that may change. -/
+theorem memWord_of_unchangedExcept2 {m m' : Mem} {a b : BitVec 64} {la lb : Nat}
+    (h : UnchangedExcept2 m m' a la b lb) (c : Nat) (ha : c + 8 ≤ a.toNat ∨ a.toNat + la ≤ c)
+    (hb : c + 8 ≤ b.toNat ∨ b.toNat + lb ≤ c) : memWord m' c = memWord m c := by
+  simp only [memWord, Std.ExtHashMap.getD_eq_getD_getElem?]
+  rw [h c (by omega) (by omega), h (c + 1) (by omega) (by omega), h (c + 2) (by omega) (by omega),
+    h (c + 3) (by omega) (by omega), h (c + 4) (by omega) (by omega),
+    h (c + 5) (by omega) (by omega), h (c + 6) (by omega) (by omega),
+    h (c + 7) (by omega) (by omega)]
+
+/-- The words outside the bytes that may change. -/
+theorem words_of_unchangedExcept2 {m m' : Mem} {a b : BitVec 64} {la lb : Nat}
+    (h : UnchangedExcept2 m m' a la b lb) : ∀ (n : Nat) (c : BitVec 64), c.toNat + 8 * n ≤ 2 ^ 64 →
+      (c.toNat + 8 * n ≤ a.toNat ∨ a.toNat + la ≤ c.toNat) →
+      (c.toNat + 8 * n ≤ b.toNat ∨ b.toNat + lb ≤ c.toNat) → words m' c n = words m c n
+  | 0, _, _, _, _ => rfl
+  | n + 1, c, hc, ha, hb => by
+    rw [words, words, memWord_of_unchangedExcept2 h c.toNat (by omega) (by omega)]
+    cases n with
+    | zero => rfl
+    | succ k =>
+      have h8 : (c + 8).toNat = c.toNat + 8 := by
+        rw [BitVec.toNat_add]; simp; omega
+      rw [words_of_unchangedExcept2 h (k + 1) (c + 8) (by omega) (by omega) (by omega)]
+
+/-- The four words at `a`. -/
+theorem words4_unfold (m : Mem) (a : BitVec 64) :
+    words m a 4 = (memWord m a.toNat).toNat + 2 ^ 64 * ((memWord m (a + 8#64).toNat).toNat +
+      2 ^ 64 * ((memWord m (a + 16#64).toNat).toNat +
+      2 ^ 64 * (memWord m (a + 24#64).toNat).toNat)) := by
+  simp only [words, BitVec.ofNat_eq_ofNat, BitVec.add_assoc, BitVec.reduceAdd, Nat.mul_zero,
+    Nat.add_zero]
+
+theorem ofNat_add8 (i : Nat) : BitVec.ofNat 64 (8 * i) + 8 = BitVec.ofNat 64 (8 * (i + 1)) := by
+  bv_omega
+
+theorem ofNat_sub1 (i : Nat) (h : 1 ≤ i) (hi : i < 2 ^ 64) :
+    BitVec.ofNat 64 i + 18446744073709551615#64 = BitVec.ofNat 64 (i - 1) := by
+  bv_omega
+
+theorem ptr_sub8 (p : BitVec 64) (k : Nat) (h : 1 ≤ k) (hk : 8 * k < 2 ^ 64) :
+    p + BitVec.ofNat 64 (8 * k) + 18446744073709551608#64 = p + BitVec.ofNat 64 (8 * (k - 1)) := by
+  bv_omega
+
+theorem ofNat_sub1_eq_zero (i : Nat) (hi : i < 2 ^ 64)
+    (h : BitVec.ofNat 64 i + 18446744073709551615#64 = 0#64) : i = 1 := by
+  bv_omega
+
+end IntxRV
