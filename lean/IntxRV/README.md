@@ -20,10 +20,9 @@ models (`Intx.Proofs`) then give the specification of the machine code.
    `Gen/Code/p.lean` for each instance `p`: its machine code (the words of its section of the
    object file, which must have no relocations, or of its image) and the instructions that the
    words decode to; `Gen/Decode/`: the proofs that the decoder of the Sail model decodes the
-   words so, in 192 files by the hash of the word, which build in parallel and of which new code
-   rebuilds only those with its new words; `Gen/Decodes/p.lean`: the proof that the code of `p`
-   decodes to its instructions; and, for the specifications, the bytes of the stack that each
-   function uses (its frame). Then
+   words so, a file for each word, which build in parallel; `Gen/Decodes/p.lean`: the proof that
+   the code of `p` decodes to its instructions; and, for the specifications, the bytes of the stack
+   that each function uses (its frame). Then
    [`../scripts/rv_api.py`](../scripts/rv_api.py) writes the specification of each instance to
    `Gen/Api/p.lean`, the proof of the specification to `Gen/Proof/p.lean`, the specifications of
    the models to `../Intx/Gen/Spec.lean`, and their checks to `../Checks/Gen/IntxRVApi.lean` and
@@ -44,8 +43,8 @@ change of `udivrem_by2()` rebuilds 14 proofs, its own, the 8 of the instances wh
 code and 5 through the lemma modules. A new word of machine code and a change of other lines of
 `intx.hpp` rebuild no proof: the generated files have no line numbers of `intx.hpp`. The proofs of
 the words import only the decoder and the machine ([`Decode.lean`](Decode.lean),
-[`Machine.lean`](Machine.lean)): a change of the semantics of the instructions rebuilds the proofs
-of the functions but not of the words.
+[`Machine.lean`](Machine.lean)): new code adds only the proofs of its new words, and a change of
+the semantics of the instructions rebuilds the proofs of the functions but not of the words.
 
 ## The proof of a function
 

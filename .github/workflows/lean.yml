@@ -62,7 +62,7 @@ jobs:
         run: CXX=clang++-21 scripts/rv_build.sh
       # The build of the proofs is cached: Lake compares the hashes of the sources and of their
       # imports, so a run rebuilds only the proofs of the changed code and specifications, and a
-      # new word rebuilds only its file of Gen/Decode/.
+      # new word adds only its proof in Gen/Decode/.
       - uses: actions/cache/restore@v4
         with:
           path: |
