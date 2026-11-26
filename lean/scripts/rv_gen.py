@@ -580,8 +580,8 @@ def main():
     words = sorted({w for code in funcs.values() for w in code} |
                    {w for im in images.values() for w in im["img"]})
     # The proof that the decoder decodes a word, in a file of its own: new code rebuilds only the
-    # proofs of its new words, and the files build in parallel. The proofs of the words of one
-    # file would take as long, as they share no work.
+    # proofs of its new words, and the files build in parallel. A file of its own adds the import
+    # of the Sail model, under a second, to the 1-2 s of the proof of a word.
     gen = out / "IntxRV" / "Gen"
     (gen / "Decode").mkdir(parents=True, exist_ok=True)
     for w in words:
@@ -767,9 +767,9 @@ def main():
         [HEADER] + [f"import IntxRV.Gen.Decodes.{var}" for var in sorted(dec_mods)] + [""]))
     # The files of an earlier layout or of removed instances: lake would build every module of
     # IntxRV/.
+    word_mods = {f"W{w:08x}" for w in words}
     stale = [gen / "Code.lean"] + [
-        f for f in (gen / "Decode").glob("*.lean")
-        if f.stem not in {f"W{w:08x}" for w in words}] + [
+        f for f in (gen / "Decode").glob("*.lean") if f.stem not in word_mods] + [
         f for f in (gen / "Code").glob("*.lean") if f.stem not in code_mods] + [
         f for f in (gen / "Decodes").glob("*.lean") if f.stem not in dec_mods]
     for f in stale:
