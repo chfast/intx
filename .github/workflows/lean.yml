@@ -83,7 +83,8 @@ jobs:
             m=${m#.lake/build/ir/}
             [ -e "${m%%.*}.lean" ] || rm -f "$f"
           done
-          LEAN_NUM_THREADS=4 scripts/lake_build.py --budget 13 Intx IntxRV Checks
+          LEAN_NUM_THREADS=4 scripts/lake_build.py --budget 13 --log "$RUNNER_TEMP/modules.log" \
+            Intx IntxRV Checks
       # A cancelled or timed out step leaves Lean processes that still write the build, and the
       # cache below fails when a file changes while it is archived: stop them first, so that the
       # cache keeps the modules built so far.
@@ -94,6 +95,15 @@ jobs:
           # scripts/lake_build.py starts no more Lean processes after Lake exits, and those that
           # it starts until then are stopped here too.
           while pgrep -x lean > /dev/null; do pkill -x lean || true; sleep 1; done
+      # The times of Lake include the waits for the memory: the log has the peak, the time and the
+      # wait of each module, for PEAKS in scripts/lake_build.py.
+      - name: Show the peaks of the modules
+        if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/modules.log" ] || exit 0
+          sort -k2 -rn "$RUNNER_TEMP/modules.log" | head -30
+          awk '{t += $4; w += $7} END {printf "%d modules, %.0f s in Lean, %.0f s waited\n", NR, t, w}' \
+            "$RUNNER_TEMP/modules.log"
       - uses: actions/cache/save@v4
         if: always()
         with:
