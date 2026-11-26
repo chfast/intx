@@ -77,6 +77,10 @@ scripts/check-source.py
 [`IntxRV/README.md`](IntxRV/README.md#build)). Run it again after a change of `intx.hpp`. The
 models and their proofs (`lake build Intx`) do not need it.
 
+Some proofs take 4-12 GB each, and Lake runs as many Lean processes as there are threads.
+`scripts/lake_build.py Intx IntxRV Checks` runs `lake build` with the processes in 13 GB
+(`--budget GB`), by the peaks of the modules in the script, as CI does.
+
 ## Updates
 
 After a change of the modeled C++ code, update the model and the proofs and record the new hashes

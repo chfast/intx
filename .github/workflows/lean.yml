@@ -70,9 +70,9 @@ jobs:
             lean/.lake/build/ir
           key: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-${{ github.run_id }}
           restore-keys: lean-build-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}-
-      # The runner has 4 CPUs and 16 GB: 4 Lean processes, and 2 for the proofs that take 3-5 GB
-      # each. The build of the generated files of an earlier layout or of removed instances is
-      # deleted, so that the cache does not keep it.
+      # The runner has 4 CPUs and 16 GB: 4 Lean processes, as many of them as fit in 13 GB by the
+      # peaks of the modules in scripts/lake_build.py. The build of the generated files of an
+      # earlier layout or of removed instances is deleted, so that the cache does not keep it.
       - name: Check the proofs and their axioms
         timeout-minutes: 320
         run: |
@@ -83,18 +83,7 @@ jobs:
             m=${m#.lake/build/ir/}
             [ -e "${m%%.*}.lean" ] || rm -f "$f"
           done
-          LEAN_NUM_THREADS=4 lake build IntxRV.Gen.Decodes
-          # 11 GB: alone.
-          LEAN_NUM_THREADS=2 lake build IntxRV.Api.udivrem_knuth_normalized
-          # 8 GB: alone.
-          LEAN_NUM_THREADS=2 lake build IntxRV.Api.udivrem_knuth_320
-          LEAN_NUM_THREADS=2 lake build IntxRV.Api.mul_256 IntxRV.Api.umul_256 \
-            IntxRV.Api.udivrem_by1 IntxRV.Api.udivrem_by2 IntxRV.Api.udivrem_top1_2 \
-            IntxRV.Api.udivrem_top1_3 IntxRV.Api.udivrem_top2_3 IntxRV.Api.udivrem_256 \
-            IntxRV.Api.udivrem_knuth_normalized_3 IntxRV.Api.udivrem_knuth_normalized_4 \
-            IntxRV.Div512K3 IntxRV.Div512K4 IntxRV.Api.mulmod_256 IntxRV.DivBy24 \
-            IntxRV.Api.udivrem_top1_3_320 IntxRV.AddMod IntxRV.SDiv IntxRV.Exp IntxRV.ExpLoop
-          LEAN_NUM_THREADS=4 lake build Intx IntxRV Checks
+          LEAN_NUM_THREADS=4 scripts/lake_build.py --budget 13 Intx IntxRV Checks
       # A cancelled or timed out step leaves Lean processes that still write the build, and the
       # cache below fails when a file changes while it is archived: stop them first, so that the
       # cache keeps the modules built so far.
@@ -102,8 +91,9 @@ jobs:
         if: always()
         run: |
           pkill -x lake || true
-          pkill -x lean || true
-          while pgrep -x lean > /dev/null; do sleep 1; done
+          # scripts/lake_build.py starts no more Lean processes after Lake exits, and those that
+          # it starts until then are stopped here too.
+          while pgrep -x lean > /dev/null; do pkill -x lean || true; sleep 1; done
       - uses: actions/cache/save@v4
         if: always()
         with:
