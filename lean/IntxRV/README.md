@@ -42,7 +42,10 @@ through the images that hold its code or through the lemma modules. The lemmas t
 several functions use are in modules without generated code (`DivShared.lean` for the division): a
 change of `udivrem_by2()` rebuilds 14 proofs, its own, the 8 of the instances whose images hold its
 code and 5 through the lemma modules. A new word of machine code and a change of other lines of
-`intx.hpp` rebuild no proof: the generated files have no line numbers of `intx.hpp`.
+`intx.hpp` rebuild no proof: the generated files have no line numbers of `intx.hpp`. The proofs of
+the words import only the decoder and the machine ([`Decode.lean`](Decode.lean),
+[`Machine.lean`](Machine.lean)): a change of the semantics of the instructions rebuilds the proofs
+of the functions but not of the words.
 
 ## The proof of a function
 

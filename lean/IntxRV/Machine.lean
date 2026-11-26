@@ -180,4 +180,12 @@ theorem readReg_env {S s : SailState} {val : (r : Register) → RegisterType r} 
     (PreSail.readReg r : SailM (RegisterType r)) s = .ok (val r) s :=
   readReg_ok (by rw [h.other r hr, e.get])
 
+theorem get_xLPE_env {S s : SailState} {val : (r : Register) → RegisterType r} {pc npc : BitVec 64}
+    {x : Regs} (e : Env S val) (h : Inv S s pc npc x) :
+    ∃ b, get_xLPE (val .cur_privilege) s = .ok b s := by
+  rcases e.priv with hp | hp | hp <;> rw [hp] <;>
+    simp (config := { decide := true }) [get_xLPE, readReg_env e h, isRunReg, LeanRV64D.readReg,
+      currentlyEnabled, hartSupports, read_senvcfg, bind, EStateM.bind, pure, EStateM.pure,
+      ite_apply'] <;> split <;> simp
+
 end IntxRV

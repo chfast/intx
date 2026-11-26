@@ -144,14 +144,6 @@ theorem Inv.set_elp {S s : SailState} {val : (r : Register) → RegisterType r} 
       h.x7, h.x8, h.x9, h.x10, h.x11, h.x12, h.x13, h.x14, h.x15, h.x16, h.x17, h.x18, h.x19, h.x20,
       h.x21, h.x22, h.x23, h.x24, h.x25, h.x26, h.x27, h.x28, h.x29, h.x30, h.x31]
 
-theorem get_xLPE_env {S s : SailState} {val : (r : Register) → RegisterType r} {pc npc : BitVec 64}
-    {x : Regs} (e : Env S val) (h : Inv S s pc npc x) :
-    ∃ b, get_xLPE (val .cur_privilege) s = .ok b s := by
-  rcases e.priv with hp | hp | hp <;> rw [hp] <;>
-    simp (config := { decide := true }) [get_xLPE, readReg_env e h, isRunReg, LeanRV64D.readReg,
-      currentlyEnabled, hartSupports, read_senvcfg, bind, EStateM.bind, pure, EStateM.pure,
-      ite_apply'] <;> split <;> simp
-
 theorem jump_to_inv {S s : SailState} {val : (r : Register) → RegisterType r} {pc npc : BitVec 64}
     {x : Regs} (e : Env S val) (h : Inv S s pc npc x) (t : BitVec 64)
     (h0 : t.getLsbD 0 = false) (h1 : t.getLsbD 1 = false) :

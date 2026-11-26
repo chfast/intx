@@ -1,4 +1,5 @@
 import IntxRV.Semantics
+import IntxRV.Decode
 /-!
 # Running a function
 
@@ -17,9 +18,6 @@ open Sail Sail.ConcurrencyInterfaceV1 PreSail
 open LeanRV64D LeanRV64D.Functions LeanRV64D.Defs
 
 namespace IntxRV
-
-/-- The machine code of a function: its 32-bit instructions. -/
-abbrev Code := List (BitVec 32)
 
 /-- The instruction of `code` at `base` at the address `pc`. -/
 def fetch {α : Type} (code : List α) (base pc : BitVec 64) : Option α :=
@@ -60,13 +58,6 @@ def arun (prog : List instruction) (base ret : BitVec 64) : Nat → BitVec 64 �
       | some i => match exec i pc x with
         | none => none
         | some (pc', x') => arun prog base ret n pc' x'
-
-/-- The instructions `prog` are the instructions of `code` decoded by the Sail model. -/
-def Decodes (code : Code) (prog : List instruction) : Prop :=
-  code.length = prog.length ∧
-    ∀ k (hk : k < code.length) (hk' : k < prog.length) (S s : SailState)
-      (val : (r : Register) → RegisterType r) (pc npc : BitVec 64) (x : Regs),
-      Env S val → Inv S s pc npc x → ext_decode code[k] s = .ok prog[k] s
 
 theorem fetch_decodes {code : Code} {prog : List instruction} (hd : Decodes code prog)
     {base pc : BitVec 64} {i : instruction} (hf : fetch prog base pc = some i) :

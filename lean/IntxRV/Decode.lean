@@ -1,17 +1,31 @@
-import IntxRV.Run
+import IntxRV.Machine
 /-!
 # Decoding
 
 `DecodesTo w i`: the decoder of the Sail model (`ext_decode`) decodes the word `w` to the
 instruction `i`. The decoder reads the state: its guards check that extensions are enabled (`misa`
 for M, the landing pads of Zicfilp for the privilege level). The tactic `rv_decode` evaluates the
-decoder on the word in the environment.
+decoder on the word in the environment. `Decodes code prog`: the words of `code` decode to the
+instructions `prog`.
+
+The proofs of the words import this module, which imports only the machine (`Machine.lean`): a
+change of the semantics of the instructions or of the runs rebuilds no proof of a word.
 -/
 
 open Sail Sail.ConcurrencyInterfaceV1 PreSail
 open LeanRV64D LeanRV64D.Functions LeanRV64D.Defs
 
 namespace IntxRV
+
+/-- The machine code of a function: its 32-bit instructions. -/
+abbrev Code := List (BitVec 32)
+
+/-- The instructions `prog` are the instructions of `code` decoded by the Sail model. -/
+def Decodes (code : Code) (prog : List instruction) : Prop :=
+  code.length = prog.length ∧
+    ∀ k (hk : k < code.length) (hk' : k < prog.length) (S s : SailState)
+      (val : (r : Register) → RegisterType r) (pc npc : BitVec 64) (x : Regs),
+      Env S val → Inv S s pc npc x → ext_decode code[k] s = .ok prog[k] s
 
 /-- The Sail model decodes the word `w` to the instruction `i` in every environment. -/
 def DecodesTo (w : BitVec 32) (i : instruction) : Prop :=
