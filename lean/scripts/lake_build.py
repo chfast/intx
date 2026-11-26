@@ -152,7 +152,8 @@ def run_lean(args):
     gb = peak / 2**30
     if log := os.environ.get("LAKE_BUILD_LOG"):
         with open(log, "a") as f:
-            f.write(f"{module} {gb:.2f} GB {time.monotonic() - t1:.0f} s, waited {t1 - t0:.0f} s\n")
+            f.write(f"{module} {gb:.2f} GB {time.monotonic() - t1:.0f} s, waited {t1 - t0:.0f} s, "
+                    f"done {time.strftime('%H:%M:%S')}\n")
     if gb > need and need < budget:
         print(f"lake_build.py: {module} took {gb:.1f} GB, more than its {need:.1f} GB in PEAKS",
               file=sys.stderr)
